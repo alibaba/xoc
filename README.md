@@ -2,13 +2,13 @@ xoc
 =====
 
 Welcome to use XOC
-				
-What does XOC mean
+
+What does XOC mean? 
 	eXtremely Optimizing Compiler.
 	We build XOC compiler that intent to be a finely honed tool to squeezing
 	the last performance out of ordinary code.
 
-Contribution and License Agreement
+Contribution and License Agreement. 
 	If you contribute code to this project, you are implicitly allowing your
 	code to be distributed under the BSD license.
 
