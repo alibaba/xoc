@@ -1,0 +1,68 @@
+﻿Build started 2014/8/25 16:49:21.
+     1>Project "D:\X\AOT\Aliyun\src\example\ex1\ex1\ex1.vcxproj" on node 2 (build target(s)).
+     1>InitializeBuildStatus:
+         Touching "Debug\ex1.unsuccessfulbuild".
+       ClCompile:
+         All outputs are up-to-date.
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\X\AOT\Aliyun\src\example\ex1\ex1\Debug\ex1.exe" /INCREMENTAL:NO /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\ex1.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\X\AOT\Aliyun\src\example\ex1\ex1\Debug\ex1.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\X\AOT\Aliyun\src\example\ex1\ex1\Debug\ex1.lib" /MACHINE:X86 Debug\bs.obj
+         Debug\comf.obj
+         Debug\flty.obj
+         Debug\ltype.obj
+         Debug\rational.obj
+         Debug\sgraph.obj
+         Debug\smempool.obj
+         Debug\callg.obj
+         Debug\cdg.obj
+         Debug\cfs_mgr.obj
+         Debug\cfs_opt.obj
+         Debug\data_type.obj
+         Debug\dbg.obj
+         Debug\goto_opt.obj
+         Debug\if_opt.obj
+         Debug\inliner.obj
+         Debug\ipa.obj
+         Debug\ir.obj
+         Debug\ir_aa.obj
+         Debug\ir_bb.obj
+         Debug\ir_ccp.obj
+         Debug\ir_cfg.obj
+         Debug\ir_cp.obj
+         Debug\ir_dce.obj
+         Debug\ir_dse.obj
+         Debug\ir_du.obj
+         Debug\ir_expr_tab.obj
+         Debug\ir_gcse.obj
+         Debug\ir_gvn.obj
+         Debug\ir_high_opt.obj
+         Debug\ir_ivr.obj
+         Debug\ir_lcse.obj
+         Debug\ir_licm.obj
+         Debug\ir_middle_opt.obj
+         Debug\ir_rce.obj
+         Debug\ir_refine.obj
+         Debug\ir_rp.obj
+         Debug\ir_simp.obj
+         Debug\ir_ssa.obj
+         Debug\ir_vrp.obj
+         Debug\label.obj
+         Debug\md.obj
+         Debug\option.obj
+         Debug\pass_mgr.obj
+         Debug\prdf.obj
+         Debug\region.obj
+         Debug\util.obj
+         Debug\var.obj
+         Debug\ex1.obj
+     1>bs.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/INCREMENTAL:NO' specification
+         ex1.vcxproj -> D:\X\AOT\Aliyun\src\example\ex1\ex1\Debug\ex1.exe
+       Manifest:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"D:\X\AOT\Aliyun\src\example\ex1\ex1\Debug\ex1.exe;#1" /manifest Debug\ex1.exe.intermediate.manifest
+       FinalizeBuildStatus:
+         Deleting file "Debug\ex1.unsuccessfulbuild".
+         Touching "Debug\ex1.lastbuildstate".
+     1>Done Building Project "D:\X\AOT\Aliyun\src\example\ex1\ex1\ex1.vcxproj" (build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:00.34
