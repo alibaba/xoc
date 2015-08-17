@@ -386,7 +386,7 @@ void DX_MGR::dump_method(IN DX_INFO const& dxinfo, IN FILE * h)
 					 DXI_num_of_op(&dxinfo));
 	USHORT const* cptr = DXI_start_cptr(&dxinfo);
 	USHORT const* endptr = DXI_end_cptr(&dxinfo);
-	IS_TRUE0(cptr && endptr);
+	ASSERT0(cptr && endptr);
 	fprintf(h, "\n");
 	UINT ofst = 0; //offset to dexcode-insn-buffer.
 	if (cptr == NULL) return;
@@ -409,7 +409,7 @@ void DX_MGR::dump_method(IN DX_INFO const& dxinfo, IN FILE * h)
 void DX_MGR::dump_dx(DXC const& dc, FILE * h)
 {
 	if (h == NULL) { return; }
-	IS_TRUE0(dc.opc <= 255);
+	ASSERT0(dc.opc <= 255);
 	fprintf(h, "%s ", DX_name(dc.opc));
 	fflush(h);
 	switch (DX_fmt(dc.opc)) {
@@ -544,7 +544,7 @@ void DX_MGR::dump_dx(DXC const& dc, FILE * h)
 		fprintf(h, "v%u, %llu", dc.vA, dc.vB_wide);
 		break;
 	default:
-		IS_TRUE(0, ("Unknown dex format"));
+		ASSERT(0, ("Unknown dex format"));
 		return;
 	} //end switch
 	fflush(h);
@@ -667,7 +667,7 @@ void DX_MGR::decode_dx(IN USHORT const* cptr, IN OUT DXC & dc)
 			Copy the argument registers into the arg[] array, and
 			also copy the first argument (if any) into vC.
 			*/
-			IS_TRUE0(dc.vA <= DX_PCOUNT);
+			ASSERT0(dc.vA <= DX_PCOUNT);
 			switch (dc.vA) {
 			case 5: dc.arg[4] = INST_A(insn);
 			case 4: dc.arg[3] = (reglist >> 12) & 0x0f;
@@ -675,7 +675,7 @@ void DX_MGR::decode_dx(IN USHORT const* cptr, IN OUT DXC & dc)
 			case 2: dc.arg[1] = (reglist >> 4) & 0x0f;
 			case 1: dc.vC = dc.arg[0] = reglist & 0x0f; break;
 			case 0: break;
-			default: IS_TRUE(0, ("Invalid arg count"));
+			default: ASSERT(0, ("Invalid arg count"));
 			}
 		}
 		break;
@@ -701,6 +701,6 @@ void DX_MGR::decode_dx(IN USHORT const* cptr, IN OUT DXC & dc)
 		dc.vB_wide = FETCH_uint32(1) | ((ULONGLONG)FETCH_uint32(3) << 32);
 		break;
 	default:
-		IS_TRUE(0, ("Unknown dex format"));
+		ASSERT(0, ("Unknown dex format"));
 	} //end switch
 }

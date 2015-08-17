@@ -34,10 +34,8 @@ author: Su Zhenyu
 #ifndef __SYMTAB_H__
 #define __SYMTAB_H__
 
-/*
-Record a variety of symbols such as user defined variables,
-compiler internal variables, LABEL, ID, TYPE_NAME etc.
-*/
+//Record a variety of symbols such as user defined variables,
+//compiler internal variables, LABEL, ID, TYPE_NAME etc.
 #define SYM_name(sym)			((sym)->s)
 class SYM {
 public:
@@ -45,31 +43,33 @@ public:
 };
 
 
-class CSYM_HASH_FUNC {
+class ConstSymbolHashFunc {
 public:
-	UINT compute_char_sum(CHAR const* s) const
+	UINT computeCharSum(CHAR const* s) const
 	{
 		UINT v = 0 ;
-		while (*s++) {
+		UINT cnt = 0;
+		while ((*s++ != 0) && (cnt < 6)) {
 			v += (UINT)(*s);
+			cnt++;
 		}
 		return v;
 	}
 
 	UINT get_hash_value(SYM const* s, UINT bs) const
 	{
-		IS_TRUE0(is_power_of_2(bs));
-		UINT v = compute_char_sum(SYM_name(s));
+		ASSERT0(is_power_of_2(bs));
+		UINT v = computeCharSum(SYM_name(s));
 		return hash32bit(v) & (bs - 1);
 	}
 
 	//Note v must be const string pointer.
 	UINT get_hash_value(OBJTY v, UINT bs) const
 	{
-		IS_TRUE(sizeof(OBJTY) == sizeof(CHAR const*),
+		ASSERT(sizeof(OBJTY) == sizeof(CHAR const*),
 				("exception will taken place in type-cast"));
-		IS_TRUE0(is_power_of_2(bs));
-		UINT n = compute_char_sum((CHAR const*)v);
+		ASSERT0(is_power_of_2(bs));
+		UINT n = computeCharSum((CHAR const*)v);
 		return hash32bit(n) & (bs - 1);
 	}
 
@@ -78,38 +78,40 @@ public:
 
 	bool compare(SYM const* s, OBJTY val) const
 	{
-		IS_TRUE(sizeof(OBJTY) == sizeof(CHAR const*),
+		ASSERT(sizeof(OBJTY) == sizeof(CHAR const*),
 				("exception will taken place in type-cast"));
 		return (strcmp(SYM_name(s),  (CHAR const*)val) == 0);
 	}
 };
 
 
-class SYM_HASH_FUNC {
+class SymbolHashFunc {
 public:
-	UINT compute_char_sum(CHAR const* s) const
+	UINT computeCharSum(CHAR const* s) const
 	{
-		UINT v = 0 ;
-		while (*s++) {
+		UINT v = 0;
+		UINT cnt = 0;
+		while ((*s++ != 0) && (cnt < 6)) {
 			v += (UINT)(*s);
+			cnt++;
 		}
 		return v;
 	}
 
 	UINT get_hash_value(SYM * s, UINT bs) const
 	{
-		IS_TRUE0(is_power_of_2(bs));
-		UINT v = compute_char_sum(SYM_name(s));
+		ASSERT0(is_power_of_2(bs));
+		UINT v = computeCharSum(SYM_name(s));
 		return hash32bit(v) & (bs - 1);
 	}
 
 	//Note v must be string pointer.
 	UINT get_hash_value(OBJTY v, UINT bs) const
 	{
-		IS_TRUE(sizeof(OBJTY) == sizeof(CHAR*),
+		ASSERT(sizeof(OBJTY) == sizeof(CHAR*),
 				("exception will taken place in type-cast"));
-		IS_TRUE0(is_power_of_2(bs));
-		UINT n = compute_char_sum((CHAR*)v);
+		ASSERT0(is_power_of_2(bs));
+		UINT n = computeCharSum((CHAR*)v);
 		return hash32bit(n) & (bs - 1);
 	}
 
@@ -118,28 +120,28 @@ public:
 
 	bool compare(SYM * s, OBJTY val) const
 	{
-		IS_TRUE(sizeof(OBJTY) == sizeof(CHAR*),
+		ASSERT(sizeof(OBJTY) == sizeof(CHAR*),
 				("exception will taken place in type-cast"));
 		return (strcmp(SYM_name(s),  (CHAR*)val) == 0);
 	}
 };
 
 
-class SYM_TAB : public SHASH<SYM*, SYM_HASH_FUNC> {
-	SMEM_POOL * m_pool;
+class SymTab : public SHash<SYM*, SymbolHashFunc> {
+	SMemPool * m_pool;
 public:
-	explicit SYM_TAB(UINT bsize) : SHASH<SYM*, SYM_HASH_FUNC>(bsize)
-	{ m_pool = smpool_create_handle(64, MEM_COMM); }
-	virtual ~SYM_TAB()
-	{ smpool_free_handle(m_pool); }
+	explicit SymTab(UINT bsize) : SHash<SYM*, SymbolHashFunc>(bsize)
+	{ m_pool = smpoolCreate(64, MEM_COMM); }
+	virtual ~SymTab()
+	{ smpoolDelete(m_pool); }
 
 	inline CHAR * strdup(CHAR const* s)
 	{
 		if (s == NULL) {
 			return NULL;
 		}
-		INT l = strlen(s);
-		CHAR * ns = (CHAR*)smpool_malloc_h(l + 1, m_pool);
+		UINT l = strlen(s);
+		CHAR * ns = (CHAR*)smpoolMalloc(l + 1, m_pool);
 		memcpy(ns, s, l);
 		ns[l] = 0;
 		return ns;
@@ -147,21 +149,21 @@ public:
 
 	SYM * create(OBJTY v)
 	{
-		SYM * sym = (SYM*)smpool_malloc_h(sizeof(SYM), m_pool);
+		SYM * sym = (SYM*)smpoolMalloc(sizeof(SYM), m_pool);
 		SYM_name(sym) = strdup((CHAR const*)v);
 		return sym;
 	}
 
 	inline SYM * add(CHAR const* s)
 	{
-		UINT sz = SHASH<SYM*, SYM_HASH_FUNC>::get_bucket_size() * 4;
-		if (sz < SHASH<SYM*, SYM_HASH_FUNC>::get_elem_count()) {
-			SHASH<SYM*, SYM_HASH_FUNC>::grow(sz);
+		UINT sz = SHash<SYM*, SymbolHashFunc>::get_bucket_size() * 4;
+		if (sz < SHash<SYM*, SymbolHashFunc>::get_elem_count()) {
+			SHash<SYM*, SymbolHashFunc>::grow(sz);
 		}
-		return SHASH<SYM*, SYM_HASH_FUNC>::append((OBJTY)s);
+		return SHash<SYM*, SymbolHashFunc>::append((OBJTY)s);
 	}
 
 	inline SYM * get(CHAR const* s)
-	{ return SHASH<SYM*, SYM_HASH_FUNC>::find((OBJTY)s); }
+	{ return SHash<SYM*, SymbolHashFunc>::find((OBJTY)s); }
 };
 #endif

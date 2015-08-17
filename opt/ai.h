@@ -34,31 +34,34 @@ author: Su Zhenyu
 #ifndef __AI_H__
 #define __AI_H__
 
-//IR Attach Info.
-typedef enum _IRAI_TYPE {
-	IRAI_UNDEF = 0,
-	IRAI_DBX, //Debug Info
-	IRAI_PROF, //Profiling Info
-	IRAI_TBAA, //Type Based AA
-	IRAI_USER_DEF, //User Defined
-} IRAI_TYPE;
+//Attach Info Type.
+typedef enum _AI_TYPE {
+	AI_UNDEF = 0,
+	AI_DBX, //Debug Info
+	AI_PROF, //Profile Info
+	AI_TBAA, //Type Based AA
+	AI_USER_DEF, //User Defined
+} AI_TYPE;
 
 
-//AI content
-class AI_BASE {
+class BaseAttachInfo {
 public:
-	IRAI_TYPE type;
+	AI_TYPE type;
 
-	AI_BASE(IRAI_TYPE t) { init(t); }
-	void init(IRAI_TYPE t) { type = t; }
+	explicit BaseAttachInfo(AI_TYPE t) { init(t); }
+	COPY_CONSTRUCTOR(BaseAttachInfo);
+
+	void init(AI_TYPE t) { type = t; }
 };
 
 
-class IR_AI {
+class AttachInfo {
 public:
-	SSVEC<AI_BASE*, 1> cont;
+	SimpleVec<BaseAttachInfo*, 1> cont;
 
-	IR_AI() { init(); }
+public:
+	AttachInfo() { init(); }
+	COPY_CONSTRUCTOR(AttachInfo);
 
 	void init()
 	{
@@ -71,24 +74,25 @@ public:
 	void destroy() { cont.destroy(); }
 	void destroy_vec() { cont.destroy_vec(); }
 
-	void copy(IR_AI const* ai)
+	void copy(AttachInfo const* ai)
 	{
-		IS_TRUE0(ai);
+		ASSERT0(ai);
 		if (!ai->is_init()) { return; }
 		cont.copy(ai->cont);
 	}
 
-	void set(IRAI_TYPE type, AI_BASE * c)
+	void set(AI_TYPE type, BaseAttachInfo * c)
 	{
 		INT emptyslot = -1;
 		if (!cont.is_init()) {
 			if (c == NULL) { return; }
 			cont.init();
 		}
+
 		UINT i;
 		for (i = 0; i < cont.get_size(); i++) {
-			AI_BASE * ac = cont.get(i);
-			if (ac == NULL) { emptyslot = i; }
+			BaseAttachInfo * ac = cont.get(i);
+			if (ac == NULL) { emptyslot = (INT)i; }
 			if (ac->type != type) { continue; }
 			cont.set(i, c);
 			return;
@@ -96,18 +100,18 @@ public:
 
 		if (c != NULL) {
 			if (emptyslot != -1) {
-				cont.set(emptyslot, c);
+				cont.set((UINT)emptyslot, c);
 			} else {
 				cont.set(i, c);
 			}
 		}
 	}
 
-	AI_BASE * get(IRAI_TYPE type)
+	BaseAttachInfo * get(AI_TYPE type)
 	{
 		if (!cont.is_init()) { return NULL; }
 		for (UINT i = 0; i < cont.get_size(); i++) {
-			AI_BASE * ac = cont.get(i);
+			BaseAttachInfo * ac = cont.get(i);
 			if (ac != NULL && ac->type == type) {
 				return ac;
 			}
@@ -117,41 +121,45 @@ public:
 };
 
 
-class DBX_AI : public AI_BASE {
+class DbxAttachInfo : public BaseAttachInfo {
 public:
-	DBX dbx; //record debug info.
+	Dbx dbx; //record debug info.
 
-	DBX_AI() : AI_BASE(IRAI_DBX) { init(); }
+	DbxAttachInfo() : BaseAttachInfo(AI_DBX) { init(); }
+	COPY_CONSTRUCTOR(DbxAttachInfo);
+
 	void init()
 	{
-		AI_BASE::init(IRAI_DBX);
+		BaseAttachInfo::init(AI_DBX);
 		dbx.clean();
 	}
 };
 
 
-class PROF_AI : public AI_BASE {
+class ProfileAttachInfo : public BaseAttachInfo {
 public:
 	SYM const* tag;
 
 	//truebr freq, falsebr freq.
 	INT * data;
 
-	PROF_AI() : AI_BASE(IRAI_DBX) { init(); }
+	ProfileAttachInfo() : BaseAttachInfo(AI_DBX) { init(); }
+	COPY_CONSTRUCTOR(ProfileAttachInfo);
 
 	void init()
 	{
-		AI_BASE::init(IRAI_PROF);
+		BaseAttachInfo::init(AI_PROF);
 		tag = NULL;
 		data = NULL;
 	}
 };
 
 
-class TBAA_AI : public AI_BASE {
+class TbaaAttachInfo : public BaseAttachInfo {
 public:
-	UINT tyid; //tyid start from 1.
+	Type const* type;
 
-	TBAA_AI() : AI_BASE(IRAI_TBAA) {}
+	TbaaAttachInfo() : BaseAttachInfo(AI_TBAA) {}
+	COPY_CONSTRUCTOR(TbaaAttachInfo);
 };
 #endif

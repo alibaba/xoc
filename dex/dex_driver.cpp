@@ -67,11 +67,11 @@ author: Su Zhenyu
 #include "dex_driver.h"
 
 //Ensure RETURN IR at the end of function if its return-type is VOID.
-static void add_ret(IR * irs, REGION * ru)
+static void add_ret(IR * irs, Region * ru)
 {
 	IR * last = get_last(irs);
 	if (last != NULL && IR_type(last) != IR_RETURN) {
-		IR * ret = ru->build_return(NULL);
+		IR * ret = ru->buildReturn(NULL);
 		if (irs == NULL) {
 			irs = ret;
 		} else {
@@ -81,22 +81,23 @@ static void add_ret(IR * irs, REGION * ru)
 }
 
 
-static void update_fu(LIRCode * fu, DEX2IR & d2ir, IR2DEX & ir2d)
+//Upate try-catch info if any.
+static void updateLIRCode(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
 {
 	TRY_INFO * ti = d2ir.get_try_info();
 	LAB2UINT * lab2idx = ir2d.get_lab2idx();
 	if (ti != NULL) {
-		IS_TRUE0(fu->trys);
+		ASSERT0(lircode->trys);
 		UINT i = 0;
 		for (; ti != NULL; ti = ti->next, i++) {
 			bool find;
 			UINT idx = lab2idx->get(ti->try_start, &find);
-			IS_TRUE0(find);
-			LIROpcodeTry * each_try = fu->trys + i;
+			ASSERT0(find);
+			LIROpcodeTry * each_try = lircode->trys + i;
 			each_try->start_pc = idx;
 
 			idx = lab2idx->get(ti->try_end, &find);
-			IS_TRUE0(find);
+			ASSERT0(find);
 
 			/*
 			The means of value of try end position is not
@@ -111,33 +112,34 @@ static void update_fu(LIRCode * fu, DEX2IR & d2ir, IR2DEX & ir2d)
 				corresponding to.
 			*/
 			each_try->end_pc = idx;
-			//IS_TRUE0(each_try->end_pc > each_try->start_pc);
+			//ASSERT0(each_try->end_pc > each_try->start_pc);
 
 			UINT j = 0;
 			for (CATCH_INFO * ci = ti->catch_list;
 				 ci != NULL; ci = ci->next, j++) {
-				IS_TRUE0(each_try->catches);
+				ASSERT0(each_try->catches);
 				LIROpcodeCatch * each_catch = each_try->catches + j;
 
 				UINT idx = lab2idx->get(ci->catch_start, &find);
-				IS_TRUE0(find);
+				ASSERT0(find);
 				each_catch->handler_pc = idx;
 				each_catch->class_type = ci->kind;
 			}
+
 			if (ti->catch_list != NULL) {
-				IS_TRUE0(j == each_try->catchSize);
+				ASSERT0(j == each_try->catchSize);
 			}
 		}
-		IS_TRUE0(i == fu->triesSize);
+		ASSERT0(i == lircode->triesSize);
 	}
 }
 
 
-static IR * do_opt_only_test(IR * ir_list, DEX_REGION * func_ru,
-				   DEX2IR & d2ir, OUT PRNO2UINT & prno2v,
-				   TYIDR & tr, UINT numargs, UINT maxvars)
+static IR * do_opt_only_test(IR * ir_list, DexRegion * func_ru,
+				   Dex2IR & d2ir, OUT Prno2UINT & prno2v,
+				   TypeIndexRep & tr, UINT numargs, UINT maxvars)
 {
-	LOG("\t\tdo opt test: '%s'", func_ru->get_ru_name());
+	LOG("\t\tdo pass test: '%s'", func_ru->get_ru_name());
 	prno2v.clean();
 	prno2v.copy(*d2ir.get_pr2v_map());
 	return ir_list;
@@ -145,116 +147,162 @@ static IR * do_opt_only_test(IR * ir_list, DEX_REGION * func_ru,
 
 
 
-static IR * do_opt(IR * ir_list, DEX_REGION * func_ru,
-				   DEX2IR & d2ir, PRNO2UINT & prno2v,
-				   TYIDR & tr, UINT numargs, UINT maxvars)
+static IR * do_opt(IR * ir_list, DexRegion * func_ru,
+				   Dex2IR & d2ir, Prno2UINT & prno2v,
+				   TypeIndexRep & tr, UINT numargs, UINT maxvars)
 {
 	if (ir_list == NULL) { return NULL; }
 
 	//dump_irs(ir_list, func_ru->get_dm());
 
 	//It is worth to do.
-	//If the RETURN is redundant, the cfs-opt module would remove it.
+	//If the RETURN is redundant, the cfs-pass module would remove it.
 	//add_ret(ir_list, func_ru);
 
 	bool change;
 
-	RF_CTX rf;
+	RefineCTX rf;
 
 	//Do not insert cvt for DEX code to avoid smash the code sanity.
 	RC_insert_cvt(rf) = false;
 
-	//ir_list = func_ru->refine_ir_list(ir_list, change, rf);
+	//ir_list = func_ru->refineIRlist(ir_list, change, rf);
 
-	verify_irs(ir_list, NULL, func_ru->get_dm());
+	verify_irs(ir_list, NULL, func_ru);
 
-	func_ru->add_to_ir_list(ir_list);
+	func_ru->addToIRlist(ir_list);
 
 	#if 0
 	func_ru->process(prno2v, numargs, maxvars,
 					 d2ir.get_v2pr_map(), d2ir.get_pr2v_map(), &tr);
 	#else
-	func_ru->process_simply(prno2v, numargs, maxvars, d2ir,
+	func_ru->processSimply(prno2v, numargs, maxvars, d2ir,
 					 		d2ir.get_v2pr_map(), d2ir.get_pr2v_map(), &tr);
 	#endif
-	ir_list = func_ru->construct_ir_list(true);
+	ir_list = func_ru->constructIRlist(true);
 
 	return ir_list;
 }
 
 
-static bool handle_region(IN DEX_REGION * func_ru, IN DexFile * df,
-						  IN LIRCode * fu, D2Dpool * fupool,
-						  IN DexMethod const* dexm)
+/* Convert LIR code to DEX code and store it to
+fupool code buffer.
+
+df: dex file handler.
+dexm: record the dex-method information.
+fu: record the LIR code buffer and related information.
+fupool: record the transformed DEX code. */
+static void convertLIR2Dex(IN DexFile * df,
+							IN DexMethod const* dexm,
+							IN LIRCode * lircode,
+							OUT D2Dpool * fupool)
 {
-	TYIDR tr;
-	DT_MGR * dm = func_ru->get_dm();
-	tr.i8 = dm->get_simplex_tyid(D_I8);
-	tr.u8 = dm->get_simplex_tyid(D_U8);
-	tr.i16 = dm->get_simplex_tyid(D_I16);
-	tr.u16 = dm->get_simplex_tyid(D_U16);
-	tr.i32 = dm->get_simplex_tyid(D_I32);
-	tr.u32 = dm->get_simplex_tyid(D_U32);
-	tr.i64 = dm->get_simplex_tyid(D_I64);
-	tr.u64 = dm->get_simplex_tyid(D_U64);
-	tr.f32 = dm->get_simplex_tyid(D_F32);
-	tr.f64 = dm->get_simplex_tyid(D_F64);
-	tr.b = dm->get_simplex_tyid(D_B);
-	tr.ptr = dm->get_ptr_tyid(OBJ_MC_SIZE);
-
-	DEX2IR d2ir(func_ru, df, fu, &tr);
-	bool succ;
-	IR * ir_list = d2ir.convert(&succ);
-	if (!succ) {
-		return false;
-	}
-
-	if (d2ir.has_catch()) {
-		return false;
-	}
-
-	PRNO2UINT prno2v(get_nearest_power_of_2(
-			d2ir.get_pr2v_map()->get_elem_count() + 1));
-	#if 1
-	ir_list = do_opt(ir_list, func_ru, d2ir, prno2v, tr, fu->numArgs, fu->maxVars);
-	#else
-	ir_list = do_opt_only_test(ir_list, func_ru, d2ir, prno2v, tr, fu->numArgs, fu->maxVars);
-	#endif
-
-	IR2DEX ir2dex(func_ru, df, &d2ir, &tr, &prno2v);
-	LIST<LIR*> newlirs;
-	ir2dex.convert(ir_list, newlirs, prno2v);
-
-	//to LIRCode.
-	UINT u = newlirs.get_elem_count();
-	fu->instrCount = u;
-	fu->lirList = (LIR**)LIRMALLOC(u * sizeof(LIR*));
-	fu->maxVars = prno2v.maxreg + 1;
-	IS_TRUE0(fu->numArgs == prno2v.paramnum);
-	memset(fu->lirList, 0, u * sizeof(LIR*));
-	UINT i = 0;
-	for (LIR * l = newlirs.get_head(); l != NULL; l = newlirs.get_next()) {
-		IS_TRUE0(l);
-		fu->lirList[i++] = l;
-	}
-	update_fu(fu, d2ir, ir2dex);
 	DexCode const* dexcode = dexGetCode(df, dexm);
-
-	//to dex code buffer.
-	DexCode x;
+	DexCode x; //only for local used.
 	memset(&x, 0, sizeof(DexCode));
-	CBSHandle cbs = transformCode(fu, &x);
-	DexCode * newone = writeCodeItem(fupool, cbs,
-									 x.registersSize, x.insSize,
-									 dexcode->outsSize, x.triesSize,
-									 dexcode->debugInfoOff, x.insnsSize);
-	AOC_DX_MGR adm(df);
+
+	//Transform LIR to DEX.
+	CBSHandle transformed_dex_code = transformCode(lircode, &x);
+
+	//Record in fupool.
+	DexCode * newone = writeCodeItem(fupool,
+									transformed_dex_code,
+									x.registersSize,
+									x.insSize,
+									dexcode->outsSize,
+									x.triesSize,
+									dexcode->debugInfoOff,
+									x.insnsSize);
+
+	#if 0
+	//#ifdef _DEBUG_
+	//For dump purpose.
+	AocDxMgr adm(df);
 	DX_INFO dxinfo;
 	adm.extract_dxinfo(dxinfo,
 					   newone->insns,
 					   newone->insnsSize,
 					   NULL, &dexm->methodIdx);
 	adm.dump_method(dxinfo, g_tfile);
+	#endif
+}
+
+
+//Convert IR to LIR code. Store the generated IR list
+//at lircode buffer.
+void convertIR2LIR(IN IR * ir_list,
+					IN DexRegion * func_ru,
+					IN DexFile * df,
+					IN Dex2IR & d2ir,
+					IN TypeIndexRep & tr,
+					IN Prno2UINT & prno2v,
+					OUT LIRCode * lircode)
+{
+	IR2Dex ir2dex(func_ru, df, &d2ir, &tr, &prno2v);
+	List<LIR*> newlirs;
+	ir2dex.convert(ir_list, newlirs, prno2v);
+
+	//to LIRCode.
+	UINT u = newlirs.get_elem_count();
+	lircode->instrCount = u;
+	lircode->lirList = (LIR**)LIRMALLOC(u * sizeof(LIR*));
+	lircode->maxVars = prno2v.maxreg + 1;
+	ASSERT0(lircode->numArgs == prno2v.paramnum);
+	memset(lircode->lirList, 0, u * sizeof(LIR*));
+	UINT i = 0;
+	for (LIR * l = newlirs.get_head(); l != NULL; l = newlirs.get_next()) {
+		ASSERT0(l);
+		lircode->lirList[i++] = l;
+	}
+	updateLIRCode(lircode, d2ir, ir2dex);
+}
+
+
+static bool handleRegion(IN DexRegion * func_ru,
+						  IN DexFile * df,
+						  IN OUT LIRCode * lircode,
+						  D2Dpool * fupool,
+						  IN DexMethod const* dexm)
+{
+	TypeIndexRep tr;
+	TypeMgr * dm = func_ru->get_dm();
+	tr.i8 = dm->getSimplexType(D_I8);
+	tr.u8 = dm->getSimplexType(D_U8);
+	tr.i16 = dm->getSimplexType(D_I16);
+	tr.u16 = dm->getSimplexType(D_U16);
+	tr.i32 = dm->getSimplexType(D_I32);
+	tr.u32 = dm->getSimplexType(D_U32);
+	tr.i64 = dm->getSimplexType(D_I64);
+	tr.u64 = dm->getSimplexType(D_U64);
+	tr.f32 = dm->getSimplexType(D_F32);
+	tr.f64 = dm->getSimplexType(D_F64);
+	tr.b = dm->getSimplexType(D_B);
+	tr.ptr = dm->getPointerType(OBJ_MC_SIZE);
+	tr.array = dm->getPointerType(ARRAY_MC_SIZE);
+
+	Dex2IR d2ir(func_ru, df, lircode, &tr);
+	bool succ;
+	IR * ir_list = d2ir.convert(&succ);
+	if (!succ) {
+		return false;
+	}
+
+	if (d2ir.hasCatch()) {
+		return false;
+	}
+
+	Prno2UINT prno2v(get_nearest_power_of_2(
+			d2ir.get_pr2v_map()->get_elem_count() + 1));
+	//dump_irs(ir_list, func_ru->get_dm());
+	#if 0
+	ir_list = do_opt(ir_list, func_ru, d2ir, prno2v,
+					 tr, lircode->numArgs, lircode->maxVars);
+	#else
+	ir_list = do_opt_only_test(ir_list, func_ru, d2ir, prno2v,
+					tr, lircode->numArgs, lircode->maxVars);
+	#endif
+
+	convertIR2LIR(ir_list, func_ru, df, d2ir, tr, prno2v, lircode);
 	return true;
 }
 
@@ -282,7 +330,7 @@ void logd_fu_param(CHAR const* runame, LIRCode * fu)
 		strcat(p, "(");
 		p += strlen(p);
 		for (INT i = fu->maxVars - fu->numArgs; i < (INT)fu->maxVars; i++) {
-			IS_TRUE0(i >= 0);
+			ASSERT0(i >= 0);
 			if (i != (INT)fu->maxVars - 1) {
 				sprintf(p, "v%d,", i);
 			} else {
@@ -297,6 +345,74 @@ void logd_fu_param(CHAR const* runame, LIRCode * fu)
 
 
 bool g_dd = false;
+bool is_compile(CHAR const* runame, LIRCode * fu)
+{
+	#ifdef _DEBUG_
+	//if (strcmp(runame, "Lcom/admob/android/ads/Ad;::clicked") == 0) {
+	//if (strcmp(runame, "Lcom/greenecomputing/linpack/Linpack;::second") == 0) {
+	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/expr230/expr23001/expr23001;::run") == 0) {
+	//if (strcmp(runame, "Lcom/admob/android/ads/Ad;::skipToNext") == 0) {
+	//if (strcmp(runame, "Lcom/admob/android/ads/AdContainer;::breakIntoLines") == 0) {
+	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/icls116/icls11691m3/icls11691m3;::infiniteLoop") == 0)  //rm useless dead loop.
+	//if (strcmp(runame, "Lgr/androiddev/BenchmarkPi/UpdateCheck;::isConnected") == 0) {
+	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/excp004/excp00409/excp00409;::run") == 0) { //rm aget, not revise try/catch
+	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/binc061/binc06101/binc06101;::run") == 0) {
+	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/thrd041/thrd04101/thrd04101;::waitFor") == 0) {
+	//if (strcmp(runame, "Lcom/adwhirl/AdWhirlManager;::parseRationsJson") == 0) { //switch-lir with many labels attacted.
+	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/lex062/lex06292m2/lex06292m2;::run") == 0)  //invoke be removed!  fix_multi_out()
+	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/binc061/binc06101/binc06101;::run") == 0)
+	//if (strcmp(runame, "Ljavasoft/sqe/tests/api/java/text/DecimalFormat/serial/InputTests;::serial2002") == 0) { //seem to remove incorrect lir.
+	//if (strcmp(runame, "Lcom/android/membench/MemBench$myAdd;::run") == 0) //how to remove redundant call to access$...
+	//if (strcmp(runame, "Ljavasoft/sqe/tests/api/java/math/BigDecimal/DecTestLine;::interpret") == 0) //aggressive-cp cost too many compile time, it incur recomp_aa. it is necessary to recomp-aa if ild's base changed?
+	//if (strcmp(runame, "Lcom/android/membench/MemBench$benchMark;::run") == 0) //how to remove redundant ild to this$0
+	//if (strcmp(runame, "Lcom/android/membench/MemBench$myAdd;::run") == 0) //how to remove redundant call to access$...
+	//if (strcmp(runame, "Lcom/wiyun/engine/actions/grid/WavesTiles3D;::copy") == 0)
+	//if (strcmp(runame, "La/a/a/g;::a") == 0) //Antutu
+	//if (strcmp(runame, "Lcom/adwhirl/AdWhirlLayout;::onMeasure") == 0) //crashed in gcse.
+	//if (strcmp(runame, "Lcom/android/membench/MemBench$myInit;::run") == 0)
+		//strcmp(runame, "Lcom/android/membench/MemBench$benchMark;::run") == 0)
+	//if (strcmp(runame, "La/a/a/g;::a") == 0) //Check antutu3.4.apk, prdf.compute_global_live	up to 87 times!
+	//if (strcmp(runame, "Lcom/antutu/benchmark/f/h;::c") == 0) //antutu_abenchmark_4.4.1.apk
+	//if (strcmp(runame, "Landroid/support/v4/app/h;::dump") == 0) //antutu_abenchmark_4.4.1.apk  make ir_expr_tab crash
+	//if (strcmp(runame, "Lcom/antutu/benchmark/test3d/i;::b") == 0) //generate redundant cvt.
+	//if (strstr(runame, "Lcom/android/cm3/FloatAtom;::execute") != 0) //gvn+gcse
+	//if (strstr(runame, "Ljava/lang/Object;::<init>") != 0) //gvn+gcse
+	//if (strstr(runame, "Lcom/antutu/benchmark/g/a;::m") != 0)
+	//if (strstr(runame, "Lcom/flurry/android/w;::a") != 0) //PRDF run more than 178 times.
+	//if (strstr(runame, "Lorg/a/a/a;::a") != 0) //antutu, crashed in sstl:3806 line
+	//if (strstr(runame, "Lan;::foo") != 0) //antutu test
+	//if (strstr(runame, "Lan;::pig") != 0) //antutu test
+	//if (strstr(runame, "Landroid/support/v4/app/aa;::onItemClick") != 0) //antutu, failed in allocGroup
+	//if (strstr(runame, "Lcom/antutu/benchmark/view/CircleProgress;::onDraw") != 0) //assignLTG() not set_local()
+	//if (strstr(runame, "Lcom/antutu/benchmark/f/b;::b") != 0) //assert in ir2dex, support f64,u64
+	//if (strstr(runame, "Lcom/xiaomi/network/HostManager;::generateHostStats") != 0)
+	//if (strstr(runame, "Lorg/a/a/h;::a") != 0)
+	//if (strstr(runame, "Lcom/antutu/benchmark/h/eq;::a") != 0) //prdf iter up to 238 times.
+	//if (strstr(runame, "Lorg/cocos2dx/lib/Cocos2dxBitmap;::createTextBitmapShadowStroke") != 0) //prdf iter up to 238 times.
+	//if (strstr(runame, "Lcom/antutu/benchmark/view/CircleProgress;::onDraw") != 0) //antutu, ltg bug.
+	//if (strstr(runame, "Lorg/a/a/h;::a") != 0) //antutu, runtime error
+	//if (strstr(runame, "Lcom/antutu/benchmark/f/v;::b") != 0) //antutu, runtime error
+	//if (strstr(runame, "Lorg/a/a/h;::a") != 0) //antutu, runtime error
+
+	//if (strstr(runame, "Lcom/antutu/benchmark/f/v;::c") != 0)  //hot, small
+	//if (strstr(runame, "Lcom/antutu/benchmark/f/v;::b") != 0) //hot, large
+	//if (strcmp(runame, "Lcom/adwhirl/AdWhirlManager;::fetchConfig") == 0)
+	//if (strcmp(runame, "Lcom/adwhirl/adapters/CustomAdapter;::displayCustom") == 0)
+	//if (strcmp(runame, "Lsoftweg/hw/performance/CPUTest;::runSingle") != 0) { //softweg hot func.
+	//if (strcmp(runame, "Lsoftweg/hw/performance/CPUTest;::runDouble") != 0) { //softweg hot func.
+	//if (strcmp(runame, "Lsoftweg/hw/performance/CPUTest;::paDouble") != 0) { //softweg hot func.
+	//	return false;
+	//}
+
+	//if (pcount!=1) { return false; }
+	#endif
+
+	xdebug();
+	logd_fu_param(runame, fu);
+	g_dd = 0; //set to 1 to open dex2ir.log ir2dex.log
+	return true;
+}
+
 
 static void dump_all_method_name(CHAR const* runame)
 {
@@ -306,9 +422,10 @@ static void dump_all_method_name(CHAR const* runame)
 }
 
 
+//Optimizer for LIR.
 //Return true if compilation is successful.
-bool compile_func(D2Dpool * fupool, LIRCode * fu,
-				  DexFile * df, DexMethod const* dexm)
+bool compileFunc(OUT D2Dpool * fupool, IN LIRCode * lircode,
+				 IN DexFile * df, DexMethod const* dexm)
 {
 	CHAR tmp[256];
 	CHAR * runame = NULL;
@@ -317,7 +434,7 @@ bool compile_func(D2Dpool * fupool, LIRCode * fu,
 	if (len < 256) { runame = tmp; }
 	else {
 		runame = (CHAR*)ALLOCA(len);
-		IS_TRUE0(runame);
+		ASSERT0(runame);
 	}
 
 	sprintf(runame, "%s::%s",
@@ -331,28 +448,32 @@ bool compile_func(D2Dpool * fupool, LIRCode * fu,
 
 	g_opt_level = OPT_LEVEL3;
 
-	IS_TRUE0(df && dexm);
+	ASSERT0(df && dexm);
 
 	//dump_all_class_and_field(df);
-	//dump_all_lir(fu, df, dexm);
+	//dump_all_lir(lircode, df, dexm);
 
-	DEX_REGION_MGR * rm = new DEX_REGION_MGR();
+	DexRegionMgr * rm = new DexRegionMgr();
 
-	rm->init_var_mgr();
+	rm->initVarMgr();
 
 	//Generate Program region.
-	DEX_REGION * func_ru = (DEX_REGION*)rm->new_region(RU_FUNC);
+	DexRegion * func_ru = (DexRegion*)rm->newRegion(RU_FUNC);
 
-	func_ru->set_ru_var(rm->get_var_mgr()->register_var(
-						runame, D_MC, D_UNDEF,
-						0, 0, 0, VAR_GLOBAL|VAR_FAKE));
+	func_ru->set_ru_var(rm->get_var_mgr()->registerVar(
+						runame,
+						rm->get_dm()->getMCType(0),
+						0, VAR_GLOBAL|VAR_FAKE));
 
-	handle_region(func_ru, df, fu, fupool, dexm);
-
-	//dump_all_lir(fu, df, dexm);
+	handleRegion(func_ru, df, lircode, fupool, dexm);
 
 	delete func_ru;
 	delete rm;
+
+	//Convert to DEX code and store it to code buffer.
+	//convertLIR2Dex(df, dexm, lircode, fupool);
+
+	//dump_all_lir(lircode, df, dexm);
 
 	#ifdef _DEBUG_
 	finidump();

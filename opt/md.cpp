@@ -36,13 +36,13 @@ author: Su Zhenyu
 //
 //START MDID
 //
-void MDID2MD::dump() const
+void MDId2MD::dump() const
 {
 	if (g_tfile == NULL) { return; }
 	for (INT i = 0; i <= get_last_idx(); i++) {
-		MD * md = SVECTOR<MD*>::get(i);
+		MD * md = Vector<MD*>::get(i);
 		if (md == NULL) { continue; }
-		IS_TRUE0(MD_id(md) == (UINT)i);
+		ASSERT0(MD_id(md) == (UINT)i);
 		fprintf(g_tfile, "%d,", i);
 	}
 	fflush(g_tfile);
@@ -56,7 +56,7 @@ void MDID2MD::dump() const
 //Check if 'this' cover 'm'.
 bool MD::is_cover(MD const* m) const
 {
-	IS_TRUE0(m && this != m);
+	ASSERT0(m && this != m);
 	if (MD_base(this) != MD_base(m)) {
 		return false;
 	}
@@ -79,7 +79,7 @@ bool MD::is_cover(MD const* m) const
 //Check overlapping.
 bool MD::is_overlap(MD const* m) const
 {
-	IS_TRUE0(m && this != m);
+	ASSERT0(m && this != m);
 	if (MD_id(m) == MD_ALL_MEM || MD_id(this) == MD_ALL_MEM) {
 		return true;
 	}
@@ -99,14 +99,15 @@ bool MD::is_overlap(MD const* m) const
 
 
 //Caller should make sure 'buf' is large enough.
-CHAR * MD::dump(CHAR * buf, UINT bufl) const
+CHAR * MD::dump(CHAR * buf, UINT bufl, TypeMgr * dm) const
 {
-	IS_TRUE0(buf);
+	UNUSED(bufl);
+	ASSERT0(buf);
 	CHAR * tb = buf;
 	sprintf(buf, "MD%d -- base:", MD_id(this));
 	buf += strlen(buf);
-	IS_TRUE0(MD_base(this) != NULL);
-	MD_base(this)->dump(buf);
+	ASSERT0(MD_base(this) != NULL);
+	MD_base(this)->dump(buf, dm);
 	buf += strlen(buf);
 	INT ofst = MD_ofst(this);
 	if (MD_ty(this) == MD_EXACT) {
@@ -117,36 +118,37 @@ CHAR * MD::dump(CHAR * buf, UINT bufl) const
 	} else {
 		sprintf(buf, " -- ofst:unbound");
 	}
-	IS_TRUE(strlen(tb) < bufl, ("dump buf overflow!"));
+	ASSERT(strlen(tb) < bufl, ("dump buf overflow!"));
 	return tb;
 }
 
 
-void MD::dump() const
+void MD::dump(TypeMgr * dm) const
 {
 	if (g_tfile == NULL) return;
 	//CHAR buf[MAX_BUF_LEN];
 	CHAR buf[4096];
 	buf[0] = 0;
-	fprintf(g_tfile, "\n%s", dump(buf, 4096));
+	fprintf(g_tfile, "\n%s", dump(buf, 4096, dm));
 	fflush(g_tfile);
 }
 //END MD
 
 
 //
-//START MD_SET
+//START MDSet
 //
 //Get unique MD that is not fake memory object,
 //but its offset might be invalid.
-MD * MD_SET::get_effect_md(MD_SYS * ms) const
+MD * MDSet::get_effect_md(MDSystem * ms) const
 {
-	IS_TRUE0(ms);
+	ASSERT0(ms);
 	if (get_elem_count() != 1) {
 		return NULL;
 	}
-	MD * md = ms->get_md(get_first());
-	IS_TRUE0(md != NULL);
+	SEGIter * iter;
+	MD * md = ms->get_md(get_first(&iter));
+	ASSERT0(md != NULL);
 	if (VAR_is_fake(MD_base(md))) {
 		return NULL;
 	}
@@ -154,45 +156,46 @@ MD * MD_SET::get_effect_md(MD_SYS * ms) const
 }
 
 
-void MD_SET::bunion(UINT mdid)
+void MDSet::bunion(UINT mdid, DefMiscBitSetMgr & mbsmgr)
 {
 	if (mdid == MD_ALL_MEM) {
-		clean();
-		BITSET::bunion(MD_ALL_MEM);
+		clean(mbsmgr);
+		DefSBitSetCore::bunion(MD_ALL_MEM, mbsmgr);
 		return;
 	}
-	if (BITSET::is_contain(MD_ALL_MEM)) {
-		IS_TRUE0(BITSET::get_elem_count() == 1);
+	if (DefSBitSetCore::is_contain(MD_ALL_MEM)) {
+		ASSERT0(DefSBitSetCore::get_elem_count() == 1);
 		return;
 	}
-	BITSET::bunion(mdid);
+	DefSBitSetCore::bunion(mdid, mbsmgr);
 }
 
 
-void MD_SET::bunion(MD const* md)
+void MDSet::bunion(MD const* md, DefMiscBitSetMgr & mbsmgr)
 {
-	IS_TRUE0(md && (MD_id(md) != 0));
+	ASSERT0(md && (MD_id(md) != 0));
 	if (MD_id(md) == MD_ALL_MEM) {
-		clean();
-		BITSET::bunion(MD_ALL_MEM);
+		clean(mbsmgr);
+		DefSBitSetCore::bunion(MD_ALL_MEM, mbsmgr);
 		return;
 	}
-	if (BITSET::is_contain(MD_ALL_MEM)) {
-		IS_TRUE0(BITSET::get_elem_count() == 1);
+	if (DefSBitSetCore::is_contain(MD_ALL_MEM)) {
+		ASSERT0(DefSBitSetCore::get_elem_count() == 1);
 		return;
 	}
-	BITSET::bunion(MD_id(md));
+	DefSBitSetCore::bunion(MD_id(md), mbsmgr);
 }
 
 
 //Return true current set is equivalent to mds, and every element
 //in set is exact.
-bool MD_SET::is_exact_equal(IN MD_SET const& mds, MD_SYS * ms) const
+bool MDSet::is_exact_equal(IN MDSet const& mds, MDSystem * ms) const
 {
-	IS_TRUE0(ms);
+	ASSERT0(ms);
 	UINT count = 0;
 	INT md1 = -1;
-	for (INT i = get_first(); i != -1; i = get_next(i)) {
+	SEGIter * iter;
+	for (INT i = get_first(&iter); i != -1; i = get_next(i, &iter)) {
 		if (!ms->get_md(i)->is_exact()) {
 			return false;
 		}
@@ -207,7 +210,7 @@ bool MD_SET::is_exact_equal(IN MD_SET const& mds, MD_SYS * ms) const
 
 	count = 0;
 	INT md2 = -1;
-	for (INT i = mds.get_first(); i != -1; i = get_next(i)) {
+	for (INT i = mds.get_first(&iter); i != -1; i = get_next(i, &iter)) {
 		if (!ms->get_md(i)->is_exact()) {
 			return false;
 		}
@@ -223,13 +226,14 @@ bool MD_SET::is_exact_equal(IN MD_SET const& mds, MD_SYS * ms) const
 }
 
 
-bool MD_SET::is_contain_only_exact_and_str(MD_SYS * ms) const
+bool MDSet::is_contain_only_exact_and_str(MDSystem * ms) const
 {
-	IS_TRUE0(ms);
-	for (INT i = get_first(); i != -1; i = get_next(i)) {
+	ASSERT0(ms);
+	SEGIter * iter;
+	for (INT i = get_first(&iter); i != -1; i = get_next(i, &iter)) {
 		MD * tmd = ms->get_md(i);
-		IS_TRUE0(tmd != NULL);
-		if (!tmd->is_exact() && !VAR_is_str(MD_base(tmd))) {
+		ASSERT0(tmd != NULL);
+		if (!tmd->is_exact() && !MD_base(tmd)->is_string()) {
 			return false;
 		}
 	}
@@ -237,12 +241,13 @@ bool MD_SET::is_contain_only_exact_and_str(MD_SYS * ms) const
 }
 
 
-bool MD_SET::is_contain_inexact(MD_SYS * ms) const
+bool MDSet::is_contain_inexact(MDSystem * ms) const
 {
-	IS_TRUE0(ms);
-	for (INT i = get_first(); i != -1; i = get_next(i)) {
+	ASSERT0(ms);
+	SEGIter * iter;
+	for (INT i = get_first(&iter); i != -1; i = get_next(i, &iter)) {
 		MD * tmd = ms->get_md(i);
-		IS_TRUE0(tmd != NULL);
+		ASSERT0(tmd != NULL);
 		if (MD_id(tmd) == MD_ALL_MEM) {
 			return true;
 		}
@@ -254,75 +259,139 @@ bool MD_SET::is_contain_inexact(MD_SYS * ms) const
 }
 
 
-void MD_SET::bunion(MD_SET const& mds)
+void MDSet::bunion(MDSet const& mds, DefMiscBitSetMgr & mbsmgr)
 {
 	if (this == &mds) { return; }
-	IS_TRUE0(!((BITSET&)mds).is_contain(0));
-	if (BITSET::is_contain(MD_ALL_MEM)) {
+
+	ASSERT0(!((DefSBitSetCore&)mds).is_contain(0));
+
+	if (DefSBitSetCore::is_contain(MD_ALL_MEM)) {
 		return;
 	}
-	if (((BITSET const&)mds).is_contain(MD_ALL_MEM)) {
-		clean();
-		BITSET::bunion(MD_ALL_MEM);
+
+	if (((DefSBitSetCore const&)mds).is_contain(MD_ALL_MEM)) {
+		clean(mbsmgr);
+		DefSBitSetCore::bunion(MD_ALL_MEM, mbsmgr);
 		return;
 	}
-	BITSET::bunion((BITSET&)mds);
+	DefSBitSetCore::bunion((DefSBitSetCore&)mds, mbsmgr);
 }
 
 
-void MD_SET::dump(MD_SYS * ms, bool detail) const
+void MDSet::dump(MDSystem * ms, bool detail) const
 {
 	if (g_tfile == NULL) return;
-	IS_TRUE0(ms);
-	for (INT i = get_first(); i >= 0;) {
+	ASSERT0(ms);
+
+	SEGIter * iter;
+	for (INT i = get_first(&iter); i >= 0;) {
 		fprintf(g_tfile, "MD%d", i);
-		i = get_next(i);
+		i = get_next(i, &iter);
 		if (i >= 0) {
 			fprintf(g_tfile, ",");
 		}
 	}
 	if (detail) {
-		for (INT i = get_first(); i != -1; i = get_next(i)) {
+		SEGIter * iter;
+		for (INT i = get_first(&iter); i != -1; i = get_next(i, &iter)) {
 			MD const* md = ms->get_md(i);
-			md->dump();
+			md->dump(ms->get_dm());
 		}
 	}
 	fflush(g_tfile);
 }
-//END MD_SET
+//END MDSet
 
 
 //
-//START MD_SET_MGR
+//START MDSetMgr
 //
-UINT MD_SET_MGR::count_mem()
+//Clean and give it back to md set manager.
+//Do not destroy mds.
+//Destroy MDSet manager.
+MDSetMgr::MDSetMgr(Region * ru, DefMiscBitSetMgr * mbsm)
+{
+	m_mds_pool = smpoolCreate(sizeof(MDSet) * 8, MEM_CONST_SIZE);
+	m_sc_mds_pool = smpoolCreate(sizeof(SC<MDSet*>) * 8, MEM_CONST_SIZE);
+	m_md_set_list.set_pool(m_sc_mds_pool);
+	m_free_md_set.set_pool(m_sc_mds_pool);
+	m_ru = ru;
+	ASSERT0(mbsm);
+	m_misc_bs_mgr = mbsm;
+}
+
+
+void MDSetMgr::destroy()
+{
+	m_free_md_set.clean();
+	for (SC<MDSet*> * sc = m_md_set_list.get_head();
+		 sc != m_md_set_list.end(); sc = m_md_set_list.get_next(sc)) {
+		MDSet * mds = sc->val();
+		ASSERT0(mds);
+		mds->clean(*m_misc_bs_mgr);
+	}
+	m_md_set_list.clean();
+
+	smpoolDelete(m_mds_pool);
+	smpoolDelete(m_sc_mds_pool);
+	m_mds_pool = NULL;
+	m_sc_mds_pool = NULL;
+}
+
+
+void MDSetMgr::free(MDSet * mds)
+{
+	if (mds == NULL) { return; }
+
+	#if 0
+	//#ifdef _DEBUG_
+	//Caution: this verification is pretty slowly, even if in debug
+	//mode, so be patient.
+
+	SC<MDSet*> * sct;
+	for (MDSet * x = m_free_md_set.get_head(&sct);
+		 x != NULL; x = m_free_md_set.get_next(&sct)) {
+		ASSERT(x != mds, ("Already have been freed."));
+	}
+	#endif
+
+	mds->clean(*m_misc_bs_mgr);
+	m_free_md_set.append_head(mds);
+}
+
+
+UINT MDSetMgr::count_mem()
 {
 	UINT count = 0;
-	SC<MD_SET*> * sct;
-	for (MD_SET const* mds = m_md_set_list.get_head(&sct);
-		 mds != NULL; mds = m_md_set_list.get_next(&sct)) {
+	for (SC<MDSet*> * sc = m_md_set_list.get_head();
+		 sc != m_md_set_list.end(); sc = m_md_set_list.get_next(sc)) {
+		MDSet const* mds = sc->val();
+		ASSERT0(mds);
 		count += mds->count_mem();
 	}
 	return count;
 }
 
 
-void MD_SET_MGR::dump()
+void MDSetMgr::dump()
 {
 	if (g_tfile == NULL) { return; }
 
 	FILE * h = g_tfile;
 	UINT count = 0;
-	SC<MD_SET*> * sct;
-	for (MD_SET const* mds = m_md_set_list.get_head(&sct);
-		 mds != NULL; mds = m_md_set_list.get_next(&sct)) {
+	for (SC<MDSet*> * sc = m_md_set_list.get_head();
+		 sc != m_md_set_list.end(); sc = m_md_set_list.get_next(sc)) {
+		MDSet const* mds = sc->val();
+		ASSERT0(mds);
 		count += mds->count_mem();
 	}
 
 	//Dump mem usage into file.
-	LIST<UINT> lst;
-	for (MD_SET const* bs = m_md_set_list.get_head(&sct);
-		 bs != NULL; bs = m_md_set_list.get_next(&sct)) {
+	List<UINT> lst;
+	for (SC<MDSet*> * sc = m_md_set_list.get_head();
+		 sc != m_md_set_list.end(); sc = m_md_set_list.get_next(sc)) {
+		MDSet const* bs = sc->val();
+		ASSERT0(bs);
 		UINT c = bs->count_mem();
 
 		bool inserted = false;
@@ -333,7 +402,7 @@ void MD_SET_MGR::dump()
 			UINT n = lst.get_elem_count();
 			lst.get_head(&ct);
 			UINT i;
-			for (i = 0; i < n; i++, lst.get_next(&ct)) {
+			for (i = 0; i < n; i++, ct = lst.get_next(ct)) {
 				if (c >= C_val(ct)) {
 					inserted = true;
 					lst.insert_before(c, ct);
@@ -350,8 +419,8 @@ void MD_SET_MGR::dump()
 	UINT v = lst.get_head();
 
 	fprintf(h,
-		"\n==---- DUMP MD_SET_MGR: total %d MD_SETs, "
-		"%d MD_SET are in free-list, mem usage are:\n",
+		"\n==---- DUMP MDSetMgr: total %d MD_SETs, "
+		"%d MDSet are in free-list, mem usage are:\n",
 		m_md_set_list.get_elem_count(), m_free_md_set.get_elem_count());
 
 	UINT b = 0;
@@ -361,6 +430,7 @@ void MD_SET_MGR::dump()
 			fprintf(h, "\n");
 			b = 0;
 		}
+
 		if (v < 1024) {
 			fprintf(h, "%dB,", v);
 		} else if (v < 1024 * 1024) {
@@ -371,16 +441,15 @@ void MD_SET_MGR::dump()
 	}
 	fflush(h);
 }
-
-//END MD_SET_MGR
+//END MDSetMgr
 
 
 //
 //START MD2MD_SET_MAP
 //
-//Dump all relations between MD, and MD_SET.
+//Dump all relations between MD, and MDSet.
 //'md2mds': mapping from 'md' to an md-set it pointed to.
-void MD2MDS::dump(REGION * ru)
+void MD2MDSet::dump(Region * ru)
 {
 	CHAR buf[MAX_BUF_LEN];
 	if (g_tfile == NULL) { return; }
@@ -388,41 +457,43 @@ void MD2MDS::dump(REGION * ru)
 	fprintf(g_tfile, "\n*** Dump MD POINT-TO list ***");
 
 	//Dump all MDs.
-	MD_SYS * ms = ru->get_md_sys();
+	MDSystem * ms = ru->get_md_sys();
 	ms->get_id2md_map()->dump();
 	INT i;
 	for (i = get_first(); i >= 0; i = get_next(i)) {
 		MD * md = ms->get_md(i);
-		IS_TRUE0(md);
+		ASSERT0(md);
 		buf[0] = 0;
-		fprintf(g_tfile, "\n\t%s", md->dump(buf, MAX_BUF_LEN));
+		fprintf(g_tfile, "\n\t%s", md->dump(buf, MAX_BUF_LEN, ru->get_dm()));
 
-		//Dumps MD_SET related to 'md'.
-		MD_SET const* pts = get(MD_id(md));
-		IS_TRUE0(pts);
+		//Dumps MDSet related to 'md'.
+		MDSet const* pts = get(MD_id(md));
+		ASSERT0(pts);
 		fprintf(g_tfile, "\n\t\tPOINT TO:\n");
-		for (INT j = pts->get_first(); j >= 0; j = pts->get_next(j)) {
+		SEGIter * iter_j;
+		for (INT j = pts->get_first(&iter_j);
+			 j >= 0; j = pts->get_next(j, &iter_j)) {
 			MD * mmd = ms->get_md(j);
-			IS_TRUE0(mmd);
+			ASSERT0(mmd);
 			buf[0] = 0;
-			fprintf(g_tfile, "\t\t\t%s\n", mmd->dump(buf, MAX_BUF_LEN));
+			fprintf(g_tfile, "\t\t\t%s\n", mmd->dump(buf, MAX_BUF_LEN, ru->get_dm()));
 		}
 	}
 
 	//Dump set of MD that corresponding to an individual VAR.
 	fprintf(g_tfile, "\n*** Dump the mapping from VAR to set of MD ***");
 	ID2VAR * var_tab = ru->get_var_mgr()->get_var_vec();
-	SVECTOR<MD*> mdv;
-	MD_ITER iter;
+	Vector<MD const*> mdv;
+	ConstMDIter iter;
 	for (INT i = 0; i <= var_tab->get_last_idx(); i++) {
 		VAR * v = var_tab->get(i);
 		if (v == NULL) { continue; }
 
-		MD_TAB * mdtab = ms->get_md_tab(v);
+		MDTab * mdtab = ms->get_md_tab(v);
 
 		buf[0] = 0;
 
-		fprintf(g_tfile, "\n\t%s", v->dump(buf));
+		fprintf(g_tfile, "\n\t%s", v->dump(buf, ru->get_dm()));
 
 		if (mdtab && mdtab->get_elem_count() > 0) {
 			mdv.clean();
@@ -430,9 +501,10 @@ void MD2MDS::dump(REGION * ru)
 			mdtab->get_elems(mdv, iter);
 
 			for (INT i = 0; i <= mdv.get_last_idx(); i++) {
-				MD * md = mdv.get(i);
+				MD const* md = mdv.get(i);
 				buf[0] = 0;
-				fprintf(g_tfile, "\n\t\t%s", md->dump(buf, MAX_BUF_LEN));
+				fprintf(g_tfile, "\n\t\t%s",
+						md->dump(buf, MAX_BUF_LEN, ru->get_dm()));
 			}
 		} //end if
 	} //end for
@@ -444,51 +516,44 @@ void MD2MDS::dump(REGION * ru)
 
 
 //
-//START MD_SYS
+//START MDSystem
 //
 /* Register MD and generating unique id for it, with the followed method:
 1. Generating MD hash table for any unique VAR.
 2. Entering 'md' into MD hash table, the hash-value comes
-	from an evaluating binary-TREE that the branch of
+	from an evaluating binary-Tree that the branch of
 	tree-node indicate determination data related with MD fields.
 Return the registered element.
 
 NOTICE:
 1. DO NOT free the registered element!
 2. If you want to register an new MD, keep the id is 0. */
-MD * MD_SYS::register_md(MD & m)
+MD const* MDSystem::registerMD(MD const& m)
 {
-	IS_TRUE0(MD_base(&m));
+	ASSERT0(MD_base(&m));
 	if (MD_id(&m) > 0) {
 		//Find the entry accroding to m.
-		MD_TAB * mdtab = get_md_tab(MD_base(&m));
-		IS_TRUE(mdtab != NULL, ("md has registered"));
-		MD * entry = mdtab->find(&m);
-		IS_TRUE(entry != NULL, ("md has registered"));
-
-		MD_is_addr_taken(entry) =
-			MAX(MD_is_addr_taken(entry), MD_is_addr_taken(&m));
+		MDTab * mdtab = get_md_tab(MD_base(&m));
+		ASSERT(mdtab != NULL, ("md has registered"));
+		MD const* entry = mdtab->find(&m);
+		ASSERT(entry, ("md has registered"));
 		return entry;
 	}
 
-	IS_TRUE0(MD_base(&m) != NULL);
+	ASSERT0(MD_base(&m) != NULL);
 
 	//Check if MD has been registerd.
-	MD_TAB * mdtab = get_md_tab(MD_base(&m));
+	MDTab * mdtab = get_md_tab(MD_base(&m));
 	if (mdtab != NULL) {
 		//VAR-base has been registered, then check md by
 		//offset in md-table.
-		MD * hash_entry = mdtab->find(&m);
+		MD const* hash_entry = mdtab->find(&m);
 		if (hash_entry != NULL) {
 			//find MD via MD_ofst.
-			MD_id(&m) = MD_id(hash_entry);
-			MD_is_addr_taken(hash_entry) =
-					MAX(MD_is_addr_taken(hash_entry), MD_is_addr_taken(&m));
 			return hash_entry;
 		}
 
 		if (MD_base(&m) == m_all_mem) {
-			MD_id(&m) = MD_ALL_MEM;
 			return get_md(MD_ALL_MEM);
 		}
 
@@ -504,7 +569,7 @@ MD * MD_SYS::register_md(MD & m)
 	}
 
 	//Generate a new MD and record it in md-table accroding to its id.
-	MD * entry = new_md();
+	MD * entry = newMD();
 	UINT id = m_free_mdid_list.remove_head();
 	if (id != 0) {
 		MD_id(entry) = id;
@@ -513,10 +578,10 @@ MD * MD_SYS::register_md(MD & m)
 	}
 	entry->copy(&m);
 	if (mdtab == NULL) {
-		mdtab = new_md_tab();
+		mdtab = newMDTab();
 
-		//MD_TAB indexed by VAR's id.
-		m_varid2mdtab.set(VAR_id(MD_base(entry)), mdtab);
+		//MDTab indexed by VAR's id.
+		m_var2mdtab.set(MD_base(entry), mdtab);
 	}
 
 	//Insert into MD-table.
@@ -526,45 +591,52 @@ MD * MD_SYS::register_md(MD & m)
 }
 
 
+//Register an effectively unbound MD that base is 'var'.
+MD const* MDSystem::registerUnboundMD(VAR * var, UINT size)
+{
+	MD md;
+	MD_base(&md) = var;
+	MD_size(&md) = size;
+	MD_ty(&md) = MD_UNBOUND;
+	return registerMD(md);
+}
+
+
 //MD for global memory.
-void MD_SYS::init_global_mem(VAR_MGR * vm)
+void MDSystem::initGlobalMemMD(VarMgr * vm)
 {
 	m_global_mem = NULL;
 	if (vm == NULL) { return; }
 
-	MD x;
-	m_global_mem = vm->register_var((CHAR*)".global_mem",
-								D_MC,
-								D_UNDEF,
-								0,
-								0,
-								1,
-								VAR_GLOBAL|VAR_FAKE);
+	m_global_mem = vm->registerVar(
+						(CHAR*)".global_mem",
+						get_dm()->getMCType(0),
+						1, VAR_GLOBAL|VAR_FAKE);
 	VAR_allocable(m_global_mem) = false;
 
+	MD x;
 	//MD_id(&x) = MD_GLOBAL_MEM;
 	MD_base(&x) = m_global_mem;
 	MD_size(&x) = 0;
 	MD_ty(&x) = MD_UNBOUND;
 	MD_is_may(&x) = true; //MD_GLOBAL_MEM can only be May reference.
-	MD * e = register_md(x);
-	IS_TRUE0(MD_id(e) == MD_GLOBAL_MEM);
+	MD const* e = registerMD(x);
+	CK_USE(e);
+	ASSERT0(MD_id(e) == MD_GLOBAL_MEM);
 }
 
 
 //MD for total memory.
-void MD_SYS::init_all_mem(VAR_MGR * vm)
+void MDSystem::initAllMemMD(VarMgr * vm)
 {
 	m_all_mem = NULL;
 	if (vm == NULL) { return; }
 
-	m_all_mem = vm->register_var((CHAR*)".all_mem",
-								D_MC,
-								D_UNDEF,
-								0,
-								0,
-								1,
-								VAR_GLOBAL|VAR_FAKE);
+	m_all_mem = vm->registerVar(
+					(CHAR*)".all_mem",
+					get_dm()->getMCType(0),
+					1,
+					VAR_GLOBAL|VAR_FAKE);
 	VAR_allocable(m_all_mem) = false;
 
 	MD x;
@@ -573,37 +645,41 @@ void MD_SYS::init_all_mem(VAR_MGR * vm)
 	MD_is_may(&x) = true;  //MD_ALL_MEM can only be May reference.
 	MD_size(&x) = 0;
 	MD_ty(&x) = MD_UNBOUND;
-	MD * e = register_md(x);
-	IS_TRUE0(MD_id(e) == MD_ALL_MEM);
+	MD const* e = registerMD(x);
+	CK_USE(e);
+	ASSERT0(MD_id(e) == MD_ALL_MEM);
 }
 
 
-void MD_SYS::init(VAR_MGR * vm)
+void MDSystem::init(VarMgr * vm)
 {
-	m_pool = smpool_create_handle(sizeof(MD) * 5, MEM_CONST_SIZE);
-	m_sc_mdptr_pool = smpool_create_handle(sizeof(SC<MD*>) * 10,
+	m_pool = smpoolCreate(sizeof(MD) * 5, MEM_CONST_SIZE);
+	m_sc_mdptr_pool = smpoolCreate(sizeof(SC<MD*>) * 10,
 										   MEM_CONST_SIZE);
-	m_sc_mdid_pool = smpool_create_handle(sizeof(SC<UINT>) * 10,
+	m_sc_mdid_pool = smpoolCreate(sizeof(SC<UINT>) * 10,
 										  MEM_CONST_SIZE);
 	m_free_md_list.set_pool(m_sc_mdptr_pool);
 	m_free_mdid_list.set_pool(m_sc_mdid_pool);
 	m_md_count = 1;
-	init_all_mem(vm);
-	init_global_mem(vm);
-	m_md_count = MD_FIRST_ALLOCABLE;
+	m_dm = vm->get_dm();
+	ASSERT0(m_dm);
+	initAllMemMD(vm);
+	initGlobalMemMD(vm);
+	ASSERT0(m_md_count == MD_FIRST_ALLOCABLE);
 }
 
 
-void MD_SYS::destroy()
+void MDSystem::destroy()
 {
-	for (INT i = 0; i <= m_varid2mdtab.get_last_idx(); i++) {
-		MD_TAB * mdtab = m_varid2mdtab.get(i);
-		if (mdtab == NULL) { continue; }
+	TMapIter<VAR const*, MDTab*> iter;
+	MDTab * mdtab;
+	for (VAR const* var = m_var2mdtab.get_first(iter, &mdtab);
+		 var != NULL; var = m_var2mdtab.get_next(iter, &mdtab)) {
 		delete mdtab;
 	}
-	smpool_free_handle(m_pool);
-	smpool_free_handle(m_sc_mdptr_pool);
-	smpool_free_handle(m_sc_mdid_pool);
+	smpoolDelete(m_pool);
+	smpoolDelete(m_sc_mdptr_pool);
+	smpoolDelete(m_sc_mdid_pool);
 }
 
 
@@ -618,35 +694,36 @@ then output set is {md2, md3}.
 'strictly': set to true to compute if md may be overlapped with global memory.
 
 Note output need to be clean before invoke this function. */
-void MD_SYS::compute_overlap(MD const* md, MD_SET & output,
-							 TMAP_ITER<MD*, MD*> & tabiter,
+void MDSystem::computeOverlap(MD const* md, MDSet & output,
+							 ConstMDIter & tabiter,
+							 DefMiscBitSetMgr & mbsmgr,
 							 bool strictly)
 {
-	IS_TRUE0(md);
-	IS_TRUE0(MD_id(md) != MD_ALL_MEM);
+	ASSERT0(md);
+	ASSERT0(MD_id(md) != MD_ALL_MEM);
 
 	if (strictly && md->is_global()) {
-		output.bunion(get_md(MD_GLOBAL_MEM));
+		output.bunion(get_md(MD_GLOBAL_MEM), mbsmgr);
 	}
 
-	MD_TAB * mdt = get_md_tab(MD_base(md));
-	IS_TRUE0(mdt != NULL);
+	MDTab * mdt = get_md_tab(MD_base(md));
+	ASSERT0(mdt != NULL);
 
-	MD * effect_md = mdt->get_effect_md();
+	MD const* effect_md = mdt->get_effect_md();
 	if (effect_md != NULL && effect_md != md) {
-		IS_TRUE0(MD_base(md) == MD_base(effect_md));
-		output.bunion(effect_md);
+		ASSERT0(MD_base(md) == MD_base(effect_md));
+		output.bunion(effect_md, mbsmgr);
 	}
 
-	OFST_TAB * ofsttab = mdt->get_ofst_tab();
-	IS_TRUE0(ofsttab);
+	OffsetTab * ofsttab = mdt->get_ofst_tab();
+	ASSERT0(ofsttab);
 	tabiter.clean();
-	for (MD * tmd = ofsttab->get_first(tabiter, NULL);
+	for (MD const* tmd = ofsttab->get_first(tabiter, NULL);
 		 tmd != NULL; tmd = ofsttab->get_next(tabiter, NULL)) {
-		IS_TRUE0(MD_base(md) == MD_base(tmd));
+		ASSERT0(MD_base(md) == MD_base(tmd));
 		if (tmd == md) { continue; }
 		if (md->is_overlap(tmd)) {
-			output.bunion(tmd);
+			output.bunion(tmd, mbsmgr);
 		}
 	}
 }
@@ -661,37 +738,42 @@ then output set is {md1, md2, md3}.
 'tabiter': for local use.
 'strictly': set to true to compute if md may be overlapped with global memory.
 */
-void MD_SYS::compute_overlap(IN OUT MD_SET & mds, SVECTOR<MD*> & tmpvec,
-							 TMAP_ITER<MD*, MD*> & tabiter, bool strictly)
+void MDSystem::computeOverlap(IN OUT MDSet & mds,
+							Vector<MD const*> & tmpvec,
+							ConstMDIter & tabiter,
+							DefMiscBitSetMgr & mbsmgr,
+							bool strictly)
 {
-	if (((BITSET&)mds).is_contain(MD_ALL_MEM)) { return; }
+	if (((DefSBitSetCore&)mds).is_contain(MD_ALL_MEM)) { return; }
 
 	UINT count = 0;
 	tmpvec.clean();
 	bool set_global = false;
-	for (INT i = mds.get_first(); i >= 0; i = mds.get_next(i)) {
+	SEGIter * iter;
+	for (INT i = mds.get_first(&iter);
+		 i >= 0; i = mds.get_next(i, &iter)) {
 		MD * md = get_md(i);
-		IS_TRUE0(md);
-		MD_TAB * mdt = get_md_tab(MD_base(md));
-		IS_TRUE0(mdt != NULL);
+		ASSERT0(md);
+		MDTab * mdt = get_md_tab(MD_base(md));
+		ASSERT0(mdt != NULL);
 		if (md->is_global()) { set_global = true; }
 
-		MD * effect_md = mdt->get_effect_md();
+		MD const* effect_md = mdt->get_effect_md();
 		if (effect_md != NULL && !mds.is_contain(effect_md)) {
-			IS_TRUE0(MD_base(md) == MD_base(effect_md));
+			ASSERT0(MD_base(md) == MD_base(effect_md));
 			tmpvec.set(count, effect_md);
 			count++;
 		}
 
-		OFST_TAB * ofsttab = mdt->get_ofst_tab();
-		IS_TRUE0(ofsttab);
+		OffsetTab * ofsttab = mdt->get_ofst_tab();
+		ASSERT0(ofsttab);
 		tabiter.clean();
-		for (MD* tmd = ofsttab->get_first(tabiter, NULL);
+		for (MD const* tmd = ofsttab->get_first(tabiter, NULL);
 			 tmd != NULL; tmd = ofsttab->get_next(tabiter, NULL)) {
-			if (((BITSET&)mds).is_contain(MD_id(tmd))) {
+			if (((DefSBitSetCore&)mds).is_contain(MD_id(tmd))) {
 				continue;
 			}
-			IS_TRUE0(MD_base(md) == MD_base(tmd));
+			ASSERT0(MD_base(md) == MD_base(tmd));
 			if (md->is_overlap(tmd)) {
 				tmpvec.set(count, tmd);
 				count++;
@@ -699,12 +781,12 @@ void MD_SYS::compute_overlap(IN OUT MD_SET & mds, SVECTOR<MD*> & tmpvec,
 		}
 	}
 
-	if (strictly && set_global) { mds.bunion(get_md(MD_GLOBAL_MEM)); }
+	if (strictly && set_global) { mds.bunion(get_md(MD_GLOBAL_MEM), mbsmgr); }
 
 	for (INT i = 0; i <= tmpvec.get_last_idx(); i++) {
 		MD const* t = tmpvec.get(i);
-		IS_TRUE0(t && t->is_effect());
-		mds.bunion(t);
+		ASSERT0(t && t->is_effect());
+		mds.bunion(t, mbsmgr);
 	}
 }
 
@@ -719,99 +801,108 @@ then output is {md1, md2, md3}.
 'strictly': set to true to compute if md may be overlapped with global memory.
 
 Note output do not need to clean before invoke this function. */
-void MD_SYS::compute_overlap(MD_SET const& mds, OUT MD_SET & output,
-							 TMAP_ITER<MD*, MD*> & tabiter, bool strictly)
+void MDSystem::computeOverlap(MDSet const& mds,
+							OUT MDSet & output,
+							ConstMDIter & tabiter,
+							DefMiscBitSetMgr & mbsmgr,
+							bool strictly)
 {
-	IS_TRUE0(&mds != &output);
+	ASSERT0(&mds != &output);
 
 	if (mds.is_contain_pure(MD_ALL_MEM)) { return; }
 
 	bool set_global = false;
-	for (INT i = mds.get_first(); i >= 0; i = mds.get_next(i)) {
+	SEGIter * iter;
+	for (INT i = mds.get_first(&iter); i >= 0; i = mds.get_next(i, &iter)) {
 		MD * md = get_md(i);
-		IS_TRUE0(md);
-		MD_TAB * mdt = get_md_tab(MD_base(md));
-		IS_TRUE0(mdt != NULL);
+		ASSERT0(md);
+		MDTab * mdt = get_md_tab(MD_base(md));
+		ASSERT0(mdt != NULL);
 		if (md->is_global()) { set_global = true; }
 
 		MD const* effect_md = mdt->get_effect_md();
 		if (effect_md != NULL && !mds.is_contain_pure(MD_id(effect_md))) {
-			IS_TRUE0(MD_base(md) == MD_base(effect_md));
-			output.bunion_pure(MD_id(effect_md));
+			ASSERT0(MD_base(md) == MD_base(effect_md));
+			output.bunion_pure(MD_id(effect_md), mbsmgr);
 		}
 
-		OFST_TAB const* ofsttab = mdt->get_ofst_tab();
-		IS_TRUE0(ofsttab);
+		OffsetTab const* ofsttab = mdt->get_ofst_tab();
+		ASSERT0(ofsttab);
 		tabiter.clean();
 		for (MD const* tmd = ofsttab->get_first(tabiter, NULL);
 			 tmd != NULL; tmd = ofsttab->get_next(tabiter, NULL)) {
 			if (mds.is_contain_pure(MD_id(tmd))) {
 				continue;
 			}
-			IS_TRUE0(MD_base(md) == MD_base(tmd));
+			ASSERT0(MD_base(md) == MD_base(tmd));
 			if (md->is_overlap(tmd)) {
-				output.bunion_pure(MD_id(tmd));
+				output.bunion_pure(MD_id(tmd), mbsmgr);
 			}
 		}
 	}
 
-	if (strictly && set_global) { output.bunion_pure(MD_GLOBAL_MEM); }
+	if (strictly && set_global) { output.bunion_pure(MD_GLOBAL_MEM, mbsmgr); }
 }
 
 
-void MD_SYS::clean()
+void MDSystem::clean()
 {
-	for (INT i = 0; i <= m_varid2mdtab.get_last_idx(); i++) {
-		MD_TAB * mdtab = m_varid2mdtab.get(i);
-		if (mdtab == NULL) { continue; }
+	TMapIter<VAR const*, MDTab*> iter;
+	MDTab * mdtab;
+	for (VAR const* var = m_var2mdtab.get_first(iter, &mdtab);
+		 var != NULL; var = m_var2mdtab.get_next(iter, &mdtab)) {
 		mdtab->clean();
 	}
+
 	for (INT i = 0; i <= m_id2md_map.get_last_idx(); i++) {
 		MD * md = m_id2md_map.get(i);
 		if (md == NULL) { continue; }
-		free_md(md);
+		freeMD(md);
 	}
+
 	m_md_count = 2; //Index 0 is reserved, index 1 is all-mem-id.
 	m_free_mdid_list.clean();
 }
 
 
-void MD_SYS::dump_all_mds()
+void MDSystem::dumpAllMD()
 {
 	if (g_tfile == NULL) return;
 	fprintf(g_tfile, "\n==---- DUMP ALL MD ----==");
 	for (INT i = 0; i <= m_id2md_map.get_last_idx(); i++) {
 		MD * md = m_id2md_map.get(i);
 		if (md == NULL) { continue; }
-		IS_TRUE0(MD_id(md) == (UINT)i);
-		md->dump();
+		ASSERT0(MD_id(md) == (UINT)i);
+		md->dump(get_dm());
+		fflush(g_tfile);
 	}
 }
 
 
-//Remove VAR and its related info.
-void MD_SYS::remove_var(VAR * v)
+//Remove all MDs related to specific variable 'v'.
+void MDSystem::removeMDforVAR(VAR const* v, ConstMDIter & iter)
 {
-	IS_TRUE0(v);
-	TMAP_ITER<MD*, MD*> iter;
-	MD_TAB * mdtab = get_md_tab(v);
+	ASSERT0(v);
+	MDTab * mdtab = get_md_tab(v);
 	if (mdtab != NULL) {
-		MD * x = mdtab->get_effect_md();
+		MD const* x = mdtab->get_effect_md();
 		if (x != NULL) {
-			free_md(x);
+			MD * freeone = get_md(MD_id(x));
+			freeMD(freeone);
 		}
 
-		OFST_TAB * ofstab = mdtab->get_ofst_tab();
-		IS_TRUE0(ofstab);
+		OffsetTab * ofstab = mdtab->get_ofst_tab();
+		ASSERT0(ofstab);
 		if (ofstab->get_elem_count() > 0) {
 			iter.clean();
-			for (MD * md = ofstab->get_first(iter, NULL);
+			for (MD const* md = ofstab->get_first(iter, NULL);
 				 md != NULL; md = ofstab->get_next(iter, NULL)) {
-				free_md(md);
+				MD * freeone = get_md(MD_id(md));
+				freeMD(freeone);
 			}
 		}
+		delete mdtab;
 	}
-	m_varid2mdtab.set(VAR_id(v), NULL);
-	delete mdtab;
+	m_var2mdtab.remove(v);
 }
-//END MD_SYS
+//END MDSystem

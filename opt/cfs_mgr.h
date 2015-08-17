@@ -70,24 +70,24 @@ SCOP
 #define ABS_NODE_if_head(sn)		((sn)->u1.if_head)
 #define ABS_NODE_loop_head(sn)		((sn)->u1.loop_head)
 #define ABS_NODE_bb(sn)				((sn)->u1.bb)
-class ABS_NODE {
+class AbsNode {
 public:
-	ABS_NODE * prev;
-	ABS_NODE * next;
-	ABS_NODE * parent;
-	ABS_TYPE ty; //TYPE of SCOP NODE
+	AbsNode * prev;
+	AbsNode * next;
+	AbsNode * parent;
+	ABS_TYPE ty; //Type of SCOP NODE
 	union {
-		ABS_NODE * loop_body;
+		AbsNode * loop_body;
 		struct {
-			ABS_NODE * true_body;
-			ABS_NODE * false_body;
+			AbsNode * true_body;
+			AbsNode * false_body;
 		} u3;
 	} u2;
 
 	union {
-		IR_BB * if_head;
-		IR_BB * loop_head;
-		IR_BB * bb;
+		IRBB * if_head;
+		IRBB * loop_head;
+		IRBB * bb;
 	} u1;
 };
 
@@ -106,86 +106,86 @@ public:
 	IR_TYPE cfs_type;
 	union {
 		struct {
-			BITSET * true_body_ir_set; //TRUE BODY
-			BITSET * false_body_ir_set; //FALSE BODY
+			BitSet * true_body_ir_set; //TRUE BODY
+			BitSet * false_body_ir_set; //FALSE BODY
 		} if_info;
 		struct {
-			BITSET * loop_body_ir_set; //LOOP BODY
+			BitSet * loop_body_ir_set; //LOOP BODY
 		} loop_info;
 	} u1;
 	union {
 		IR * ir;
-		IR_BB * head;
+		IRBB * head;
 	} u2;
 };
 
 
 
 //
-//CFS_MGR, record and rebuild the control flow structure information.
+//CfsMgr, record and rebuild the control flow structure information.
 //
-class CFS_MGR : public IR_OPT {
+class CfsMgr : public Pass {
 protected:
-	BITSET_MGR m_bs_mgr; //BITSET manager.
-	SMEM_POOL * m_pool;
-	SVECTOR<CFS_INFO*> m_map_ir2cfsinfo;
-	REGION * m_ru;
-	SVECTOR<ABS_NODE*> m_map_bb2abs;
+	BitSetMgr m_bs_mgr; //BitSet manager.
+	SMemPool * m_pool;
+	Vector<CFS_INFO*> m_map_ir2cfsinfo;
+	Region * m_ru;
+	Vector<AbsNode*> m_map_bb2abs;
 
 protected:
 	void * xmalloc(size_t size)
 	{
-		void * p = smpool_malloc_h(size, m_pool);
-		IS_TRUE0(p);
+		void * p = smpoolMalloc(size, m_pool);
+		ASSERT0(p);
 		memset(p, 0, size);
 		return p;
 	}
 public:
-	CFS_MGR(REGION * ru)
+	CfsMgr(Region * ru)
 	{
 		m_ru = ru;
-		m_pool = smpool_create_handle(64, MEM_COMM);
+		m_pool = smpoolCreate(64, MEM_COMM);
 	}
 
-	~CFS_MGR() { smpool_free_handle(m_pool); }
+	~CfsMgr() { smpoolDelete(m_pool); }
 
-	ABS_NODE * construct_abs_loop(
-							IN IR_BB * entry,
-							IN ABS_NODE * parent,
-							IN BITSET * cur_region,
-							IN GRAPH & cur_graph,
-							IN OUT BITSET & visited);
-	ABS_NODE * construct_abs_if(IN IR_BB * entry,
-							IN ABS_NODE * parent,
-							IN GRAPH & cur_graph,
-							IN OUT BITSET & visited);
-	ABS_NODE * construct_abs_bb(IN IR_BB * bb, IN ABS_NODE * parent);
-	ABS_NODE * construct_abs_tree(
-							IN IR_BB * entry,
-							IN ABS_NODE * parent,
-							IN BITSET * cur_region,
-							IN GRAPH & cur_graph,
-							IN OUT BITSET & visited);
-	ABS_NODE * construct_abstract_cfs();
+	AbsNode * constructAbsLoop(
+							IN IRBB * entry,
+							IN AbsNode * parent,
+							IN BitSet * cur_region,
+							IN Graph & cur_graph,
+							IN OUT BitSet & visited);
+	AbsNode * constructAbsIf(IN IRBB * entry,
+							IN AbsNode * parent,
+							IN Graph & cur_graph,
+							IN OUT BitSet & visited);
+	AbsNode * constructAbsBB(IN IRBB * bb, IN AbsNode * parent);
+	AbsNode * constructAbsTree(
+							IN IRBB * entry,
+							IN AbsNode * parent,
+							IN BitSet * cur_region,
+							IN Graph & cur_graph,
+							IN OUT BitSet & visited);
+	AbsNode * construct_abstract_cfs();
 
 	void dump_indent(UINT indent);
-	void dump_abs_tree(ABS_NODE * an);
-	void dump_abs_tree(ABS_NODE * an, UINT indent);
+	void dump_abs_tree(AbsNode * an);
+	void dump_abs_tree(AbsNode * an, UINT indent);
 
 	CFS_INFO * map_ir2cfsinfo(IR * ir);
-	ABS_NODE * map_bb2abs(IR_BB const* bb);
+	AbsNode * map_bb2abs(IRBB const* bb);
 
 	CFS_INFO * new_cfs_info(IR_TYPE irtype);
-	ABS_NODE * new_abs_node(ABS_TYPE ty);
+	AbsNode * new_abs_node(ABS_TYPE ty);
 
 	void set_map_ir2cfsinfo(IR * ir, CFS_INFO * ci);
-	void set_map_bb2abs(IR_BB const* bb, ABS_NODE * abs);
+	void set_map_bb2abs(IRBB const* bb, AbsNode * abs);
 
-	void record_ir_stmt(IR * ir, BITSET & irset);
+	void recordStmt(IR * ir, BitSet & irset);
 
-	virtual CHAR const* get_opt_name() const
+	virtual CHAR const* get_pass_name() const
 	{ return "Control Flow Structure MGR"; }
 
-	OPT_TYPE get_opt_type() const { return OPT_CFS_MGR; }
+	PASS_TYPE get_pass_type() const { return PASS_CFS_MGR; }
 };
 #endif

@@ -44,22 +44,22 @@ public:
 
 class INLINER {
 protected:
-	REGION_MGR * m_ru_mgr;
-	SMEM_POOL * m_pool;
-	CALLG * m_callg;
-	TMAP<REGION*, INLINE_INFO*> m_ru2inl;
+	RegionMgr * m_ru_mgr;
+	SMemPool * m_pool;
+	CallGraph * m_callg;
+	TMap<Region*, INLINE_INFO*> m_ru2inl;
 
-	void ck_ru(IN REGION * ru, OUT bool & need_el, OUT bool & has_ret) const;
+	void ck_ru(IN Region * ru, OUT bool & need_el, OUT bool & has_ret) const;
 
 	void * xmalloc(UINT size)
 	{
-		void * p = smpool_malloc_h(size, m_pool);
-		IS_TRUE0(p);
+		void * p = smpoolMalloc(size, m_pool);
+		ASSERT0(p);
 		memset(p, 0, size);
 		return p;
 	}
 
-	INLINE_INFO * map_ru2ii(REGION * ru, bool alloc)
+	INLINE_INFO * map_ru2ii(Region * ru, bool alloc)
 	{
 		INLINE_INFO * ii = m_ru2inl.get(ru);
 		if (ii == NULL && alloc) {
@@ -69,28 +69,28 @@ protected:
 		return ii;
 	}
 public:
-	INLINER(REGION_MGR * ru_mgr)
+	INLINER(RegionMgr * ru_mgr)
 	{
 		m_ru_mgr = ru_mgr;
 		m_callg = ru_mgr->get_callg();
-		m_pool = smpool_create_handle(16, MEM_COMM);
+		m_pool = smpoolCreate(16, MEM_COMM);
 	}
-	virtual ~INLINER() { smpool_free_handle(m_pool); }
+	virtual ~INLINER() { smpoolDelete(m_pool); }
 
-	bool can_be_cand(REGION * ru);
+	bool can_be_cand(Region * ru);
 
-	bool do_inline_c(REGION * caller, REGION * callee);
-	void do_inline(REGION * cand);
+	bool do_inline_c(Region * caller, Region * callee);
+	void do_inline(Region * cand);
 
-	inline bool is_call_site(IR * call, REGION * ru);
+	inline bool is_call_site(IR * call, Region * ru);
 
-	virtual CHAR const* get_opt_name() const { return "INLINER"; }
+	virtual CHAR const* get_pass_name() const { return "INLINER"; }
 
-	IR * replace_return_c(REGION * caller, IR * caller_call,
-						  IR * new_irs, LABEL_INFO * el);
-	IR * replace_return(REGION * caller, IR * caller_call,
+	IR * replace_return_c(Region * caller, IR * caller_call,
+						  IR * new_irs, LabelInfo * el);
+	IR * replace_return(Region * caller, IR * caller_call,
 						IR * new_irs, INLINE_INFO * ii);
-	virtual bool perform(OPT_CTX & oc);
+	virtual bool perform(OptCTX & oc);
 };
 #endif
 

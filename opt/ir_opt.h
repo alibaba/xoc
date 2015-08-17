@@ -34,31 +34,32 @@ author: Su Zhenyu
 #ifndef __IR_OPT_H__
 #define __IR_OPT_H__
 
-//Basis Class of optimizations.
-class IR_OPT {
+//Basis Class of pass.
+class Pass {
 protected:
-	SIMP_CTX * m_simp;
+	SimpCTX * m_simp;
 public:
-	IR_OPT() { m_simp = NULL; }
-	virtual ~IR_OPT() {}
+	Pass() { m_simp = NULL; }
+	virtual ~Pass() {}
+	COPY_CONSTRUCTOR(Pass);
 
-	virtual CHAR const* get_opt_name() const
+	virtual CHAR const* get_pass_name() const
 	{
-		IS_TRUE(0, ("Optimization Dependent Code"));
+		ASSERT(0, ("Optimization Dependent Code"));
 		return NULL;
 	}
 
-	virtual OPT_TYPE get_opt_type() const
+	virtual PASS_TYPE get_pass_type() const
 	{
-		IS_TRUE(0, ("Optimization Dependent Code"));
-		return OPT_UNDEF;
+		ASSERT(0, ("Optimization Dependent Code"));
+		return PASS_UNDEF;
 	}
 
-	void set_simp_cont(SIMP_CTX * simp) { m_simp = simp; }
+	void set_simp_cont(SimpCTX * simp) { m_simp = simp; }
 
-	virtual bool perform(OPT_CTX & oc)
+	virtual bool perform(OptCTX &)
 	{
-		IS_TRUE(0, ("Optimization Dependent Code"));
+		ASSERT(0, ("Optimization Dependent Code"));
 		return false;
 	}
 };

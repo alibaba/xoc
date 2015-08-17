@@ -34,9 +34,9 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "comopt.h"
 
-static void lower_to_do_scalar_opt(REGION & ru, OPT_CTX & oc)
+void Region::lowerIRTreeToLowestHeight(OptCTX & oc)
 {
-	SIMP_CTX simp;
+	SimpCTX simp;
 	if (g_is_lower_to_simplest) {
 		simp.set_simp_cf();
 		simp.set_simp_array();
@@ -61,21 +61,21 @@ static void lower_to_do_scalar_opt(REGION & ru, OPT_CTX & oc)
 	}
 
 	//Simplify IR tree if it is needed.
-	ru.simplify_bb_list(ru.get_bb_list(), &simp);
+	simplifyBBlist(get_bb_list(), &simp);
 
 	if (SIMP_need_recon_bblist(&simp)) {
 		//New BB boundary IR generated, rebuilding CFG.
-		if (ru.reconstruct_ir_bb_list(oc)) {
-			ru.get_cfg()->rebuild(oc);
-			ru.get_cfg()->remove_empty_bb(oc);
-			ru.get_cfg()->compute_entry_and_exit(true, true);
+		if (reconstructBBlist(oc)) {
+			get_cfg()->rebuild(oc);
+			get_cfg()->removeEmptyBB(oc);
+			get_cfg()->computeEntryAndExit(true, true);
 		}
 	}
 
 	if (SIMP_changed(&simp)) {
 		//We perfer flow sensitive analysis as default.
-		ru.get_aa()->set_flow_sensitive(true);
-		ru.get_aa()->perform(oc);
+		get_aa()->set_flow_sensitive(true);
+		get_aa()->perform(oc);
 
 		//The primary actions must do are computing IR reference
 		//and reach def.
@@ -87,10 +87,10 @@ static void lower_to_do_scalar_opt(REGION & ru, OPT_CTX & oc)
 		}
 
 		//DU mananger may use the context info supplied by AA.
-		ru.get_du_mgr()->perform(oc, action);
+		get_du_mgr()->perform(oc, action);
 
 		//Compute the DU chain.
-		ru.get_du_mgr()->compute_du_chain(oc);
+		get_du_mgr()->computeMDDUChain(oc);
 	}
 }
 
@@ -120,22 +120,15 @@ Optimizations to be performed:
 		references into scalar references that can be optimized
 		using the standard scalar passes.
 */
-bool REGION::middle_process(OPT_CTX & oc)
+bool Region::MiddleProcess(OptCTX & oc)
 {
 	if (g_opt_level == NO_OPT) { return false; }
 	g_indent = 0;
 
-	CHAR const* runame = get_ru_name();
-
-	PASS_MGR * passmgr = OPTC_pass_mgr(oc);
-	IS_TRUE0(passmgr);
-
-	IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)passmgr->query_opt(OPT_SSA_MGR);
-	if (ssamgr == NULL || !ssamgr->is_ssa_construct()) {
-		lower_to_do_scalar_opt(*this, oc);
-	}
+	PassMgr * passmgr = get_pass_mgr();
+	ASSERT0(passmgr);
 
 	//Perform scalar optimizations.
-	OPTC_pass_mgr(oc)->perform_scalar_opt(oc);
+	passmgr->performScalarOpt(oc);
 	return true;
 }

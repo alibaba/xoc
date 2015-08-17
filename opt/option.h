@@ -34,7 +34,7 @@ author: Su Zhenyu
 #ifndef __OPTION_H__
 #define __OPTION_H__
 
-class PASS_MGR;
+class PassMgr;
 
 #define NO_OPT        0
 #define OPT_LEVEL1    1
@@ -44,36 +44,35 @@ class PASS_MGR;
 
 //Optimization Context
 //This class record and propagate auxiliary information to optimizations.
-#define OPTC_is_ref_valid(o)				((o).u1.s1.is_du_ref_valid)
-#define OPTC_is_du_chain_valid(o)			((o).u1.s1.is_du_chain_valid)
-#define OPTC_is_live_expr_valid(o)			((o).u1.s1.is_live_expr_valid)
-#define OPTC_is_reach_def_valid(o)			((o).u1.s1.is_reach_def_valid)
-#define OPTC_is_avail_reach_def_valid(o)	((o).u1.s1.is_avail_reach_def_valid)
-#define OPTC_is_cfg_valid(o)				((o).u1.s1.is_cfg_valid)
-#define OPTC_is_aa_valid(o)					((o).u1.s1.is_aa_result_valid)
-#define OPTC_is_expr_tab_valid(o)			((o).u1.s1.is_ir_expr_tab)
-#define OPTC_is_cdg_valid(o)				((o).u1.s1.is_cdg_valid)
-#define OPTC_is_dom_valid(o)				((o).u1.s1.is_dom_valid)
-#define OPTC_is_pdom_valid(o)				((o).u1.s1.is_pdom_valid)
-#define OPTC_is_rpo_valid(o)				((o).u1.s1.is_rpo_valid)
-#define OPTC_is_loopinfo_valid(o)			((o).u1.s1.is_loopinfo_valid)
-#define OPTC_is_callg_valid(o)				((o).u1.s1.is_callg_valid)
-#define OPTC_show_comp_time(o)				((o).u2.s1.show_compile_time)
-#define OPTC_pass_mgr(o)					((o).pass_mgr)
-class OPT_CTX {
+#define OC_is_ref_valid(o)				((o).u1.s1.is_du_ref_valid)
+#define OC_is_du_chain_valid(o)			((o).u1.s1.is_du_chain_valid)
+#define OC_is_live_expr_valid(o)		((o).u1.s1.is_live_expr_valid)
+#define OC_is_reach_def_valid(o)		((o).u1.s1.is_reach_def_valid)
+#define OC_is_avail_reach_def_valid(o)	((o).u1.s1.is_avail_reach_def_valid)
+#define OC_is_cfg_valid(o)				((o).u1.s1.is_cfg_valid)
+#define OC_is_aa_valid(o)				((o).u1.s1.is_aa_result_valid)
+#define OC_is_expr_tab_valid(o)			((o).u1.s1.is_ir_expr_tab)
+#define OC_is_cdg_valid(o)				((o).u1.s1.is_cdg_valid)
+#define OC_is_dom_valid(o)				((o).u1.s1.is_dom_valid)
+#define OC_is_pdom_valid(o)				((o).u1.s1.is_pdom_valid)
+#define OC_is_rpo_valid(o)				((o).u1.s1.is_rpo_valid)
+#define OC_is_loopinfo_valid(o)			((o).u1.s1.is_loopinfo_valid)
+#define OC_is_callg_valid(o)			((o).u1.s1.is_callg_valid)
+#define OC_show_comp_time(o)			((o).u2.s1.show_compile_time)
+class OptCTX {
 public:
 	union {
 		UINT int1;
 		struct {
-			//Record MUST-DEF, MAY-DEF, MAY-USE MD_SET for each IR STMT/EXP.
+			//Record MUST-DEF, MAY-DEF, MAY-USE MDSet for each IR STMT/EXP.
 			UINT is_du_ref_valid:1;
 
-			UINT is_du_chain_valid:1; //Record DEF, USE IR LIST for IR STMT.
+			UINT is_du_chain_valid:1; //Record DEF, USE IR List for IR STMT.
 			UINT is_live_expr_valid:1;
 			UINT is_reach_def_valid:1;
 			UINT is_avail_reach_def_valid:1;
 			UINT is_aa_result_valid:1; //POINT TO info is avaiable.
-			UINT is_ir_expr_tab:1; //Liveness of IR_EXPR is avaliable.
+			UINT is_ir_expr_tab:1; //Liveness of ExpRep is avaliable.
 			UINT is_cfg_valid:1; //CFG is avaliable.
 			UINT is_cdg_valid:1; //CDG is avaliable.
 
@@ -98,13 +97,11 @@ public:
 		} s1;
 	} u2;
 
-	PASS_MGR * pass_mgr; //indicate the pass manager.
 public:
-	OPT_CTX()
+	OptCTX()
 	{
 		set_all_invalid();
 		u2.int1 = 0;
-		pass_mgr = NULL;
 	}
 
 	void set_all_valid() { u1.int1 = (UINT)-1; }
@@ -113,69 +110,71 @@ public:
 	//This function reset the flag if control flow changed.
 	void set_flag_if_cfg_changed()
 	{
-		OPTC_is_cfg_valid(*this) = false;
-		OPTC_is_cdg_valid(*this) = false;
-		OPTC_is_dom_valid(*this) = false;
-		OPTC_is_pdom_valid(*this) = false;
-		OPTC_is_rpo_valid(*this) = false;
-		OPTC_is_loopinfo_valid(*this) = false;
+		OC_is_cfg_valid(*this) = false;
+		OC_is_cdg_valid(*this) = false;
+		OC_is_dom_valid(*this) = false;
+		OC_is_pdom_valid(*this) = false;
+		OC_is_rpo_valid(*this) = false;
+		OC_is_loopinfo_valid(*this) = false;
 	}
 
 	inline bool is_all_intra_valid()
 	{
-		return OPTC_is_ref_valid(*this) &&
-				OPTC_is_du_chain_valid(*this) &&
-				OPTC_is_live_expr_valid(*this) &&
-				OPTC_is_reach_def_valid(*this) &&
-				OPTC_is_avail_reach_def_valid(*this) &&
-				OPTC_is_aa_valid(*this) &&
-				OPTC_is_expr_tab_valid(*this) &&
-				OPTC_is_dom_valid(*this) &&
-				OPTC_is_pdom_valid(*this) &&
-				OPTC_is_cfg_valid(*this) &&
-				OPTC_is_cdg_valid(*this) &&
-				OPTC_is_rpo_valid(*this) &&
-				OPTC_is_loopinfo_valid(*this);
+		return OC_is_ref_valid(*this) &&
+				OC_is_du_chain_valid(*this) &&
+				OC_is_live_expr_valid(*this) &&
+				OC_is_reach_def_valid(*this) &&
+				OC_is_avail_reach_def_valid(*this) &&
+				OC_is_aa_valid(*this) &&
+				OC_is_expr_tab_valid(*this) &&
+				OC_is_dom_valid(*this) &&
+				OC_is_pdom_valid(*this) &&
+				OC_is_cfg_valid(*this) &&
+				OC_is_cdg_valid(*this) &&
+				OC_is_rpo_valid(*this) &&
+				OC_is_loopinfo_valid(*this);
 	}
 };
 
 //Declare the optimization.
-typedef enum _OPT_TYPE {
-	OPT_UNDEF = 0,
-	OPT_CFG,
-	OPT_AA,
-	OPT_CP,
-	OPT_CCP,
-	OPT_GCSE,
-	OPT_LCSE,
-	OPT_RP,
-	OPT_PRE,
-	OPT_IVR,
-	OPT_LICM,
-	OPT_DCE,
-	OPT_DSE,
-	OPT_RCE,
-	OPT_GVN,
-	OPT_DOM,
-	OPT_PDOM,
-	OPT_DU_REF,
-	OPT_LIVE_EXPR,
-	OPT_AVAIL_REACH_DEF,
-	OPT_DU_CHAIN,
-	OPT_EXPR_TAB,
-	OPT_LOOP_INFO,
-	OPT_CDG,
-	OPT_LOOP_CVT,
-	OPT_RPO,
-	OPT_POLY,
-	OPT_PRDF,
-	OPT_VRP,
-	OPT_IPA,
-	OPT_SSA_MGR,
-	OPT_CFS_MGR,
-	OPT_POLY_TRAN,
-	OPT_NUM,
-} OPT_TYPE;
+typedef enum _PASS_TYPE {
+	PASS_UNDEF = 0,
+	PASS_CFG,
+	PASS_AA,
+	PASS_CP,
+	PASS_CCP,
+	PASS_GCSE,
+	PASS_LCSE,
+	PASS_RP,
+	PASS_PRE,
+	PASS_IVR,
+	PASS_SCEV,
+	PASS_LICM,
+	PASS_DCE,
+	PASS_DSE,
+	PASS_RCE,
+	PASS_GVN,
+	PASS_DOM,
+	PASS_PDOM,
+	PASS_DU_REF,
+	PASS_LIVE_EXPR,
+	PASS_AVAIL_REACH_DEF,
+	PASS_DU_CHAIN,
+	PASS_EXPR_TAB,
+	PASS_LOOP_INFO,
+	PASS_CDG,
+	PASS_LOOP_CVT,
+	PASS_RPO,
+	PASS_POLY,
+	PASS_PRDF,
+	PASS_VRP,
+	PASS_IPA,
+	PASS_SSA_MGR,
+	PASS_CFS_MGR,
+	PASS_POLY_TRAN,
+	PASS_MD_SSA_MGR,
+	PASS_NUM,
+} PASS_TYPE;
 
 //Exported Variables
 extern CHAR * g_func_or_bb_option;
@@ -197,7 +196,7 @@ extern bool g_do_rpo;
 extern bool g_do_loop_ana; //loop analysis.
 extern bool g_do_cfg_remove_empty_bb;
 extern bool g_do_cfg_remove_unreach_bb;
-extern bool g_do_cfg_remove_tramp_bb;
+extern bool g_do_cfg_remove_trampolin_bb;
 extern bool g_do_cfg_dom;
 extern bool g_do_cfg_pdom;
 extern bool g_do_cdg;

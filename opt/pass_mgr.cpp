@@ -34,332 +34,331 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "comopt.h"
 
-PASS_MGR::PASS_MGR(REGION * ru)
+PassMgr::PassMgr(Region * ru)
 {
-	IS_TRUE0(ru);
-	m_pool = smpool_create_handle(sizeof(TI) * 4, MEM_COMM);
+	ASSERT0(ru);
+	m_pool = smpoolCreate(sizeof(TimeInfo) * 4, MEM_COMM);
 	m_ru = ru;
 	m_dm = ru->get_dm();
-	IS_TRUE0(m_dm);
+	ASSERT0(m_dm);
 }
 
 
-void PASS_MGR::destroy_opt()
+void PassMgr::destroyPass()
 {
-	TMAP_ITER<OPT_TYPE, IR_OPT*> tabiter;
-	IR_OPT * opt;
-	for (m_registered_opt.get_first(tabiter, &opt);
-		 opt != NULL; m_registered_opt.get_next(tabiter, &opt)) {
-		delete opt;
+	TMapIter<PASS_TYPE, Pass*> tabiter;
+	Pass * p;
+	for (m_registered_pass.get_first(tabiter, &p);
+		 p != NULL; m_registered_pass.get_next(tabiter, &p)) {
+		delete p;
 	}
 
-	GRAPH * opt2;
-	TMAP_ITER<OPT_TYPE, GRAPH*> tabiter2;
-	for (m_registered_graph_based_opt.get_first(tabiter2, &opt2);
-		 opt2 != NULL; m_registered_graph_based_opt.get_next(tabiter2, &opt2)) {
+	Graph * opt2;
+	TMapIter<PASS_TYPE, Graph*> tabiter2;
+	for (m_registered_graph_based_pass.get_first(tabiter2, &opt2);
+		 opt2 != NULL;
+		 m_registered_graph_based_pass.get_next(tabiter2, &opt2)) {
 		delete opt2;
 	}
 }
 
 
-IR_OPT * PASS_MGR::alloc_cp()
+Pass * PassMgr::allocCopyProp()
 {
-	IR_OPT * opt = new IR_CP(m_ru);
-	SIMP_CTX * simp = (SIMP_CTX*)xmalloc(sizeof(SIMP_CTX));
+	Pass * pass = new IR_CP(m_ru);
+	SimpCTX * simp = (SimpCTX*)xmalloc(sizeof(SimpCTX));
 	simp->init();
-	opt->set_simp_cont(simp);
-	return opt;
+	pass->set_simp_cont(simp);
+	return pass;
 }
 
 
-IR_OPT * PASS_MGR::alloc_gcse()
+Pass * PassMgr::allocGCSE()
 {
-	return new IR_GCSE(m_ru, (IR_GVN*)register_opt(OPT_GVN));
+	return new IR_GCSE(m_ru, (IR_GVN*)registerPass(PASS_GVN));
 }
 
 
-IR_OPT * PASS_MGR::alloc_lcse()
+Pass * PassMgr::allocLCSE()
 {
 	return new IR_LCSE(m_ru);
 }
 
 
-IR_OPT * PASS_MGR::alloc_rp()
+Pass * PassMgr::allocRP()
 {
-	return new IR_RP(m_ru, (IR_GVN*)register_opt(OPT_GVN));
+	return new IR_RP(m_ru, (IR_GVN*)registerPass(PASS_GVN));
 }
 
 
-IR_OPT * PASS_MGR::alloc_pre()
+Pass * PassMgr::allocPRE()
 {
 	//return new IR_PRE(m_ru);
 	return NULL;
 }
 
 
-IR_OPT * PASS_MGR::alloc_ivr()
+Pass * PassMgr::allocIVR()
 {
 	return new IR_IVR(m_ru);
 }
 
 
-IR_OPT * PASS_MGR::alloc_licm()
+Pass * PassMgr::allocLICM()
 {
 	return new IR_LICM(m_ru);
 }
 
 
-IR_OPT * PASS_MGR::alloc_dce()
+Pass * PassMgr::allocDCE()
 {
 	return new IR_DCE(m_ru);
 }
 
 
-IR_OPT * PASS_MGR::alloc_dse()
+Pass * PassMgr::allocDSE()
 {
 	//return new IR_DSE(m_ru);
 	return NULL;
 }
 
 
-IR_OPT * PASS_MGR::alloc_rce()
+Pass * PassMgr::allocRCE()
 {
-	return new IR_RCE(m_ru, (IR_GVN*)register_opt(OPT_GVN));
+	return new IR_RCE(m_ru, (IR_GVN*)registerPass(PASS_GVN));
 }
 
 
-IR_OPT * PASS_MGR::alloc_gvn()
+Pass * PassMgr::allocGVN()
 {
 	return new IR_GVN(m_ru);
 }
 
 
-IR_OPT * PASS_MGR::alloc_loop_cvt()
+Pass * PassMgr::allocLoopCvt()
 {
 	return new IR_LOOP_CVT(m_ru);
 }
 
 
-IR_OPT * PASS_MGR::alloc_ssa_opt_mgr()
+Pass * PassMgr::allocSSAMgr()
 {
-	return new IR_SSA_MGR(m_ru, this);
+	return new IR_SSA_MGR(m_ru);
 }
 
 
-GRAPH * PASS_MGR::alloc_cdg()
+Graph * PassMgr::allocCDG()
 {
 	return new CDG(m_ru);
 }
 
 
-IR_OPT * PASS_MGR::alloc_ccp()
+Pass * PassMgr::allocCCP()
 {
-	//return new IR_CCP(m_ru, (IR_SSA_MGR*)register_opt(OPT_SSA_MGR));
+	//return new IR_CCP(m_ru, (IR_SSA_MGR*)registerPass(PASS_SSA_MGR));
 	return NULL;
 }
 
 
-IR_OPT * PASS_MGR::alloc_expr_tab()
+Pass * PassMgr::allocExprTab()
 {
 	return new IR_EXPR_TAB(m_ru);
 }
 
 
-IR_OPT * PASS_MGR::alloc_cfs_mgr()
+Pass * PassMgr::allocCfsMgr()
 {
-	return new CFS_MGR(m_ru);
+	return new CfsMgr(m_ru);
 }
 
 
-GRAPH * PASS_MGR::register_graph_based_opt(OPT_TYPE opty)
+Graph * PassMgr::registerGraphBasedPass(PASS_TYPE opty)
 {
-	GRAPH * opt = NULL;
+	Graph * pass = NULL;
 	switch (opty) {
-	case OPT_CDG:
-		opt = alloc_cdg();
+	case PASS_CDG:
+		pass = allocCDG();
 		break;
-    default: IS_TRUE(0, ("Unsupport Optimization."));
+    default: ASSERT(0, ("Unsupport Optimization."));
     }
 
-	IS_TRUE0(opty != OPT_UNDEF && opt);
-	m_registered_graph_based_opt.set(opty, opt);
-    return opt;
+	ASSERT0(opty != PASS_UNDEF && pass);
+	m_registered_graph_based_pass.set(opty, pass);
+    return pass;
 }
 
 
-IR_OPT * PASS_MGR::register_opt(OPT_TYPE opty)
+Pass * PassMgr::registerPass(PASS_TYPE opty)
 {
-	IR_OPT * opt = query_opt(opty);
-	if (opt != NULL) { return opt; }
+	Pass * pass = query_opt(opty);
+	if (pass != NULL) { return pass; }
 
     switch (opty) {
-    case OPT_CP:
-		opt = alloc_cp();
+    case PASS_CP:
+		pass = allocCopyProp();
 		break;
-	case OPT_GCSE:
-		opt = alloc_gcse();
+	case PASS_GCSE:
+		pass = allocGCSE();
 		break;
-	case OPT_LCSE:
-		opt = alloc_lcse();
+	case PASS_LCSE:
+		pass = allocLCSE();
 		break;
-	case OPT_RP:
-		opt = alloc_rp();
+	case PASS_RP:
+		pass = allocRP();
 		break;
-	case OPT_PRE:
-		opt = alloc_pre();
+	case PASS_PRE:
+		pass = allocPRE();
 		break;
-	case OPT_IVR:
-		opt = alloc_ivr();
+	case PASS_IVR:
+		pass = allocIVR();
 		break;
-	case OPT_LICM:
-		opt = alloc_licm();
+	case PASS_LICM:
+		pass = allocLICM();
 		break;
-	case OPT_DCE:
-		opt = alloc_dce();
+	case PASS_DCE:
+		pass = allocDCE();
 		break;
-	case OPT_DSE:
-		opt = alloc_dse();
+	case PASS_DSE:
+		pass = allocDSE();
 		break;
-	case OPT_RCE:
-		opt = alloc_rce();
+	case PASS_RCE:
+		pass = allocRCE();
 		break;
-	case OPT_GVN:
-		opt = alloc_gvn();
+	case PASS_GVN:
+		pass = allocGVN();
 		break;
-	case OPT_LOOP_CVT:
-		opt = alloc_loop_cvt();
+	case PASS_LOOP_CVT:
+		pass = allocLoopCvt();
 		break;
-	case OPT_SSA_MGR:
-		opt = alloc_ssa_opt_mgr();
+	case PASS_SSA_MGR:
+		pass = allocSSAMgr();
 		break;
-	case OPT_CCP:
-		opt = alloc_ccp();
+	case PASS_CCP:
+		pass = allocCCP();
 		break;
-	case OPT_CDG:
-		return (IR_OPT*)register_graph_based_opt(opty);
-	case OPT_EXPR_TAB:
-		opt = alloc_expr_tab();
+	case PASS_CDG:
+		return (Pass*)registerGraphBasedPass(opty);
+	case PASS_EXPR_TAB:
+		pass = allocExprTab();
 		break;
-	case OPT_CFS_MGR:
-		opt = alloc_cfs_mgr();
+	case PASS_CFS_MGR:
+		pass = allocCfsMgr();
 		break;
-    default: IS_TRUE(0, ("Unsupport Optimization."));
+    default: ASSERT(0, ("Unsupport Optimization."));
     }
 
-	IS_TRUE0(opty != OPT_UNDEF && opt);
-	m_registered_opt.set(opty, opt);
-    return opt;
+	ASSERT0(opty != PASS_UNDEF && pass);
+	m_registered_pass.set(opty, pass);
+    return pass;
 }
 
 
-void PASS_MGR::perform_scalar_opt(OPT_CTX & oc)
+void PassMgr::performScalarOpt(OptCTX & oc)
 {
-	TTAB<IR_OPT*> opt_tab;
-	LIST<IR_OPT*> opt_list;
-	SIMP_CTX simp;
-	IR_GVN * gvn = NULL;
-	if (g_do_gvn) { register_opt(OPT_GVN); }
+	TTab<Pass*> opt_tab;
+	List<Pass*> passlist;
+	SimpCTX simp;
+	if (g_do_gvn) { registerPass(PASS_GVN); }
 
 	if (g_do_pre) {
 		//Do PRE individually.
 		//Since it will incur the opposite effect with Copy-Propagation.
-		IR_OPT * pre = register_opt(OPT_PRE);
+		Pass * pre = registerPass(PASS_PRE);
 		pre->perform(oc);
-		IS_TRUE0(verify_ir_and_bb(m_ru->get_bb_list(), m_dm));
+		ASSERT0(verifyIRandBB(m_ru->get_bb_list(), m_ru));
 	}
 
 	if (g_do_dce) {
-		IR_DCE * dce = (IR_DCE*)register_opt(OPT_DCE);
-		opt_list.append_tail(dce);
+		IR_DCE * dce = (IR_DCE*)registerPass(PASS_DCE);
+		passlist.append_tail(dce);
 		if (g_do_dce_aggressive) {
 			dce->set_elim_cfs(true);
 		}
 	}
 
-	opt_list.append_tail(register_opt(OPT_RP));
-	opt_list.append_tail(register_opt(OPT_CP));
-	opt_list.append_tail(register_opt(OPT_LICM));
-	opt_list.append_tail(register_opt(OPT_DCE));
-	opt_list.append_tail(register_opt(OPT_LOOP_CVT));
+	passlist.append_tail(registerPass(PASS_RP));
+	passlist.append_tail(registerPass(PASS_CP));
+	passlist.append_tail(registerPass(PASS_LICM));
+	passlist.append_tail(registerPass(PASS_DCE));
+	passlist.append_tail(registerPass(PASS_LOOP_CVT));
 
 	if (g_do_cp) {
-		IR_CP * opt = (IR_CP*)register_opt(OPT_CP);
-		opt->set_prop_kind(CP_PROP_SIMPLEX);
-		opt_list.append_tail(opt);
+		IR_CP * pass = (IR_CP*)registerPass(PASS_CP);
+		pass->set_prop_kind(CP_PROP_SIMPLEX);
+		passlist.append_tail(pass);
 	}
 
 	if (g_do_rp) {
-		opt_list.append_tail(register_opt(OPT_RP));
+		passlist.append_tail(registerPass(PASS_RP));
 	}
 
 	if (g_do_gcse) {
-		opt_list.append_tail(register_opt(OPT_GCSE));
+		passlist.append_tail(registerPass(PASS_GCSE));
 	}
 
 	if (g_do_lcse) {
-		opt_list.append_tail(register_opt(OPT_LCSE));
+		passlist.append_tail(registerPass(PASS_LCSE));
 	}
 
 	if (g_do_pre) {
-		opt_list.append_tail(register_opt(OPT_PRE));
+		passlist.append_tail(registerPass(PASS_PRE));
 	}
 
 	if (g_do_rce) {
-		opt_list.append_tail(register_opt(OPT_RCE));
+		passlist.append_tail(registerPass(PASS_RCE));
 	}
 
 	if (g_do_dse) {
-		opt_list.append_tail(register_opt(OPT_DSE));
+		passlist.append_tail(registerPass(PASS_DSE));
 	}
 
 	if (g_do_licm) {
-		opt_list.append_tail(register_opt(OPT_LICM));
+		passlist.append_tail(registerPass(PASS_LICM));
 	}
 
 	if (g_do_ivr) {
-		opt_list.append_tail(register_opt(OPT_IVR));
+		passlist.append_tail(registerPass(PASS_IVR));
 	}
 
 	bool change;
 	UINT count = 0;
-	IR_DU_MGR * dumgr = m_ru->get_du_mgr();
-	IR_AA * aa = m_ru->get_aa();
-	IR_BB_LIST * bbl = m_ru->get_bb_list();
+	BBList * bbl = m_ru->get_bb_list();
 	IR_CFG * cfg = m_ru->get_cfg();
+	UNUSED(cfg);
 	do {
 		change = false;
-		for (IR_OPT * opt = opt_list.get_head();
-			 opt != NULL; opt = opt_list.get_next()) {
-			CHAR const* optn = opt->get_opt_name();
-			IS_TRUE0(verify_ir_and_bb(bbl, m_dm));
+		for (Pass * pass = passlist.get_head();
+			 pass != NULL; pass = passlist.get_next()) {
+			CHAR const* passname = pass->get_pass_name();
+			ASSERT0(verifyIRandBB(bbl, m_ru));
 			ULONGLONG t = getusec();
-			bool doit = opt->perform(oc);
-			append_ti(optn, getusec() - t);
+			bool doit = pass->perform(oc);
+			appendTimeInfo(passname, getusec() - t);
 			if (doit) {
 				change = true;
-				IS_TRUE0(verify_ir_and_bb(bbl, m_dm));
-				IS_TRUE0(cfg->verify());
+				ASSERT0(verifyIRandBB(bbl, m_ru));
+				ASSERT0(cfg->verify());
 			}
-			RF_CTX rc;
-			m_ru->refine_ir_bb_list(bbl, rc);
+			RefineCTX rc;
+			m_ru->refineBBlist(bbl, rc);
 		}
 		count++;
 	} while (change && count < 20);
-	IS_TRUE0(!change);
+	ASSERT0(!change);
 
 	if (g_do_lcse) {
-		IR_LCSE * lcse = (IR_LCSE*)register_opt(OPT_LCSE);
+		IR_LCSE * lcse = (IR_LCSE*)registerPass(PASS_LCSE);
 		lcse->set_enable_filter(false);
 		ULONGLONG t = getusec();
 		lcse->perform(oc);
 		t = getusec() - t;
-		append_ti(lcse->get_opt_name(), t);
+		appendTimeInfo(lcse->get_pass_name(), t);
 	}
 
 	if (g_do_rp) {
-		IR_RP * r = (IR_RP*)register_opt(OPT_RP);
+		IR_RP * r = (IR_RP*)registerPass(PASS_RP);
 		ULONGLONG t = getusec();
 		r->perform(oc);
-		append_ti(r->get_opt_name(), getusec() - t);
+		appendTimeInfo(r->get_pass_name(), getusec() - t);
 	}
 }

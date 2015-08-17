@@ -34,6 +34,6 @@ author: Su Zhenyu
 #ifndef _GOTO_OPT_H_
 #define _GOTO_OPT_H_
 
-bool goto_opt(IR_CFG * cfg, IR_BB * bb);
+bool goto_opt(IR_CFG * cfg, IRBB * bb);
 
 #endif

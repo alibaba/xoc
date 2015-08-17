@@ -58,31 +58,32 @@ after convertion:
 	bb3:
 		...
 */
-class IR_LOOP_CVT : public IR_OPT {
+class IR_LOOP_CVT : public Pass {
 protected:
-	REGION * m_ru;
+	Region * m_ru;
 	IR_CFG * m_cfg;
 	IR_DU_MGR * m_du;
-	IR_ITER m_ii;
+	IRIter m_ii;
 
-	bool is_while_do(LI<IR_BB> const* li, IR_BB ** gobackbb,
+	bool is_while_do(LI<IRBB> const* li, IRBB ** gobackbb,
 					UINT * succ1, UINT * succ2);
-	bool try_convert(LI<IR_BB> * li, IR_BB * gobackbb,
+	bool try_convert(LI<IRBB> * li, IRBB * gobackbb,
 					UINT succ1, UINT succ2);
-	bool find_and_convert(LIST<LI<IR_BB>*> & worklst);
+	bool find_and_convert(List<LI<IRBB>*> & worklst);
 public:
-	IR_LOOP_CVT(REGION * ru)
+	explicit IR_LOOP_CVT(Region * ru)
 	{
-		IS_TRUE0(ru != NULL);
+		ASSERT0(ru != NULL);
 		m_ru = ru;
 		m_du = ru->get_du_mgr();
 		m_cfg = m_ru->get_cfg();
 	}
+	COPY_CONSTRUCTOR(IR_LOOP_CVT);
 	virtual ~IR_LOOP_CVT() {}
 
-	virtual CHAR const* get_opt_name() const { return "Loop Convertion"; }
-	OPT_TYPE get_opt_type() const { return OPT_LOOP_CVT; }
+	virtual CHAR const* get_pass_name() const { return "Loop Convertion"; }
+	PASS_TYPE get_pass_type() const { return PASS_LOOP_CVT; }
 
-	virtual bool perform(OPT_CTX & oc);
+	virtual bool perform(OptCTX & oc);
 };
 #endif

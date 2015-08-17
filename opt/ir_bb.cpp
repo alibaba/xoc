@@ -32,13 +32,16 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 author: Su Zhenyu
 @*/
 #include "cominc.h"
+#include "prdf.h"
+#include "prssainfo.h"
+#include "ir_ssa.h"
 
 //
-//START IR_BB
+//START IRBB
 //
-UINT IR_BB::count_mem() const
+UINT IRBB::count_mem() const
 {
-	UINT count = sizeof(IR_BB);
+	UINT count = sizeof(IRBB);
 	count += ir_list.count_mem();
 	count += lab_list.count_mem();
 	return count;
@@ -46,12 +49,13 @@ UINT IR_BB::count_mem() const
 
 
 //Could ir be looked as a last stmt in basic block?
-bool IR_BB::is_bb_down_boundary(IR * ir)
+bool IRBB::is_bb_down_boundary(IR * ir)
 {
-	IS_TRUE(ir->is_stmt_in_bb() || ir->is_lab(), ("illegal stmt in bb"));
+	ASSERT(ir->isStmtInBB() || ir->is_lab(), ("illegal stmt in bb"));
 	switch (IR_type(ir)) {
 	case IR_CALL:
 	case IR_ICALL: //indirective call
+		return ((CCall*)ir)->isMustBBbound();
 	case IR_GOTO:
 	case IR_IGOTO:
 	case IR_TRUEBR:
@@ -59,28 +63,29 @@ bool IR_BB::is_bb_down_boundary(IR * ir)
 	case IR_RETURN:
 		return true;
 	case IR_SWITCH:
-		IS_TRUE(SWITCH_body(ir) == NULL,
+		ASSERT(SWITCH_body(ir) == NULL,
 				("Peel switch-body to enable switch in bb-list construction"));
 		return true;
-	default:
-		return false;
+	default: break;
 	}
 	return false;
 }
 
 
-void IR_BB::dump()
+void IRBB::dump(Region * ru)
 {
-	if (g_tfile == NULL) return;
+	if (g_tfile == NULL) { return; }
+
 	g_indent = 0;
-	note("\n----- BB%d ------", IR_BB_id(this));
+
+	note("\n----- BB%d ------", BB_id(this));
 
 	//Label Info list
-	LABEL_INFO * li = IR_BB_lab_list(this).get_head();
+	LabelInfo * li = get_lab_list().get_head();
 	if (li != NULL) {
 		note("\nLABEL:");
 	}
-	for (; li != NULL; li = IR_BB_lab_list(this).get_next()) {
+	for (; li != NULL; li = get_lab_list().get_next()) {
 		switch (LABEL_INFO_type(li)) {
 		case L_CLABEL:
 			note(CLABEL_STR_FORMAT, CLABEL_CONT(li));
@@ -91,7 +96,7 @@ void IR_BB::dump()
 		case L_PRAGMA:
 			note("%s", LABEL_INFO_pragma(li));
 			break;
-		default: IS_TRUE(0,("unsupport"));
+		default: ASSERT(0,("unsupport"));
 		}
 		if (LABEL_INFO_is_try_start(li) ||
 			LABEL_INFO_is_try_end(li) ||
@@ -113,27 +118,28 @@ void IR_BB::dump()
 
 	//Attributes
 	note("\nATTR:");
-	if (IR_BB_is_entry(this)) {
+	if (BB_is_entry(this)) {
 		note("entry_bb ");
 	}
-	//if (IR_BB_is_exit(this)) {
+	//if (BB_is_exit(this)) {
 	//	note("exit_bb ");
 	//}
-	if (IR_BB_is_fallthrough(this)) {
+	if (BB_is_fallthrough(this)) {
 		note("fall_through ");
 	}
-	if (IR_BB_is_target(this)) {
+	if (BB_is_target(this)) {
 		note("branch_target ");
 	}
 
 	//IR list
-	note("\nSTMT NUM:%d", IR_BB_ir_num(this));
+	note("\nSTMT NUM:%d", getNumOfIR());
 	g_indent += 3;
-	for (IR * ir = IR_BB_first_ir(this);
-		ir != NULL; ir = IR_BB_ir_list(this).get_next()) {
-		IS_TRUE0(IR_next(ir) == NULL && IR_prev(ir) == NULL);
-		IS_TRUE0(ir->get_bb() == this);
-		dump_ir(ir, m_ru->get_dm(), NULL, true, true, false);
+	TypeMgr * dm = ru->get_dm();
+	for (IR * ir = BB_first_ir(this);
+		ir != NULL; ir = BB_irlist(this).get_next()) {
+		ASSERT0(IR_next(ir) == NULL && IR_prev(ir) == NULL);
+		ASSERT0(ir->get_bb() == this);
+		dump_ir(ir, dm, NULL, true, true, false);
 	}
 	g_indent -= 3;
 	note("\n");
@@ -142,17 +148,18 @@ void IR_BB::dump()
 
 
 //Check that all basic blocks should only end with terminator IR.
-void IR_BB::verify()
+void IRBB::verify()
 {
 	UINT c = 0;
 	C<IR*> * ct;
-	for (IR * ir = IR_BB_ir_list(this).get_head(&ct);
-		 ir != NULL; ir = IR_BB_ir_list(this).get_next(&ct)) {
-		IS_TRUE0(IR_next(ir) == NULL && IR_prev(ir) == NULL);
-		IS_TRUE0(ir->get_bb() == this);
+	for (IR * ir = BB_irlist(this).get_head(&ct);
+		 ir != NULL; ir = BB_irlist(this).get_next(&ct)) {
+		ASSERT0(IR_next(ir) == NULL && IR_prev(ir) == NULL);
+		ASSERT0(ir->get_bb() == this);
 		switch (IR_type(ir)) {
 		case IR_ST:
 		case IR_STPR:
+		case IR_STARRAY:
 		case IR_IST:
 		case IR_PHI:
 		case IR_REGION:
@@ -165,23 +172,126 @@ void IR_BB::verify()
 		case IR_RETURN:
 		case IR_SWITCH:
 			break;
-		default: IS_TRUE(0, ("BB does not supported this kind of IR."));
+		default: ASSERT(0, ("BB does not supported this kind of IR."));
 		}
 
 		if (ir->is_call() || ir->is_cond_br() ||
 			ir->is_multicond_br() || ir->is_uncond_br()) {
-			IS_TRUE(ir == IR_BB_last_ir(this), ("invalid bb boundary."));
+			ASSERT(ir == BB_last_ir(this), ("invalid bb boundary."));
 		}
 
 		c++;
 	}
-	IS_TRUE0(c == IR_BB_ir_num(this));
+	ASSERT0(c == getNumOfIR());
 }
-//END IR_BB
 
 
-void dump_bbs(IR_BB_LIST * bbl, CHAR const* name)
+//Return true if one of bb's successor has a phi.
+bool IRBB::successorHasPhi(CFG<IRBB, IR> * cfg)
 {
+	Vertex * vex = cfg->get_vertex(BB_id(this));
+	ASSERT0(vex);
+	for (EdgeC * out = VERTEX_out_list(vex);
+		 out != NULL; out = EC_next(out)) {
+		Vertex * succ_vex = EDGE_to(EC_edge(out));
+		IRBB * succ = cfg->get_bb(VERTEX_id(succ_vex));
+		ASSERT0(succ);
+
+		for (IR * ir = BB_first_ir(succ);
+			 ir != NULL; ir = BB_next_ir(succ)) {
+			if (ir->is_phi()) { return true; }
+		}
+	}
+	return false;
+}
+
+
+//Duplicate and add an operand that indicated by opnd_pos at phi stmt
+//in one of bb's successors.
+void IRBB::dupSuccessorPhiOpnd(CFG<IRBB, IR> * cfg, Region * ru, UINT opnd_pos)
+{
+	IR_CFG * ircfg = (IR_CFG*)cfg;
+	Vertex * vex = ircfg->get_vertex(BB_id(this));
+	ASSERT0(vex);
+	for (EdgeC * out = VERTEX_out_list(vex);
+		 out != NULL; out = EC_next(out)) {
+		Vertex * succ_vex = EDGE_to(EC_edge(out));
+		IRBB * succ = ircfg->get_bb(VERTEX_id(succ_vex));
+		ASSERT0(succ);
+
+		for (IR * ir = BB_first_ir(succ);
+			 ir != NULL; ir = BB_next_ir(succ)) {
+			if (!ir->is_phi()) { break; }
+
+			ASSERT0(cnt_list(PHI_opnd_list(ir)) >= opnd_pos);
+
+			IR * opnd;
+			UINT lpos = opnd_pos;
+			for (opnd = PHI_opnd_list(ir);
+				 lpos != 0; opnd = IR_next(opnd)) {
+				ASSERT0(opnd);
+				lpos--;
+			}
+
+			IR * newopnd = ru->dupIRTree(opnd);
+			if (opnd->is_read_pr()) {
+				newopnd->copyRef(opnd, ru);
+				ASSERT0(PR_ssainfo(opnd));
+				PR_ssainfo(newopnd) = PR_ssainfo(opnd);
+				SSA_uses(PR_ssainfo(newopnd)).append(newopnd);
+			}
+
+			((CPhi*)ir)->addOpnd(newopnd);
+		}
+	}
+}
+//END IRBB
+
+
+
+//Before removing bb, revising phi opnd if there are phis
+//in one of bb's successors.
+void IRBB::removeSuccessorPhiOpnd(CFG<IRBB, IR> * cfg)
+{
+	IR_CFG * ircfg = (IR_CFG*)cfg;
+	Region * ru = ircfg->get_ru();
+	Vertex * vex = ircfg->get_vertex(BB_id(this));
+	ASSERT0(vex);
+	for (EdgeC * out = VERTEX_out_list(vex);
+		 out != NULL; out = EC_next(out)) {
+		Vertex * succ_vex = EDGE_to(EC_edge(out));
+		IRBB * succ = ircfg->get_bb(VERTEX_id(succ_vex));
+		ASSERT0(succ);
+
+		UINT const pos = ircfg->WhichPred(this, succ);
+
+		for (IR * ir = BB_first_ir(succ);
+			 ir != NULL; ir = BB_next_ir(succ)) {
+			if (!ir->is_phi()) { break; }
+
+			ASSERT0(cnt_list(PHI_opnd_list(ir)) ==
+					 cnt_list(VERTEX_in_list(succ_vex)));
+
+			IR * opnd;
+			UINT lpos = pos;
+			for (opnd = PHI_opnd_list(ir);
+				 lpos != 0; opnd = IR_next(opnd)) {
+				ASSERT0(opnd);
+				lpos--;
+			}
+
+			opnd->removeSSAUse();
+			((CPhi*)ir)->removeOpnd(opnd);
+			ru->freeIRTree(opnd);
+		}
+	}
+}
+//END IRBB
+
+
+void dumpBBList(BBList * bbl, Region * ru, CHAR const* name)
+{
+	ASSERT0(ru);
 	FILE * h = NULL;
 	FILE * org_g_tfile = g_tfile;
 	if (name == NULL) {
@@ -189,14 +299,14 @@ void dump_bbs(IR_BB_LIST * bbl, CHAR const* name)
 	} else {
 		unlink(name);
 		h = fopen(name, "a+");
-		IS_TRUE(h != NULL, ("can not dump."));
+		ASSERT(h != NULL, ("can not dump."));
 		g_tfile = h;
 	}
 	if (h != NULL && bbl->get_elem_count() != 0) {
-		fprintf(h, "\n==---- DUMP '%s' IR_BB_LIST ----==",
-				bbl->get_head()->get_ru()->get_ru_name());
-		for (IR_BB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
-			bb->dump();
+		fprintf(h, "\n==---- DUMP '%s' BBList ----==",
+				ru->get_ru_name());
+		for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
+			bb->dump(ru);
 		}
 	}
 	fflush(h);
@@ -204,16 +314,4 @@ void dump_bbs(IR_BB_LIST * bbl, CHAR const* name)
 		fclose(h);
 	}
 	g_tfile = org_g_tfile;
-}
-
-
-void dump_bbs_order(IR_BB_LIST * bbl)
-{
-	if (g_tfile == NULL) return;
-	note("\n==---- DUMP  bbs order ----==\n");
-	for (IR_BB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
-		note("%d ", IR_BB_id(bb));
-	}
-	note("\n");
-	fflush(g_tfile);
 }

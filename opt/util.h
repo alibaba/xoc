@@ -57,16 +57,16 @@ template <class T, class Ttgt>
 void dump_rbt(RBT<T, Ttgt> & rbt, CHAR const* name = NULL,
 			  UINT nil_count = NIL_START)
 {
-	typedef RBTN<T, Ttgt> TN;
-	SVECTOR<TN*> nilvec;
+	typedef RBTNode<T, Ttgt> TN;
+	Vector<TN*> nilvec;
 	if (name == NULL) {
 		name = "graph_rbt.vcg";
 	}
 	unlink(name);
 	FILE * hvcg = fopen(name, "a+");
-	IS_TRUE(hvcg, ("%s create failed!!!", name));
+	ASSERT(hvcg, ("%s create failed!!!", name));
 	fprintf(hvcg, "graph: {"
-			  "title: \"TREE\"\n"
+			  "title: \"Tree\"\n"
 			  "shrink:  15\n"
 			  "stretch: 27\n"
 			  "layout_downfactor: 1\n"
@@ -101,7 +101,7 @@ void dump_rbt(RBT<T, Ttgt> & rbt, CHAR const* name = NULL,
 			  "edge.color: darkgreen\n");
 
 	//Print node
-	LIST<TN*> lst;
+	List<TN*> lst;
 	TN const* root = rbt.get_root();
 	if (root != NULL) {
 		lst.append_tail(const_cast<TN*>(root));
@@ -110,7 +110,7 @@ void dump_rbt(RBT<T, Ttgt> & rbt, CHAR const* name = NULL,
 	UINT nilcc = 0;
 	while (lst.get_elem_count() != 0) {
 		TN * x = lst.remove_head();
-		T key;
+		T key = T(0);
 		bool is_nil = false;
 		for (INT i = 0; i <= nilvec.get_last_idx(); i++) {
 			TN * z = nilvec.get(i);
@@ -133,7 +133,7 @@ void dump_rbt(RBT<T, Ttgt> & rbt, CHAR const* name = NULL,
 				key, key);
 		} else {
 			if (is_nil) {
-				IS_TRUE0(key >= NIL_START);
+				ASSERT0(key >= NIL_START);
 				//nil
 				fprintf(hvcg,
 					"\nnode: { title:\"%u\" label:\"%u\" shape:box "
@@ -186,14 +186,14 @@ void dump_rbt(RBT<T, Ttgt> & rbt, CHAR const* name = NULL,
 	}
 	for (INT i = 0; i <= nilvec.get_last_idx(); i++) {
 		TN * z = nilvec.get(i);
-		IS_TRUE0(z);
+		ASSERT0(z);
 		delete z;
 	}
 	fprintf(hvcg, "\n}\n");
 	fclose(hvcg);
 }
 
-void dump_vec(SVECTOR<UINT> & v);
+void dump_vec(Vector<UINT> & v);
 void initdump(CHAR const* f, bool is_del);
 void interwarn(CHAR const* format, ...);
 void finidump();

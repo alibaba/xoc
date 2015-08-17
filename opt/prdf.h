@@ -34,25 +34,26 @@ author: Su Zhenyu
 #ifndef __PRDF_H__
 #define __PRDF_H__
 
-class VAR2PR : public TMAP<UINT, UINT> {
+//Map between VAR and PRno.
+class VAR2PR : public TMap<VAR const*, UINT, CompareConstVar> {
 };
 
-class PRDF : public IR_OPT {
-	REGION * m_ru;
-	MD_SYS * m_md_sys;
+class PRDF : public Pass {
+	Region * m_ru;
+	MDSystem * m_md_sys;
 	VAR2PR * m_var2pr;
 	IR_CFG * m_cfg;
-	SDBITSET_MGR m_sbs_mgr;
-	SVECTOR<SBITSETC*> m_def;
-	SVECTOR<SBITSETC*> m_use;
-	SVECTOR<SBITSETC*> m_livein;
-	SVECTOR<SBITSETC*> m_liveout;
+	DefMiscBitSetMgr m_sbs_mgr;
+	Vector<DefSBitSetCore*> m_def;
+	Vector<DefSBitSetCore*> m_use;
+	Vector<DefSBitSetCore*> m_livein;
+	Vector<DefSBitSetCore*> m_liveout;
 	BYTE m_handle_may:1; //true if consider maydef/mayuse info.
 
 protected:
-	SBITSETC * get_def(UINT bbid)
+	DefSBitSetCore * get_def(UINT bbid)
 	{
-		SBITSETC * set = m_def.get(bbid);
+		DefSBitSetCore * set = m_def.get(bbid);
 		if (set == NULL) {
 			set = m_sbs_mgr.create_sbitsetc();
 			m_def.set(bbid, set);
@@ -60,9 +61,9 @@ protected:
 		return set;
 	}
 
-	SBITSETC * get_use(UINT bbid)
+	DefSBitSetCore * get_use(UINT bbid)
 	{
-		SBITSETC * set = m_use.get(bbid);
+		DefSBitSetCore * set = m_use.get(bbid);
 		if (set == NULL) {
 			set = m_sbs_mgr.create_sbitsetc();
 			m_use.set(bbid, set);
@@ -70,13 +71,18 @@ protected:
 		return set;
 	}
 
-	inline void process_opnd(IR const* exp, LIST<IR const*> & lst,
-							SBITSETC * use, SBITSETC * gen);
-	inline void process_may(IR const* pr, SBITSETC * gen,
-							SBITSETC * use, bool is_lhs);
-
+	inline void processOpnd(
+					IR const* exp,
+					List<IR const*> & lst,
+					DefSBitSetCore * use,
+					DefSBitSetCore * gen);
+	inline void processMay(
+					IR const* pr,
+					DefSBitSetCore * gen,
+					DefSBitSetCore * use,
+					bool is_lhs);
 public:
-	PRDF(REGION * ru)
+	PRDF(Region * ru)
 	{
 		m_ru = ru;
 		m_md_sys = ru->get_md_sys();
@@ -84,40 +90,40 @@ public:
 		m_var2pr = NULL;
 		m_handle_may = false;
 	}
-
+	COPY_CONSTRUCTOR(PRDF);
 	~PRDF()
 	{
 		for (INT i = 0; i <= m_def.get_last_idx(); i++) {
-			SBITSETC * bs = m_def.get(i);
+			DefSBitSetCore * bs = m_def.get((UINT)i);
 			if (bs != NULL) {
 				m_sbs_mgr.free_sbitsetc(bs);
 			}
 		}
 
 		for (INT i = 0; i <= m_use.get_last_idx(); i++) {
-			SBITSETC * bs = m_use.get(i);
+			DefSBitSetCore * bs = m_use.get((UINT)i);
 			if (bs != NULL) {
 				m_sbs_mgr.free_sbitsetc(bs);
 			}
 		}
 
 		for (INT i = 0; i <= m_livein.get_last_idx(); i++) {
-			SBITSETC * bs = m_livein.get(i);
+			DefSBitSetCore * bs = m_livein.get((UINT)i);
 			if (bs != NULL) {
 				m_sbs_mgr.free_sbitsetc(bs);
 			}
 		}
 
 		for (INT i = 0; i <= m_liveout.get_last_idx(); i++) {
-			SBITSETC * bs = m_liveout.get(i);
+			DefSBitSetCore * bs = m_liveout.get((UINT)i);
 			if (bs != NULL) {
 				m_sbs_mgr.free_sbitsetc(bs);
 			}
 		}
 	}
 
-	void compute_local(IR_BB * bb, LIST<IR const*> & lst);
-	void compute_global();
+	void computeLocal(IRBB * bb, List<IR const*> & lst);
+	void computeGlobal();
 
 	UINT count_mem() const
 	{
@@ -128,28 +134,28 @@ public:
 		count += m_liveout.count_mem();
 
 		for (INT i = 0; i <= m_def.get_last_idx(); i++) {
-			SBITSETC * bs = m_def.get(i);
+			DefSBitSetCore * bs = m_def.get((UINT)i);
 			if (bs != NULL) {
 				count += bs->count_mem();
 			}
 		}
 
 		for (INT i = 0; i <= m_use.get_last_idx(); i++) {
-			SBITSETC * bs = m_use.get(i);
+			DefSBitSetCore * bs = m_use.get((UINT)i);
 			if (bs != NULL) {
 				count += bs->count_mem();
 			}
 		}
 
 		for (INT i = 0; i <= m_livein.get_last_idx(); i++) {
-			SBITSETC * bs = m_livein.get(i);
+			DefSBitSetCore * bs = m_livein.get((UINT)i);
 			if (bs != NULL) {
 				count += bs->count_mem();
 			}
 		}
 
 		for (INT i = 0; i <= m_liveout.get_last_idx(); i++) {
-			SBITSETC * bs = m_liveout.get(i);
+			DefSBitSetCore * bs = m_liveout.get((UINT)i);
 			if (bs != NULL) {
 				count += bs->count_mem();
 			}
@@ -160,17 +166,19 @@ public:
 
 	void dump();
 
-	virtual CHAR const* get_opt_name() const { return "PRDF"; }
-	OPT_TYPE get_opt_type() const { return OPT_PRDF; }
+	virtual CHAR const* get_pass_name() const { return "PRDF"; }
+	PASS_TYPE get_pass_type() const { return PASS_PRDF; }
 
-	SDBITSET_MGR & get_sbs_mgr() { return m_sbs_mgr; }
+	DefMiscBitSetMgr & getMiscBitSetMgr() { return m_sbs_mgr; }
 
-	SBITSETC const* get_livein_c(UINT bbid) const
+	//Get livein PR. The return set is readonly.
+	DefSBitSetCore const* get_livein_c(UINT bbid) const
 	{ return m_livein.get(bbid); }
 
-	SBITSETC * get_livein(UINT bbid)
+	//Get livein PR.
+	DefSBitSetCore * get_livein(UINT bbid)
 	{
-		SBITSETC * x = m_livein.get(bbid);
+		DefSBitSetCore * x = m_livein.get(bbid);
 		if (x == NULL) {
 			x = m_sbs_mgr.create_sbitsetc();
 			m_livein.set(bbid, x);
@@ -178,12 +186,14 @@ public:
 		return x;
 	}
 
-	SBITSETC const* get_liveout_c(UINT bbid) const
+	//Get liveout PR. The return set is readonly.
+	DefSBitSetCore const* get_liveout_c(UINT bbid) const
 	{ return m_liveout.get(bbid); }
 
-	SBITSETC * get_liveout(UINT bbid)
+	//Get liveout PR. The return set is readonly.
+	DefSBitSetCore * get_liveout(UINT bbid)
 	{
-		SBITSETC * x = m_liveout.get(bbid);
+		DefSBitSetCore * x = m_liveout.get(bbid);
 		if (x == NULL) {
 			x = m_sbs_mgr.create_sbitsetc();
 			m_liveout.set(bbid, x);
@@ -191,12 +201,16 @@ public:
 		return x;
 	}
 
-	void set_handle_may(bool is_handle_may) { m_handle_may = is_handle_may; }
-	void set_var2pr(VAR2PR * v2p) { m_var2pr = v2p; }
+	//Handle may def/use.
+	void set_handle_may(bool is_handle_may)
+	{ m_handle_may = (BYTE)is_handle_may; }
 
-	inline void set_pr_to_liveout(IR_BB * bb, UINT prno)
-	{ get_liveout(IR_BB_id(bb))->bunion(prno, m_sbs_mgr); }
+	//Set map structure.
+	void setVAR2PR(VAR2PR * v2p) { m_var2pr = v2p; }
 
-	virtual bool perform(OPT_CTX & oc);
+	void setPRToBeLiveout(IRBB * bb, UINT prno)
+	{ get_liveout(BB_id(bb))->bunion(prno, m_sbs_mgr); }
+
+	virtual bool perform(OptCTX & oc);
 };
 #endif

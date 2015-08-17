@@ -46,14 +46,14 @@ public:
 
 
 //Map from LIR to LABEL.
-typedef TMAP<LIR*, LIST<LABEL_INFO*>*> LIR2LABS;
+typedef TMap<LIR*, List<LabelInfo*>*> LIR2LABS;
 
 
 class CATCH_INFO {
 public:
 	CATCH_INFO * prev;
 	CATCH_INFO * next;
-	LABEL_INFO * catch_start;
+	LabelInfo * catch_start;
 	UINT kind;
 };
 
@@ -62,8 +62,8 @@ class TRY_INFO {
 public:
 	TRY_INFO * prev;
 	TRY_INFO * next;
-	LABEL_INFO * try_start;
-	LABEL_INFO * try_end;
+	LabelInfo * try_start;
+	LabelInfo * try_end;
 	CATCH_INFO * catch_list;
 };
 
@@ -77,13 +77,10 @@ typedef enum _CMP_KIND {
 	CMP_LONG,
 } CMP_KIND;
 
-#define DEX_DEFAULT_ARRAY_TYPE	1
-#define DEX_DEFAULT_OBJ_TYPE	2
-#define DEX_USER_TYPE_START		3
 
 //#define DIV_REM_MAY_THROW
 
-class CMP_STR {
+class CmpStr {
 public:
 	bool is_less(CHAR const* t1, CHAR const* t2) const
 	{ return strcmp(t1, t2) < 0; }
@@ -92,126 +89,124 @@ public:
 	{ return strcmp(t1, t2) == 0; }
 };
 
-typedef TMAP<CHAR const*, UINT, CMP_STR> STR2UINT;
+typedef TMap<CHAR const*, Type const*, CmpStr> Str2Type;
 
 //In Actually, it does work to convert ANA IR to IR, but is not DEX.
 //To wit, the class declared in class LIR2IR, that will be better.
-class DEX2IR {
+class Dex2IR {
 protected:
-	REGION * m_ru;
-	REGION_MGR * m_ru_mgr;
-	DT_MGR * m_dm;
+	Region * m_ru;
+	RegionMgr * m_ru_mgr;
+	TypeMgr * m_dm;
 	DexFile * m_df;
-	VAR_MGR * m_vm;
+	VarMgr * m_vm;
 	LIRCode * m_fu;
-	TYIDR const* m_tr;
-	SMEM_POOL * m_pool;
+	TypeIndexRep const* m_tr;
+	SMemPool * m_pool;
 	VAR2UINT m_map_var2ofst;
 	VAR2UINT m_map_var2blt;
 	LIR2LABS m_lir2labs;
-	UINT m_tyid_count;
-	STR2UINT m_typename2tyid;
+	Str2Type m_typename2type;
 
-	UINT m_ptr_addend;
+	Type const* m_ptr_addend;
 	UINT m_ofst_addend;
 
 	//Map from typeIdx of type-table to
 	//positionIdx in file-class-def-table.
-	TYID2POSID m_map_tyid2posid;
-	CSTR2VAR m_str2var;
+	FieldTypeIdx2PosIdx m_typeidx2posidx;
+	ConstSym2Var m_str2var;
 	TRY_INFO * m_ti;
 	bool m_has_catch; //Set to true if region has catch block.
-	LIST<LABEL_INFO*> m_last_try_end_lab_list;
+	List<LabelInfo*> m_last_try_end_lab_list;
 
 	void * xmalloc(INT size)
 	{
-		IS_TRUE(size > 0, ("xmalloc: size less zero!"));
-		IS_TRUE(m_pool != NULL, ("need pool!!"));
-		void * p = smpool_malloc_h(size, m_pool);
-		IS_TRUE0(p);
+		ASSERT(size > 0, ("xmalloc: size less zero!"));
+		ASSERT(m_pool != NULL, ("need pool!!"));
+		void * p = smpoolMalloc(size, m_pool);
+		ASSERT0(p);
 		memset(p, 0, size);
 		return p;
 	}
 public:
 	UINT2PR m_v2pr; //map from dex register v to IR_PR node.
-	PRNO2UINT m_pr2v; //map from dex register v to IR_PR node.
+	Prno2UINT m_pr2v; //map from dex register v to IR_PR node.
 
-	DEX2IR(IN REGION * ru, IN DexFile * df,
-		   IN LIRCode * fu, IN TYIDR const* tr)
+	Dex2IR(IN Region * ru, IN DexFile * df,
+		   IN LIRCode * fu, IN TypeIndexRep const* tr)
 	{
-		IS_TRUE0(ru && df && fu);
+		ASSERT0(ru && df && fu);
 		m_ru = ru;
-		m_ru_mgr = ru->get_ru_mgr();
+		m_ru_mgr = ru->get_region_mgr();
 		m_dm = ru->get_dm();
 		m_vm = ru->get_var_mgr();
 		m_df = df;
 		m_fu = fu;
 		m_tr = tr;
 		m_ti = NULL;
-		m_pool = smpool_create_handle(16, MEM_COMM);
+		m_pool = smpoolCreate(16, MEM_COMM);
 		m_pr2v.init(MAX(4, get_nearest_power_of_2(fu->maxVars)));
-		m_tyid_count = DEX_USER_TYPE_START;
-		m_ptr_addend = m_dm->get_simplex_tyid(D_U32);
+		m_ptr_addend = m_dm->getSimplexType(D_U32);
 		m_ofst_addend = m_dm->get_dtype_bytesize(D_I64);
 		m_pr2v.maxreg = fu->maxVars - 1;
 		m_pr2v.paramnum = fu->numArgs;
 	}
 
-	~DEX2IR()
+	~Dex2IR()
 	{
-		TMAP_ITER<LIR*, LIST<LABEL_INFO*>*> iter;
-		LIST<LABEL_INFO*> * l;
+		TMapIter<LIR*, List<LabelInfo*>*> iter;
+		List<LabelInfo*> * l;
 		for (m_lir2labs.get_first(iter, &l);
 			 l != NULL; m_lir2labs.get_next(iter, &l)) {
 			delete l;
 		}
 
-		smpool_free_handle(m_pool);
+		smpoolDelete(m_pool);
 	}
 
-	VAR * add_var_by_name(CHAR const* name, UINT tyid);
-	VAR * add_class_var(UINT class_id, LIR * lir);
-	VAR * add_string_var(CHAR const* string);
-	VAR * add_field_var(UINT field_id, UINT tyid);
-	VAR * add_static_var(UINT field_id, UINT tyid);
-	VAR * add_func_var(UINT method_id, UINT tyid);
+	VAR * addVarByName(CHAR const* name, Type const* ty);
+	VAR * addClassVar(UINT class_id, LIR * lir);
+	VAR * addStringVar(CHAR const* string);
+	VAR * addFieldVar(UINT field_id, Type const* ty);
+	VAR * addStaticVar(UINT field_id, Type const* ty);
+	VAR * addFuncVar(UINT method_id, Type const* ty);
 
-	UINT compute_class_posid(UINT cls_id_in_tytab);
-	UINT compute_field_ofst(UINT field_id);
-	IR * convert_array_length(IN LIR * lir);
-	IR * convert_load_string_addr(IN LIR * lir);
-	IR * convert_cvt(IN LIR * lir);
-	IR * convert_check_cast(IN LIR * lir);
-	IR * convert_cond_br(IN LIR * lir);
-	IR * convert_const_class(IN LIR * lir);
-	IR * convert_filled_new_array(IN LIR * lir);
-	IR * convert_fill_array_data(IN LIR * lir);
-	IR * convert_goto(IN LIR * lir);
-	IR * convert_load_const(IN LIR * lir);
-	IR * convert_move_result(IN LIR * lir);
-	IR * convert_move(IN LIR * lir);
-	IR * convert_throw(IN LIR * lir);
-	IR * convert_move_exception(IN LIR * lir);
-	IR * convert_monitor_exit(IN LIR * lir);
-	IR * convert_monitor_enter(IN LIR * lir);
-	IR * convert_invoke(IN LIR * lir);
-	IR * convert_instance_of(IN LIR * lir);
-	IR * convert_new_instance(IN LIR * lir);
-	IR * convert_packed_switch(IN LIR * lir);
-	IR * convert_sparse_switch(IN LIR * lir);
-	IR * convert_aput(IN LIR * lir);
-	IR * convert_aget(IN LIR * lir);
-	IR * convert_sput(IN LIR * lir);
-	IR * convert_sget(IN LIR * lir);
-	IR * convert_iput(IN LIR * lir);
-	IR * convert_iget(IN LIR * lir);
-	IR * convert_cmp(IN LIR * lir);
-	IR * convert_unary_op(IN LIR * lir);
-	IR * convert_bin_op_assign(IN LIR * lir);
-	IR * convert_bin_op(IN LIR * lir);
-	IR * convert_bin_op_lit(IN LIR * lir);
-	IR * convert_ret(IN LIR * lir);
-	IR * convert_new_array(IN LIR * lir);
+	UINT computeClassPosid(UINT cls_id_in_tytab);
+	UINT computeFieldOffset(UINT field_id);
+	IR * convertArrayLength(IN LIR * lir);
+	IR * convertLoadStringAddr(IN LIR * lir);
+	IR * convertCvt(IN LIR * lir);
+	IR * convertCheckCast(IN LIR * lir);
+	IR * convertCondBr(IN LIR * lir);
+	IR * convertConstClass(IN LIR * lir);
+	IR * convertFilledNewArray(IN LIR * lir);
+	IR * convertFillArrayData(IN LIR * lir);
+	IR * convertGoto(IN LIR * lir);
+	IR * convertLoadConst(IN LIR * lir);
+	IR * convertMoveResult(IN LIR * lir);
+	IR * convertMove(IN LIR * lir);
+	IR * convertThrow(IN LIR * lir);
+	IR * convertMoveException(IN LIR * lir);
+	IR * convertMonitorExit(IN LIR * lir);
+	IR * convertMonitorEnter(IN LIR * lir);
+	IR * convertInvoke(IN LIR * lir);
+	IR * convertInstanceOf(IN LIR * lir);
+	IR * convertNewInstance(IN LIR * lir);
+	IR * convertPackedSwitch(IN LIR * lir);
+	IR * convertSparseSwitch(IN LIR * lir);
+	IR * convertAput(IN LIR * lir);
+	IR * convertAget(IN LIR * lir);
+	IR * convertSput(IN LIR * lir);
+	IR * convertSget(IN LIR * lir);
+	IR * convertIput(IN LIR * lir);
+	IR * convertIget(IN LIR * lir);
+	IR * convertCmp(IN LIR * lir);
+	IR * convertUnaryOp(IN LIR * lir);
+	IR * convertBinaryOpAssign(IN LIR * lir);
+	IR * convertBinaryOp(IN LIR * lir);
+	IR * convertBinaryOpLit(IN LIR * lir);
+	IR * convertRet(IN LIR * lir);
+	IR * convertNewArray(IN LIR * lir);
 	IR * convert(IN LIR * lir);
 	IR * convert(bool * succ);
 
@@ -220,20 +215,21 @@ public:
 	UINT get_ofst_addend() const { return m_ofst_addend; }
 	CHAR const* get_var_type_name(UINT field_id);
 	UINT get_dexopcode(UINT flag);
-	UINT get_dt_tyid(LIR * ir);
-	IR * gen_mapped_pr(UINT vid, UINT tyid);
-	UINT gen_mapped_prno(UINT vid, UINT tyid);
-	inline PRNO2UINT * get_pr2v_map() { return &m_pr2v; }
+	Type const* getType(LIR * ir);
+	IR * genMappedPR(UINT vid, Type const* ty);
+	UINT gen_mapped_prno(UINT vid, Type const* ty);
+	inline Prno2UINT * get_pr2v_map() { return &m_pr2v; }
 	inline UINT2PR * get_v2pr_map() { return &m_v2pr; }
 	inline VAR2UINT * get_var2ofst_map() { return &m_map_var2ofst; }
 	inline VAR2UINT * get_var2blt_map() { return &m_map_var2blt; }
 	inline TRY_INFO * get_try_info() { return m_ti; }
 
 	bool is_readonly(CHAR const* method_name) const;
-	bool has_catch() const { return m_has_catch; }
+	bool hasCatch() const { return m_has_catch; }
 
-	UINT map_type2tyid(UINT field_id);
-	void mark_lab();
+	Type const* mapFieldType2Type(UINT field_id);
+	void markLabel();
+
 	void set_map_v2blt(VAR * v, BLTIN_TYPE b);
 	void set_map_v2ofst(VAR * v, UINT ofst);
 };

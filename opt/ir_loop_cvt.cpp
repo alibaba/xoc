@@ -32,145 +32,157 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 author: Su Zhenyu
 @*/
 #include "cominc.h"
+#include "prdf.h"
+#include "prssainfo.h"
+#include "ir_ssa.h"
 #include "ir_loop_cvt.h"
 
-bool IR_LOOP_CVT::is_while_do(LI<IR_BB> const* li, OUT IR_BB ** gobackbb,
+bool IR_LOOP_CVT::is_while_do(LI<IRBB> const* li, OUT IRBB ** gobackbb,
 							  UINT * succ1, UINT * succ2)
 {
-	IS_TRUE0(gobackbb);
-	IR_BB * head = LI_loop_head(li);
-	IS_TRUE0(head);
+	ASSERT0(gobackbb);
+	IRBB * head = LI_loop_head(li);
+	ASSERT0(head);
 
-	*gobackbb = ::find_single_backedge_start_bb(li, m_cfg);
+	*gobackbb = ::findSingleBackedgeStartBB(li, m_cfg);
 	if (*gobackbb == NULL) {
 		//loop may be too messy.
 		return false;
 	}
 
-	if (IR_BB_rpo(head) > IR_BB_rpo(*gobackbb)) {
+	if (BB_rpo(head) > BB_rpo(*gobackbb)) {
 		//loop may already be do-while.
 		return false;
 	}
 
-	IR * lastir = IR_BB_last_ir(head);
+	IR * lastir = BB_last_ir(head);
 	if (!lastir->is_cond_br()) {
 		return false;
 	}
 
-	bool f = find_loop_header_two_succ_bb(li, m_cfg, succ1, succ2);
+	bool f = findTwoSuccessorBBOfLoopHeader(li, m_cfg, succ1, succ2);
 	if (!f) { return false; }
 
-	if (li->inside_loop(*succ1) && li->inside_loop(*succ2)) {
+	if (li->is_inside_loop(*succ1) && li->is_inside_loop(*succ2)) {
 		return false;
 	}
 	return true;
 }
 
 
-bool IR_LOOP_CVT::try_convert(LI<IR_BB> * li, IR_BB * gobackbb,
+bool IR_LOOP_CVT::try_convert(LI<IRBB> * li, IRBB * gobackbb,
 							  UINT succ1, UINT succ2)
 {
-	IS_TRUE0(gobackbb);
+	ASSERT0(gobackbb);
 
-	IR_BB * loopbody_start_bb;
-	IR_BB * epilog;
-	if (li->inside_loop(succ1)) {
-		IS_TRUE0(!li->inside_loop(succ2));
+	IRBB * loopbody_start_bb;
+	IRBB * epilog;
+	if (li->is_inside_loop(succ1)) {
+		ASSERT0(!li->is_inside_loop(succ2));
 		loopbody_start_bb = m_cfg->get_bb(succ1);
 		epilog = m_cfg->get_bb(succ2);
 	} else {
-		IS_TRUE0(li->inside_loop(succ2));
-		IS_TRUE0(!li->inside_loop(succ1));
+		ASSERT0(li->is_inside_loop(succ2));
+		ASSERT0(!li->is_inside_loop(succ1));
 		loopbody_start_bb = m_cfg->get_bb(succ2);
 		epilog = m_cfg->get_bb(succ1);
 	}
-	IS_TRUE0(loopbody_start_bb && epilog);
-	IR_BB * next = m_cfg->get_fallthrough_bb(gobackbb);
+
+	ASSERT0(loopbody_start_bb && epilog);
+	IRBB * next = m_cfg->get_fallthrough_bb(gobackbb);
 	if (next == NULL || next != epilog) {
 		//No benefit to be get to convert this kind of loop.
 		return false;
 	}
 
 	C<IR*> * irct;
-	IR * lastir = IR_BB_ir_list(gobackbb).get_tail(&irct);
-	IS_TRUE0(IR_type(lastir) == IR_GOTO);
+	IR * lastir = BB_irlist(gobackbb).get_tail(&irct);
+	ASSERT0(IR_type(lastir) == IR_GOTO);
 
-	IR_BB * head = LI_loop_head(li);
-	IS_TRUE0(head);
+	IRBB * head = LI_loop_head(li);
+	ASSERT0(head);
 
 	//Copy ir in header to gobackbb.
 	IR * last_cond_br = NULL;
-	DU_ITER di;
-	SVECTOR<IR*> rmvec;
-	for (IR * ir = IR_BB_first_ir(head);
-		 ir != NULL; ir = IR_BB_next_ir(head)) {
-		IR * newir = m_ru->dup_irs(ir);
+	DU_ITER di = NULL;
+	Vector<IR*> rmvec;
+	for (IR * ir = BB_first_ir(head);
+		 ir != NULL; ir = BB_next_ir(head)) {
+		IR * newir = m_ru->dupIRTree(ir);
 
-		m_du->copy_ir_tree_du_info(newir, ir, true);
+		m_du->copyIRTreeDU(newir, ir, true);
 
 		m_ii.clean();
-		for (IR * x = ir_iter_rhs_init(ir, m_ii);
-			 x != NULL; x = ir_iter_rhs_next(m_ii)) {
+		for (IR * x = iterRhsInit(ir, m_ii);
+			 x != NULL; x = iterRhsNext(m_ii)) {
 			if (!x->is_memory_ref()) { continue; }
 
-			DU_SET const* defset = x->get_duset_c();
-			if (defset == NULL) { continue; }
-
 			UINT cnt = 0;
-			for (INT d = defset->get_first(&di);
-				 d >= 0; d = defset->get_next(d, &di)) {
-				IR * def = m_ru->get_ir(d);
-
-				IS_TRUE0(def->get_bb());
-				if (li->inside_loop(IR_BB_id(def->get_bb()))) {
+			if (x->is_read_pr() && PR_ssainfo(x) != NULL) {
+				IR * def = SSA_def(PR_ssainfo(x));
+				if (def != NULL &&
+					li->is_inside_loop(BB_id(def->get_bb()))) {
 					rmvec.set(cnt++, def);
+				}
+			} else {
+				DUSet const* defset = x->get_duset_c();
+				if (defset == NULL) { continue; }
+
+				for (INT d = defset->get_first(&di);
+					 d >= 0; d = defset->get_next(d, &di)) {
+					IR * def = m_ru->get_ir(d);
+
+					ASSERT0(def->get_bb());
+					if (li->is_inside_loop(BB_id(def->get_bb()))) {
+						rmvec.set(cnt++, def);
+					}
 				}
 			}
 
 			if (cnt != 0) {
 				for (UINT i = 0; i < cnt; i++) {
 					IR * d = rmvec.get(i);
-					m_du->remove_du_chain(d, x);
+					m_du->removeDUChain(d, x);
 				}
 			}
 		}
 
-		IR_BB_ir_list(gobackbb).insert_before(newir, irct);
+		BB_irlist(gobackbb).insert_before(newir, irct);
 		if (newir->is_cond_br()) {
-			IS_TRUE0(ir == IR_BB_last_ir(head));
+			ASSERT0(ir == BB_last_ir(head));
 			last_cond_br = newir;
-			newir->invert_ir_type(m_ru);
+			newir->invertIRType(m_ru);
 		}
 	}
-	IS_TRUE0(last_cond_br);
-	IR_BB_ir_list(gobackbb).remove(irct);
-	m_ru->free_ir(lastir);
-	m_cfg->remove_edge(gobackbb, head); //revise cfg.
 
-	LABEL_INFO * loopbody_start_lab =
-		IR_BB_lab_list(loopbody_start_bb).get_head();
+	ASSERT0(last_cond_br);
+	BB_irlist(gobackbb).remove(irct);
+	m_ru->freeIR(lastir);
+	m_cfg->removeEdge(gobackbb, head); //revise cfg.
+
+	LabelInfo * loopbody_start_lab = loopbody_start_bb->get_lab_list().get_head();
 	if (loopbody_start_lab == NULL) {
-		loopbody_start_lab = ::new_ilabel(m_ru->get_pool());
+		loopbody_start_lab = ::newInternalLabel(m_ru->get_pool());
 		m_cfg->add_lab(loopbody_start_bb, loopbody_start_lab);
 	}
 	last_cond_br->set_label(loopbody_start_lab);
 
 	//Add back edge.
-	m_cfg->add_edge(IR_BB_id(gobackbb), IR_BB_id(loopbody_start_bb));
+	m_cfg->addEdge(BB_id(gobackbb), BB_id(loopbody_start_bb));
 
 	//Add fallthrough edge.
-	m_cfg->add_edge(IR_BB_id(gobackbb), IR_BB_id(next));
-	IR_BB_is_fallthrough(next) = true;
+	m_cfg->addEdge(BB_id(gobackbb), BB_id(next));
+	BB_is_fallthrough(next) = true;
 	return true;
 }
 
 
-bool IR_LOOP_CVT::find_and_convert(LIST<LI<IR_BB>*> & worklst)
+bool IR_LOOP_CVT::find_and_convert(List<LI<IRBB>*> & worklst)
 {
 	bool change = false;
 	while (worklst.get_elem_count() > 0) {
-		LI<IR_BB> * x = worklst.remove_head();
-		IR_BB * gobackbb;
+		LI<IRBB> * x = worklst.remove_head();
+		IRBB * gobackbb;
 		UINT succ1;
 		UINT succ2;
 		if (is_while_do(x, &gobackbb, &succ1, &succ2)) {
@@ -187,15 +199,15 @@ bool IR_LOOP_CVT::find_and_convert(LIST<LI<IR_BB>*> & worklst)
 }
 
 
-bool IR_LOOP_CVT::perform(OPT_CTX & oc)
+bool IR_LOOP_CVT::perform(OptCTX & oc)
 {
 	START_TIMER_AFTER();
-	m_ru->check_valid_and_recompute(&oc, OPT_LOOP_INFO, OPT_RPO, OPT_UNDEF);
+	m_ru->checkValidAndRecompute(&oc, PASS_LOOP_INFO, PASS_RPO, PASS_UNDEF);
 
-	LI<IR_BB> * li = m_cfg->get_loop_info();
+	LI<IRBB> * li = m_cfg->get_loop_info();
 	if (li == NULL) { return false; }
 
-	LIST<LI<IR_BB>*> worklst;
+	List<LI<IRBB>*> worklst;
 	while (li != NULL) {
 		worklst.append_tail(li);
 		li = LI_next(li);
@@ -204,20 +216,20 @@ bool IR_LOOP_CVT::perform(OPT_CTX & oc)
 	bool change = find_and_convert(worklst);
 	if (change) {
 		//DU reference and du chain has maintained.
-		IS_TRUE0(m_du->verify_du_ref());
-		IS_TRUE0(m_du->verify_du_chain());
+		ASSERT0(m_du->verifyMDRef());
+		ASSERT0(m_du->verifyMDDUChain());
 
 		//All these changed.
-		OPTC_is_reach_def_valid(oc) = false;
-		OPTC_is_avail_reach_def_valid(oc) = false;
-		OPTC_is_live_expr_valid(oc) = false;
+		OC_is_reach_def_valid(oc) = false;
+		OC_is_avail_reach_def_valid(oc) = false;
+		OC_is_live_expr_valid(oc) = false;
 
 		oc.set_flag_if_cfg_changed();
-		OPTC_is_cfg_valid(oc) = true; //Only cfg is avaiable.
+		OC_is_cfg_valid(oc) = true; //Only cfg is avaiable.
 
 		//TODO: make rpo, dom valid.
 	}
 
-	END_TIMER_AFTER(get_opt_name());
+	END_TIMER_AFTER(get_pass_name());
 	return change;
 }
