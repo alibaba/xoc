@@ -410,36 +410,56 @@ inline bool is_inline_data(USHORT const* ptr)
 	USHORT data = *ptr;
     DX_OPC opcode = (DX_OPC)(data & 0x00ff);
     USHORT hw = data & 0xff00;
-    //if (!(opcode != DX_NOP || data == 0)) {
-	if (opcode == DX_NOP && hw != 0) {
-		/*
-		There are three kinds of inline data,
-		PACKED_SWITCH_DATA(0x100), SPARSE_SWITCH_DATA(0x200),
-		FILLED_ARRAY_DATA(0x300).
-		*/
-		return true;
-	}
-	return false;
+
+	/* There are three kinds of inline data,
+	PACKED_SWITCH_DATA(0x100), SPARSE_SWITCH_DATA(0x200),
+	FILLED_ARRAY_DATA(0x300). */
+	return opcode == DX_NOP && hw != 0;
 }
 
+
+/*
+---dex file map-------
+	header!
+	string id!
+	type id!
+	proto id!
+	field id!
+	method id!
+	class def id!
+
+	annotation set ref list
+	annotation set item list !
+
+	code item !
+
+	annotations directory item!
+	type list info!
+	string data item list !
+	debug info!
+	annotation item list !
+	encodearray item list !
+
+	class Data item !
+	map list!
+*/
 class DX_MGR  {
 public:
 	virtual ~DX_MGR() {}
 	void decode_dx(IN USHORT const* cptr, IN OUT DXC & dc);
 	void dump_dx(DXC const& dc, FILE * h);
 	void dump_method(IN DX_INFO const& dxinfo, IN FILE * h);
-	virtual CHAR const* get_string(UINT str_idx) { IS_TRUE0(0); return NULL; }
-	virtual CHAR const* get_type_name(UINT idx) { IS_TRUE0(0); return NULL; }
+	virtual CHAR const* get_string(UINT str_idx) { ASSERT0(0); return NULL; }
+	virtual CHAR const* get_type_name(UINT idx) { ASSERT0(0); return NULL; }
 	virtual CHAR const* get_field_name(UINT field_idx)
-	{ IS_TRUE0(0); return NULL; }
+	{ ASSERT0(0); return NULL; }
 	virtual CHAR const* get_method_name(UINT method_idx)
-	{ IS_TRUE0(0); return NULL; }
+	{ ASSERT0(0); return NULL; }
 	virtual CHAR const* get_class_name(UINT class_type_idx)
-	{ IS_TRUE0(0); return NULL; }
+	{ ASSERT0(0); return NULL; }
 	virtual CHAR const* get_class_name_by_method_id(UINT method_idx)
-	{ IS_TRUE0(0); return NULL; }
+	{ ASSERT0(0); return NULL; }
 	virtual CHAR const* get_class_name_by_field_id(UINT field_idx)
-	{ IS_TRUE0(0); return NULL; }
+	{ ASSERT0(0); return NULL; }
 };
 #endif
-

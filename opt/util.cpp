@@ -42,14 +42,14 @@ author: Su Zhenyu
 
 INT g_indent = 0;
 CHAR * g_indent_chars = (CHAR*)" ";
-SMEM_POOL * g_pool_tmp_used = NULL;
+SMemPool * g_pool_tmp_used = NULL;
 FILE * g_tfile = NULL;
 
 void interwarn(CHAR const* format, ...)
 {
 	CHAR sbuf[ERR_BUF_LEN];
 	if (strlen(format) > ERR_BUF_LEN) {
-		IS_TRUE(0, ("internwarn message is too long to print"));
+		ASSERT(0, ("internwarn message is too long to print"));
 	}
 	//CHAR * arg = (CHAR*)((CHAR*)(&format) + sizeof(CHAR*));
 	va_list arg;
@@ -66,7 +66,7 @@ INT prt(CHAR const* format, ...)
 	if (format == NULL) return 0;
 	CHAR buf[MAX_BUF_LEN];
 	if (strlen(format) > MAX_BUF_LEN) {
-		IS_TRUE(0, ("prt message is too long to print"));
+		ASSERT(0, ("prt message is too long to print"));
 	}
 	//CHAR * arg = (CHAR*)((CHAR*)(&format) + sizeof(CHAR*));
 	va_list arg;
@@ -86,6 +86,7 @@ INT prt(CHAR const* format, ...)
 //NOTE: message should not exceed MAX_BUF_LEN.
 void scr(CHAR const* format, ...)
 {
+	UNUSED(format);
 #ifdef _DEBUG_
 	//CHAR * arg = (CHAR*)((CHAR*)(&format) + sizeof(CHAR*));
 	va_list arg;
@@ -118,7 +119,7 @@ void initdump(CHAR const* f, bool is_del)
 		}
 		g_tfile = fopen(f, "a+");
 		if (g_tfile == NULL) {
-			IS_TRUE(0, ("can not open %s, errno:%d, errstring is %s",
+			ASSERT(0, ("can not open %s, errno:%d, errstring is %s",
 						f, errno, strerror(errno)));
 			return;
 		}
@@ -135,15 +136,17 @@ void note(CHAR const* format, ...)
 		return;
 	}
 	if (format == NULL) return;
-	CHAR buf[MAX_BUF_LEN];
+	//CHAR buf[MAX_BUF_LEN];
+	UINT buflen = 4096;
+	CHAR * buf = (CHAR*)malloc(buflen);
 	CHAR * real_buf = buf;
 	//CHAR * arg = (CHAR*)((CHAR*)(&format) + sizeof(CHAR*));
 	va_list arg;
 	va_start(arg, format);
-	vsnprintf(buf, MAX_BUF_LEN, format, arg);
-	buf[MAX_BUF_LEN - 1] = 0;
+	vsnprintf(buf, buflen, format, arg);
+	buf[buflen-1] = 0;
 	UINT len = strlen(buf);
-	IS_TRUE0(len < MAX_BUF_LEN);
+	ASSERT0(len < buflen);
 	UINT i = 0;
 	while (i < len) {
 		if (real_buf[i] == '\n') {
@@ -169,6 +172,7 @@ void note(CHAR const* format, ...)
 	fprintf(g_tfile, "%s", real_buf + i);
 	fflush(g_tfile);
 FIN:
+	free(buf);
 	va_end(arg);
 	return;
 }
@@ -179,9 +183,9 @@ void * tlloc(LONG size)
 {
 	if (size < 0 || size == 0) return NULL;
 	if (g_pool_tmp_used == NULL) {
-		g_pool_tmp_used = smpool_create_handle(8, MEM_COMM);
+		g_pool_tmp_used = smpoolCreate(8, MEM_COMM);
 	}
-	void * p = smpool_malloc_h(size, g_pool_tmp_used);
+	void * p = smpoolMalloc(size, g_pool_tmp_used);
 	if (p == NULL) return NULL;
 	memset(p, 0, size);
 	return p;
@@ -191,13 +195,13 @@ void * tlloc(LONG size)
 void tfree()
 {
 	if (g_pool_tmp_used != NULL) {
-		smpool_free_handle(g_pool_tmp_used);
+		smpoolDelete(g_pool_tmp_used);
 		g_pool_tmp_used = NULL;
 	}
 }
 
 
-void dump_vec(SVECTOR<UINT> & v)
+void dump_vec(Vector<UINT> & v)
 {
 	if (g_tfile == NULL) return;
 	fprintf(g_tfile, "\n");
@@ -228,7 +232,7 @@ public:
 			return;
 		}
 
-		LIST<TN*> lst;
+		List<TN*> lst;
 		lst.append_tail(x);
 		while (lst.get_elem_count() != 0) {
 			x = lst.remove_head();
@@ -242,11 +246,11 @@ public:
 				lst.append_tail(x->lchild);
 			}
 		}
-		IS_TRUE0(x);
-		IS_TRUE0(x->color == f);
+		ASSERT0(x);
+		ASSERT0(x->color == f);
 		TN * y = new_tn(to, t);
 
-		IS_TRUE0(x->lchild == NULL);
+		ASSERT0(x->lchild == NULL);
 		x->lchild = y;
 		y->parent = x;
 	}
@@ -263,7 +267,7 @@ public:
 			return;
 		}
 
-		LIST<TN*> lst;
+		List<TN*> lst;
 		lst.append_tail(x);
 		while (lst.get_elem_count() != 0) {
 			x = lst.remove_head();
@@ -277,11 +281,11 @@ public:
 				lst.append_tail(x->lchild);
 			}
 		}
-		IS_TRUE0(x);
-		IS_TRUE0(x->color == f);
+		ASSERT0(x);
+		ASSERT0(x->color == f);
 		TN * y = new_tn(to, t);
 
-		IS_TRUE0(x->rchild == NULL);
+		ASSERT0(x->rchild == NULL);
 		x->rchild = y;
 		y->parent = x;
 	}

@@ -37,71 +37,72 @@ author: Su Zhenyu
 //Time Info.
 #define TI_pn(ti)		(ti)->pass_name
 #define TI_pt(ti)		(ti)->pass_time
-class TI {
+class TimeInfo {
 public:
 	CHAR const* pass_name;
 	ULONGLONG pass_time;
 };
 
 
-class PASS_MGR {
+class PassMgr {
 protected:
-	LIST<TI*> m_ti_list;
-	SMEM_POOL * m_pool;
-	REGION * m_ru;
-	DT_MGR * m_dm;
+	List<TimeInfo*> m_ti_list;
+	SMemPool * m_pool;
+	Region * m_ru;
+	TypeMgr * m_dm;
 	CDG * m_cdg;
-	TMAP<OPT_TYPE, IR_OPT*> m_registered_opt;
-	TMAP<OPT_TYPE, GRAPH*> m_registered_graph_based_opt;
+	TMap<PASS_TYPE, Pass*> m_registered_pass;
+	TMap<PASS_TYPE, Graph*> m_registered_graph_based_pass;
 
 	void * xmalloc(size_t size)
 	{
-		void * p = smpool_malloc_h(size, m_pool);
+		void * p = smpoolMalloc(size, m_pool);
 		if (p == NULL) return NULL;
 		memset(p, 0, size);
 		return p;
 	}
-	GRAPH * register_graph_based_opt(OPT_TYPE opty);
+	Graph * registerGraphBasedPass(PASS_TYPE opty);
 public:
-	PASS_MGR(REGION * ru);
-	virtual ~PASS_MGR()
+	PassMgr(Region * ru);
+	COPY_CONSTRUCTOR(PassMgr);
+	virtual ~PassMgr()
 	{
-		destroy_opt();
-		smpool_free_handle(m_pool);
+		destroyPass();
+		smpoolDelete(m_pool);
 	}
 
-	void append_ti(CHAR const* pass_name, ULONGLONG t)
+	void appendTimeInfo(CHAR const* pass_name, ULONGLONG t)
 	{
-		TI * ti = (TI*)xmalloc(sizeof(TI));
+		TimeInfo * ti = (TimeInfo*)xmalloc(sizeof(TimeInfo));
 		TI_pn(ti) = pass_name;
 		TI_pt(ti) = t;
 		m_ti_list.append_tail(ti);
 	}
 
-	virtual GRAPH * alloc_cdg();
-	virtual IR_OPT * alloc_cp();
-	virtual IR_OPT * alloc_gcse();
-	virtual IR_OPT * alloc_lcse();
-	virtual IR_OPT * alloc_rp();
-	virtual IR_OPT * alloc_pre();
-	virtual IR_OPT * alloc_ivr();
-	virtual IR_OPT * alloc_licm();
-	virtual IR_OPT * alloc_dce();
-	virtual IR_OPT * alloc_dse();
-	virtual IR_OPT * alloc_rce();
-	virtual IR_OPT * alloc_gvn();
-	virtual IR_OPT * alloc_loop_cvt();
-	virtual IR_OPT * alloc_ssa_opt_mgr();
-	virtual IR_OPT * alloc_ccp();
-	virtual IR_OPT * alloc_expr_tab();
-	virtual IR_OPT * alloc_cfs_mgr();
+	virtual Graph * allocCDG();
+	virtual Pass * allocCopyProp();
+	virtual Pass * allocGCSE();
+	virtual Pass * allocLCSE();
+	virtual Pass * allocRP();
+	virtual Pass * allocPRE();
+	virtual Pass * allocIVR();
+	virtual Pass * allocLICM();
+	virtual Pass * allocDCE();
+	virtual Pass * allocDSE();
+	virtual Pass * allocRCE();
+	virtual Pass * allocGVN();
+	virtual Pass * allocLoopCvt();
+	virtual Pass * allocSSAMgr();
+	virtual Pass * allocCCP();
+	virtual Pass * allocExprTab();
+	virtual Pass * allocCfsMgr();
 
-	void destroy_opt();
+	void destroyPass();
 	void dump_pass_time_info()
 	{
 		if (g_tfile == NULL) { return; }
 		fprintf(g_tfile, "\n==---- PASS TIME INFO ----==");
-		for (TI * ti = m_ti_list.get_head(); ti != NULL;
+		for (TimeInfo * ti = m_ti_list.get_head(); ti != NULL;
 			 ti = m_ti_list.get_next()) {
 			fprintf(g_tfile, "\n * %s --- use %llu ms ---",
 					TI_pn(ti), TI_pt(ti));
@@ -110,16 +111,16 @@ public:
 		fflush(g_tfile);
 	}
 
-	IR_OPT * register_opt(OPT_TYPE opty);
+	Pass * registerPass(PASS_TYPE opty);
 
-	IR_OPT * query_opt(OPT_TYPE opty)
+	Pass * query_opt(PASS_TYPE opty)
 	{
-		if (opty == OPT_CDG) {
-			return (IR_OPT*)m_registered_graph_based_opt.get(opty);
+		if (opty == PASS_CDG) {
+			return (Pass*)m_registered_graph_based_pass.get(opty);
 		}
-		return m_registered_opt.get(opty);
+		return m_registered_pass.get(opty);
 	}
 
-	virtual void perform_scalar_opt(OPT_CTX & oc);
+	virtual void performScalarOpt(OptCTX & oc);
 };
 #endif

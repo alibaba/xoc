@@ -36,7 +36,7 @@ author: Su Zhenyu
 #include "flty.h"
 #include "math.h"
 
-bool operator == (FLTY const& a, FLTY const& b)
+bool operator == (Float const& a, Float const& b)
 {
 	PRECISION_TYPE av = a.m_f;
 	PRECISION_TYPE bv = b.m_f;
@@ -56,7 +56,7 @@ bool operator == (FLTY const& a, FLTY const& b)
 }
 
 
-bool operator < (FLTY const& a, FLTY const& b)
+bool operator < (Float const& a, Float const& b)
 {
 	if (a.m_f < b.m_f) {
 		return true;
@@ -65,7 +65,7 @@ bool operator < (FLTY const& a, FLTY const& b)
 }
 
 
-bool operator <= (FLTY const& a, FLTY const& b)
+bool operator <= (Float const& a, Float const& b)
 {
 	if (a.m_f < b.m_f || a == b) {
 		return true;
@@ -74,7 +74,7 @@ bool operator <= (FLTY const& a, FLTY const& b)
 }
 
 
-bool operator > (FLTY const& a, FLTY const& b)
+bool operator > (Float const& a, Float const& b)
 {
 	if (a.m_f > b.m_f) {
 		return true;
@@ -83,7 +83,7 @@ bool operator > (FLTY const& a, FLTY const& b)
 }
 
 
-bool operator >= (FLTY const& a, FLTY const& b)
+bool operator >= (Float const& a, Float const& b)
 {
 	if (a.m_f > b.m_f || a == b) {
 		return true;
@@ -92,37 +92,37 @@ bool operator >= (FLTY const& a, FLTY const& b)
 }
 
 
-FLTY operator * (FLTY const& a, FLTY const& b)
+Float operator * (Float const& a, Float const& b)
 {
-	//return FLTY(integralize(integralize(a.m_f) * integralize(b.m_f)));
-	return FLTY(a.m_f * b.m_f);
+	//return Float(integralize(integralize(a.m_f) * integralize(b.m_f)));
+	return Float(a.m_f * b.m_f);
 }
 
 
-FLTY operator / (FLTY const& a, FLTY const& b)
+Float operator / (Float const& a, Float const& b)
 {
-	//return FLTY(integralize(integralize(a.m_f) / integralize(b.m_f)));
-	return FLTY(a.m_f / b.m_f);
+	//return Float(integralize(integralize(a.m_f) / integralize(b.m_f)));
+	return Float(a.m_f / b.m_f);
 }
 
 
-FLTY operator + (FLTY const& a, FLTY const& b)
+Float operator + (Float const& a, Float const& b)
 {
-	//return FLTY(integralize(integralize(a.m_f) + integralize(b.m_f)));
-	return FLTY(a.m_f + b.m_f);
+	//return Float(integralize(integralize(a.m_f) + integralize(b.m_f)));
+	return Float(a.m_f + b.m_f);
 }
 
 
 //Subtration operation
-FLTY operator - (FLTY const& a, FLTY const& b)
+Float operator - (Float const& a, Float const& b)
 {
-	//return FLTY(integralize(integralize(a.m_f) - integralize(b.m_f)));
-	return FLTY(a.m_f - b.m_f);
+	//return Float(integralize(integralize(a.m_f) - integralize(b.m_f)));
+	return Float(a.m_f - b.m_f);
 }
 
 
 //Minus operation
-FLTY operator - (FLTY a)
+Float operator - (Float a)
 {
 	a.m_f = -(a.m_f);
 	return a;
@@ -130,14 +130,14 @@ FLTY operator - (FLTY a)
 
 
 //Zerolization.
-FLTY zerolinz(FLTY const& a)
+Float zerolinz(Float const& a)
 {
 	PRECISION_TYPE v = a.m_f;
 	if (v < 0) {
 		v = -v;
 	}
 	if (v <= INFINITESIMAL) {
-		return FLTY(0);
+		return Float(0);
 	}
 	return a;
 }
@@ -170,14 +170,14 @@ PRECISION_TYPE integralize(PRECISION_TYPE const& a)
 }
 
 
-CHAR * FLTY::format(CHAR * buf)
+CHAR * Float::format(CHAR * buf)
 {
 	sprintf(buf, "%f", m_f);
 	return buf;
 }
 
 
-bool FLTY::is_int()
+bool Float::is_int()
 {
 	PRECISION_TYPE av = m_f;
 	if (av < 0) {

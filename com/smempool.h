@@ -67,44 +67,47 @@ typedef enum {
 #ifdef _DEBUG_
 #define MEMPOOL_chunk_id(p)				((p)->chunk_id)
 #endif
-typedef struct _mem_pool {
+
+typedef struct _MemPool {
 	MEMPOOLTYPE pool_type;
-	struct _mem_pool * next;
-	struct _mem_pool * prev;
+	struct _MemPool * next;
+	struct _MemPool * prev;
 	MEMPOOLIDX mpt_id; //identification of mem pool
 	size_t start_pos; //represent the alloca postion of mem pool
 	size_t mem_pool_size; //represent mem pool size
 	size_t grow_size;
 	void * ppool; //start address of mem pool
+
 	#ifdef _DEBUG_
 	ULONG chunk_id;
 	#endif
-} SMEM_POOL;
+} SMemPool;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 //create mem pool
-MEMPOOLIDX smpool_create_idx(size_t size, MEMPOOLTYPE mpt = MEM_COMM);
-SMEM_POOL * smpool_create_handle(size_t size, MEMPOOLTYPE mpt = MEM_COMM);
+MEMPOOLIDX smpoolCreatePoolIndex(size_t size, MEMPOOLTYPE mpt = MEM_COMM);
+SMemPool * smpoolCreate(size_t size, MEMPOOLTYPE mpt = MEM_COMM);
 
 //delete mem pool
-INT smpool_free_idx(MEMPOOLIDX mpt_idx);
-INT smpool_free_handle(SMEM_POOL * handle);
+INT smpoolDeleteViaPoolIndex(MEMPOOLIDX mpt_idx);
+INT smpoolDelete(SMemPool * handle);
 
 //alloc memory from corresponding mem pool
-void * smpool_malloc_i(size_t size, MEMPOOLIDX mpt_idx, size_t grow_size = 0);
-void * smpool_malloc_h(size_t size, SMEM_POOL * handle, size_t grow_size = 0);
-void * smpool_malloc_h_const_size(size_t elem_size, IN SMEM_POOL * handler);
+void * smpoolMallocViaPoolIndex(size_t size, MEMPOOLIDX mpt_idx,
+								size_t grow_size = 0);
+void * smpoolMalloc(size_t size, SMemPool * handle, size_t grow_size = 0);
+void * smpoolMallocConstSize(size_t elem_size, IN SMemPool * handler);
 
 //Get whole pool size with byte
-size_t smpool_get_pool_size_idx(MEMPOOLIDX mpt_idx);
-size_t smpool_get_pool_size_handle(SMEM_POOL const* handle);
-void smpool_init_pool(); //Initializing pool utilities
-void smpool_fini_pool(); //Finializing pool
+size_t smpoolGetPoolSizeViaIndex(MEMPOOLIDX mpt_idx);
+size_t smpoolGetPoolSize(SMemPool const* handle);
+void smpoolInitPool(); //Initializing pool utilities
+void smpoolFiniPool(); //Finializing pool
 
-void dump_pool(SMEM_POOL * handler, FILE * h);
+void dumpPool(SMemPool * handler, FILE * h);
 #ifdef __cplusplus
 }
 #endif

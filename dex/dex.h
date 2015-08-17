@@ -87,7 +87,7 @@ extern UINT g_builtin_num;
 extern BLTIN_INFO g_builtin_info[];
 
 
-class VAR2UINT : public TMAP<VAR const*, UINT> {
+class VAR2UINT : public TMap<VAR const*, UINT> {
 public:
 	VAR2UINT() {}
 	virtual ~VAR2UINT() {}
@@ -95,52 +95,53 @@ public:
 	UINT mget(VAR const* v)
 	{
 		bool find;
-		UINT i = TMAP<VAR const*, UINT>::get(v, &find);
-		IS_TRUE0(find);
+		UINT i = TMap<VAR const*, UINT>::get(v, &find);
+		ASSERT0(find);
 		return i;
 	}
 };
 
 
-class PRNO2UINT : public HMAP<UINT, UINT, HASH_FUNC_BASE2<UINT> > {
+class Prno2UINT : public HMap<UINT, UINT, HashFuncBase2<UINT> > {
 public:
 	INT maxreg; //record the max vreg used.
 	UINT paramnum; //record the number of parameter.
 
-	PRNO2UINT(UINT sz = 0) : HMAP<UINT, UINT, HASH_FUNC_BASE2<UINT> >(sz)
+	Prno2UINT(UINT sz = 0) : HMap<UINT, UINT, HashFuncBase2<UINT> >(sz)
 	{
 		maxreg = -1;
 		paramnum = 0;
 	}
-	virtual ~PRNO2UINT() {}
+	virtual ~Prno2UINT() {}
 
 	UINT get(UINT prno)
 	{
 		bool find = false;
-		UINT x = HMAP<UINT, UINT, HASH_FUNC_BASE2<UINT> >::get(prno, &find);
-		IS_TRUE0(find);
+		UINT x = HMap<UINT, UINT, HashFuncBase2<UINT> >::get(prno, &find);
+		ASSERT0(find);
 		return x;
 	}
 
 	UINT get_mapped_vreg(UINT prno)
 	{
 		UINT mapped = 0;
-		bool f = HMAP<UINT, UINT, HASH_FUNC_BASE2<UINT> >::find(prno, &mapped);
-		IS_TRUE(f, ("prno should be mapped with vreg in dex2ir"));
-		//return HMAP<UINT, UINT, HASH_FUNC_BASE2<UINT> >::get(prno);
+		bool f = HMap<UINT, UINT, HashFuncBase2<UINT> >::find(prno, &mapped);
+		UNUSED(f);
+		ASSERT(f, ("prno should be mapped with vreg in dex2ir"));
+		//return HMap<UINT, UINT, HashFuncBase2<UINT> >::get(prno);
 		return mapped;
 	}
 
 	UINT get(UINT prno, bool * find)
-	{ return HMAP<UINT, UINT, HASH_FUNC_BASE2<UINT> >::get(prno, find); }
+	{ return HMap<UINT, UINT, HashFuncBase2<UINT> >::get(prno, find); }
 
 	void set(UINT prno, UINT v)
 	{
-		IS_TRUE0(prno > 0);
-		HMAP<UINT, UINT, HASH_FUNC_BASE2<UINT> >::set(prno, v);
+		ASSERT0(prno > 0);
+		HMap<UINT, UINT, HashFuncBase2<UINT> >::set(prno, v);
 	}
 
-	void copy(PRNO2UINT & src)
+	void copy(Prno2UINT & src)
 	{
 		INT cur;
 		for (UINT prno = src.get_first(cur); cur >= 0; prno = src.get_next(cur)) {
@@ -154,7 +155,7 @@ public:
 	void dump()
 	{
 		if (g_tfile == NULL) { return; }
-		fprintf(g_tfile, "\n==---- DUMP PRNO2UINT ----==");
+		fprintf(g_tfile, "\n==---- DUMP Prno2UINT ----==");
 		g_indent = 4;
 
 		if (maxreg < 0) {
@@ -187,13 +188,13 @@ public:
 };
 
 
-class UINT2PR : public SVECTOR<IR*> {
+class UINT2PR : public Vector<IR*> {
 public:
 	void dump()
 	{
 		if (g_tfile == NULL) { return; }
 
-		fprintf(g_tfile, "\n==---- DUMP PRNO2UINT ----==");
+		fprintf(g_tfile, "\n==---- DUMP Prno2UINT ----==");
 
 		for (INT i = 0; i <= get_last_idx(); i++) {
 			IR * pr = get(i);
@@ -207,9 +208,9 @@ public:
 };
 
 
-class STR2INTRI : public HMAP<CHAR const*, BLTIN_TYPE, HASH_FUNC_STR> {
+class STR2INTRI : public HMap<CHAR const*, BLTIN_TYPE, HashFuncString> {
 public:
-	STR2INTRI(UINT sz = 13) : HMAP<CHAR const*, BLTIN_TYPE, HASH_FUNC_STR>(sz)
+	STR2INTRI(UINT sz = 13) : HMap<CHAR const*, BLTIN_TYPE, HashFuncString>(sz)
 	{
 		for (UINT i = BLTIN_UNDEF + 1; i < g_builtin_num; i++) {
 			set(BLTIN_name((BLTIN_TYPE)i), (BLTIN_TYPE)i);
@@ -220,21 +221,8 @@ public:
 
 
 //Map from typeIdx of type-table to positionIdx in file-class-def-table.
-class TYID2POSID : public TMAP<UINT, UINT> {
+class FieldTypeIdx2PosIdx : public TMap<UINT, UINT> {
 public:
-	TYID2POSID() {}
-	virtual ~TYID2POSID() {}
-
-	void set(UINT t, UINT mapped)
-	{
-		t++; //t may be 0. Do not use 0 as source mapping-value.
-		TMAP<UINT, UINT>::set(t, mapped);
-	}
-	UINT get(UINT t, bool * find)
-	{
-		t++; //t may be 0. Do not use 0 as source mapping-value.
-		return TMAP<UINT, UINT>::get(t, find);
-	}
 };
 
 
@@ -261,4 +249,32 @@ inline bool is_swide16(LONGLONG value)
 
 inline bool is_swide32(LONGLONG value)
 { return (LONGLONG)((INT)value) == value; }
+
+//Record type to facilitate type comparation.
+class TypeIndexRep {
+public:
+	Type const* i8;
+	Type const* u8;
+	Type const* i16;
+	Type const* u16;
+	Type const* i32;
+	Type const* u32;
+	Type const* i64;
+	Type const* u64;
+	Type const* f32;
+	Type const* f64;
+	Type const* b;
+	Type const* ptr;
+	Type const* array;
+	Type const* obj_lda_base_type;
+	Type const* uint16x4;
+	Type const* int16x4;
+	Type const* uint32x4;
+	Type const* int32x4;
+	Type const* uint64x2;
+	Type const* int64x2;
+
+public:
+	TypeIndexRep() { memset(this, 0, sizeof(TypeIndexRep)); }
+};
 #endif

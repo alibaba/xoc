@@ -39,10 +39,10 @@ author: Su Zhenyu
 #define FIRST_PHY_REG	0
 
 class GLT;
-class LTM;
+class LTMgr;
 class LTG;
 class RA;
-class GLTM;
+class GltMgr;
 class PRDF;
 class RSC;
 class RG;
@@ -65,9 +65,9 @@ class LT {
 public:
 	UINT prno;
 	UINT id;
-	BITSET * range;
-	BITSET * occ;
-	BITSET const* usable;
+	BitSet * range;
+	BitSet * occ;
+	BitSet const* usable;
 	LTG * lt_group;
 	RG * reg_group;	//register group
 	float priority;
@@ -80,7 +80,7 @@ public:
 	void clean();
 	inline bool is_intersect(LT const* lt) const
 	{
-		IS_TRUE0(range);
+		ASSERT0(range);
 		return LT_range(this)->is_intersect(*LT_range(lt));
 	}
 	inline bool is_def(UINT pos) const
@@ -96,8 +96,9 @@ public:
 	*/
 	inline INT get_forward_occ(INT pos, OUT bool * is_def, INT firstpos)
 	{
-		IS_TRUE(pos >= firstpos, ("Illegal position"));
-		IS_TRUE0(occ);
+		UNUSED(firstpos);
+		ASSERT(pos >= firstpos, ("Illegal position"));
+		ASSERT0(occ);
 		pos = occ->get_next(pos);
 		*is_def = this->is_def(pos);
 		return pos;
@@ -122,8 +123,9 @@ public:
 	*/
 	inline INT get_forward_def_occ(INT pos, INT firstpos)
 	{
-		IS_TRUE(pos >= firstpos, ("Illegal position"));
-		IS_TRUE0(occ);
+		UNUSED(firstpos);
+		ASSERT(pos >= firstpos, ("Illegal position"));
+		ASSERT0(occ);
 		for (pos = occ->get_next(pos); pos >= 0; pos = occ->get_next(pos)) {
 			if (is_def(pos)) {
 				return pos;
@@ -139,7 +141,7 @@ public:
 	*/
 	inline INT get_backward_occ(INT pos, OUT bool * is_d, INT firstpos)
 	{
-		IS_TRUE(pos >= firstpos, ("Illegal position"));
+		ASSERT(pos >= firstpos, ("Illegal position"));
 		if (pos == firstpos && (occ == NULL || occ->is_empty())) { return -1; }
 
 		INT backwpos = -1;
@@ -159,7 +161,7 @@ public:
 
 	inline INT get_backward_def_occ(INT pos, INT firstpos)
 	{
-		IS_TRUE(pos >= firstpos, ("Illegal position"));
+		ASSERT(pos >= firstpos, ("Illegal position"));
 		if (pos == firstpos && (occ == NULL || occ->is_empty())) { return -1; }
 
 		INT start = LT_range(this)->get_first();
@@ -173,16 +175,16 @@ public:
 	}
 
 	bool has_allocated() const { return LT_phy(this) != REG_UNDEF; }
-	bool has_branch(LTM * ltm) const;
+	bool has_branch(LTMgr * ltm) const;
 
-	GLT * set_global(GLTM & gltm);
+	GLT * set_global(GltMgr & gltm);
 };
 
 
-class PR2LT_MAP : public HMAP<UINT, LT*> {
+class PR2LT_MAP : public HMap<UINT, LT*> {
 public:
 	PR2LT_MAP(UINT bsize = 0) :
-		HMAP<UINT, LT*>(bsize) {}
+		HMap<UINT, LT*>(bsize) {}
 };
 
 
@@ -193,7 +195,7 @@ typedef enum _LTG_TYPE {
 } LTG_TYPE;
 
 //Lifetime Group.
-class LTG : public SVECTOR<LT*> {
+class LTG : public Vector<LT*> {
 public:
 	LTG_TYPE ty;
 	LTG()
@@ -208,7 +210,7 @@ public:
 		UINT rgsz = 0;
 		for (INT i = 0; i <= get_last_idx(); i++) {
 			LT const* l = get(i);
-			IS_TRUE0(l);
+			ASSERT0(l);
 			rgsz += LT_rg_sz(l);
 		}
 		return rgsz;
@@ -219,7 +221,7 @@ public:
 	{
 		for (INT i = 0; i <= get_last_idx(); i++) {
 			LT * l = get(i);
-			IS_TRUE0(l);
+			ASSERT0(l);
 			if (LT_prno(l) == prno) {
 				return true;
 			}
@@ -237,46 +239,46 @@ public:
 
 	void set(UINT i, UINT phy)
 	{
-		IS_TRUE0(i < rnum && rvec && phy != REG_UNDEF);
+		ASSERT0(i < rnum && rvec && phy != REG_UNDEF);
 		rvec[i] = (USHORT)phy;
 	}
 
 	UINT get(UINT i)
 	{
-		IS_TRUE0(i < rnum && rvec);
+		ASSERT0(i < rnum && rvec);
 		return (UINT)rvec[i];
 	}
 };
 
 
 //Register Group Mgr
-class RG_MGR {
-	SMEM_POOL * m_pool;
+class RGMgr {
+	SMemPool * m_pool;
 public:
-	RG_MGR()
-	{ m_pool = smpool_create_handle(0, MEM_COMM); }
-	~RG_MGR()
-	{ smpool_free_handle(m_pool); }
+	RGMgr()
+	{ m_pool = smpoolCreate(0, MEM_COMM); }
+	~RGMgr()
+	{ smpoolDelete(m_pool); }
 
 	RG * create(UINT n)
 	{
-		RG * rg = (RG*)smpool_malloc_h(sizeof(RG), m_pool);
-		rg->rvec = (USHORT*)smpool_malloc_h(sizeof(USHORT) * n, m_pool);
-		rg->rnum = n;
+		RG * rg = (RG*)smpoolMalloc(sizeof(RG), m_pool);
+		rg->rvec = (USHORT*)smpoolMalloc(sizeof(USHORT) * n, m_pool);
+		rg->rnum = (BYTE)n;
 		return rg;
 	}
 };
 
 
 //Map from IR to INT.
-typedef TMAP<IR*, INT> IR2INT;
+typedef TMap<IR*, INT> IR2INT;
 
 
 //Lifetime Group Mgr
-class LTG_MGR : public TMAP<UINT, LTG*> {
-	LIST<LTG*> m_ltgs;
+class LTGMgr : public TMap<UINT, LTG*> {
+	List<LTG*> m_ltgs;
 public:
-	virtual ~LTG_MGR()
+	virtual ~LTGMgr()
 	{
 		for (LTG * ltg = m_ltgs.get_head();
 			 ltg != NULL; ltg = m_ltgs.get_next()) {
@@ -299,121 +301,123 @@ public:
 };
 
 
-class IG : public GRAPH {
-	LTM * m_ltm;
+class IG : public Graph {
+	LTMgr * m_ltm;
 public:
 	IG() {}
-	void set_ltm(LTM * ltm) { IS_TRUE0(ltm); m_ltm = ltm; }
+	void set_ltm(LTMgr * ltm) { ASSERT0(ltm); m_ltm = ltm; }
 	bool is_interf(LT const* lt1, LT const* lt2) const;
 	void build();
 	void dump_vcg(CHAR const* name = NULL);
-	void get_neighbor(OUT LIST<LT*> & nis, LT * lt) const;
+	void get_neighbor(OUT List<LT*> & nis, LT * lt) const;
 };
 
 
 //Local Life Time Manager.
 //TODO: update lt incrementally.
-class LTM {
+class LTMgr {
 protected:
-	friend class GLTM;
+	friend class GltMgr;
 	friend class BBRA;
 	friend class RSC;
 	friend class RA;
-	IR_BB * m_bb;
+	IRBB * m_bb;
 	//PR2LT_MAP m_prno2lt_map;
-	TMAP<UINT, LT*> m_prno2lt;
-	SVECTOR<LT*> m_lt_vec;
-	SVECTOR<IR*> m_pos2ir;
+	TMap<UINT, LT*> m_prno2lt;
+	Vector<LT*> m_lt_vec;
+	Vector<IR*> m_pos2ir;
 	IG m_ig;
-	SMEM_POOL * m_pool;
+	SMemPool * m_pool;
 	PRDF * m_prdf;
-	PRNO2UINT * m_pr2v;
+	Prno2UINT * m_pr2v;
 	UINT2PR * m_v2pr;
-	GLTM * m_gltm;
-	DT_MGR * m_dm;
-	REGION * m_ru;
+	GltMgr * m_gltm;
+	TypeMgr * m_dm;
+	Region * m_ru;
 	RA * m_ra;
 	UINT m_lt_count; //local lt count.
 	UINT m_max_lt_len;
 
 	void * xmalloc(UINT size)
 	{
-		IS_TRUE0(m_pool);
-		void * p = smpool_malloc_h(size, m_pool);
-		IS_TRUE0(p != NULL);
+		ASSERT0(m_pool);
+		void * p = smpoolMalloc(size, m_pool);
+		ASSERT0(p != NULL);
 		memset(p, 0, size);
 		return p;
 	}
 
 	void revise_lt_case_1(LT * lt);
-	void revise_special_lt(LIST<LT*> * lts);
+	void revise_special_lt(List<LT*> * lts);
 	void process_rg(LT * lt);
-	void process_liveout(IN OUT BITSET & lived_lt, UINT pos,
+	void processLiveout(IN OUT BitSet & lived_lt, UINT pos,
 						 bool always_consider_glt);
-	void process_livein(IN OUT BITSET & lived_lt, UINT pos,
+	void processLivein(IN OUT BitSet & lived_lt, UINT pos,
 						bool always_consider_glt);
-	void process_func_exit_bb(IN OUT LIST<LT*> * liveout_exitbb,
-							  IN OUT BITSET & lived_lt,
-							  IN BITSET const& retval_regset, UINT pos);
-	void process_use(IN IR * ir, CIR_ITER & cii, INT pos,
-					 OUT BITSET & lived_lt, bool group_part);
-	void process_res(IN IR * ir, INT pos, OUT BITSET & lived_lt,
+	void processExitBB(IN OUT List<LT*> * liveout_exitbb,
+							  IN OUT BitSet & lived_lt,
+							  IN BitSet const& retval_regset, UINT pos);
+	void processUse(IN IR * ir, ConstIRIter & cii, INT pos,
+					 OUT BitSet & lived_lt, bool group_part);
+	void processResult(IN IR * ir, INT pos, OUT BitSet & lived_lt,
 					 bool group_part);
-	LT * process_use_pr(IR const* ir, UINT pos, OUT BITSET & lived_lt);
-	LT * process_res_pr(UINT prno, UINT pos, OUT BITSET & lived_lt);
-	void process_use_group_part(IR const* ir, UINT pos, OUT BITSET & lived_lt);
-	void process_res_group_part(IR const* ir, UINT pos, OUT BITSET & lived_lt);
+	LT * processUsePR(IR const* ir, UINT pos, OUT BitSet & lived_lt);
+	LT * processResultPR(UINT prno, UINT pos, OUT BitSet & lived_lt);
+	void processUseGroupPart(IR const* ir, UINT pos, OUT BitSet & lived_lt);
+	void processResultGroupPart(IR const* ir, UINT pos, OUT BitSet & lived_lt);
 
-	void gen_range_call_group(IR const* ir);
-	IR * gen_dedicate_pr(UINT phyrid);
-	void record_phy_reg_occ(LT * lt, UINT pos, IN BITSET & lived_lt);
-	void rename_use(IR * ir, LT * l, IR ** newpr);
-	void dump_allocated(FILE * h, BITSET & visited);
-	void dump_unallocated(FILE * h, BITSET & visited);
+	void genRangeCallGroup(IR const* ir);
+	IR * genDedicatePR(UINT phyrid);
+	void recordPhyRegOcc(LT * lt, UINT pos, IN BitSet & lived_lt);
+	void renameUse(IR * ir, LT * l, IR ** newpr);
+	void dump_allocated(FILE * h, BitSet & visited);
+	void dump_unallocated(FILE * h, BitSet & visited);
 public:
-	LTM(IR_BB * bb, PRDF * prdf, GLTM * gltm, SMEM_POOL * pool);
-	~LTM() {}
+	LTMgr(IRBB * bb, PRDF * prdf, GltMgr * gltm, SMemPool * pool);
+	~LTMgr() {}
 
-	void build(bool consider_glt, LIST<LT*> * liveout_exitbb_lts,
-			   CIR_ITER & iter);
-	void build_group(CIR_ITER & cii);
+	void build(bool consider_glt, List<LT*> * liveout_exitbb_lts,
+			   ConstIRIter & iter);
+	void buildGroup(ConstIRIter & cii);
 
 	void clean();
 
-	IR_BB * get_bb() { return m_bb; }
+
+	IRBB * get_bb() { return m_bb; }
 	LT * get_lt(UINT ltid) { return m_lt_vec.get(ltid); }
-	SVECTOR<LT*> * get_lt_vec() { return &m_lt_vec; }
+	Vector<LT*> * get_lt_vec() { return &m_lt_vec; }
 	UINT get_first_pos() const { return LT_FIRST_POS; }
 	UINT get_last_pos() const { return m_max_lt_len - 1; }
 	IR * get_ir(UINT pos) { return m_pos2ir.get(pos); }
-	IR * gen_mapped_pr(UINT vid, UINT tyid);
 	IG * get_ig() { return &m_ig; }
-	void gen_group(LT * first, LT * second);
-	IR * gen_spill(LT * lt, INT pos);
-	IR * gen_spill(UINT prno, UINT dt, IR * marker, IR * spill_loc);
-	IR * gen_spill_swap(IR * stmt, UINT prno, UINT prdt, IR * spill_loc);
-	IR * gen_reload(LT * lt, INT pos, IR * spill_loc);
-	IR * gen_reload(IR * newpr, IR * marker, IR * spill_loc);
-	IR * gen_reload_swap(IR * newpr, IR * marker);
+
+	IR * genMappedPR(UINT vid, Type const* ty);
+	void genGroup(LT * first, LT * second);
+	IR * genSpill(LT * lt, INT pos);
+	IR * genSpill(UINT prno, Type const* type, IR * marker, IR * spill_loc);
+	IR * genSpillSwap(IR * stmt, UINT prno, Type const* prty, IR * spill_loc);
+	IR * genReload(LT * lt, INT pos, IR * spill_loc);
+	IR * genReload(IR * newpr, IR * marker, IR * spill_loc);
+	IR * genReloadSwap(IR * newpr, IR * marker);
 
 	bool has_pair_res(IR * ir);
 
 	inline bool is_pair(IR const* ir) const
-	{ return m_dm->get_dtd_bytesize(IR_dt(ir))== 8; }
+	{ return m_dm->get_bytesize(IR_dt(ir))== 8; }
 
 	inline bool is_livein(UINT prno) const
-	{ return m_prdf->get_livein(IR_BB_id(m_bb))->is_contain(prno); }
+	{ return m_prdf->get_livein(BB_id(m_bb))->is_contain(prno); }
 	inline bool is_livein(LT const* l) const
 	{
-		IS_TRUE0(LT_range(l));
+		ASSERT0(LT_range(l));
 		return LT_range(l)->is_contain(get_first_pos());
 	}
 
 	inline bool is_liveout(UINT prno) const
-	{ return m_prdf->get_liveout(IR_BB_id(m_bb))->is_contain(prno); }
+	{ return m_prdf->get_liveout(BB_id(m_bb))->is_contain(prno); }
 	inline bool is_liveout(LT const* l) const
 	{
-		IS_TRUE0(LT_range(l));
+		ASSERT0(LT_range(l));
 		return LT_range(l)->is_contain(get_last_pos());
 	}
 
@@ -422,14 +426,14 @@ public:
 		if (m_prno2lt.get_elem_count() == 0) {
 			return NULL;
 		}
-		return m_prno2lt.get_c(prno);
+		return m_prno2lt.get(prno);
 	}
 
-	LT * new_lt(UINT prno);
+	LT * newLT(UINT prno);
 
-	void remove_lt(LT * lt);
-	void rename_lt(LT * l, IR ** newpr);
-	void rename(TMAP<UINT, LT*> & prno2lt, BITSET & met);
+	void removeLT(LT * lt);
+	void renameLT(LT * l, IR ** newpr);
+	void rename(TMap<UINT, LT*> & prno2lt, BitSet & met);
 
 	void dump();
 };
@@ -453,30 +457,30 @@ public:
 	UINT prno;
 	float prio;
 	float freq;
-	DBITSETC * livebbs;
+	DefDBitSetCore * livebbs;
 	RG * reg_group;
-	BITSET const* usable;
+	BitSet const* usable;
 	USHORT phy;
 	USHORT prefer_reg;
 	USHORT reg_group_size; //the size of register group.
 	BYTE param_pos;
 	BYTE is_param:1;
 
-	UINT comp_num_of_occ(GLTM & gltm);
+	UINT computeNumOfOcc(GltMgr & gltm);
 	bool has_allocated() const { return GLT_phy(this) != REG_UNDEF; }
-	void set_local(GLTM & gltm);
-	void set_local_usable(GLTM & gltm);
+	void set_local(GltMgr & gltm);
+	void set_local_usable(GltMgr & gltm);
 };
 
 
-class GLT2REG : public HMAP<GLT*, UINT> {
+class GLT2REG : public HMap<GLT*, UINT> {
 public:
-	GLT2REG() : HMAP<GLT*, UINT>(0) {}
+	GLT2REG() : HMap<GLT*, UINT>(0) {}
 
 	void set(GLT * g, UINT v)
 	{
-		IS_TRUE0(v != 0);
-		HMAP<GLT*, UINT>::set(g, v);
+		ASSERT0(v != 0);
+		HMap<GLT*, UINT>::set(g, v);
 	}
 };
 
@@ -519,27 +523,27 @@ typedef enum _FMT {
 
 
 //GLT Manager
-class GLTM {
-	friend class LTM;
+class GltMgr {
+	friend class LTMgr;
 	friend class RA;
 	friend class GIG;
 protected:
-	SVECTOR<BITSET*> m_glt2usable_regs; //Map GLT to its usable registers.
-	SVECTOR<LTM*> m_bb2ltmgr; //Map from BB id to LTM.
-	SVECTOR<GLT*> m_gltid2glt_map; //Map from id to GLT.
-	SDBITSET_MGR m_sbs_mgr;
-	RG_MGR m_rg_mgr;
-	BITSET_MGR m_bs_mgr;
-	LTG_MGR m_ltgmgr;
-	SVECTOR<GLT*> m_pr2glt;
-	SVECTOR<UINT> m_params;
-	CIR_ITER m_cii; //const IR iter.
-	REGION * m_ru;
+	Vector<BitSet*> m_glt2usable_regs; //Map GLT to its usable registers.
+	Vector<LTMgr*> m_bb2ltmgr; //Map from BB id to LTMgr.
+	Vector<GLT*> m_gltid2glt_map; //Map from id to GLT.
+	DefMiscBitSetMgr m_sbs_mgr;
+	RGMgr m_rg_mgr;
+	BitSetMgr m_bs_mgr;
+	LTGMgr m_ltgmgr;
+	Vector<GLT*> m_pr2glt;
+	Vector<UINT> m_params;
+	ConstIRIter m_cii; //const IR iter.
+	Region * m_ru;
 	RA * m_ra;
 	RSC * m_rsc;
-	SMEM_POOL * m_pool;
+	SMemPool * m_pool;
 	PRDF * m_prdf;
-	DT_MGR * m_dm;
+	TypeMgr * m_dm;
 	UINT m_glt_count;
 	bool m_is_consider_local_interf;
 
@@ -547,42 +551,42 @@ protected:
 	void comp_ir_usage(IR const* ir);
 	void * xmalloc(UINT size)
 	{
-		IS_TRUE(m_pool != NULL,("need graph pool!!"));
-		void * p = smpool_malloc_h(size, m_pool);
-		IS_TRUE0(p != NULL);
+		ASSERT(m_pool != NULL,("need graph pool!!"));
+		void * p = smpoolMalloc(size, m_pool);
+		ASSERT0(p != NULL);
 		memset(p, 0, size);
 		return p;
 	}
 	bool verify();
 public:
-	GLTM(REGION * ru, PRDF * prdf, RA * ra);
-	~GLTM()
+	GltMgr(Region * ru, PRDF * prdf, RA * ra);
+	~GltMgr()
 	{
 		for (INT i = 0; i <= m_bb2ltmgr.get_last_idx(); i++) {
-			LTM * l = m_bb2ltmgr.get(i);
+			LTMgr * l = m_bb2ltmgr.get(i);
 			if (l != NULL) {
 				delete l;
 			}
 		}
-		smpool_free_handle(m_pool);
+		smpoolDelete(m_pool);
 	}
 
 	void build(bool build_group_part);
-	GLT * build_glt_like(IR * pr, GLT * cand);
+	GLT * buildGltLike(IR * pr, GLT * cand);
 	void dump();
 	void dumpg();
 	void dumpl(UINT bbid);
 
-	//Get LTM via BB's id.
-	LTM * get_ltm(UINT bbid) { return m_bb2ltmgr.get(bbid); }
-	REGION * get_ru() { return m_ru; }
-	BITSET_MGR * get_bs_mgr() { return &m_bs_mgr; }
-	SVECTOR<GLT*> * get_pr2glt_map() { return &m_pr2glt; }
+	//Get LTMgr via BB's id.
+	LTMgr * get_ltm(UINT bbid) { return m_bb2ltmgr.get(bbid); }
+	Region * get_ru() { return m_ru; }
+	BitSetMgr * get_bs_mgr() { return &m_bs_mgr; }
+	Vector<GLT*> * get_pr2glt_map() { return &m_pr2glt; }
 	UINT get_num_of_glt() const { return m_glt_count - 1; }
-	SVECTOR<GLT*> * get_gltvec() { return &m_gltid2glt_map; }
-	BITSET * get_usable_regs(GLT const* g, bool alloc)
+	Vector<GLT*> * get_gltvec() { return &m_gltid2glt_map; }
+	BitSet * get_usable_regs(GLT const* g, bool alloc)
 	{
-		BITSET * rs = m_glt2usable_regs.get(GLT_id(g));
+		BitSet * rs = m_glt2usable_regs.get(GLT_id(g));
 		if (rs == NULL && alloc) {
 			rs = m_bs_mgr.create();
 			m_glt2usable_regs.set(GLT_id(g), rs);
@@ -591,10 +595,10 @@ public:
 	}
 	GLT * get_glt(UINT gltid) { return m_gltid2glt_map.get(gltid); }
 
-	//Free all DBITSETC allocated.
-	void free_gltbs()
+	//Free all DefDBitSetCore allocated.
+	void freeGLTBitset()
 	{
-		SVECTOR<GLT*> * gltv = get_gltvec();
+		Vector<GLT*> * gltv = get_gltvec();
 		for (INT i = 0; i <= gltv->get_last_idx(); i++) {
 			GLT * g = gltv->get(i);
 			if (g == NULL) { continue; }
@@ -605,14 +609,14 @@ public:
 	RG * new_rg(UINT rnum) { return m_rg_mgr.create(rnum); }
 	GLT * new_glt(UINT prno);
 
-	LTM * map_bb2ltm(IR_BB * bb);
+	LTMgr * map_bb2ltm(IRBB * bb);
 
 	GLT * map_pr2glt(UINT prno)
 	{ return m_pr2glt.get(prno); }
 
-	void rename_use(IR const* ir, LT * l, IR ** newpr);
-	void rename_glt(GLT * g);
-	void rename_local();
+	void renameUse(IR const* ir, LT * l, IR ** newpr);
+	void renameGLT(GLT * g);
+	void renameLocal();
 	void rename();
 	void set_consider_local_interf(bool doit)
 	{ m_is_consider_local_interf = doit; }
@@ -622,23 +626,23 @@ public:
 
 
 
-//GIG
+//Global Interference Graph.
 #define GIG_ru(g)			((g)->m_ru)
 #define GIG_glt_mgr(g)		((g)->m_glt_mgr)
-class GIG : public GRAPH {
+class GIG : public Graph {
 protected:
 public:
-	REGION * m_ru;
+	Region * m_ru;
 	IR_CFG * m_cfg;
-	GLTM * m_gltm;
+	GltMgr * m_gltm;
 
 	//consider local life time interference during global allocation.
 	bool m_is_consider_local_interf;
 
 	void dump_vcg(CHAR const* name = NULL);
-	GIG(REGION * ru, GLTM * glt_mgr)
+	GIG(Region * ru, GltMgr * glt_mgr)
 	{
-		IS_TRUE0(ru && glt_mgr);
+		ASSERT0(ru && glt_mgr);
 		m_gltm = glt_mgr;
 		m_ru = ru;
 		m_cfg = m_ru->get_cfg();
@@ -646,14 +650,14 @@ public:
 		set_direction(false);
 	}
 
-	void add_glt(GLT * g) { add_vertex(GLT_id(g)); }
-	void remove_glt(GLT * g) { remove_vertex(GLT_id(g)); }
+	void add_glt(GLT * g) { addVertex(GLT_id(g)); }
+	void remove_glt(GLT * g) { removeVertex(GLT_id(g)); }
 	bool is_interf(IN GLT * glt1, IN GLT * glt2);
-	bool is_interf_with_neighbour(GLT * g, SBITSET & nis, UINT phy);
+	bool is_interf_with_neighbour(GLT * g, DefSBitSet & nis, UINT phy);
 
 	void set_consider_local_interf(bool doit)
 	{ m_is_consider_local_interf = doit; }
-	void set_interf_with(UINT gltid, LIST<UINT> & lst);
+	void set_interf_with(UINT gltid, List<UINT> & lst);
 
 	void rebuild()
 	{
@@ -668,22 +672,22 @@ public:
 class RSC {
 	friend class RA;
 protected:
-	BITSET * m_4;
-	BITSET * m_8;
-	BITSET * m_16;
-	REGION * m_ru;
-	GLTM * m_gltm;
-	DT_MGR * m_dm;
-	BITSET_MGR * m_bsm;
-	SVECTOR<FMT> m_ir2fmt;
+	BitSet * m_4;
+	BitSet * m_8;
+	BitSet * m_16;
+	Region * m_ru;
+	GltMgr * m_gltm;
+	TypeMgr * m_dm;
+	BitSetMgr * m_bsm;
+	Vector<FMT> m_ir2fmt;
 	STR2INTRI m_str2intri;
-	BITSET * m_usable[FNUM][2]; //1:def, 0:use
+	BitSet * m_usable[FNUM][2]; //1:def, 0:use
 
 	void init_usable();
 public:
-	RSC(GLTM * gltm)
+	RSC(GltMgr * gltm)
 	{
-		IS_TRUE0(gltm);
+		ASSERT0(gltm);
 		m_gltm = gltm;
 		m_ru = gltm->get_ru();
 		m_dm = m_ru->get_dm();
@@ -701,23 +705,23 @@ public:
 	}
 
 	//Return the usable regs for 'fmt'.
-	BITSET * get_usable(FMT fmt, bool is_def)
+	BitSet * get_usable(FMT fmt, bool is_def)
 	{
-		IS_TRUE0(FUNDEF < fmt && fmt < FNUM);
+		ASSERT0(FUNDEF < fmt && fmt < FNUM);
 		return m_usable[fmt][is_def];
 	}
 
-	BITSET * get_4();
-	BITSET * get_8();
-	BITSET * get_16();
+	BitSet * get_4();
+	BitSet * get_8();
+	BitSet * get_16();
 	void comp_st_fmt(IR const* ir);
 	void comp_ist_fmt(IR const* ir);
 	void comp_call_fmt(IR const* ir);
 	void comp_ir_fmt(IR const* ir);
-	void comp_usable_regs(LT * lt, LTM * ltm);
+	void comp_usable_regs(LT * lt, LTMgr * ltm);
 	void comp_ir_constrain();
-	void comp_lt_usable(LT * lt, LTM * ltm);
-	void comp_local_usage(LTM * ltm, bool only_local, bool omit_constrain);
+	void comp_lt_usable(LT * lt, LTMgr * ltm);
+	void comp_local_usage(LTMgr * ltm, bool only_local, bool omit_constrain);
 
 	void dump_ir_fmt();
 	void dump_glt_usable();
@@ -725,73 +729,73 @@ public:
 	void dump();
 	FMT get_fmt(IR const* ir) const { return m_ir2fmt.get(IR_id(ir)); }
 
-	GLT * map_lt2glt(LT * lt) { return m_gltm->map_pr2glt(LT_prno(lt)); }
+	GLT * mapLT2GLT(LT * lt) { return m_gltm->map_pr2glt(LT_prno(lt)); }
 	bool verify_fmt();
 	void perform(bool omit_constrain);
 };
 
 
 class BBRA {
-	IR_BB * m_bb;
+	IRBB * m_bb;
 	RA * m_ra;
-	GLTM * m_gltm;
-	LTM * m_ltm;
-	REGION * m_ru;
+	GltMgr * m_gltm;
+	LTMgr * m_ltm;
+	Region * m_ru;
 	RSC * m_rsc;
 	IG * m_ig;
 
 	//true if omit constrain when compute lt usable-regs set.
 	BYTE m_omit_constrain:1;
 
-	LIST<LT*> * m_tmp_lts; //for local tmp use.
-	LIST<LT*> * m_tmp_lts2; //for local tmp use.
-	LIST<UINT> * m_tmp_uints; //for local tmp use.
-	CIR_ITER * m_tmp_cii; //for local tmp use.
+	List<LT*> * m_tmp_lts; //for local tmp use.
+	List<LT*> * m_tmp_lts2; //for local tmp use.
+	List<UINT> * m_tmp_uints; //for local tmp use.
+	ConstIRIter * m_tmp_cii; //for local tmp use.
 
-	LT * comp_split_cand(LT * lt, bool & has_hole,
-						 LIST<LT*> * tmp, LIST<LT*> * tmp2);
-	void compute_lt_residein_hole(OUT LIST<LT*> & reside_in, LT const* lt);
-	bool can_be_split(LT const* lt) const;
-	void collect_unalloc(LIST<LT*> & unalloc);
+	LT * computeSplitCand(LT * lt, bool & has_hole,
+						 List<LT*> * tmp, List<LT*> * tmp2);
+	void computeLTResideInHole(OUT List<LT*> & reside_in, LT const* lt);
+	bool canBeSplit(LT const* lt) const;
+	void collectUnalloc(List<LT*> & unalloc);
 
-	void dump_prio(LIST<LT*> & prios);
+	void dump_prio(List<LT*> & prios);
 	bool get_max_hole(OUT INT * startpos, OUT INT * endpos, LT const* lt);
 
 	bool find_hole(OUT INT & startpos, OUT INT & endpos,
 				   LT const* owner, LT const* inner);
 
 	bool is_live_through(LT const* l) const;
-	bool is_opnd_samewith_result(IR * ir);
+	bool isOpndSameWithResult(IR * ir);
+	bool isSatisfiedConstrain(LT * lt, LT * cand);
 
-	void select_reasonable_split_pos(OUT INT & pos1, OUT INT & pos2,
-									 OUT bool & is_pos1_spill,
-									 OUT bool & is_pos2_spill,
-									 LT * lt);
-	void split_lt_at(INT start, INT end, bool is_start_spill,
+	void selectReasonableSplitPos(OUT INT & pos1, OUT INT & pos2,
+								 OUT bool & is_pos1_spill,
+								 OUT bool & is_pos2_spill,
+								 LT * lt);
+	void splitLTAt(INT start, INT end, bool is_start_spill,
 					 bool is_end_spill, LT * lt);
 	bool split(LT * lt);
-	bool satisfied_constrain(LT * lt, LT * cand);
 
-	void rename_result(IR * ir, UINT old_prno, IR * newpr);
-	void rename_opnd(IR * ir, UINT old_prno, IR * newpr);
-	void rename_opnds_in_range(LT * lt, IR * newpr, INT start, INT end);
+	void renameResult(IR * ir, UINT old_prno, IR * newpr);
+	void renameOpnd(IR * ir, UINT old_prno, IR * newpr);
+	void renameOpndInRange(LT * lt, IR * newpr, INT start, INT end);
 public:
-	BBRA(IR_BB * bb, RA * ra);
+	BBRA(IRBB * bb, RA * ra);
 	~BBRA() {}
-	void build_prio_list(IN LIST<LT*> const& lts, OUT LIST<LT*> & prios);
-	float comp_prio(LT const* lt);
+	void buildPrioList(IN List<LT*> const& lts, OUT List<LT*> & prios);
+	float computePrio(LT const* lt);
 	void rename();
-	bool assign_reg(LT * l, LIST<UINT> & nis);
-	void alloc_prio_list(OUT LIST<LT*> & prios, LIST<UINT> & nis);
+	bool assignRegister(LT * l, List<UINT> & nis);
+	void allocPrioList(OUT List<LT*> & prios, List<UINT> & nis);
 
 	void set_omit_constrain(bool omit) { m_omit_constrain = omit; }
-	void set_tmp_lts(LIST<LT*> * tmp) { IS_TRUE0(tmp); m_tmp_lts = tmp; }
-	void set_tmp_lts2(LIST<LT*> * tmp) { IS_TRUE0(tmp); m_tmp_lts2 = tmp; }
-	void set_tmp_uints(LIST<UINT> * tmp) { IS_TRUE0(tmp); m_tmp_uints = tmp; }
-	void set_tmp_cii(CIR_ITER * tmp) { IS_TRUE0(tmp); m_tmp_cii = tmp; }
+	void set_tmp_lts(List<LT*> * tmp) { ASSERT0(tmp); m_tmp_lts = tmp; }
+	void set_tmp_lts2(List<LT*> * tmp) { ASSERT0(tmp); m_tmp_lts2 = tmp; }
+	void set_tmp_uints(List<UINT> * tmp) { ASSERT0(tmp); m_tmp_uints = tmp; }
+	void set_tmp_cii(ConstIRIter * tmp) { ASSERT0(tmp); m_tmp_cii = tmp; }
+	bool solve(List<LT*> & prios);
 
-	bool solve(LIST<LT*> & prios);
-	bool perform(LIST<LT*> & prios);
+	bool perform(List<LT*> & prios);
 };
 
 
@@ -799,86 +803,88 @@ public:
 class RA {
 protected:
 	friend class BBRA;
-	friend class LTM;
-	friend class GLTM;
+	friend class LTMgr;
+	friend class GltMgr;
 
 	PRDF m_prdf;
-	GLTM m_gltm;
+	GltMgr m_gltm;
 	GIG m_ig;
 	RSC m_rsc;
-	REGION * m_ru;
+	Region * m_ru;
 	IR_CFG * m_cfg;
-	DT_MGR * m_dm;
-	TYIDR * m_tr;
+	TypeMgr * m_dm;
+	TypeIndexRep * m_tr;
 	UINT2PR * m_v2pr;
-	PRNO2UINT * m_pr2v;
+	Prno2UINT * m_pr2v;
 	VAR2PR * m_var2pr;
 	UINT m_param_num; //record the number of param.
 	UINT m_param_reg_start;
 	UINT m_vregnum; //record the number of original vreg.
 	UINT m_maxreg; //record the max vreg used. note it is not the number of vreg.
-	IR_ITER m_ii; //for tmp used.
-	CIR_ITER m_cii; //for tmp used.
+	IRIter m_ii; //for tmp used.
+	ConstIRIter m_cii; //for tmp used.
 
 
-	void assign_ltg(LTG * ltg, IR * ir);
-	bool assign_reg(GLT * g, LIST<UINT> & nis, LIST<UINT> & nis2);
-	void alloc_param();
-	void alloc_group();
-	void alloc_prio_list(OUT LIST<GLT*> & prios, OUT LIST<GLT*> & unalloc,
-						  LIST<UINT> & nis, LIST<UINT> & nis2);
-	void alloc_global(LIST<UINT> & nis, LIST<UINT> & nis2);
-	void alloc_local(LIST<UINT> & nis, bool omit_constrain);
-	void alloc_local_spec(LIST<UINT> & nis);
+	void assignLTG(LTG * ltg, IR * ir);
+	bool assignRegister(GLT * g, List<UINT> & nis, List<UINT> & nis2);
+	void allocParameter();
+	void allocGroup();
+	void allocPrioList(OUT List<GLT*> & prios, OUT List<GLT*> & unalloc,
+						  List<UINT> & nis, List<UINT> & nis2);
+	void allocGlobal(List<UINT> & nis, List<UINT> & nis2);
+	void allocLocal(List<UINT> & nis, bool omit_constrain);
+	void allocLocalSpec(List<UINT> & nis);
 
-	void build_local_ig();
-	void build_prio_list(OUT LIST<GLT*> & prios);
+	void buildLocalIG();
+	void buildPrioList(OUT List<GLT*> & prios);
 
-	inline bool check_if_need_spill(UINT prno, FMT fmt, LTM const* ltm);
-	UINT comp_reserve_reg(IR_ITER & ii, LIST<IR*> & resolve_list);
-	UINT comp_regn(UINT rangestart, UINT rangeend, LTG const* ltg,
-				   BITSET const& occupied, BITSET const& assigned,
-				   BITSET const& liveout_phy);
-	UINT comp_satisfied_regn(UINT rangestart, LTG const* ltg, UINT rgsz,
-							 BITSET const& occupied, BITSET const& assigned,
-							 BITSET const& liveout_phy);
-	float compute_prio(GLT * g);
+	inline bool checkIfNeedSpill(UINT prno, FMT fmt, LTMgr const* ltm);
+	UINT computeReserveRegister(IRIter & ii, List<IR*> & resolve_list);
+	UINT computeNumRegister(
+					UINT rangestart, UINT rangeend, LTG const* ltg,
+					BitSet const& occupied, BitSet const& assigned,
+					BitSet const& liveout_phy);
+	UINT computeSatisfiedNumRegister(
+					UINT rangestart, LTG const* ltg, UINT rgsz,
+					BitSet const& occupied, BitSet const& assigned,
+					BitSet const& liveout_phy);
+	float computePrio(GLT * g);
 
 	void dump_ltg();
-	void diff_local_neighbour_used(GLT * g, LIST<UINT> & nis,
-								   BITSET * unusable);
-	void free_gltbs();
+	void diffLocalNeighbourUsed(GLT * g, List<UINT> & nis,
+								   BitSet * unusable);
+	void freeGLTBitset();
 
-	IR * insert_move_before(IR * stmt, IR * src);
+	IR * insertMoveBefore(IR * stmt, IR * src);
 	bool is_cross_param(UINT reg_start, UINT rg_sz) const
 	{ return reg_start < m_param_num && (reg_start + rg_sz) > m_param_num; }
 
 	bool is_cross_liveout_phy(UINT reg_start, UINT rgsz,
-							  BITSET const& liveout_phy);
+							  BitSet const& liveout_phy);
 
-	void shift_reg(UINT ofst);
+	void shiftReg(UINT ofst);
 	IR * split(GLT * g);
-	void solve_conflict(OUT LIST<GLT*> & unalloc, LIST<UINT> & nis);
+	void solveConflict(OUT List<GLT*> & unalloc, List<UINT> & nis);
 	RA * self() { return this; }
 
-	INT try_reuse_appeared(LTG const* ltg, BITSET const& occupied,
-						   BITSET const& assigned, BITSET const& liveout_phy);
-	INT try_extend(LTG const* ltg, BITSET const& occupied,
-				   BITSET const& liveout_phy, BITSET const& assigned);
+	INT tryReuseAppeared(LTG const* ltg, BitSet const& occupied,
+						   BitSet const& assigned, BitSet const& liveout_phy);
+	INT tryExtend(LTG const* ltg, BitSet const& occupied,
+				   BitSet const& liveout_phy, BitSet const& assigned);
 
-	void remedy_ltg(LTG * ltg, IR * ir, LTM * ltm,
-					SBITSET & nis, BITSET & visited, UINT rangestart);
-	void revise_rsc();
-	void rotate_reg();
-	void revise_param();
-	bool overlap_param(LT const* l) const;
+	void remedyLTG(LTG * ltg, IR * ir, LTMgr * ltm,
+					DefSBitSet & nis, BitSet & visited, UINT rangestart);
+	void reviseRSC();
+	void rotateReg();
+	void reviseParam();
+	bool overlapParam(LT const* l) const;
 public:
-	RA(REGION * ru, TYIDR * tr, UINT param_num, UINT vregnum,
-	   UINT2PR * v2pr, PRNO2UINT * pr2v, VAR2PR * var2pr) :
+	RA(Region * ru, TypeIndexRep * tr, UINT param_num, UINT vregnum,
+	   UINT2PR * v2pr, Prno2UINT * pr2v, VAR2PR * var2pr) :
 		m_prdf(ru), m_gltm(ru, &m_prdf, self()), m_ig(ru, &m_gltm),
 		m_rsc(&m_gltm)
 	{
-		IS_TRUE0(ru && tr);
+		ASSERT0(ru && tr);
 		m_ru = ru;
 		m_cfg = ru->get_cfg();
 		m_dm = ru->get_dm();
@@ -894,35 +900,35 @@ public:
 
 	LT * get_lt(UINT bbid, UINT prno)
 	{
-		LTM * ltm = m_gltm.get_ltm(bbid);
+		LTMgr * ltm = m_gltm.get_ltm(bbid);
 		if (ltm == NULL) { return NULL; }
 		return ltm->map_pr2lt(prno);
 	}
 	GLT * get_glt(UINT prno) { return m_gltm.map_pr2glt(prno); }
-	GLTM * get_gltm() { return &m_gltm; }
+	GltMgr * get_gltm() { return &m_gltm; }
 	RSC * get_rsc() { return &m_rsc; }
 	UINT get_maxreg() const { return m_maxreg; }
 	UINT get_paramnum() const { return m_param_num; }
 
-	void update_local();
-	void update_maxreg(UINT r) { m_maxreg = MAX(m_maxreg, r); }
-	void update_glt_maxreg(GLT * g)
+	void updateLocal();
+	void updateMaxReg(UINT r) { m_maxreg = MAX(m_maxreg, r); }
+	void updateGltMaxReg(GLT * g)
 	{
 		if (GLT_rg_sz(g) > 1) {
-			IS_TRUE0(GLT_rg_sz(g) == RG_PAIR_SZ);
-			update_maxreg(GLT_phy(g) + 1);
+			ASSERT0(GLT_rg_sz(g) == RG_PAIR_SZ);
+			updateMaxReg(GLT_phy(g) + 1);
 		} else {
-			update_maxreg(GLT_phy(g));
+			updateMaxReg(GLT_phy(g));
 		}
 	}
-	void update_lt_maxreg(LT * l)
+	void updateLTMaxReg(LT * l)
 	{
 		if (!l->has_allocated()) { return; }
 		if (LT_rg_sz(l) > 1) {
-			IS_TRUE0(LT_rg_sz(l) == RG_PAIR_SZ);
-			update_maxreg(LT_phy(l) + 1);
+			ASSERT0(LT_rg_sz(l) == RG_PAIR_SZ);
+			updateMaxReg(LT_phy(l) + 1);
 		} else {
-			update_maxreg(LT_phy(l));
+			updateMaxReg(LT_phy(l));
 		}
 	}
 
@@ -933,6 +939,6 @@ public:
 	bool verify_ltg();
 	bool verify_reg(bool check_usable, bool check_alloc);
 	bool verify_glt(bool check_alloc);
-	bool perform(OPT_CTX & oc);
+	bool perform(OptCTX & oc);
 };
 #endif

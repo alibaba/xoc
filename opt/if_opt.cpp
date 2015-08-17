@@ -48,10 +48,10 @@ only recog such as:
 	endif
 
 */
-static IF_TYPE get_simple_if_node_type(IR_CFG * cfg, IR_BB * bb)
+static IF_TYPE get_simple_if_node_type(IR_CFG * cfg, IRBB * bb)
 {
-	IS_TRUE(cfg && bb, ("need cfg"));
-	IR_BB_LIST succs;
+	ASSERT(cfg && bb, ("need cfg"));
+	BBList succs;
 	cfg->get_succs(succs, bb);
 
 	//IF cond node only has two succs
@@ -69,22 +69,22 @@ static IF_TYPE get_simple_if_node_type(IR_CFG * cfg, IR_BB * bb)
 		return NOT_SIMP_IF;
 	}
 
-	IR_BB * truebd = NULL;
-	IR_BB * falsebd = NULL;
-	if (IR_BB_is_fallthrough(succs.get_head()) &&
-		IR_BB_is_target(succs.get_next())) {
+	IRBB * truebd = NULL;
+	IRBB * falsebd = NULL;
+	if (BB_is_fallthrough(succs.get_head()) &&
+		BB_is_target(succs.get_next())) {
 		truebd = succs.get_head();
 		falsebd = succs.get_next();
-	} else if (IR_BB_is_fallthrough(succs.get_head_nth(1)) &&
-				IR_BB_is_target(succs.get_head())) {
+	} else if (BB_is_fallthrough(succs.get_head_nth(1)) &&
+				BB_is_target(succs.get_head())) {
 		falsebd = succs.get_head();
 		truebd = succs.get_next();
 	} else {
-		IS_TRUE(0, ("illegal CFG"));
+		ASSERT(0, ("illegal CFG"));
 	}
 
-	IR_BB_LIST succs_in_true;
-	IR_BB_LIST succs_in_false;
+	BBList succs_in_true;
+	BBList succs_in_false;
 	cfg->get_succs(succs_in_true, truebd);
 	cfg->get_succs(succs_in_false, falsebd);
 
@@ -136,12 +136,12 @@ static IF_TYPE get_simple_if_node_type(IR_CFG * cfg, IR_BB * bb)
 /*
 Perform if optimization
 */
-bool IR_CFG::if_opt(IR_BB * bb)
+bool IR_CFG::if_opt(IRBB * bb)
 {
 	IF_TYPE ift = NOT_SIMP_IF;
 	if (NOT_SIMP_IF != (ift = get_simple_if_node_type(this, bb))) {
 		/*
-		TODO: Do misc if-opt here...
+		TODO: Do misc if-pass here...
 		*/
 		return false;
 	}

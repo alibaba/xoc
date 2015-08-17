@@ -34,7 +34,7 @@ author: Su Zhenyu
 #ifndef _IR_SIMP_H_
 #define _IR_SIMP_H_
 
-class CFS_MGR;
+class CfsMgr;
 
 #define MAX_SIMP_WORD_LEN  1
 
@@ -60,7 +60,7 @@ class CFS_MGR;
 #define SIMP_changed(s)					(s)->prop_bottom_up.something_has_changed
 #define SIMP_need_recon_bblist(s)		(s)->prop_bottom_up.need_to_reconstruct_bb_list
 #define SIMP_cfs_mgr(s)					(s)->cfs_mgr
-class SIMP_CTX {
+class SimpCTX {
 public:
 	struct {
 		//Propagate these flags top down to simplify IR.
@@ -141,7 +141,7 @@ public:
 
 		/*
 		Propagate info bottom up.
-		To inform REGION to reconstruct bb list.
+		To inform Region to reconstruct bb list.
 		If this flag is true, DU info and DU chain also need to be rebuilt.
 		*/
 		BYTE need_to_reconstruct_bb_list:1;
@@ -153,35 +153,35 @@ public:
 	'simp_to_lowest_heigh' and 'simp_to_pr_mode'. */
 	IR * ir_stmt_list;
 
-	CFS_MGR * cfs_mgr;
+	CfsMgr * cfs_mgr;
 
 	//--
 	//Propagate info top down.
 	//Record label info for context.
-	LABEL_INFO * break_label; //record the current LOOP/IF/SWITCH end label.
-	LABEL_INFO * continue_label; //record the current LOOP start label.
+	LabelInfo * break_label; //record the current LOOP/IF/SWITCH end label.
+	LabelInfo * continue_label; //record the current LOOP start label.
 	//--
 
 public:
-	SIMP_CTX() { init(); }
-	SIMP_CTX(SIMP_CTX const& s)
+	SimpCTX() { init(); }
+	SimpCTX(SimpCTX const& s)
 	{
 		*this = s;
 		SIMP_ir_stmt_list(this) = NULL;
 	}
 
-	void copy(SIMP_CTX const& s)
+	void copy(SimpCTX const& s)
 	{
 		*this = s;
 		SIMP_ir_stmt_list(this) = NULL;
 	}
 
 	void init()
-	{ memset(this, 0, sizeof(SIMP_CTX)); }
+	{ memset(this, 0, sizeof(SimpCTX)); }
 
 	//Append irs to current simplification context and
 	//return back to up level.
-	void append_irs(SIMP_CTX & c)
+	void append_irs(SimpCTX & c)
 	{ add_next(&SIMP_ir_stmt_list(this), SIMP_ir_stmt_list(&c)); }
 
 	//Append irs to current simplification context and
@@ -191,17 +191,17 @@ public:
 
 	//Unify the actions which propagated top down
 	//during processing IR tree.
-	void copy_topdown_flag(SIMP_CTX & c)
+	void copy_topdown_flag(SimpCTX & c)
 	{ prop_top_down = c.prop_top_down; }
 
 	//Copy the actions which propagated bottom up
 	//during processing IR tree.
-	void copy_bottomup_flag(SIMP_CTX & c)
+	void copy_bottomup_flag(SimpCTX & c)
 	{ prop_bottom_up = c.prop_bottom_up; }
 
 	//Unify the actions which propagated bottom up
 	//during processing IR tree.
-	void union_bottomup_flag(SIMP_CTX & c)
+	void union_bottomup_flag(SimpCTX & c)
 	{
 		SIMP_changed(this) |= SIMP_changed(&c);
 		SIMP_need_recon_bblist(this) |= SIMP_need_recon_bblist(&c);

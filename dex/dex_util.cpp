@@ -106,7 +106,7 @@ CHAR const* get_dt_name(LIR * ir)
 
 CHAR const* get_class_name(DexFile * df, DexMethod const* dm)
 {
-	IS_TRUE0(df && dm);
+	ASSERT0(df && dm);
 	DexMethodId const* pMethodId = dexGetMethodId(df, dm->methodIdx);
 	return dexStringByTypeIdx(df, pMethodId->classIdx);
 }
@@ -114,7 +114,7 @@ CHAR const* get_class_name(DexFile * df, DexMethod const* dm)
 
 CHAR const* get_func_name(DexFile * df, DexMethod const* dm)
 {
-	IS_TRUE0(df && dm);
+	ASSERT0(df && dm);
 	DexMethodId const* pMethodId = dexGetMethodId(df, dm->methodIdx);
 	return dexStringById(df, pMethodId->nameIdx);
 }
@@ -178,7 +178,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 			/* It seems dex does not distinguish
 			float and integer const. And regard float as
 			32bit integer, double will be 64bit integer. */
-			IS_TRUE0(0);
+			ASSERT0(0);
 		}
 		break;
 	case LOP_RETURN:
@@ -197,7 +197,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 				fprintf(g_tfile, ", %s", get_dt_name(lir));
 				fprintf(g_tfile, ", (v%d,v%d)", LIR_res(lir), LIR_res(lir) + 1);
 				break;
-			default: IS_TRUE0(0);
+			default: ASSERT0(0);
 			}
 		}
 		break;
@@ -368,7 +368,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 			fprintf(g_tfile, ", v%d <- v%d", LIR_res(lir), LIR_op0(lir));
 			break;
 		default:
-			IS_TRUE0(0);
+			ASSERT0(0);
 		}
 		break;
 	case LOP_ADD_ASSIGN :
@@ -419,7 +419,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 	case LOP_NEW_INSTANCE:
 		//AABBBB
 		//LIR_op0(lir) is class-type-id, not class-declaration-id.
-		IS_TRUE0(df);
+		ASSERT0(df);
 		fprintf(g_tfile, ", (obj_ptr)v%d <- (clsname<%d>)%s",
 				LIR_res(lir),
 				LIR_op0(lir),
@@ -427,7 +427,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 		break;
 	case LOP_CONST_STRING:
 		//AABBBB or AABBBBBBBB
-		IS_TRUE0(df);
+		ASSERT0(df);
 		fprintf(g_tfile, ", v%d <- (strofst<%d>)\"%s\"",
 				LIR_res(lir),
 				LIR_op0(lir),
@@ -446,7 +446,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 	case LOP_SGET        :
 		//AABBBB
 		fprintf(g_tfile, ", %s", get_dt_name(lir));
-		IS_TRUE0(df);
+		ASSERT0(df);
 		fprintf(g_tfile, ", v%d <- (ofst<%d>)%s::%s",
 				LIR_res(lir),
 				LIR_op0(lir),
@@ -455,7 +455,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 		break;
 	case LOP_CHECK_CAST  :
 		//AABBBB
-		IS_TRUE0(df);
+		ASSERT0(df);
 		fprintf(g_tfile, ", v%d '%s'",
 				LIR_res(lir),
 				dexStringByTypeIdx(df, LIR_op0(lir)));
@@ -465,7 +465,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 			//AABBBB
 			LIRABOp * p = (LIRABOp*)lir;
 			fprintf(g_tfile, ", %s", get_dt_name(lir));
-			IS_TRUE0(df);
+			ASSERT0(df);
 			if (is_wide(lir)) {
 				fprintf(g_tfile, ", (v%d,v%d) -> %s::%s",
 						LIR_res(lir), LIR_res(lir)+1,
@@ -482,7 +482,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 	case LOP_APUT        :
 		//AABBCC
 		fprintf(g_tfile, ", %s", get_dt_name(lir));
-		IS_TRUE0(df);
+		ASSERT0(df);
 		if (is_wide(lir)) {
 			fprintf(g_tfile, ", (v%d,v%d) -> (array_base_ptr)v%d, (array_elem)v%d",
 					LIR_res(lir), LIR_res(lir)+1,
@@ -495,7 +495,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 	case LOP_AGET      :
 		//AABBCC
 		fprintf(g_tfile, ", %s", get_dt_name(lir));
-		IS_TRUE0(df);
+		ASSERT0(df);
 		if (is_wide(lir)) {
 			fprintf(g_tfile, ", (v%d,v%d) <- (array_base_ptr)v%d, (array_elem)v%d",
 					LIR_res(lir), LIR_res(lir)+1,
@@ -508,7 +508,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 	case LOP_CMPL      :
 	case LOP_CMP_LONG  :
 		//AABBCC
-		IS_TRUE0(df);
+		ASSERT0(df);
 		switch (LIR_dt(lir)) {
 		case LIR_CMP_float:
 			fprintf(g_tfile, ", FLOAT");
@@ -522,7 +522,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 					LIR_op0(lir), LIR_op0(lir)+1,
 					(UINT)LIR_op1(lir));
 			break;
-		default: IS_TRUE0(0);
+		default: ASSERT0(0);
 		}
 		break;
 	case LOP_ADD       :
@@ -593,14 +593,14 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 				//16bit imm
 				fprintf(g_tfile, "(lit16)%d", (INT)LIR_op1(lir));
 			} else {
-				IS_TRUE0(0);
+				ASSERT0(0);
 			}
 		}
 		break;
 	case LOP_IPUT       :
 		fprintf(g_tfile, ", %s", get_dt_name(lir));
 		//ABCCCC
-		IS_TRUE0(df);
+		ASSERT0(df);
 		if (is_wide(lir)) {
 			fprintf(g_tfile, ", (v%d,v%d) -> (obj_ptr)v%d, (ofst<%d>)%s::%s",
 					LIR_res(lir), LIR_res(lir)+1,
@@ -619,7 +619,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 	case LOP_IGET       :
 		fprintf(g_tfile, ", %s", get_dt_name(lir));
 		//ABCCCC
-		IS_TRUE0(df);
+		ASSERT0(df);
 		if (is_wide(lir)) {
 			fprintf(g_tfile, ", (v%d,v%d) <- (obj_ptr)v%d, (ofst<%d>)%s::%s",
 					LIR_res(lir), LIR_res(lir)+1,
@@ -648,7 +648,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 		//new-array v%d(res) <- v%d(op0), LCAnimal(op1)
 		fprintf(g_tfile, ", %s", get_dt_name(lir));
 		//ABCCCC
-		IS_TRUE0(df);
+		ASSERT0(df);
 		fprintf(g_tfile, ", v%d <- (num_of_elem)v%d, (elem_type<%d>)'%s'",
 				LIR_res(lir),
 				LIR_op0(lir),
@@ -658,14 +658,14 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 	case LOP_TABLE_SWITCH:
 		{
 			LIRSwitchOp * p = (LIRSwitchOp*)lir;
-			IS_TRUE0(LIR_dt(p) == 0x1);
+			ASSERT0(LIR_dt(p) == 0x1);
 			fprintf(g_tfile, ", v%d", p->value);
 			USHORT * pdata = p->data;
 
 			//data[0]: flag to indicate switch-table type:
 			//	0x1 TABLE_SWITCH, 0x2 LOOKUP_SWITCH
 			USHORT f = pdata[0];
-			IS_TRUE0(f == 0x100);
+			ASSERT0(f == 0x100);
 			//data[1]: the number of CASE entry.
 			USHORT num_of_case = pdata[1];
 
@@ -691,14 +691,14 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 	case LOP_LOOKUP_SWITCH:
 		{
 			LIRSwitchOp * p = (LIRSwitchOp*)lir;
-			IS_TRUE0(LIR_dt(p) == 0x2);
+			ASSERT0(LIR_dt(p) == 0x2);
 			fprintf(g_tfile, ", v%d", p->value);
 			USHORT * pdata = p->data;
 
 			//pdata[0]: flag to indicate switch-table type:
 			//	0x1 TABLE_SWITCH, 0x2 LOOKUP_SWITCH
 			UINT f = pdata[0];
-			IS_TRUE0(f == 0x200);
+			ASSERT0(f == 0x200);
 
 			//pdata[1]: the number of CASE entry.
 			UINT num_of_case = pdata[1];
@@ -730,7 +730,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 			//0x100 PACKED_SWITCH, 0x200 SPARSE_SWITCH, 0x300 FILL_ARRAY_DATA
 			LIRSwitchOp * r = (LIRSwitchOp*)lir;
 			UInt16 const* pdata = (UInt16 const*)r->data;
-			IS_TRUE0(pdata[0] == 0x300);
+			ASSERT0(pdata[0] == 0x300);
 			//pdata[1]: size of each element.
 			//pdata[2]: the number of element.
 			UINT size_of_elem = pdata[1];
@@ -755,13 +755,13 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 			UINT flags = LIR_dt(lir);
 			UINT flag1 = flags & 0x0F;
 			UINT flag2 = flags & 0xF0;
-			IS_TRUE(flag1 != 0, ("means LIR is LOP_FILLED_NEW_ARRAY"));
+			ASSERT(flag1 != 0, ("means LIR is LOP_FILLED_NEW_ARRAY"));
 			DexMethodId const* method_id = dexGetMethodId(df, r->ref);
-			IS_TRUE0(method_id);
+			ASSERT0(method_id);
 			CHAR const* method_name = dexStringById(df, method_id->nameIdx);
 			CHAR const* class_name =
 				dexStringByTypeIdx(df, method_id->classIdx);
-			IS_TRUE0(method_name);
+			ASSERT0(method_name);
 			DexProtoId const* proto_id =
 				dexGetProtoId(df, method_id->protoIdx);
 			CHAR const* shorty_name = dexStringById(df, proto_id->shortyIdx);
@@ -771,7 +771,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 			bool is_range = HAVE_FLAG((k & 0xf0), LIR_Range);
 			if (is_range) {
 				switch (k & 0x0f) {
-				case LIR_invoke_unknown: IS_TRUE0(0); break;
+				case LIR_invoke_unknown: ASSERT0(0); break;
 				case LIR_invoke_virtual:
 					fprintf(g_tfile, ", virtual-range"); break;
 				case LIR_invoke_direct:
@@ -782,11 +782,11 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 					fprintf(g_tfile, ", interface-range"); break;
 				case LIR_invoke_static:
 					fprintf(g_tfile, ", static-range"); break;
-				default: IS_TRUE0(0);
+				default: ASSERT0(0);
 				}
 			} else {
 				switch (k & 0x0f) {
-				case LIR_invoke_unknown: IS_TRUE0(0); break;
+				case LIR_invoke_unknown: ASSERT0(0); break;
 				case LIR_invoke_virtual:
 					fprintf(g_tfile, ", virtual"); break;
 				case LIR_invoke_direct:
@@ -797,7 +797,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 					fprintf(g_tfile, ", interface"); break;
 				case LIR_invoke_static:
 					fprintf(g_tfile, ", static"); break;
-				default: IS_TRUE0(0);
+				default: ASSERT0(0);
 				}
 			}
 
@@ -823,7 +823,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 			LIRInvokeOp * r = (LIRInvokeOp*)lir;
 			UINT flags = LIR_dt(lir);
 			CHAR const* class_name = dexStringByTypeIdx(df, r->ref);
-			IS_TRUE0(class_name);
+			ASSERT0(class_name);
 			fprintf(g_tfile, ", %s", class_name);
 			if (r->argc != 0) {
 				fprintf(g_tfile, ", arg(");
@@ -839,7 +839,7 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 		break;
 	case LOP_CMPG:
 		//AABBCC
-		IS_TRUE0(df);
+		ASSERT0(df);
 		switch (LIR_dt(lir)) {
 		case LIR_CMP_float:
 			fprintf(g_tfile, ", FLOAT");
@@ -855,13 +855,13 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 					LIR_op0(lir),
 					(INT)LIR_op1(lir));
 			break;
-		default: IS_TRUE0(0);
+		default: ASSERT0(0);
 		}
 		break;
 	case LOP_PHI:
-		IS_TRUE0(0);
+		ASSERT0(0);
 		break;
-	default: IS_TRUE0(0);
+	default: ASSERT0(0);
 	} //end switch
 	fflush(g_tfile);
 }
@@ -871,16 +871,16 @@ void dump_lir2(LIR * lir, DexFile * df, INT pos)
 void dump_all_lir(LIRCode * fu, DexFile * df, DexMethod const* dm)
 {
 	if (g_tfile == NULL) return;
-	IS_TRUE0(fu && df && dm);
+	ASSERT0(fu && df && dm);
 	CHAR const* class_name = get_class_name(df, dm);
 	CHAR const* func_name = get_func_name(df, dm);
-	IS_TRUE0(class_name && func_name);
+	ASSERT0(class_name && func_name);
 	fprintf(g_tfile, "\n==---- DUMP LIR of %s::%s ----== maxreg:%d ",
 			class_name, func_name, fu->maxVars - 1);
 	if (fu->maxVars > 0) {
 		fprintf(g_tfile, "(");
 		for (INT i = fu->maxVars - fu->numArgs; i < (INT)fu->maxVars; i++) {
-			IS_TRUE0(i >= 0);
+			ASSERT0(i >= 0);
 			fprintf(g_tfile, "v%d,", i);
 		}
 		fprintf(g_tfile, ")");
@@ -902,7 +902,7 @@ void dump_all_lir(LIRCode * fu, DexFile * df, DexMethod const* dm)
 	}
 	for (INT i = 0; i < LIRC_num_of_op(fu); i++) {
 		LIR * lir = LIRC_op(fu, i);
-		IS_TRUE0(lir);
+		ASSERT0(lir);
 		fprintf(g_tfile, "\n");
 		dump_lir2(lir, df, i);
 	}
@@ -916,9 +916,9 @@ static void dumpf_field(DexFile * df, DexField * finfo, INT indent)
 	if (g_tfile == NULL) { return; }
 	CHAR const* fname = get_field_name(df, finfo);
 	CHAR const* tname = get_field_type_name(df, finfo);
-	IS_TRUE0(fname && tname);
+	ASSERT0(fname && tname);
 	while (indent-- >= 0) { fprintf(g_tfile, " "); }
-	fprintf(g_tfile, "%dth, %s, TYPE:%s",
+	fprintf(g_tfile, "%dth, %s, Type:%s",
 			finfo->fieldIdx, fname, tname);
 	fflush(g_tfile);
 }
@@ -950,7 +950,7 @@ CHAR const* get_field_class_name(DexFile * df, DexField * finfo)
 CHAR const* get_field_type_name(DexFile * df, UINT field_id)
 {
 	DexFieldId const* fid = dexGetFieldId(df, field_id);
-	IS_TRUE0(fid);
+	ASSERT0(fid);
 
 	//Get field's type name.
 	return dexStringByTypeIdx(df, fid->typeIdx);
@@ -961,7 +961,7 @@ CHAR const* get_field_type_name(DexFile * df, UINT field_id)
 CHAR const* get_field_class_name(DexFile * df, UINT field_id)
 {
 	DexFieldId const* fid = dexGetFieldId(df, field_id);
-	IS_TRUE0(fid);
+	ASSERT0(fid);
 	return dexStringByTypeIdx(df, fid->classIdx);
 }
 
@@ -970,7 +970,7 @@ CHAR const* get_field_class_name(DexFile * df, UINT field_id)
 CHAR const* get_field_name(DexFile * df, UINT field_id)
 {
 	DexFieldId const* fid = dexGetFieldId(df, field_id);
-	IS_TRUE0(fid);
+	ASSERT0(fid);
 
 	//Get field's name via nameIdx in symbol table.
 	return dexStringById(df, fid->nameIdx);
@@ -989,9 +989,9 @@ CHAR const* get_class_name(DexFile * df, UINT cls_type_idx)
 
 CHAR const* get_class_name(DexFile * df, DexClassDef const* class_info)
 {
-	IS_TRUE0(class_info);
+	ASSERT0(class_info);
 	CHAR const* class_name = dexStringByTypeIdx(df, class_info->classIdx);
-	IS_TRUE0(class_name);
+	ASSERT0(class_name);
 	return class_name;
 }
 
@@ -1002,7 +1002,7 @@ void dump_all_class_and_field(DexFile * df)
 	if (g_tfile == NULL) { return; }
 	fprintf(g_tfile, "\n==---- DUMP ALL CLASS and FIELD ----==");
 	//Walk through each class declaration via class-index in file.
-	IS_TRUE0(df && df->pHeader);
+	ASSERT0(df && df->pHeader);
 	for (UINT i = 0; i < df->pHeader->classDefsSize; i++) {
 		fprintf(g_tfile, "\n");
 		//Show section header.
@@ -1010,9 +1010,9 @@ void dump_all_class_and_field(DexFile * df)
 
 		//Dump class name.
 		DexClassDef const* class_info = dexGetClassDef(df, i);
-		//IS_TRUE(i == class_info->classIdx, ("they might be equal"));
+		//ASSERT(i == class_info->classIdx, ("they might be equal"));
 		//CHAR const* class_name = dexStringByTypeIdx(df, class_info->classIdx);
-		//IS_TRUE0(class_name);
+		//ASSERT0(class_name);
 		fprintf(g_tfile, "class %s {", get_class_name(df, class_info));
 
 		//Dump class fields.
@@ -1024,7 +1024,7 @@ void dump_all_class_and_field(DexFile * df)
 				for (UINT i = 0; i < class_data->header.instanceFieldsSize; i++) {
 					fprintf(g_tfile, "\n");
 					DexField * finfo = &class_data->instanceFields[i];
-					IS_TRUE0(finfo);
+					ASSERT0(finfo);
 					dumpf_field(df, finfo, 4);
 					fflush(g_tfile);
 				}
@@ -1073,15 +1073,15 @@ void dump_all_class_and_field(DexFile * df)
 //
 class DEX_CP : public IR_CP {
 public:
-	DEX_CP(REGION * ru) : IR_CP(ru) {}
+	DEX_CP(Region * ru) : IR_CP(ru) {}
 	virtual ~DEX_CP() {}
 
 	//Check if ir is appropriate for propagation.
-	virtual bool can_be_candidate(IR const* ir) const
+	virtual bool canBeCandidate(IR const* ir) const
 	{
 		//Prop const imm may generate code which is not legal dex format.
 		//TODO: Perform more code normalization before ir2dex.
-		//return IR_is_const(ir) || ir->is_pr();
+		//return ir->is_const() || ir->is_pr();
 
 		return ir->is_pr();
 	}
@@ -1092,7 +1092,7 @@ public:
 class DEX_RP : public IR_RP {
 	bool m_has_insert_stuff;
 public:
-	DEX_RP(REGION * ru, IR_GVN * gvn) : IR_RP(ru, gvn)
+	DEX_RP(Region * ru, IR_GVN * gvn) : IR_RP(ru, gvn)
 	{ m_has_insert_stuff = false; }
 	virtual ~DEX_RP() {}
 
@@ -1101,7 +1101,7 @@ public:
 	{
 		if (IR_type(ir) == IR_ARRAY) {
 			IR * sub = ARR_sub_list(ir);
-			IS_TRUE0(sub);
+			ASSERT0(sub);
 			if (cnt_list(sub) == 1) {
 				if (sub->is_pr() && PR_no(sub) == 2) {
 					return false;
@@ -1111,57 +1111,57 @@ public:
 		return IR_RP::is_promotable(ir);
 	}
 
-	void insert_stuff_code(IR const* ref, REGION * ru, IR_GVN * gvn)
+	void insert_stuff_code(IR const* ref, Region * ru, IR_GVN * gvn)
 	{
-		IS_TRUE0(IR_type(ref) == IR_ARRAY);
+		ASSERT0(IR_type(ref) == IR_ARRAY);
 
 		IR * stmt = ref->get_stmt();
-		IS_TRUE0(stmt);
-		IR_BB * stmt_bb = stmt->get_bb();
-		IS_TRUE0(stmt_bb);
+		ASSERT0(stmt);
+		IRBB * stmt_bb = stmt->get_bb();
+		ASSERT0(stmt_bb);
 
 		IR_DU_MGR * dumgr = ru->get_du_mgr();
 
 		C<IR*> * ct = NULL;
-		IR_BB_ir_list(stmt_bb).find(stmt, &ct);
-		IS_TRUE0(ct != NULL);
+		BB_irlist(stmt_bb).find(stmt, &ct);
+		ASSERT0(ct != NULL);
 
 		//Insert stuff code as you need. It will slow down the benchmark.
 		UINT num_want_to_insert = 30;
 		for (UINT i = 0; i < num_want_to_insert; i++) {
-			IR * newref = ru->dup_irs(ref);
-			dumgr->copy_ir_tree_du_info(newref, ref, true);
-			IR * stpr = ru->build_store_pr(ru->build_prno(IR_dt(newref)),
+			IR * newref = ru->dupIRTree(ref);
+			dumgr->copyIRTreeDU(newref, ref, true);
+			IR * stpr = ru->buildStorePR(ru->buildPrno(IR_dt(newref)),
 											IR_dt(newref), newref);
-			ru->alloc_ref_for_pr(stpr);
+			ru->allocRefForPR(stpr);
 			IR_may_throw(stpr) = true;
 
 			//New IR has same VN with original one.
-			gvn->set_map_ir2vn(stpr, gvn->map_ir2vn(ref));
+			gvn->set_mapIR2VN(stpr, gvn->mapIR2VN(ref));
 
-			IR_BB_ir_list(stmt_bb).insert_before(stpr, ct);
+			BB_irlist(stmt_bb).insert_before(stpr, ct);
 		}
 	}
 
-	virtual void handle_access_in_body(IR * ref, IR * delegate, IR * delegate_pr,
-									TMAP<IR*, SLIST<IR*>*> &
+	virtual void handleAccessInBody(IR * ref, IR * delegate, IR * delegate_pr,
+									TMap<IR*, SList<IR*>*> &
 											delegate2has_outside_uses_ir_list,
-									TTAB<IR*> & restore2mem,
-									LIST<IR*> & fixup_list,
-									TMAP<IR*, IR*> & delegate2stpr,
-									LI<IR_BB> const* li,
-									IR_ITER & ii)
+									TTab<IR*> & restore2mem,
+									List<IR*> & fixup_list,
+									TMap<IR*, IR*> & delegate2stpr,
+									LI<IRBB> const* li,
+									IRIter & ii)
 	{
 		if (!m_has_insert_stuff &&
 			IR_type(ref) == IR_ARRAY &&
-			(m_ru->is_ru_name_equ(
+			(m_ru->isRegionName(
 				"Lsoftweg/hw/performance/CPUTest;::arrayElementsDouble") ||
-			 m_ru->is_ru_name_equ(
+			 m_ru->isRegionName(
 			 	"Lsoftweg/hw/performance/CPUTest;::arrayElementsSingle"))) {
 			m_has_insert_stuff = true;
 			insert_stuff_code(ref, m_ru, m_gvn);
 		}
-		IR_RP::handle_access_in_body(ref, delegate, delegate_pr,
+		IR_RP::handleAccessInBody(ref, delegate, delegate_pr,
 								delegate2has_outside_uses_ir_list,
 								restore2mem, fixup_list,
 								delegate2stpr, li, ii);
@@ -1170,133 +1170,132 @@ public:
 };
 
 //
-//START AOC_DX_MGR
+//START AocDxMgr
 //
-CHAR const* AOC_DX_MGR::get_string(UINT str_idx)
+CHAR const* AocDxMgr::get_string(UINT str_idx)
 {
 	return dexStringById(m_df, str_idx);
 }
 
 
-CHAR const* AOC_DX_MGR::get_type_name(UINT idx)
+CHAR const* AocDxMgr::get_type_name(UINT idx)
 {
 	return dexStringByTypeIdx(m_df, idx);
 }
 
 
 //field_id: field number in dexfile.
-CHAR const* AOC_DX_MGR::get_field_name(UINT field_idx)
+CHAR const* AocDxMgr::get_field_name(UINT field_idx)
 {
 	DexFieldId const* fid = dexGetFieldId(m_df, field_idx);
-	IS_TRUE0(fid);
+	ASSERT0(fid);
 
 	//Get field's name via nameIdx in symbol table.
 	return dexStringById(m_df, fid->nameIdx);
 }
 
 
-CHAR const* AOC_DX_MGR::get_method_name(UINT method_idx)
+CHAR const* AocDxMgr::get_method_name(UINT method_idx)
 {
 	DexMethodId const* method_id = dexGetMethodId(m_df, method_idx);
-	IS_TRUE0(method_id);
+	ASSERT0(method_id);
 	CHAR const* method_name = dexStringById(m_df, method_id->nameIdx);
-	IS_TRUE0(method_name);
+	ASSERT0(method_name);
 	return method_name;
 }
 
 
-CHAR const* AOC_DX_MGR::get_class_name(UINT class_type_idx)
+CHAR const* AocDxMgr::get_class_name(UINT class_type_idx)
 {
 	return dexStringByTypeIdx(m_df, class_type_idx);
 }
 
 
-CHAR const* AOC_DX_MGR::get_class_name_by_method_id(UINT method_idx)
+CHAR const* AocDxMgr::get_class_name_by_method_id(UINT method_idx)
 {
 	DexMethodId const* method_id = dexGetMethodId(m_df, method_idx);
-	IS_TRUE0(method_id);
+	ASSERT0(method_id);
 	CHAR const* class_name = dexStringByTypeIdx(m_df, method_id->classIdx);
 	return class_name;
 }
 
 
-CHAR const* AOC_DX_MGR::get_class_name_by_field_id(UINT field_idx)
+CHAR const* AocDxMgr::get_class_name_by_field_id(UINT field_idx)
 {
 	DexFieldId const* fid = dexGetFieldId(m_df, field_idx);
-	IS_TRUE0(fid);
+	ASSERT0(fid);
 	return dexStringByTypeIdx(m_df, fid->classIdx);
 }
 
 
-CHAR const* AOC_DX_MGR::get_class_name_by_declaration_id(UINT cls_def_idx)
+CHAR const* AocDxMgr::get_class_name_by_declaration_id(UINT cls_def_idx)
 {
 	DexClassDef const* class_info = dexGetClassDef(m_df, cls_def_idx);
 	CHAR const* class_name = dexStringByTypeIdx(m_df, class_info->classIdx);
-	IS_TRUE0(class_name);
+	ASSERT0(class_name);
 	return class_name;
 }
-//END AOC_DX_MGR
+//END AocDxMgr
 
 
 //
-//START DEX_PASS_MGR
+//START DexPassMgr
 //
-class DEX_PASS_MGR : public PASS_MGR {
+class DexPassMgr : public PassMgr {
 public:
-	DEX_PASS_MGR(REGION * ru) : PASS_MGR(ru) {}
-	virtual ~DEX_PASS_MGR() {}
+	DexPassMgr(Region * ru) : PassMgr(ru) {}
+	virtual ~DexPassMgr() {}
 
-	virtual IR_OPT * alloc_dce()
+	virtual Pass * allocDCE()
 	{
-		IR_DCE * opt = new IR_DCE(m_ru);
-		opt->set_elim_cfs(true);
-		return opt;
+		IR_DCE * pass = new IR_DCE(m_ru);
+		pass->set_elim_cfs(true);
+		return pass;
 	}
 
-	virtual IR_OPT * alloc_cp()
+	virtual Pass * allocCopyProp()
 	{
-		IR_OPT * opt = new DEX_CP(m_ru);
-		SIMP_CTX simp;
-		opt->set_simp_cont(&simp);
-		return opt;
+		Pass * pass = new DEX_CP(m_ru);
+		SimpCTX simp;
+		pass->set_simp_cont(&simp);
+		return pass;
 	}
 
-	virtual IR_OPT * alloc_rp()
+	virtual Pass * allocRP()
 	{
-		IR_OPT * opt = new DEX_RP(m_ru, (IR_GVN*)register_opt(OPT_GVN));
-		return opt;
+		Pass * pass = new DEX_RP(m_ru, (IR_GVN*)registerPass(PASS_GVN));
+		return pass;
 	}
 
-	virtual void perform_scalar_opt(OPT_CTX & oc);
+	virtual void performScalarOpt(OptCTX & oc);
 };
 
 
 int xtime = 1;
-void DEX_PASS_MGR::perform_scalar_opt(OPT_CTX & oc)
+void DexPassMgr::performScalarOpt(OptCTX & oc)
 {
-	LIST<IR_OPT*> opt_list; //A list of optimization.
-	IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)register_opt(OPT_SSA_MGR);
+	List<Pass*> passlist; //A list of optimization.
+	IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)registerPass(PASS_SSA_MGR);
 	bool is_ssa_avail = false;
 	if (ssamgr != NULL) {
-		is_ssa_avail = ssamgr->is_ssa_construct();
+		is_ssa_avail = ssamgr->is_ssa_constructed();
 	}
 
-	opt_list.append_tail(register_opt(OPT_CP));
-	opt_list.append_tail(register_opt(OPT_DCE));
-	opt_list.append_tail(register_opt(OPT_RP));
-	opt_list.append_tail(register_opt(OPT_CP));
-	opt_list.append_tail(register_opt(OPT_DCE));
-	opt_list.append_tail(register_opt(OPT_RP));
-	opt_list.append_tail(register_opt(OPT_CP));
-	opt_list.append_tail(register_opt(OPT_DCE));
-	opt_list.append_tail(register_opt(OPT_LOOP_CVT));
-	opt_list.append_tail(register_opt(OPT_LICM));
-	opt_list.append_tail(register_opt(OPT_GCSE));
+	passlist.append_tail(registerPass(PASS_CP));
+	passlist.append_tail(registerPass(PASS_DCE));
+	passlist.append_tail(registerPass(PASS_RP));
+	passlist.append_tail(registerPass(PASS_CP));
+	passlist.append_tail(registerPass(PASS_DCE));
+	passlist.append_tail(registerPass(PASS_RP));
+	passlist.append_tail(registerPass(PASS_CP));
+	passlist.append_tail(registerPass(PASS_DCE));
+	passlist.append_tail(registerPass(PASS_LOOP_CVT));
+	passlist.append_tail(registerPass(PASS_LICM));
+	passlist.append_tail(registerPass(PASS_GCSE));
 
-	((IR_DCE*)register_opt(OPT_DCE))->set_elim_cfs(false);
-	((IR_DCE*)register_opt(OPT_DCE))->set_ssa_available(is_ssa_avail);
+	((IR_DCE*)registerPass(PASS_DCE))->set_elim_cfs(false);
 
-	if (opt_list.get_elem_count() != 0) {
+	if (passlist.get_elem_count() != 0) {
 		LOG("\tScalar optimizations for '%s'", m_ru->get_ru_name());
 	}
 
@@ -1304,34 +1303,34 @@ void DEX_PASS_MGR::perform_scalar_opt(OPT_CTX & oc)
 	UINT count = 0;
 	//do {
 		change = false;
-		for (IR_OPT * opt = opt_list.get_head();
-			 opt != NULL; opt = opt_list.get_next()) {
-			CHAR const* optn = opt->get_opt_name();
-			LOG("\t\tpass %s", optn);
-			IS_TRUE0(verify_ir_and_bb(m_ru->get_bb_list(), m_dm));
+		for (Pass * pass = passlist.get_head();
+			 pass != NULL; pass = passlist.get_next()) {
+			CHAR const* passname = pass->get_pass_name();
+			LOG("\t\tpass %s", passname);
+			ASSERT0(verifyIRandBB(m_ru->get_bb_list(), m_ru));
 			ULONGLONG t = getusec();
 
-			//dump_bbs(m_ru->get_bb_list(), "before");
+			//dumpBBList(m_ru->get_bb_list(), m_ru, "before");
 			//m_ru->get_cfg()->dump_vcg("before.vcg");
 
-			bool doit = opt->perform(oc);
+			bool doit = pass->perform(oc);
 
-			//dump_bbs(m_ru->get_bb_list(), "after");
+			//dumpBBList(m_ru->get_bb_list(), m_ru, "after");
 			//m_ru->get_cfg()->dump_vcg("after.vcg");
 
-			append_ti(opt->get_opt_name(), getusec() - t);
+			appendTimeInfo(pass->get_pass_name(), getusec() - t);
 			if (doit) {
 				LOG("\t\t\tchanged");
 				change = true;
-				IS_TRUE0(verify_ir_and_bb(m_ru->get_bb_list(), m_dm));
-				IS_TRUE0(m_ru->get_cfg()->verify());
+				ASSERT0(verifyIRandBB(m_ru->get_bb_list(), m_ru));
+				ASSERT0(m_ru->get_cfg()->verify());
 			}
 		}
 		count++;
 	//} while (change && count < 20);
-	//IS_TRUE0(!change);
+	//ASSERT0(!change);
 }
-//END DEX_PASS_MGR
+//END DexPassMgr
 
 
 //
@@ -1339,105 +1338,101 @@ void DEX_PASS_MGR::perform_scalar_opt(OPT_CTX & oc)
 //
 //Mapping from TYID to MD.
 //tyid start from 1.
-typedef TMAP<UINT, MD*> TYID2MD;
+typedef TMap<Type const*, MD const*> Type2MD;
 
 class DEX_AA : public IR_AA {
-	TYID2MD m_tyid2md;
+	Type2MD m_type2md;
 public:
-	DEX_AA(REGION * ru) : IR_AA(ru) {}
+	DEX_AA(Region * ru) : IR_AA(ru) {}
 
-	//Attemp to compute POINT-TO set via the IR type.
-	virtual MD * comp_point_to_via_type(IR const* ir)
+	//Attemp to compute POINT-TO set via data type.
+	virtual MD const* computePointToViaType(IR const* ir)
 	{
-		IR_AI * ai = IR_ai(ir);
-		IS_TRUE0(ir && ai);
+		AttachInfo * ai = IR_ai(ir);
+		ASSERT0(ir && ai);
 
-		TBAA_AI * ty = (TBAA_AI*)ai->get(IRAI_TBAA);
+		TbaaAttachInfo * ty = (TbaaAttachInfo*)ai->get(AI_TBAA);
 		if (ty == NULL) { return NULL; }
 
-		MD * md = m_tyid2md.get(ty->tyid);
+		MD const* md = m_type2md.get(ty->type);
 		if (md != NULL) {
 			return md;
 		}
 
 		CHAR buf[64];
-		sprintf(buf, "dummy%d", ty->tyid);
-		VAR * dummy = m_var_mgr->register_var(buf,
-											D_MC, D_UNDEF,
-											0, 1, 1, VAR_GLOBAL);
+		sprintf(buf, "dummy%d", (UINT)(size_t)ty->type);
+		VAR * dummy = m_var_mgr->registerVar(
+						buf, m_dm->getMCType(0), 1, VAR_GLOBAL);
 		VAR_is_addr_taken(dummy) = true;
 		VAR_allocable(dummy) = false;
-		m_ru->add_to_var_tab(dummy);
+		m_ru->addToVarTab(dummy);
 
 		MD dummy_md;
 		MD_base(&dummy_md) = dummy;
 		MD_size(&dummy_md) = 0;
 		MD_ty(&dummy_md) = MD_UNBOUND;
-		MD_is_addr_taken(&dummy_md) = true;
-		MD * entry = m_md_sys->register_md(dummy_md);
-		m_tyid2md.set(ty->tyid, entry);
+		MD const* entry = m_md_sys->registerMD(dummy_md);
+		m_type2md.set(ty->type, entry);
 		return entry;
 	}
 
-	void handle_ld(IR * ld, MD2MDS * mx)
+	void handle_ld(IR * ld, MD2MDSet * mx)
 	{
-		IS_TRUE0(IR_type(ld) == IR_LD && mx);
-		IR_AI * ai = IR_ai(ld);
+		ASSERT0(ld->is_ld() && mx);
+		AttachInfo * ai = IR_ai(ld);
 		if (ai == NULL) { return; }
 
-		TBAA_AI * ty = (TBAA_AI*)ai->get(IRAI_TBAA);
+		TbaaAttachInfo * ty = (TbaaAttachInfo*)ai->get(AI_TBAA);
 		if (ty == NULL) { return; }
 
-		MD * md = m_tyid2md.get(ty->tyid);
+		MD const* md = m_type2md.get(ty->type);
 		if (md != NULL) {
-			MD const* t = alloc_ld_md(ld);
-			set_point_to_set_add_md(t, *mx, md);
+			MD const* t = allocLoadMD(ld);
+			setPointToMDSetByAddMD(t, *mx, md);
 			return;
 		}
 
 		CHAR buf[64];
-		sprintf(buf, "dummy%d", ty->tyid);
-		VAR * dummy = m_var_mgr->register_var(buf,
-											D_MC, D_UNDEF,
-											0, 1, 1, VAR_GLOBAL);
+		sprintf(buf, "dummy%d", (UINT)(size_t)ty->type);
+		VAR * dummy = m_var_mgr->registerVar(
+					buf, m_dm->getMCType(0), 1, VAR_GLOBAL);
 		VAR_is_addr_taken(dummy) = true;
 		VAR_allocable(dummy) = false;
-		m_ru->add_to_var_tab(dummy);
+		m_ru->addToVarTab(dummy);
 
 		MD dummy_md;
 		MD_base(&dummy_md) = dummy;
 		MD_size(&dummy_md) = 0;
 		MD_ty(&dummy_md) = MD_UNBOUND;
-		MD_is_addr_taken(&dummy_md) = true;
-		MD * entry = m_md_sys->register_md(dummy_md);
-		m_tyid2md.set(ty->tyid, entry);
+		MD const* entry = m_md_sys->registerMD(dummy_md);
+		m_type2md.set(ty->type, entry);
 
-		MD const* t = alloc_ld_md(ld);
-		set_point_to_set_add_md(t, *mx, entry);
+		MD const* t = allocLoadMD(ld);
+		setPointToMDSetByAddMD(t, *mx, entry);
 	}
 };
 //END DEX_AA
 
 
 //
-//START DEX_REGION
+//START DexRegion
 //
-PASS_MGR * DEX_REGION::new_pass_mgr()
+PassMgr * DexRegion::newPassMgr()
 {
-	return new DEX_PASS_MGR(this);
+	return new DexPassMgr(this);
 }
 
 
 //Initialize alias analysis.
-IR_AA * DEX_REGION::init_aa(OPT_CTX & oc)
+IR_AA * DexRegion::initAliasAnalysis(OptCTX & oc)
 {
-	IS_TRUE0(RU_ana(this));
+	ASSERT0(REGION_analysis_instrument(this));
 	if (get_aa() == NULL) {
 		DEX_AA * aa = new DEX_AA(this);
 
-		RU_ana(this)->m_ir_aa = aa;
+		REGION_analysis_instrument(this)->m_ir_aa = aa;
 
-		aa->init_may_ptset();
+		aa->initMayPointToSet();
 
 		aa->set_flow_sensitive(true);
 
@@ -1447,11 +1442,11 @@ IR_AA * DEX_REGION::init_aa(OPT_CTX & oc)
 }
 
 
-bool DEX_REGION::high_process(OPT_CTX & oc)
+bool DexRegion::HighProcess(OptCTX & oc)
 {
 	CHAR const* ru_name = get_ru_name();
 	g_indent = 0;
-	SIMP_CTX simp;
+	SimpCTX simp;
 	SIMP_if(&simp) = 1;
 	SIMP_do_loop(&simp) = 1;
 	SIMP_do_while(&simp) = 1;
@@ -1460,32 +1455,35 @@ bool DEX_REGION::high_process(OPT_CTX & oc)
 	SIMP_break(&simp) = 1;
 	SIMP_continue(&simp) = 1;
 
-	RU_ana(this)->m_ir_list = simplify_stmt_list(get_ir_list(), &simp);
+	REGION_analysis_instrument(this)->m_ir_list =
+					simplifyStmtList(get_ir_list(), &simp);
 
-	IS_TRUE0(verify_simp(get_ir_list(), simp));
-	IS_TRUE0(verify_irs(get_ir_list(), NULL, get_dm()));
+	ASSERT0(verify_simp(get_ir_list(), simp));
+	ASSERT0(verify_irs(get_ir_list(), NULL, this));
 
-	construct_ir_bb_list();
+	constructIRBBlist();
 
-	IS_TRUE0(verify_ir_and_bb(get_bb_list(), get_dm()));
+	ASSERT0(verifyIRandBB(get_bb_list(), this));
 
-	RU_ana(this)->m_ir_list = NULL; //All IRs have been moved to each IR_BB.
+	//All IRs have been moved to each IRBB.
+	REGION_analysis_instrument(this)->m_ir_list = NULL;
 
-	IS_TRUE0(g_do_cfg && g_do_aa && g_do_du_ana && g_do_cdg);
+	ASSERT0(g_do_cfg && g_do_aa && g_do_du_ana && g_do_cdg);
 
-	IR_CFG * cfg = init_cfg(oc);
-	cfg->loop_analysis(oc);
+	PassMgr * passmgr = initPassMgr();
 
-	if (g_do_ssa && OPTC_pass_mgr(oc) != NULL) {
-		IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)OPTC_pass_mgr(oc)->
-									register_opt(OPT_SSA_MGR);
-		IS_TRUE0(ssamgr);
-		ssamgr->construction(oc, this);
+	IR_CFG * cfg = initCfg(oc);
+	cfg->LoopAnalysis(oc);
+
+	if (g_do_ssa) {
+		IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)passmgr->registerPass(PASS_SSA_MGR);
+		ASSERT0(ssamgr);
+		ssamgr->construction(oc);
 	}
 
-	init_aa(oc);
+	initAliasAnalysis(oc);
 
-	init_du(oc);
+	initDuMgr(oc);
 
 	if (g_opt_level == NO_OPT) {
 		return false;
@@ -1495,115 +1493,111 @@ bool DEX_REGION::high_process(OPT_CTX & oc)
 
 
 //All global prs must be mapped.
-bool DEX_REGION::verify_ra_res(RA & ra, PRNO2UINT & prno2v)
+bool DexRegion::verifyRAresult(RA & ra, Prno2UINT & prno2v)
 {
-	GLTM * gltm = ra.get_gltm();
-	SVECTOR<GLT*> * gltv = gltm->get_gltvec();
+	GltMgr * gltm = ra.get_gltm();
+	Vector<GLT*> * gltv = gltm->get_gltvec();
 	for (UINT i = 0; i < gltm->get_num_of_glt(); i++) {
 		GLT * g = gltv->get(i);
 		if (g == NULL) { continue; }
-		IS_TRUE0(g->has_allocated());
+		ASSERT0(g->has_allocated());
 		if (GLT_bbs(g) == NULL) {
 			//parameter may be have no occ.
 			continue;
 		}
 		bool find;
 		prno2v.get(GLT_prno(g), &find);
-		IS_TRUE0(find);
+		ASSERT0(find);
 	}
 
-	IR_BB_LIST * bbl = get_bb_list();
-	for (IR_BB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
-		LTM * ltm = gltm->map_bb2ltm(bb);
+	BBList * bbl = get_bb_list();
+	for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
+		LTMgr * ltm = gltm->map_bb2ltm(bb);
 		if (ltm == NULL) { continue; }
-		SVECTOR<LT*> * lvec = ltm->get_lt_vec();
+		Vector<LT*> * lvec = ltm->get_lt_vec();
 		for (INT i = 0; i <= lvec->get_last_idx(); i++) {
 			LT * l = lvec->get(i);
 			if (l == NULL) { continue; }
-			IS_TRUE0(l->has_allocated());
+			ASSERT0(l->has_allocated());
 			bool find;
 			prno2v.get(LT_prno(l), &find);
-			IS_TRUE0(find);
+			ASSERT0(find);
 		}
 	}
 	return true;
 }
 
 
-void DEX_REGION::update_ra_res(IN RA & ra, OUT PRNO2UINT & prno2v)
+void DexRegion::updateRAresult(IN RA & ra, OUT Prno2UINT & prno2v)
 {
 	prno2v.maxreg = ra.get_maxreg();
 	prno2v.paramnum = ra.get_paramnum();
-	GLTM * gltm = ra.get_gltm();
-	IR_BB_LIST * bbl = get_bb_list();
+	GltMgr * gltm = ra.get_gltm();
+	BBList * bbl = get_bb_list();
 	prno2v.clean();
-	for (IR_BB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
-		LTM * ltm = gltm->map_bb2ltm(bb);
+	for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
+		LTMgr * ltm = gltm->map_bb2ltm(bb);
 		if (ltm == NULL) { continue; }
-		SVECTOR<LT*> * lvec = ltm->get_lt_vec();
+		Vector<LT*> * lvec = ltm->get_lt_vec();
 		for (INT i = 0; i <= lvec->get_last_idx(); i++) {
 			LT * l = lvec->get(i);
 			if (l == NULL) { continue; }
-			IS_TRUE0(l->has_allocated());
+			ASSERT0(l->has_allocated());
 			bool find;
 			UINT v = prno2v.get(LT_prno(l), &find);
 			if (find) {
 				//each prno is corresponding to a unqiue vreg.
-				IS_TRUE0(v == LT_phy(l));
+				ASSERT0(v == LT_phy(l));
 			} else {
 				prno2v.set(LT_prno(l), LT_phy(l));
 			}
 		}
 	}
 	prno2v.dump();
-	IS_TRUE0(verify_ra_res(ra, prno2v));
+	ASSERT0(verifyRAresult(ra, prno2v));
 }
 
 
-void DEX_REGION::process_simply(OUT PRNO2UINT & prno2v, UINT param_num,
-								UINT vregnum, DEX2IR & d2ir, UINT2PR * v2pr,
-								IN PRNO2UINT * pr2v, TYIDR * tr)
+void DexRegion::processSimply(OUT Prno2UINT & prno2v, UINT param_num,
+								UINT vregnum, Dex2IR & d2ir, UINT2PR * v2pr,
+								IN Prno2UINT * pr2v, TypeIndexRep * tr)
 {
-	LOG("\t\t Invoke DEX_REGION::process_simply '%s'", get_ru_name());
+	LOG("\t\t Invoke DexRegion::processSimply '%s'", get_ru_name());
 	if (get_ir_list() == NULL) { return ; }
-	OPT_CTX oc;
-	OPTC_show_comp_time(oc) = g_show_comp_time;
+	OptCTX oc;
+	OC_show_comp_time(oc) = g_show_comp_time;
 
 	CHAR const* ru_name = get_ru_name();
 
-	construct_ir_bb_list();
+	constructIRBBlist();
 
-	IS_TRUE0(verify_ir_and_bb(get_bb_list(), get_dm()));
+	ASSERT0(verifyIRandBB(get_bb_list(), this));
 
-	RU_ana(this)->m_ir_list = NULL; //All IRs have been moved to each IR_BB.
+	REGION_analysis_instrument(this)->m_ir_list = NULL; //All IRs have been moved to each IRBB.
 
-	IR_CFG * cfg = init_cfg(oc);
-	cfg->loop_analysis(oc);
+	IR_CFG * cfg = initCfg(oc);
+	cfg->LoopAnalysis(oc);
 
-	PASS_MGR * pm = new_pass_mgr();
-	OPTC_pass_mgr(oc) = pm; //record pass manager.
+	PassMgr * passmgr = initPassMgr();
 
-	if (g_do_ssa && OPTC_pass_mgr(oc) != NULL) {
+	if (g_do_ssa) {
 		//Convert program to ssa form.
-		IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)OPTC_pass_mgr(oc)->
-									register_opt(OPT_SSA_MGR);
-		IS_TRUE0(ssamgr);
-		ssamgr->construction(oc, this);
+		IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)passmgr->registerPass(PASS_SSA_MGR);
+		ASSERT0(ssamgr);
+		ssamgr->construction(oc);
 	}
 
-	init_aa(oc);
+	initAliasAnalysis(oc);
 
-	init_du(oc);
+	initDuMgr(oc);
 
-	IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)pm->query_opt(OPT_SSA_MGR);
-	if (ssamgr != NULL && ssamgr->is_ssa_construct()) {
+	IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)passmgr->query_opt(PASS_SSA_MGR);
+	if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
 		//Destruct ssa form.
-		ssamgr->destruction_in_bblist_order();
+		ssamgr->destructionInBBListOrder();
 	}
 
-	delete pm;
-
-	OPTC_pass_mgr(oc) = NULL;
+	destroyPassMgr();
 
 	#if 1
 	//Do not allocate register.
@@ -1615,57 +1609,54 @@ void DEX_REGION::process_simply(OUT PRNO2UINT & prno2v, UINT param_num,
 	RA ra(this, tr, param_num, vregnum, v2pr, pr2v, &m_var2pr);
 	LOG("\t\tdo DEX Register Allcation for '%s'", ru_name);
 	ra.perform(oc);
-	update_ra_res(ra, prno2v);
+	updateRAresult(ra, prno2v);
 	#endif
 }
 
 
-void DEX_REGION::process(OUT PRNO2UINT & prno2v, UINT param_num, UINT vregnum,
-						 UINT2PR * v2pr, IN PRNO2UINT * pr2v, TYIDR * tr)
+void DexRegion::process(OUT Prno2UINT & prno2v, UINT param_num, UINT vregnum,
+						 UINT2PR * v2pr, IN Prno2UINT * pr2v, TypeIndexRep * tr)
 {
 	if (get_ir_list() == NULL) { return; }
-	OPT_CTX oc;
-	OPTC_show_comp_time(oc) = g_show_comp_time;
+	OptCTX oc;
+	OC_show_comp_time(oc) = g_show_comp_time;
 
 	g_indent = 0;
 	note("\n==---- REGION_NAME:%s ----==", get_ru_name());
 	prescan(get_ir_list());
 
-	RU_is_pr_unique_for_same_no(this) = true;
+	REGION_is_pr_unique_for_same_number(this) = true;
 
 	//g_do_ssa = true;
 
-	PASS_MGR * pm = new_pass_mgr();
+	HighProcess(oc);
 
-	OPTC_pass_mgr(oc) = pm;
+	MiddleProcess(oc);
 
-	high_process(oc);
-
-	middle_process(oc);
-
-	IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)pm->query_opt(OPT_SSA_MGR);
-	if (ssamgr != NULL && ssamgr->is_ssa_construct()) {
-		ssamgr->destruction_in_bblist_order();
+	ASSERT0(get_pass_mgr());
+	IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)get_pass_mgr()->query_opt(PASS_SSA_MGR);
+	if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
+		ssamgr->destructionInBBListOrder();
 	}
-	delete pm;
 
-	OPTC_pass_mgr(oc) = NULL;
+	//Destroy PassMgr.
+	destroyPassMgr();
 
-	if (RU_type(this) != RU_FUNC) { return; }
+	if (REGION_type(this) != RU_FUNC) { return; }
 
-	IR_BB_LIST * bbl = get_bb_list();
+	BBList * bbl = get_bb_list();
 	if (bbl->get_elem_count() == 0) { return; }
 
-	IS_TRUE0(verify_ir_and_bb(bbl, get_dm()));
+	ASSERT0(verifyIRandBB(bbl, this));
 
-	RF_CTX rf;
+	RefineCTX rf;
 	RC_insert_cvt(rf) = false; //Do not insert cvt for DEX code.
-	refine_ir_bb_list(bbl, rf);
-	IS_TRUE0(verify_ir_and_bb(bbl, get_dm()));
+	refineBBlist(bbl, rf);
+	ASSERT0(verifyIRandBB(bbl, this));
 
 	RA ra(this, tr, param_num, vregnum, v2pr, pr2v, &m_var2pr);
 	LOG("\t\tdo DEX Register Allcation for '%s'", get_ru_name());
 	ra.perform(oc);
-	update_ra_res(ra, prno2v);
+	updateRAresult(ra, prno2v);
 }
-//END DEX_REGION
+//END DexRegion

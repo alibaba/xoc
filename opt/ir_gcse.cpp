@@ -33,12 +33,15 @@ author: Su Zhenyu
 @*/
 #include "cominc.h"
 #include "ir_gvn.h"
+#include "prdf.h"
+#include "prssainfo.h"
+#include "ir_ssa.h"
 #include "ir_gcse.h"
 
 //#define DEBUG_GCSE
 #ifdef DEBUG_GCSE
 static INT g_num_of_elim = 0;
-LIST<IR_TYPE> g_elim_irt;
+List<IR_TYPE> g_elim_irt;
 #endif
 
 //
@@ -57,91 +60,101 @@ This function do replacement via gvn info.
 
 NOTE: 'use' should be freed.
 	'use' must be rhs of 'use_stmt'. */
-void IR_GCSE::elim_cse_at_store(IR * use, IR * use_stmt, IR * gen)
+void IR_GCSE::elimCseAtStore(IR * use, IR * use_stmt, IR * gen)
 {
-	IS_TRUE0(use_stmt->is_stid() || use_stmt->is_stpr() ||
+	ASSERT0(use_stmt->is_st() || use_stmt->is_stpr() ||
 			 IR_type(use_stmt) == IR_IST);
 	#ifdef DEBUG_GCSE
-	IS_TRUE0(++g_num_of_elim);
-	IS_TRUE0(g_elim_irt.append_tail(IR_type(use)));
+	ASSERT0(++g_num_of_elim);
+	ASSERT0(g_elim_irt.append_tail(IR_type(use)));
 	#endif
-	IS_TRUE0(use->is_exp() && gen->is_exp());
-	IS_TRUE0(use_stmt->get_rhs() == use);
+	ASSERT0(use->is_exp() && gen->is_exp());
+	ASSERT0(use_stmt->get_rhs() == use);
 
 	//Cut off du chain for use and its definitions.
-	m_du->remove_use_out_from_defset(use);
+	m_du->removeUseOutFromDefset(use);
 
 	//gen_pr hold the CSE value come from gen-stmt.
 	//We eliminate the redundant computation via replace use by gen_pr.
 	IR * gen_pr = m_exp2pr.get(gen);
-	IS_TRUE0(gen_pr);
+	ASSERT0(gen_pr);
 
-	IR * newrhs = m_ru->dup_irs(gen_pr);
-	use_stmt->set_rhs(newrhs);
-	IR_parent(newrhs) = use_stmt;
+	IR * newrhs_pr = m_ru->dupIRTree(gen_pr);
+	use_stmt->set_rhs(newrhs_pr);
+	IR_parent(newrhs_pr) = use_stmt;
 
 	//Use stmt is just a move.
 	IR_may_throw(use_stmt) = false;
 
 	//Add du chain.
 	IR * gen_stmt = gen->get_stmt();
-	IS_TRUE0(gen_stmt->is_pr_equal(gen_pr));
-	m_du->build_du_chain(gen_stmt, newrhs);
+	ASSERT0(gen_stmt->is_pr_equal(gen_pr));
+	if (m_is_in_ssa_form) {
+		m_ssamgr->buildDUChain(gen_stmt, newrhs_pr);
+	} else {
+		m_du->buildDUChain(gen_stmt, newrhs_pr);
+	}
 
 	//Assign the identical vn to newrhs.
-	IS_TRUE0(m_gvn);
-	VN * vn = m_gvn->map_ir2vn(gen);
-	IS_TRUE0(vn);
-	m_gvn->set_map_ir2vn(newrhs, vn);
-	m_gvn->set_map_ir2vn(use_stmt, vn);
+	ASSERT0(m_gvn);
+	VN * vn = m_gvn->mapIR2VN(gen);
+	ASSERT0(vn);
+	m_gvn->set_mapIR2VN(newrhs_pr, vn);
+	m_gvn->set_mapIR2VN(use_stmt, vn);
 
 	//Assign MD to newrhs.
-	MD const* r_md = m_ru->gen_md_for_pr(newrhs);
-	IS_TRUE0(r_md);
-	newrhs->set_ref_md(r_md, m_ru);
+	MD const* r_md = m_ru->genMDforPR(newrhs_pr);
+	ASSERT0(r_md);
+	newrhs_pr->set_ref_md(r_md, m_ru);
 
-	m_ru->free_irs(use);
+	m_ru->freeIRTree(use);
 }
 
 
-void IR_GCSE::elim_cse_at_br(IR * use, IR * use_stmt, IN IR * gen)
+void IR_GCSE::elimCseAtBranch(IR * use, IR * use_stmt, IN IR * gen)
 {
 	#ifdef DEBUG_GCSE
-	IS_TRUE0(++g_num_of_elim);
-	IS_TRUE0(g_elim_irt.append_tail(IR_type(use)));
+	ASSERT0(++g_num_of_elim);
+	ASSERT0(g_elim_irt.append_tail(IR_type(use)));
 	#endif
-	IS_TRUE0(use->is_exp() && gen->is_exp());
+	ASSERT0(use->is_exp() && gen->is_exp());
 
 	//Cut off du chain for use and its definitions.
-	m_du->remove_use_out_from_defset(use);
+	m_du->removeUseOutFromDefset(use);
 
 	IR * gen_pr = m_exp2pr.get(gen);
-	IS_TRUE0(gen_pr);
-	IS_TRUE0(BR_det(use_stmt) == use);
-	IR * r = m_ru->dup_irs(gen_pr);
+	ASSERT0(gen_pr);
+	ASSERT0(BR_det(use_stmt) == use);
+	IR * new_pr = m_ru->dupIRTree(gen_pr);
 
 	//Add du chain.
 	IR * gen_stmt = gen->get_stmt();
-	IS_TRUE0(gen_stmt->is_pr_equal(gen_pr));
-	m_du->build_du_chain(gen_stmt, r);
+	ASSERT0(gen_stmt->is_pr_equal(gen_pr));
+
+	if (m_is_in_ssa_form) {
+		m_ssamgr->buildDUChain(gen_stmt, new_pr);
+	} else {
+		m_du->buildDUChain(gen_stmt, new_pr);
+	}
 
 	//Assign the idential vn to r.
-	IS_TRUE0(m_gvn);
-	VN * vn = m_gvn->map_ir2vn(gen);
-	IS_TRUE0(vn);
-	m_gvn->set_map_ir2vn(r, vn);
+	ASSERT0(m_gvn);
+	VN * vn = m_gvn->mapIR2VN(gen);
+	ASSERT0(vn);
+	m_gvn->set_mapIR2VN(new_pr, vn);
 
 	//Assign MD to PR.
-	MD const* r_md = m_ru->gen_md_for_pr(r);
-	IS_TRUE0(r_md);
-	r->set_ref_md(r_md, m_ru);
+	MD const* r_md = m_ru->genMDforPR(new_pr);
+	ASSERT0(r_md);
+	new_pr->set_ref_md(r_md, m_ru);
 
-	IR * newdet = m_ru->build_cmp(IR_NE, r, m_ru->build_imm_int(0, IR_dt(r)));
+	IR * newdet = m_ru->buildCmp(IR_NE, new_pr,
+								m_ru->buildImmInt(0, IR_dt(new_pr)));
 	IR_parent(newdet) = use_stmt;
 	BR_det(use_stmt) = newdet;
 	IR_may_throw(use_stmt) = false;
 
-	m_ru->free_irs(use);
+	m_ru->freeIRTree(use);
 }
 
 
@@ -157,38 +170,43 @@ e.g: ...=a+b <--generate CSE
 'gen': the first occurrence of CSE.
 
 NOTE: 'use' should be freed. */
-void IR_GCSE::elim_cse_at_call(IR * use, IR * use_stmt, IR * gen)
+void IR_GCSE::elimCseAtCall(IR * use, IR * use_stmt, IR * gen)
 {
 	#ifdef DEBUG_GCSE
-	IS_TRUE0(++g_num_of_elim);
-	IS_TRUE0(g_elim_irt.append_tail(IR_type(use)));
+	ASSERT0(++g_num_of_elim);
+	ASSERT0(g_elim_irt.append_tail(IR_type(use)));
 	#endif
-	IS_TRUE0(use->is_exp() && gen->is_exp() && use_stmt->is_stmt());
+	ASSERT0(use->is_exp() && gen->is_exp() && use_stmt->is_stmt());
 
 	//Cut off du chain for use and its definitions.
-	m_du->remove_use_out_from_defset(use);
+	m_du->removeUseOutFromDefset(use);
 
 	IR * gen_pr = m_exp2pr.get(gen);
-	IS_TRUE0(gen_pr && gen_pr->is_pr());
-	IR * use_pr = m_ru->dup_irs(gen_pr);
+	ASSERT0(gen_pr && gen_pr->is_pr());
+	IR * use_pr = m_ru->dupIRTree(gen_pr);
 
 	//Set identical vn to use_pr with CSE.
 	IR * gen_stmt = gen->get_stmt();
-	IS_TRUE0(m_gvn);
-	VN * vn = m_gvn->map_ir2vn(gen);
-	IS_TRUE0(vn);
-	m_gvn->set_map_ir2vn(use_pr, vn);
+	ASSERT0(m_gvn);
+	VN * vn = m_gvn->mapIR2VN(gen);
+	ASSERT0(vn);
+	m_gvn->set_mapIR2VN(use_pr, vn);
 
 	//Allocate MD to use_pr to make up DU manager request.
-	MD const* r_md = m_ru->gen_md_for_pr(use_pr);
-	IS_TRUE0(r_md);
+	MD const* r_md = m_ru->genMDforPR(use_pr);
+	ASSERT0(r_md);
 	use_pr->set_ref_md(r_md, m_ru);
 
 	//Add du chain from gen_pr's stmt to the use of pr.
-	bool f = use_stmt->replace_kid(use, use_pr, false);
-	IS_TRUE0(f);
-	m_ru->free_irs(use);
-	m_du->build_du_chain(gen_stmt, use_pr);
+	bool f = use_stmt->replaceKid(use, use_pr, false);
+	CK_USE(f);
+	m_ru->freeIRTree(use);
+
+	if (m_is_in_ssa_form) {
+		m_ssamgr->buildDUChain(gen_stmt, use_pr);
+	} else {
+		m_du->buildDUChain(gen_stmt, use_pr);
+	}
 }
 
 
@@ -202,9 +220,9 @@ e.g: ...=a+b <--generate CSE
 'gen': the first occurrence of CSE.
 
 NOTE: 'use' should be freed. */
-void IR_GCSE::elim_cse_at_return(IR * use, IR * use_stmt, IR * gen)
+void IR_GCSE::elimCseAtReturn(IR * use, IR * use_stmt, IR * gen)
 {
-	return elim_cse_at_call(use, use_stmt, gen);
+	return elimCseAtCall(use, use_stmt, gen);
 }
 
 
@@ -215,58 +233,63 @@ e.g: ...=a+b <--generate CSE
 	 ...
 	 ...=a+b <--use CSE
 'gen': generated cse. */
-void IR_GCSE::process_cse_gen(IN IR * gen, IR * gen_stmt, bool & change)
+void IR_GCSE::prcessCseGen(IN IR * gen, IR * gen_stmt, bool & change)
 {
-	IS_TRUE0(gen->is_exp() && gen_stmt->is_stmt());
+	ASSERT0(gen->is_exp() && gen_stmt->is_stmt());
 	//Move STORE_VAL to temp PR.
 	//e.g: a = 10, expression of store_val is NULL.
-	IR_BB * bb = gen_stmt->get_bb();
-	IS_TRUE0(bb);
+	IRBB * bb = gen_stmt->get_bb();
+	ASSERT0(bb);
 	IR * tmp_pr = m_exp2pr.get(gen);
 	if (tmp_pr != NULL) { return; }
 
 	//First process cse generation point.
-	tmp_pr = m_ru->build_pr(IR_dt(gen));
+	tmp_pr = m_ru->buildPR(IR_dt(gen));
 	m_exp2pr.set(gen, tmp_pr);
 
 	//Assign MD to PR.
-	MD const* tmp_pr_md = m_ru->gen_md_for_pr(tmp_pr);
-	IS_TRUE0(tmp_pr_md);
+	MD const* tmp_pr_md = m_ru->genMDforPR(tmp_pr);
+	ASSERT0(tmp_pr_md);
 	tmp_pr->set_ref_md(tmp_pr_md, m_ru);
 
 	//Assign MD to ST.
-	IR * new_st = m_ru->build_store_pr(PR_no(tmp_pr), IR_dt(tmp_pr), gen);
-	new_st->set_ref_md(tmp_pr_md, m_ru);
+	IR * new_stpr = m_ru->buildStorePR(PR_no(tmp_pr), IR_dt(tmp_pr), gen);
+	new_stpr->set_ref_md(tmp_pr_md, m_ru);
 
-	IS_TRUE0(m_gvn && m_gvn->map_ir2vn(gen));
-	m_gvn->set_map_ir2vn(new_st, m_gvn->map_ir2vn(gen));
+	ASSERT0(m_gvn && m_gvn->mapIR2VN(gen));
+	m_gvn->set_mapIR2VN(new_stpr, m_gvn->mapIR2VN(gen));
 
-	copy_dbx(new_st, gen_stmt, m_ru);
+	copyDbx(new_stpr, gen_stmt, m_ru);
 
 	//The 'find()' is fast because it is implemented with hash.
 	C<IR*> * holder = NULL;
-	bool f = IR_BB_ir_list(bb).find(gen_stmt, &holder);
-	IS_TRUE0(f && holder);
-	IR_BB_ir_list(bb).insert_before(new_st, holder);
+	bool f = BB_irlist(bb).find(gen_stmt, &holder);
+	CK_USE(f);
+	CK_USE(holder);
+	BB_irlist(bb).insert_before(new_stpr, holder);
 
 	if (gen_stmt->is_cond_br() && gen == BR_det(gen_stmt)) {
 		IR * old = tmp_pr;
-		tmp_pr = m_ru->build_judge(tmp_pr);
-		copy_dbx(tmp_pr, old, m_ru);
+		tmp_pr = m_ru->buildJudge(tmp_pr);
+		copyDbx(tmp_pr, old, m_ru);
 	}
 
-	bool v = gen_stmt->replace_kid(gen, tmp_pr, false);
-	IS_TRUE0(v);
+	bool v = gen_stmt->replaceKid(gen, tmp_pr, false);
+	CK_USE(v);
 
 	//Keep original du unchange, add new du chain for new stmt.
-	m_du->build_du_chain(new_st, tmp_pr);
+	if (m_is_in_ssa_form) {
+		m_ssamgr->buildDUChain(new_stpr, tmp_pr);
+	} else {
+		m_du->buildDUChain(new_stpr, tmp_pr);
+	}
 
 	IR_may_throw(gen_stmt) = false;
 	change = true;
 }
 
 
-bool IR_GCSE::is_cse_cand(IR * ir)
+bool IR_GCSE::isCseCandidate(IR * ir)
 {
 	switch (IR_type(ir)) {
 	case IR_ADD:
@@ -307,26 +330,26 @@ bool IR_GCSE::elim(IR * use, IR * use_stmt, IR * gen, IR * gen_stmt)
 		 ...
 		 ...=a+b <--use CSE */
 	bool change = false;
-	process_cse_gen(gen, gen_stmt, change);
+	prcessCseGen(gen, gen_stmt, change);
 	switch (IR_type(use_stmt)) {
 	case IR_ST:
 	case IR_STPR:
 	case IR_IST:
-		elim_cse_at_store(use, use_stmt, gen);
+		elimCseAtStore(use, use_stmt, gen);
 		change = true;
 		break;
 	case IR_CALL:
 	case IR_ICALL:
-		elim_cse_at_call(use, use_stmt, gen);
+		elimCseAtCall(use, use_stmt, gen);
 		change = true;
 		break;
 	case IR_TRUEBR:
 	case IR_FALSEBR:
-		elim_cse_at_br(use, use_stmt, gen);
+		elimCseAtBranch(use, use_stmt, gen);
 		change = true;
 		break;
 	case IR_RETURN:
-		elim_cse_at_return(use, use_stmt, gen);
+		elimCseAtReturn(use, use_stmt, gen);
 		change = true;
 		break;
 	default: break;
@@ -337,23 +360,23 @@ bool IR_GCSE::elim(IR * use, IR * use_stmt, IR * gen, IR * gen_stmt)
 
 // If find 'exp' is cse, replace it with related pr.
 //NOTE: exp should be freed.
-bool IR_GCSE::find_and_elim(IR * exp, VN const* vn, IR * gen)
+bool IR_GCSE::findAndElim(IR * exp, IR * gen)
 {
-	IS_TRUE0(exp && vn && gen);
-	IS_TRUE0(exp != gen);
+	ASSERT0(exp && gen);
+	ASSERT0(exp != gen);
 	IR * exp_stmt = exp->get_stmt();
 	IR * gen_stmt = gen->get_stmt();
-	IS_TRUE0(exp_stmt->get_bb() && gen_stmt->get_bb());
+	ASSERT0(exp_stmt->get_bb() && gen_stmt->get_bb());
 
-	IR_BB * gen_bb;
-	IR_BB * exp_bb;
+	IRBB * gen_bb;
+	IRBB * exp_bb;
 	if (m_cfg->has_eh_edge()) {
-		IS_TRUE0(m_tg);
+		ASSERT0(m_tg);
 		if ((gen_bb = gen_stmt->get_bb()) == (exp_bb = exp_stmt->get_bb())) {
 			if (!gen_bb->is_dom(gen_stmt, exp_stmt, true)) {
 				return false;
 			}
-		} else if (!m_tg->is_dom(IR_BB_id(gen_bb), IR_BB_id(exp_bb))) {
+		} else if (!m_tg->is_dom(BB_id(gen_bb), BB_id(exp_bb))) {
 			return false;
 		}
 	} else {
@@ -361,7 +384,7 @@ bool IR_GCSE::find_and_elim(IR * exp, VN const* vn, IR * gen)
 			if (!gen_bb->is_dom(gen_stmt, exp_stmt, true)) {
 				return false;
 			}
-		} else if (!m_cfg->is_dom(IR_BB_id(gen_bb), IR_BB_id(exp_bb))) {
+		} else if (!m_cfg->is_dom(BB_id(gen_bb), BB_id(exp_bb))) {
 			return false;
 		}
 	}
@@ -371,22 +394,22 @@ bool IR_GCSE::find_and_elim(IR * exp, VN const* vn, IR * gen)
 
 //If find 'exp' is cse, replace it with related pr.
 //NOTE: exp should be freed.
-bool IR_GCSE::process_cse(IN IR * exp, IN LIST<IR*> & livexp)
+bool IR_GCSE::prcessCse(IN IR * exp, IN List<IR*> & livexp)
 {
 	IR * expstmt = exp->get_stmt();
-	IR_EXPR * irie = m_expr_tab->map_ir2ir_expr(exp);
-	IS_TRUE0(irie && expstmt->get_bb());
+	ExpRep * irie = m_expr_tab->map_ir2ir_expr(exp);
+	ASSERT0(irie && expstmt->get_bb());
 	C<IR*> * ct;
 	bool change = false;
 	for (IR * gen = livexp.get_head(&ct);
 		 gen != NULL; gen = livexp.get_next(&ct)) {
-		IR_EXPR * xie = m_expr_tab->map_ir2ir_expr(gen);
-		IS_TRUE0(xie);
+		ExpRep * xie = m_expr_tab->map_ir2ir_expr(gen);
+		ASSERT0(xie);
 		if (irie != xie) { continue; }
 		IR * gen_stmt = gen->get_stmt();
-		IS_TRUE0(gen_stmt->get_bb());
-		UINT iid = IR_BB_id(expstmt->get_bb());
-		UINT xid = IR_BB_id(gen_stmt->get_bb());
+		ASSERT0(gen_stmt->get_bb());
+		UINT iid = BB_id(expstmt->get_bb());
+		UINT xid = BB_id(gen_stmt->get_bb());
 		if (!m_cfg->get_dom_set(iid)->is_contain(xid)) {
 			continue;
 		}
@@ -396,22 +419,22 @@ bool IR_GCSE::process_cse(IN IR * exp, IN LIST<IR*> & livexp)
 }
 
 
-void IR_GCSE::handle_cand(IR * exp, IR_BB * bb, UINT entry_id, bool & change)
+void IR_GCSE::handleCandidate(IR * exp, IRBB * bb, UINT entry_id, bool & change)
 {
 	VN const* vn = NULL;
 	IR * gen = NULL;
-	if ((vn = m_gvn->map_ir2vn(exp)) != NULL &&
+	if ((vn = m_gvn->mapIR2VN(exp)) != NULL &&
 		(gen = m_vn2exp.get(vn)) != NULL &&
-		find_and_elim(exp, vn, gen)) {
+		findAndElim(exp, gen)) {
 		//Found cse and replaced it with pr.
 		change = true;
 	} else if (vn != NULL && gen == NULL) {
 		if (m_cfg->has_eh_edge()) {
-			IS_TRUE0(m_tg);
-			if (m_tg->is_pdom(IR_BB_id(bb), entry_id)) {
+			ASSERT0(m_tg);
+			if (m_tg->is_pdom(BB_id(bb), entry_id)) {
 				m_vn2exp.set(vn, exp);
 			}
-		} else if (m_cfg->is_pdom(IR_BB_id(bb), entry_id)) {
+		} else if (m_cfg->is_pdom(BB_id(bb), entry_id)) {
 			m_vn2exp.set(vn, exp);
 		}
 	}
@@ -419,9 +442,9 @@ void IR_GCSE::handle_cand(IR * exp, IR_BB * bb, UINT entry_id, bool & change)
 
 
 //Determine if det-exp of truebr/falsebr ought to be cse.
-bool IR_GCSE::should_be_cse(IR * det)
+bool IR_GCSE::shouldBeCse(IR * det)
 {
-	IS_TRUE0(det->is_judge());
+	ASSERT0(det->is_judge());
 	//If the det if simply enough, cse is dispensable.
 	if (IR_type(IR_parent(det)) != IR_TRUEBR &&
 		IR_type(IR_parent(det)) != IR_FALSEBR) {
@@ -445,12 +468,12 @@ bool IR_GCSE::should_be_cse(IR * det)
 
 
 //Do propagation according to value numbering.
-bool IR_GCSE::do_prop_vn(IR_BB * bb, UINT entry_id, MD_SET & tmp)
+bool IR_GCSE::doPropVN(IRBB * bb, UINT entry_id)
 {
 	bool change = false;
 	C<IR*> * ct;
-	for (IR * ir = IR_BB_ir_list(bb).get_head(&ct);
-		 ir != NULL; ir = IR_BB_ir_list(bb).get_next(&ct)) {
+	for (IR * ir = BB_irlist(bb).get_head(&ct);
+		 ir != NULL; ir = BB_irlist(bb).get_next(&ct)) {
 		switch (IR_type(ir)) {
 		case IR_ST:
 		case IR_STPR:
@@ -458,8 +481,8 @@ bool IR_GCSE::do_prop_vn(IR_BB * bb, UINT entry_id, MD_SET & tmp)
 			{
 				IR * rhs = ir->get_rhs();
 				//Find cse and replace it with properly pr.
-				if (is_cse_cand(rhs)) {
-					handle_cand(rhs, bb, entry_id, change);
+				if (isCseCandidate(rhs)) {
+					handleCandidate(rhs, bb, entry_id, change);
 				}
 			}
 			break;
@@ -472,8 +495,8 @@ bool IR_GCSE::do_prop_vn(IR_BB * bb, UINT entry_id, MD_SET & tmp)
 				m_newst_lst.clean();
 				while (p != NULL) {
 					next = IR_next(p);
-					if (is_cse_cand(p)) {
-						handle_cand(p, bb, entry_id, lchange);
+					if (isCseCandidate(p)) {
+						handleCandidate(p, bb, entry_id, lchange);
 					}
 					p = next;
 				}
@@ -483,13 +506,13 @@ bool IR_GCSE::do_prop_vn(IR_BB * bb, UINT entry_id, MD_SET & tmp)
 		case IR_TRUEBR:
 		case IR_FALSEBR:
 			//Find cse and replace it with properly pr.
-			if (is_cse_cand(BR_det(ir)) && should_be_cse(BR_det(ir))) {
-				handle_cand(BR_det(ir), bb, entry_id, change);
+			if (isCseCandidate(BR_det(ir)) && shouldBeCse(BR_det(ir))) {
+				handleCandidate(BR_det(ir), bb, entry_id, change);
 			}
 			break;
 		case IR_RETURN:
-			if (is_cse_cand(RET_exp(ir)) && should_be_cse(RET_exp(ir))) {
-				handle_cand(RET_exp(ir), bb, entry_id, change);
+			if (isCseCandidate(RET_exp(ir)) && shouldBeCse(RET_exp(ir))) {
+				handleCandidate(RET_exp(ir), bb, entry_id, change);
 			}
 			break;
 		default: break;
@@ -500,27 +523,27 @@ bool IR_GCSE::do_prop_vn(IR_BB * bb, UINT entry_id, MD_SET & tmp)
 
 
 //Do propagation according to lexciographic equivalence.
-bool IR_GCSE::do_prop(IR_BB * bb, LIST<IR*> & livexp)
+bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
 {
 	livexp.clean();
-	DBITSETC * x = m_du->get_availin_expr(IR_BB_id(bb));
-	SC<SEG*> * st;
+	DefDBitSetCore * x = m_du->get_availin_expr(BB_id(bb));
+	SEGIter * st = NULL;
 	for (INT i = x->get_first(&st); i != -1; i = x->get_next(i, &st)) {
 		IR * y = m_ru->get_ir(i);
-		IS_TRUE0(y && y->is_exp());
+		ASSERT0(y && y->is_exp());
 		livexp.append_tail(y);
 	}
-	BITSET * domset = m_cfg->get_dom_set(IR_BB_id(bb));
+
 	bool change = false;
 	C<IR*> * ct;
-	MD_SET tmp;
-	for (IR * ir = IR_BB_ir_list(bb).get_head(&ct);
-		 ir != NULL; ir = IR_BB_ir_list(bb).get_next(&ct)) {
+	MDSet tmp;
+	for (IR * ir = BB_irlist(bb).get_head(&ct);
+		 ir != NULL; ir = BB_irlist(bb).get_next(&ct)) {
 		switch (IR_type(ir)) {
 		case IR_ST:
 			//Find cse and replace it with properly pr.
-			if (is_cse_cand(ST_rhs(ir))) {
-				if (process_cse(ST_rhs(ir), livexp)) {
+			if (isCseCandidate(ST_rhs(ir))) {
+				if (prcessCse(ST_rhs(ir), livexp)) {
 					//Has found cse and replaced cse with pr.
 					change = true;
 				} else {
@@ -531,8 +554,8 @@ bool IR_GCSE::do_prop(IR_BB * bb, LIST<IR*> & livexp)
 			break;
 		case IR_STPR:
 			//Find cse and replace it with properly pr.
-			if (is_cse_cand(STPR_rhs(ir))) {
-				if (process_cse(STPR_rhs(ir), livexp)) {
+			if (isCseCandidate(STPR_rhs(ir))) {
+				if (prcessCse(STPR_rhs(ir), livexp)) {
 					//Has found cse and replaced cse with pr.
 					change = true;
 				} else {
@@ -543,8 +566,8 @@ bool IR_GCSE::do_prop(IR_BB * bb, LIST<IR*> & livexp)
 			break;
 		case IR_IST:
 			//Find cse and replace it with properly pr.
-			if (is_cse_cand(IST_rhs(ir))) {
-				if (process_cse(IST_rhs(ir), livexp)) {
+			if (isCseCandidate(IST_rhs(ir))) {
+				if (prcessCse(IST_rhs(ir), livexp)) {
 					//Has found cse and replaced cse with pr.
 					change = true;
 				} else {
@@ -560,8 +583,8 @@ bool IR_GCSE::do_prop(IR_BB * bb, LIST<IR*> & livexp)
 				IR * next = NULL;
 				while (param != NULL) {
 					next = IR_next(param);
-					if (is_cse_cand(param)) {
-						if (process_cse(param, livexp)) {
+					if (isCseCandidate(param)) {
+						if (prcessCse(param, livexp)) {
 							//Has found cse and replaced cse with pr.
 							change = true;
 						} else {
@@ -575,8 +598,8 @@ bool IR_GCSE::do_prop(IR_BB * bb, LIST<IR*> & livexp)
 			break;
 		case IR_TRUEBR:
 		case IR_FALSEBR:
-			if (is_cse_cand(BR_det(ir)) && should_be_cse(BR_det(ir))) {
-				if (process_cse(BR_det(ir), livexp)) {
+			if (isCseCandidate(BR_det(ir)) && shouldBeCse(BR_det(ir))) {
+				if (prcessCse(BR_det(ir), livexp)) {
 					//Has found cse and replaced cse with pr.
 					change = true;
 				} else {
@@ -586,8 +609,8 @@ bool IR_GCSE::do_prop(IR_BB * bb, LIST<IR*> & livexp)
 			}
 			break;
 		case IR_RETURN:
-			if (is_cse_cand(RET_exp(ir)) && should_be_cse(RET_exp(ir))) {
-				if (process_cse(RET_exp(ir), livexp)) {
+			if (isCseCandidate(RET_exp(ir)) && shouldBeCse(RET_exp(ir))) {
+				if (prcessCse(RET_exp(ir), livexp)) {
 					//Has found cse and replaced cse with pr.
 					change = true;
 				} else {
@@ -607,15 +630,15 @@ bool IR_GCSE::do_prop(IR_BB * bb, LIST<IR*> & livexp)
 		case IR_CALL:
 		case IR_ICALL:
 			{
-				MD_SET const* maydef = m_du->get_may_def(ir);
+				MDSet const* maydef = m_du->get_may_def(ir);
 				if (maydef != NULL && !maydef->is_empty()) {
 					C<IR*> * ct2, * next;
 					for (livexp.get_head(&ct2), next = ct2;
 						 ct2 != NULL; ct2 = next) {
 						livexp.get_next(&next);
 						IR * x = C_val(ct2);
-						tmp.clean();
-						m_du->collect_may_use_recur(x, tmp, true);
+						tmp.clean(*m_misc_bs_mgr);
+						m_du->collectMayUseRecursive(x, tmp, true);
 						if (maydef->is_intersect(tmp)) {
 							livexp.remove(ct2);
 						}
@@ -629,8 +652,8 @@ bool IR_GCSE::do_prop(IR_BB * bb, LIST<IR*> & livexp)
 						 ct2 != NULL; ct2 = next) {
 						livexp.get_next(&next);
 						IR * x = C_val(ct2);
-						tmp.clean();
-						m_du->collect_may_use_recur(x, tmp, true);
+						tmp.clean(*m_misc_bs_mgr);
+						m_du->collectMayUseRecursive(x, tmp, true);
 						if (tmp.is_overlap(mustdef)) {
 							livexp.remove(ct2);
 						}
@@ -641,45 +664,55 @@ bool IR_GCSE::do_prop(IR_BB * bb, LIST<IR*> & livexp)
 		default: break;
 		}
 	}
+	tmp.clean(*m_misc_bs_mgr);
 	return change;
 }
 
 
-bool IR_GCSE::perform(OPT_CTX & oc)
+bool IR_GCSE::perform(OptCTX & oc)
 {
 	START_TIMER_AFTER();
 	if (m_gvn != NULL) {
-		m_ru->check_valid_and_recompute(&oc, OPT_DOM, OPT_PDOM,
-										OPT_DU_REF, OPT_DU_CHAIN, OPT_UNDEF);
+		m_ru->checkValidAndRecompute(&oc, PASS_DOM, PASS_PDOM,
+										PASS_DU_REF, PASS_DU_CHAIN, PASS_UNDEF);
 		if (!m_gvn->is_valid()) {
 			m_gvn->reperform(oc);
 			m_gvn->dump();
 		}
 		m_expr_tab = NULL;
 	} else {
-		m_ru->check_valid_and_recompute(&oc, OPT_DOM, OPT_PDOM, OPT_EXPR_TAB,
-										OPT_DU_REF, OPT_DU_CHAIN, OPT_UNDEF);
-		m_expr_tab = (IR_EXPR_TAB*)OPTC_pass_mgr(oc)->register_opt(OPT_EXPR_TAB);
+		m_ru->checkValidAndRecompute(&oc, PASS_DOM, PASS_PDOM, PASS_EXPR_TAB,
+										PASS_DU_REF, PASS_DU_CHAIN, PASS_UNDEF);
+		m_expr_tab =
+			(IR_EXPR_TAB*)m_ru->get_pass_mgr()->registerPass(PASS_EXPR_TAB);
+	}
+
+	m_is_in_ssa_form = false;
+	IR_SSA_MGR * ssamgr =
+			(IR_SSA_MGR*)(m_ru->get_pass_mgr()->query_opt(PASS_SSA_MGR));
+	if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
+		m_is_in_ssa_form = true;
+		m_ssamgr = ssamgr;
 	}
 
 	bool change = false;
-	IR_BB * entry = m_cfg->get_entry_list()->get_head();
-	IS_TRUE(IR_BB_is_entry(entry), ("first bb should be func entry"));
+	IRBB * entry = m_cfg->get_entry_list()->get_head();
+	ASSERT(BB_is_entry(entry), ("first bb should be func entry"));
 
-	GRAPH domtree;
+	Graph domtree;
 	m_cfg->get_dom_tree(domtree);
-	LIST<VERTEX*> lst;
-	VERTEX * root = domtree.get_vertex(IR_BB_id(entry));
-	m_cfg->sort_dom_tree_in_preorder(domtree, root, lst);
+	List<Vertex*> lst;
+	Vertex * root = domtree.get_vertex(BB_id(entry));
+	m_cfg->sortDomTreeInPreorder(root, lst);
 
-	LIST<IR*> livexp;
+	List<IR*> livexp;
 	if (m_cfg->has_eh_edge()) {
 		m_tg = new TG(m_ru);
 		m_tg->clone(*m_cfg);
 		m_tg->pick_eh();
-		m_tg->remove_unreach_node(IR_BB_id(entry));
-		m_tg->compute_dom_idom();
-		m_tg->compute_pdom_ipdom(root);
+		m_tg->removeUnreachNode(BB_id(entry));
+		m_tg->computeDomAndIdom();
+		m_tg->computePdomAndIpdom(root);
 	}
 
 	#ifdef DEBUG_GCSE
@@ -690,19 +723,20 @@ bool IR_GCSE::perform(OPT_CTX & oc)
 	if (m_gvn != NULL) {
 		m_vn2exp.clean();
 		m_exp2pr.clean();
-		MD_SET tmp;
-		for (VERTEX * v = lst.get_head(); v != NULL; v = lst.get_next()) {
-			IR_BB * bb = m_ru->get_bb(VERTEX_id(v));
-			IS_TRUE0(bb);
-			change |= do_prop_vn(bb, IR_BB_id(entry), tmp);
+		MDSet tmp;
+		for (Vertex * v = lst.get_head(); v != NULL; v = lst.get_next()) {
+			IRBB * bb = m_ru->get_bb(VERTEX_id(v));
+			ASSERT0(bb);
+			change |= doPropVN(bb, BB_id(entry));
 		}
+		tmp.clean(*m_misc_bs_mgr);
 	} else {
 		m_vn2exp.clean();
 		m_exp2pr.clean();
-		for (VERTEX * v = lst.get_head(); v != NULL; v = lst.get_next()) {
-			IR_BB * bb = m_ru->get_bb(VERTEX_id(v));
-			IS_TRUE0(bb);
-			change |= do_prop(bb, livexp);
+		for (Vertex * v = lst.get_head(); v != NULL; v = lst.get_next()) {
+			IRBB * bb = m_ru->get_bb(VERTEX_id(v));
+			ASSERT0(bb);
+			change |= doProp(bb, livexp);
 		}
 	}
 
@@ -721,15 +755,15 @@ bool IR_GCSE::perform(OPT_CTX & oc)
 		#endif
 		//no new expr generated, only new pr.
 
-		OPTC_is_expr_tab_valid(oc) = false;
-		OPTC_is_aa_valid(oc) = false;
+		OC_is_expr_tab_valid(oc) = false;
+		OC_is_aa_valid(oc) = false;
 
 		//DU reference and du chain has maintained.
-		IS_TRUE0(m_du->verify_du_ref());
-		IS_TRUE0(m_du->verify_du_chain());
+		ASSERT0(m_du->verifyMDRef());
+		ASSERT0(m_du->verifyMDDUChain());
 
-		OPTC_is_live_expr_valid(oc) = false;
-		OPTC_is_reach_def_valid(oc) = false;
+		OC_is_live_expr_valid(oc) = false;
+		OC_is_reach_def_valid(oc) = false;
 
 		//gvn has updated correctly.
 	}
@@ -738,8 +772,8 @@ bool IR_GCSE::perform(OPT_CTX & oc)
 		delete m_tg;
 		m_tg = NULL;
 	}
-	IS_TRUE0(verify_ir_and_bb(m_ru->get_bb_list(), m_dm));
-	END_TIMER_AFTER(get_opt_name());
+	ASSERT0(verifyIRandBB(m_ru->get_bb_list(), m_ru));
+	END_TIMER_AFTER(get_pass_name());
 	return change;
 }
 //END IR_GCSE

@@ -34,33 +34,33 @@ author: Su Zhenyu
 #ifndef _DBG_H_
 #define _DBG_H_
 
-class REGION;
+class Region;
 //
-//START DBX
+//START Dbx
 //
 //Describe debug information.
 #define DBX_lineno(d)			(d)->lineno
-class DBX {
+class Dbx {
 public:
 	UINT lineno;
 
 	void clean() { lineno = 0; }
-	void copy(DBX const& dbx) { lineno = dbx.lineno; }
+	void copy(Dbx const& dbx) { lineno = dbx.lineno; }
 };
-//END DBX
+//END Dbx
 
 
-class DBG_MGR {
+class DbxMgr {
 public:
-	virtual ~DBG_MGR() {}
-	virtual void print_src_line(IR const* ir) {}
+	virtual ~DbxMgr() {}
+	virtual void print_src_line(IR const*) {}
 };
 
-extern DBG_MGR * g_dbg_mgr;
+extern DbxMgr * g_dbg_mgr;
 
-//Copy DBX from src.
-void copy_dbx(IR * tgt, IR const* src, REGION * ru);
-void set_lineno(IR * ir, UINT lineno, REGION * ru);
+//Copy Dbx from src.
+void copyDbx(IR * tgt, IR const* src, Region * ru);
+void set_lineno(IR * ir, UINT lineno, Region * ru);
 UINT get_lineno(IR const* ir);
-DBX * get_dbx(IR * ir);
+Dbx * get_dbx(IR * ir);
 #endif

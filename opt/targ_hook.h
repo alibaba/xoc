@@ -31,36 +31,27 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 author: Su Zhenyu
 @*/
-#ifndef __IR_OPT_H__
-#define __IR_OPT_H__
+#ifndef __TARG_HOOK_H__
+#define __TARG_HOOK_H__
 
-//Basis Class of pass.
-class Pass {
-protected:
-	SimpCTX * m_simp;
-public:
-	Pass() { m_simp = NULL; }
-	virtual ~Pass() {}
-	COPY_CONSTRUCTOR(Pass);
 
-	virtual CHAR const* get_pass_name() const
-	{
-		ASSERT(0, ("Optimization Dependent Code"));
-		return NULL;
-	}
+#ifdef FOR_X86
+#include "x86/x86.h"
 
-	virtual PASS_TYPE get_pass_type() const
-	{
-		ASSERT(0, ("Optimization Dependent Code"));
-		return PASS_UNDEF;
-	}
+#elif defined(FOR_PAC)
+#include "../pac/pac.h"
+#include "../pac/pac_util.h"
+#include "../pac/pacir2or.h"
+#include "../pac/pacasmprinter.h"
+#include "../pac/pactargmach.h"
 
-	void set_simp_cont(SimpCTX * simp) { m_simp = simp; }
+#elif defined(FOR_ARM)
+#include "../arm/arm.h"
 
-	virtual bool perform(OptCTX &)
-	{
-		ASSERT(0, ("Optimization Dependent Code"));
-		return false;
-	}
-};
+#elif defined(FOR_DEX)
+#include "../dex/dex_const_info.h"
+#include "../dex/dex_util.h"
+
+#endif
+
 #endif

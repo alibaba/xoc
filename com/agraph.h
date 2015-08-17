@@ -35,20 +35,20 @@ author: Su Zhenyu
 #define __A_GRAPH_H_
 
 //Alogrithmic Graph.
-class AGRAPH : public GRAPH {
+class AGRAPH : public Graph {
 protected:
-	MATRIX<UINT> * m_spath_mat; //record shortest-path.
-	void build_adj_matrix(MATRIX<UINT> & adj_mat);
+	Matrix<UINT> * m_spath_mat; //record shortest-path.
+	void build_adj_matrix(Matrix<UINT> & adj_mat);
 public:
-	AGRAPH(UINT edge_hash_size = 47, UINT vex_hash_size = 47) :
-		GRAPH(edge_hash_size, vex_hash_size)
+	AGRAPH(UINT edge_hash_size = 64, UINT vex_hash_size = 64) :
+		Graph(edge_hash_size, vex_hash_size)
 	{
 		m_edge_hash_size = edge_hash_size;
 		m_vex_hash_size = vex_hash_size;
 		m_spath_mat = NULL;
 	}
 
-	AGRAPH(AGRAPH & g) : GRAPH(g)
+	AGRAPH(AGRAPH & g) : Graph(g)
 	{
 		m_edge_hash_size = g.m_edge_hash_size;
 		m_vex_hash_size = g.m_vex_hash_size;
@@ -63,11 +63,11 @@ public:
 		}
 	}
 
-	bool clone(AGRAPH & src)
+	void clone(AGRAPH & src)
 	{
 		if (src.m_spath_mat != NULL) {
 			if (m_spath_mat == NULL) {
-				m_spath_mat = new MATRIX<UINT>(*src.m_spath_mat);
+				m_spath_mat = new Matrix<UINT>(*src.m_spath_mat);
 			} else {
 				m_spath_mat->copy(*src.m_spath_mat);
 			}
@@ -79,23 +79,24 @@ public:
 
 	UINT count_mem() const
 	{
-		UINT count = GRAPH::count_mem();
+		UINT count = Graph::count_mem();
 		if (m_spath_mat != NULL) {
 			count += m_spath_mat->count_mem();
 		}
+		return count;
 	}
 
 	void shortest_path(UINT infinite);
 
 	//Erasing graph, include all nodes and edges,
 	//except for mempool, freelist.
-	void erasure()
+	void erase()
 	{
 		if (m_spath_mat != NULL) {
 			delete m_spath_mat; //Delete shortest path matrix
 			m_spath_mat = NULL;
 		}
-		GRAPH::erasure();
+		Graph::erase();
 	}
 };
 #endif

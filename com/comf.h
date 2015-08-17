@@ -74,7 +74,7 @@ e.g:
 e.g:
 	START_TIMER();
 	Run mypass();
-	END_TIMER_FMT(("My Pass Name%s", get_opt_name())); */
+	END_TIMER_FMT(("My Pass Name%s", get_pass_name())); */
 #define START_TIMER_FMT()  			\
 	LONG _start_time_count_ = 0;	\
 	if (g_show_comp_time) {			\
@@ -107,8 +107,26 @@ e.g:
 		printf("%fsec", getclockend(_timer_timer_)); \
 	}
 
+//This macro declare copy constructor for class.
+#define COPY_CONSTRUCTOR(class_name)  \
+	class_name(class_name const&);  \
+	class_name const& operator = (class_name const&)
 
-template <class T, UINT GROW_SIZE> class SVECTOR;
+//Used to avoid warning: unreferenced variable if set
+//-Werror=unused-variable.
+//#define UNUSED(v) (v)
+template <typename T> void dummy_use(T const&) {}
+#define UNUSED(v) dummy_use(v)
+
+
+#ifdef _DEBUG_
+#define CK_USE(a)	ASSERT0(a)
+#else
+#define CK_USE(a)	UNUSED(a)
+#endif
+
+
+template <class T, UINT GrowSize> class Vector;
 
 UINT arra(UINT n, UINT m); //Arrangement
 void af2i(IN CHAR * f, OUT BYTE * buf, INT buflen, bool is_double);
@@ -127,7 +145,7 @@ UINT fact(UINT n);
 INT findstr(CHAR * src, CHAR * s);
 
 INT gcdm(UINT num, ...);
-INT gcdm(UINT num, SVECTOR<INT, 8> const& a);
+INT gcdm(UINT num, Vector<INT, 8> const& a);
 
 //Compute the nearest power of 2 that not less than v.
 inline UINT get_nearest_power_of_2(UINT v)
@@ -229,4 +247,6 @@ public:
 	CHAR ch;
 };
 extern ASCII g_asc1[];
+
+
 #endif

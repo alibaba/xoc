@@ -78,7 +78,7 @@ e.g:
 should be optimized and generate:
 	BB1: goto L2
 */
-bool g_do_cfg_remove_tramp_bb = true;
+bool g_do_cfg_remove_trampolin_bb = true;
 
 //Build dominator tree.
 bool g_do_cfg_dom = true;

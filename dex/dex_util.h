@@ -34,63 +34,65 @@ author: Su Zhenyu
 #ifndef _DEX_UTIL_H_
 #define _DEX_UTIL_H_
 
-class DEX2IR;
+class Dex2IR;
 
 //
-//START DEX_REGION
+//START DexRegion
 //
-class DEX_REGION : public REGION {
+class DexRegion : public Region {
 protected:
 	VAR2PR m_var2pr; //map from var id to prno.
 
 protected:
 	bool is_64bit(IR const* ir)
-	{ return get_dm()->get_dtd_bytesize(IR_dt(ir))== 8; }
+	{ return get_dm()->get_bytesize(IR_dt(ir))== 8; }
 
 public:
-	DEX_REGION(REGION_TYPE rt, REGION_MGR * rm) : REGION(rt, rm) {}
-	virtual ~DEX_REGION() {}
+	DexRegion(REGION_TYPE rt, RegionMgr * rm) : Region(rt, rm) {}
+	virtual ~DexRegion() {}
 
 	IR * gen_and_add_sib(IR * ir, UINT prno);
 
-	IR_AA * init_aa(OPT_CTX & oc);
+	IR_AA * initAliasAnalysis(OptCTX & oc);
 
-	virtual bool high_process(OPT_CTX & oc);
+	virtual bool HighProcess(OptCTX & oc);
 
-	virtual PASS_MGR * new_pass_mgr();
+	virtual PassMgr * newPassMgr();
 
-	void update_ra_res(RA & ra, PRNO2UINT & prno2v);
+	void updateRAresult(RA & ra, Prno2UINT & prno2v);
 
-	bool verify_ra_res(RA & ra, PRNO2UINT & prno2v);
+	bool verifyRAresult(RA & ra, Prno2UINT & prno2v);
 
-	void process_group_bb(IR_BB * bb, LIST<IR*> & lst);
+	void process_group_bb(IRBB * bb, List<IR*> & lst);
 	void process_group();
-	void process_simply(OUT PRNO2UINT & prno2v, UINT param_num,
-						UINT vregnum, DEX2IR & d2ir, UINT2PR * v2pr,
-						IN PRNO2UINT * pr2v, TYIDR * tr);
-	virtual void process(PRNO2UINT & prno2v, UINT param_num, UINT vregnum,
-						 UINT2PR * v2pr, PRNO2UINT * pr2v, TYIDR * tr);
+	void processSimply(OUT Prno2UINT & prno2v, UINT param_num,
+						UINT vregnum, Dex2IR & d2ir, UINT2PR * v2pr,
+						IN Prno2UINT * pr2v, TypeIndexRep * tr);
+	virtual void process(Prno2UINT & prno2v, UINT param_num, UINT vregnum,
+						 UINT2PR * v2pr, Prno2UINT * pr2v, TypeIndexRep * tr);
+	virtual void process() { ASSERT0(0); }
 };
-//END DEX_REGION
+//END DexRegion
 
 
 //
-//START DEX_REGION_MGR
+//START DexRegionMgr
 //
-class DEX_REGION_MGR : public REGION_MGR {
+class DexRegionMgr : public RegionMgr {
 public:
-	DEX_REGION_MGR() : REGION_MGR() {}
-	virtual ~DEX_REGION_MGR() {}
-	virtual REGION * new_region(REGION_TYPE rt)
+	DexRegionMgr() : RegionMgr() {}
+	virtual ~DexRegionMgr() {}
+	virtual Region * newRegion(REGION_TYPE rt)
 	{
-		REGION * ru = new DEX_REGION(rt, this);
-		RU_id(ru) = m_ru_count++;
+		Region * ru = new DexRegion(rt, this);
+		REGION_id(ru) = m_ru_count++;
 		return ru;
 	}
 };
-//END DEX_REGION_MGR
+//END DexRegionMgr
 
 #define OBJ_MC_SIZE			16
+#define ARRAY_MC_SIZE		32
 
 #define LIRC_num_of_op(l)	((l)->instrCount)
 #define LIRC_op(l, i)		((l)->lirList[i])
@@ -136,7 +138,7 @@ public:
 typedef LIRBaseOp LIR;
 
 //Backfill data.
-class BFD {
+class BackFillData {
 public:
 	IR * ir;
 	LIR * lir;

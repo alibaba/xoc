@@ -188,7 +188,7 @@ CHAR * xstrcat(CHAR * buf, UINT bufl, CHAR const* info, ...)
 //Round off to minus infinity
 INT xfloor(INT a, INT b)
 {
-	IS_TRUE(b != 0, ("div zero"));
+	ASSERT(b != 0, ("div zero"));
 	if (a % b == 0) {
 		//This part could not be combined with third one.
 		return (a / b);
@@ -203,7 +203,7 @@ INT xfloor(INT a, INT b)
 //Round up to plus infinity
 INT xceiling(INT a, INT b)
 {
-	IS_TRUE(b != 0, ("div zero"));
+	ASSERT(b != 0, ("div zero"));
 	if (a % b == 0) {
 		/*
 		(a+b-1)/b will be errorneous
@@ -251,7 +251,7 @@ INT slcm(INT x, INT y)
 }
 
 
-INT gcdm(UINT num, SVECTOR<INT, 8> const& a)
+INT gcdm(UINT num, Vector<INT, 8> const& a)
 {
 	if (num == 0) {
 		return 0;
@@ -338,7 +338,7 @@ UINT fact(UINT n)
 //P(n,m)=n*(n-1)*...*(n-m+1)=n!/(n-m)!
 UINT arra(UINT n, UINT m)
 {
-	IS_TRUE(n != 0 && m != 0 && n >= m, ("illegal param"));
+	ASSERT(n != 0 && m != 0 && n >= m, ("illegal param"));
 	UINT l = n - m + 1, i = n, res = 1;
 	while (i >= l) {
 		res = res * i;
@@ -353,7 +353,7 @@ C(n,m)=(n*(n-1)*...*(n-m+1))/m! = n!/m!(n-m)!
 Simplify:C(n,m)=(n*(n-1)*(m+1))/(n-m)! */
 UINT combin(UINT n, UINT m)
 {
-	IS_TRUE(n != 0 && m != 0 && n >= m, ("illegal param"));
+	ASSERT(n != 0 && m != 0 && n >= m, ("illegal param"));
 	if (n == m) {
 		return 1;
 	}
@@ -384,7 +384,7 @@ INT xctoi(CHAR const* cl)
 	if (cl == NULL || strcmp(cl, "") == 0) return 0;
 	INT l = strlen(cl);
 	if (l > BYTE_PER_INT) {
-		IS_TRUE(0, ("too many characters in integer"));
+		ASSERT(0, ("too many characters in integer"));
 		return 0;
 	}
 	INT i = 0;
@@ -535,8 +535,8 @@ UCHAR * xltoa(LONG v, OUT UCHAR * buf)
 
 static void _prim(INT m, INT n, OUT INT * buf, UINT i)
 {
-	if(m > n){
-		while(m % n != 0) n++;
+	if (m > n) {
+		while (m % n != 0) { n++; }
 		m = m / n; //Factorize 'm' to two composite-number.
 		buf[i++] = n;
 		_prim(m, n, buf, i);
@@ -548,39 +548,43 @@ static void _prim(INT m, INT n, OUT INT * buf, UINT i)
 //e.g:435234 = 251 * 17 * 17 * 3 * 2
 void prim(INT m, OUT INT * buf)
 {
-	IS_TRUE0(buf);
+	ASSERT0(buf);
 	bool sign = false;
 	buf[0] = 0;
 	if (m < 0) {
 		sign = true;
 		m = -m;
 	}
+
 	_prim(m, 2, buf, 0);
+
 	if (sign) {
 		buf[0] = -buf[0];
 	}
 }
 
 
-//Dumpf() for SVECTOR<TY>.
+//Dumpf() for Vector<TY>.
 void dumpf_svec(void * vec, UINT ty, CHAR const* name, bool is_del)
 {
-	if (!name) {
+	if (name == NULL) {
 		name = "matrix.tmp";
 	}
+
 	if (is_del) {
 		unlink(name);
 	}
+
 	static INT g_count = 0;
 	FILE * h = fopen(name, "a+");
-	IS_TRUE(h, ("%s create failed!!!", name));
+	ASSERT(h, ("%s create failed!!!", name));
 	fprintf(h, "\nSVECOTR dump id:%d\n", g_count++);
 
 	///
 	switch (ty) {
 	case D_BOOL:
 		{
-			SVECTOR<bool> *p = (SVECTOR<bool> *)vec;
+			Vector<bool> *p = (Vector<bool> *)vec;
 			for (INT i = 0; i <= p->get_last_idx(); i++) {
 				fprintf(h, "%d", (INT)p->get(i));
 				if (i != p->get_last_idx()) {
@@ -591,7 +595,7 @@ void dumpf_svec(void * vec, UINT ty, CHAR const* name, bool is_del)
 		}
 	case D_INT:
 		{
-			SVECTOR<INT> *p = (SVECTOR<INT> *)vec;
+			Vector<INT> *p = (Vector<INT> *)vec;
 			for (INT i = 0; i <= p->get_last_idx(); i++) {
 				fprintf(h, "%d", (INT)p->get(i));
 				if (i != p->get_last_idx()) {
@@ -601,7 +605,7 @@ void dumpf_svec(void * vec, UINT ty, CHAR const* name, bool is_del)
 			break;
 		}
 	default:
-		IS_TRUE(0, ("illegal ty"));
+		ASSERT(0, ("illegal ty"));
 	}
 
 	///
@@ -611,14 +615,14 @@ void dumpf_svec(void * vec, UINT ty, CHAR const* name, bool is_del)
 }
 
 
-//Dumps() for SVECTOR<TY>.
+//Dumps() for Vector<TY>.
 void dumps_svec(void * vec, UINT ty)
 {
 	printf("\n");
 	switch (ty) {
 	case D_BOOL:
 		{
-			SVECTOR<bool> *p = (SVECTOR<bool> *)vec;
+			Vector<bool> *p = (Vector<bool> *)vec;
 			for (INT i = 0; i <= p->get_last_idx(); i++) {
 				printf("%d", (INT)p->get(i));
 				if (i != p->get_last_idx()) {
@@ -629,7 +633,7 @@ void dumps_svec(void * vec, UINT ty)
 		}
 	case D_INT:
 		{
-			SVECTOR<INT> *p = (SVECTOR<INT> *)vec;
+			Vector<INT> *p = (Vector<INT> *)vec;
 			for (INT i = 0; i <= p->get_last_idx(); i++) {
 				printf("%d", (INT)p->get(i));
 				if (i != p->get_last_idx()) {
@@ -639,7 +643,7 @@ void dumps_svec(void * vec, UINT ty)
 			break;
 		}
 	default:
-		IS_TRUE(0, ("illegal ty"));
+		ASSERT(0, ("illegal ty"));
 	}//end switch
 	printf("\n");
 }
@@ -662,8 +666,12 @@ LONG revlong(LONG d)
 //Convert floating point string into binary words.
 void af2i(IN CHAR * f, OUT BYTE * buf, UINT buflen, bool is_double)
 {
-	IS_TRUE0(f && buf);
-	IS_TRUE(0, ("TODO"));
+	UNUSED(is_double);
+	UNUSED(buflen);
+	UNUSED(buf);
+	UNUSED(f);
+	ASSERT0(f && buf);
+	ASSERT(0, ("TODO"));
 }
 
 
@@ -695,7 +703,6 @@ UINT get_sparse_popcount(ULONGLONG v)
 //Compute the number of 1.
 UINT get_lookup_popcount(ULONGLONG v)
 {
-	IS_TRUE0((BYTE)-1 == 255);
 	BYTE * p = (BYTE*)&v;
 	return g_bit_count[p[0]] + g_bit_count[p[1]] +
 		   g_bit_count[p[2]] + g_bit_count[p[3]] +
@@ -766,7 +773,8 @@ CHAR * getfilepath(IN CHAR * n, OUT CHAR * buf, UINT bufl)
 	if (i < 0) {
 		return NULL;
 	} else {
-		IS_TRUE0((UINT)i < bufl);
+		UNUSED(bufl);
+		ASSERT0((UINT)i < bufl);
 		memcpy(buf, n, i);
 		buf[i] = 0;
 	}
@@ -812,6 +820,7 @@ void strshift(CHAR * src, INT ofst)
 //e.g: Given /xx/yy/name.foo, return name.
 CHAR * getfilename(CHAR * n, OUT CHAR * buf, UINT bufl)
 {
+	UNUSED(bufl);
 	INT l = strlen(n), i = 0;
 	CHAR * p;
 	if (n == NULL) { return NULL; }
@@ -841,7 +850,7 @@ CHAR * getfilename(CHAR * n, OUT CHAR * buf, UINT bufl)
 		}
 	}
 
-	IS_TRUE0((UINT)i < bufl);
+	ASSERT0((UINT)i < bufl);
 	memcpy(buf, p, i);
 	buf[i] = 0;
 	return buf;
@@ -888,7 +897,7 @@ UINT xstrlen(CHAR const* p)
 //Return true if equal.
 bool xstrcmp(CHAR const* p1, CHAR const* p2, INT n)
 {
-	while (n-- > 0 && *p1++ == *p2++);
+	while (n-- > 0 && *p1++ == *p2++) { }
 	if (n >= 0) return true;
 	return false;
 }
@@ -970,7 +979,7 @@ bool is_integerd(double d)
 
 bool is_power_of_5(double f)
 {
-	IS_TRUE0(f >= 0.0);
+	ASSERT0(f >= 0.0);
 	if (f == 0.0) { return false; }
 	while (f >= 5.0) {
 		f = f / 5.0;
@@ -1265,7 +1274,7 @@ LETTER:
 			So you should pass 'INT' not 'CHAR' to 'va_arg'.
 			If this code is reached, the program will abort.
 			*/
-            CHAR c = va_arg(stack_start, INT);
+			CHAR c = (CHAR)va_arg(stack_start, INT);
 			if (!prtchar(buf, buflen, bufpos, c)) goto OVER;
 		}
 		break;

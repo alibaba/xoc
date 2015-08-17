@@ -36,28 +36,28 @@ author: Su Zhenyu
 
 class IR_DU_MGR;
 
-typedef SC<SEG*> * DU_ITER;
+typedef SEGIter * DU_ITER;
 
-class DU_SET : public SBITSETC {
+class DUSet : public DefSBitSetCore {
 protected:
 	friend class IR_DU_MGR;
 public:
-	DU_SET() {}
-	~DU_SET()
+	DUSet() {}
+	~DUSet()
 	{
 		//Do not free ref here. They are allocated in mempool,
 		//and the memory is freed when the pool destructed.
 	}
 
-	void add(UINT irid, SDBITSET_MGR & m) { bunion(irid, m); }
-	void add_def(IR const* stmt, SDBITSET_MGR & m);
-	void add_use(IR const* exp, SDBITSET_MGR & m);
+	void add(UINT irid, DefMiscBitSetMgr & m) { bunion(irid, m); }
+	void add_def(IR const* stmt, DefMiscBitSetMgr & m);
+	void add_use(IR const* exp, DefMiscBitSetMgr & m);
 
-	void remove(UINT irid, SDBITSET_MGR & m) { diff(irid, m); }
-	void remove_use(IR const* exp, SDBITSET_MGR & m);
-	void remove_def(IR const* stmt, SDBITSET_MGR & m);
+	void remove(UINT irid, DefMiscBitSetMgr & m) { diff(irid, m); }
+	void remove_use(IR const* exp, DefMiscBitSetMgr & m);
+	void removeDef(IR const* stmt, DefMiscBitSetMgr & m);
 
-	void union_set(DU_SET const* set, SDBITSET_MGR & m)
+	void union_set(DUSet const* set, DefMiscBitSetMgr & m)
 	{
 		if (set == NULL) { return; }
 		bunion(*set, m);
@@ -74,8 +74,8 @@ public:
 class DU {
 public:
 	MD const* md; //indicate the Must MD reference.
-	MD_SET const* mds; //indicate May MD_SET reference.
-	DU_SET * duset; //indicate Def/Use of stmt/expr set.
+	MDSet const* mds; //indicate May MDSet reference.
+	DUSet * duset; //indicate Def/Use of stmt/expr set.
 
 	inline void clean()
 	{

@@ -34,17 +34,30 @@ author: Su Zhenyu
 #ifndef _L_TYPE_
 #define _L_TYPE_
 
-#ifdef _LINUX_
-	#include "unistd.h" //for unlink declaration
-	#define ALLOCA	alloca //linux version
-#else
+#ifdef _WINDOWS_
 	#ifdef _VC6_
 	#include "windows.h"
 	#include "errors.h"
 	#endif
 
+	//The enumerate has no associated handler in a switch statement.
+	#pragma warning(disable: 4061)
+
+	//Conditional expression is constant.
+	#pragma warning(disable: 4127)
+
+	//unreferenced inline function has been removed.
+	#pragma warning(disable: 4514)
+
+	//A number of bytes padding added after data member.
+	#pragma warning(disable: 4820)
+
 	#include "malloc.h"
 	#define ALLOCA	_alloca //windows version
+#else
+	//Default is linux version
+	#include "unistd.h" //for unlink declaration
+	#define ALLOCA	alloca //linux version
 #endif
 
 #include "stdlib.h"
@@ -66,6 +79,7 @@ author: Su Zhenyu
 #undef ULONG
 #undef LONGLONG
 #undef ULONGLONG
+#undef BOOL
 
 #define STATUS int
 #define BYTE unsigned char
@@ -75,41 +89,44 @@ author: Su Zhenyu
 #define USHORT unsigned short
 #define INT int
 #define UINT unsigned int
+#define BOOL unsigned int
 #define LONG long
 #define ULONG unsigned long
+
 #ifdef _VC6_
-#define LONGLONG __int64
-#define ULONGLONG unsigned __int64
+	#define LONGLONG __int64
+	#define ULONGLONG unsigned __int64
 #else
-#define LONGLONG long long
-#define ULONGLONG unsigned long long
+	#define LONGLONG long long
+	#define ULONGLONG unsigned long long
 #endif
+
+//Avoid using the predefined ASSERT.
+#undef ASSERT
+#undef ASSERTL
+#undef ASSERT0
+#undef ASSERTL0
 
 #ifdef _DEBUG_
-	#ifndef IS_TRUE
-		#include "stdio.h"
-		INT m518087(CHAR const* info, ...);
-		INT m022138(CHAR const* filename, INT line);
-		#define IS_TRUE(a, b)  \
-					((a) ? 0 : (m022138(__FILE__, __LINE__), m518087 b))
-		#define IS_TRUEL(a, filename, line, b)  \
-					((a) ? 0 : (m022138(filename, line), m518087 b))
-	#endif
+	#include "stdio.h"
+	INT m518087(CHAR const* info, ...);
+	INT m022138(CHAR const* filename, INT line);
 
-	#ifndef IS_TRUE0
-		#include "stdio.h"
-		INT m518087(CHAR const* info, ...);
-		INT m022138(CHAR const* filename, INT line);
-		#define IS_TRUE0(a)  ((a) ? 0 : (m022138(__FILE__, __LINE__), m518087 ("")))
-		#define IS_TRUEL0(a, filename, line)  \
-					((a) ? 0 : (m022138(filename, line), m518087 ("")))
-	#endif
+	#define ASSERT(a, b)  \
+				((a) ? 0 : (m022138(__FILE__, __LINE__), m518087 b))
+	#define ASSERTL(a, filename, line, b)  \
+				((a) ? 0 : (m022138(filename, line), m518087 b))
+	#define ASSERT0(a)  ((a) ? 0 : (m022138(__FILE__, __LINE__), m518087 ("")))
+	#define ASSERTL0(a, filename, line)  \
+				((a) ? 0 : (m022138(filename, line), m518087 ("")))
 #else
-	#define IS_TRUE(a, b)
-	#define IS_TRUEL(a, filename, line, b)
-	#define IS_TRUE0(a)
-	#define IS_TRUEL0(a, filename, line)
+	#define ASSERT(a, b)
+	#define ASSERTL(a, filename, line, b)
+	#define ASSERT0(a)
+	#define ASSERTL0(a, filename, line)
 #endif
+
+#define UNREACH()  ASSERT(0, ("Unreachable."))
 
 #undef MAX
 #define MAX(a,b) ((a)>(b)?(a):(b))
@@ -156,7 +173,7 @@ author: Su Zhenyu
 #define MAX_BUF_LEN 1024
 #define MAX_LOC_BUF_LEN 512
 
-//Misc Dumps/Dumpf of SVECTOR<T>
+//Misc Dumps/Dumpf of Vector<T>
 #define D_BOOL			1
 #define D_INT			2
 

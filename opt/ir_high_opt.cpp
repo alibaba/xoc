@@ -48,69 +48,71 @@ Optimizations to be performed:
 	4. Loop tiling
 	5. Loop fusion
 	6. Loop unrolling */
-bool REGION::high_process(OPT_CTX & oc)
+bool Region::HighProcess(OptCTX & oc)
 {
-	CHAR const* ru_name = get_ru_name();
 	g_indent = 0;
-	note("\n\n==== REGION:%s HIGHEST LEVEL FARMAT ====\n\n", get_ru_name());
+	note("\n\n==== Region:%s HIGHEST LEVEL FARMAT ====\n\n", get_ru_name());
 
-	SIMP_CTX simp;
+	SimpCTX simp;
 	if (g_do_cfs_opt) {
 		IR_CFS_OPT co(this);
 		co.perform(simp);
-		IS_TRUE0(verify_irs(get_ir_list(), NULL, get_dm()));
+		ASSERT0(verify_irs(get_ir_list(), NULL, this));
 	}
 
+	PassMgr * passmgr = initPassMgr();
+
 	if (g_build_cfs) {
-		IS_TRUE0(OPTC_pass_mgr(oc));
+		ASSERT0(passmgr);
 		SIMP_is_record_cfs(&simp) = true;
-		CFS_MGR * cfsmgr =
-			(CFS_MGR*)OPTC_pass_mgr(oc)->register_opt(OPT_CFS_MGR);
-		IS_TRUE0(cfsmgr);
+		CfsMgr * cfsmgr =
+			(CfsMgr*)passmgr->registerPass(PASS_CFS_MGR);
+		ASSERT0(cfsmgr);
 		SIMP_cfs_mgr(&simp) = cfsmgr;
 	}
 
 	simp.set_simp_cf();
-	set_ir_list(simplify_stmt_list(get_ir_list(), &simp));
-	IS_TRUE0(verify_simp(get_ir_list(), simp));
-	IS_TRUE0(verify_irs(get_ir_list(), NULL, get_dm()));
+	set_ir_list(simplifyStmtList(get_ir_list(), &simp));
+	ASSERT0(verify_simp(get_ir_list(), simp));
+	ASSERT0(verify_irs(get_ir_list(), NULL, this));
 
 	if (g_cst_bb_list) {
-		construct_ir_bb_list();
-		IS_TRUE0(verify_ir_and_bb(get_bb_list(), get_dm()));
-		set_ir_list(NULL); //All IRs have been moved to each IR_BB.
+		constructIRBBlist();
+		ASSERT0(verifyIRandBB(get_bb_list(), this));
+		set_ir_list(NULL); //All IRs have been moved to each IRBB.
 	}
 
 	if (g_do_cfg) {
-		IS_TRUE0(g_cst_bb_list);
-		IR_CFG * cfg = init_cfg(oc);
+		ASSERT0(g_cst_bb_list);
+		IR_CFG * cfg = initCfg(oc);
 		if (g_do_loop_ana) {
-			cfg->loop_analysis(oc);
+			cfg->LoopAnalysis(oc);
 		}
 	}
 
 	if (g_do_aa) {
-		IS_TRUE0(g_cst_bb_list && OPTC_is_cfg_valid(oc));
-		init_aa(oc);
+		ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc));
+		initAliasAnalysis(oc);
 	}
 
 	if (g_do_du_ana) {
-		IS_TRUE0(g_cst_bb_list && OPTC_is_cfg_valid(oc) && OPTC_is_aa_valid(oc));
-		init_du(oc);
+		ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc) && OC_is_aa_valid(oc));
+		initDuMgr(oc);
 	}
 
 	if (g_do_expr_tab) {
-		IS_TRUE0(g_cst_bb_list);
+		ASSERT0(g_cst_bb_list);
 		IR_EXPR_TAB * exprtab =
-			(IR_EXPR_TAB*)OPTC_pass_mgr(oc)->register_opt(OPT_EXPR_TAB);
-		IS_TRUE0(exprtab);
+			(IR_EXPR_TAB*)passmgr->registerPass(PASS_EXPR_TAB);
+		ASSERT0(exprtab);
 		exprtab->perform(oc);
 	}
 
-	if (g_do_cdg && OPTC_pass_mgr(oc) != NULL) {
-		IS_TRUE0(g_cst_bb_list && OPTC_is_cfg_valid(oc));
-		CDG * cdg = (CDG*)OPTC_pass_mgr(oc)->register_opt(OPT_CDG);
-		IS_TRUE0(cdg);
+	if (g_do_cdg) {
+		ASSERT0(passmgr);
+		ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc));
+		CDG * cdg = (CDG*)passmgr->registerPass(PASS_CDG);
+		ASSERT0(cdg);
 		cdg->build(oc, *get_cfg());
 	}
 
@@ -135,9 +137,9 @@ bool REGION::high_process(OPT_CTX & oc)
 	Solution: We can scan IF stmt first, in order to mark
 	start stmt and end stmt of IF.
 
-	//ABS_NODE * an = RU_ana(this)->m_cfs_mgr->construct_abstract_cfs();
+	//AbsNode * an = REGION_analysis_instrument(this)->m_cfs_mgr->construct_abstract_cfs();
 	//Polyhedra optimization.
-	//IR_POLY * poly = new_poly();
+	//IR_POLY * poly = newPoly();
 	//if (poly->construct_poly(an)) {
 	//	poly->perform_poly_trans();
 	//}

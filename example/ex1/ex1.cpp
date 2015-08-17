@@ -31,7 +31,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 author: Su Zhenyu
 @*/
-#include "../xoc/cominc.h"
+#include "../opt/cominc.h"
 #include "ex1.h"
 
 REGION_MGR * g_region_mgr = NULL;

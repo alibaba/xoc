@@ -34,11 +34,11 @@ author: Su Zhenyu
 #ifndef _AOC_DX_MGR_
 #define _AOC_DX_MGR_
 
-class AOC_DX_MGR : public DX_MGR {
+class AocDxMgr : public DX_MGR {
 	DexFile const* m_df;
 public:
-	AOC_DX_MGR(DexFile const* df) { m_df = df; }
-	virtual ~AOC_DX_MGR() {}
+	AocDxMgr(DexFile const* df) { m_df = df; }
+	virtual ~AocDxMgr() {}
 	virtual CHAR const* get_string(UINT str_idx);
 	virtual CHAR const* get_type_name(UINT idx);
 	virtual CHAR const* get_field_name(UINT field_idx);
