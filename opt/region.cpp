@@ -38,7 +38,7 @@ author: Su Zhenyu
 //START AnalysisInstrument
 //
 AnalysisInstrument::AnalysisInstrument(Region * ru) :
-	m_mds_hash(&m_mds_mgr, &m_sbs_mgr), m_mds_mgr(ru, &m_sbs_mgr)
+	m_mds_mgr(ru, &m_sbs_mgr), m_mds_hash(&m_mds_mgr, &m_sbs_mgr)
 {
 	m_ru = ru;
 	m_ru_mgr = NULL;
