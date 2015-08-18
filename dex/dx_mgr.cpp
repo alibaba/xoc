@@ -360,6 +360,8 @@ DXC_INFO const g_dx_code_info[] = {
 	{253,	DX_UNUSED_FD, 					1, DX_ATTR_UNDEF, "unused-fd", FMT10x},
 	{254,	DX_UNUSED_FE, 					1, DX_ATTR_UNDEF, "unused-fe", FMT10x},
 	{255,	DX_UNUSED_FF, 					1, DX_ATTR_UNDEF, "unused-ff", FMT10x},
+	{256, 	DX_PACKED_SWITCH_PAYLOAD,		1, DX_ATTR_CONT,  "packed-switch-payload", FMT00x},
+	{257, 	DX_SPARSE_SWITCH_PAYLOAD,		1, DX_ATTR_CONT,  "sparse-switch-payload", FMT00x},
 };
 
 

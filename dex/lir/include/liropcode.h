@@ -289,6 +289,8 @@ LOP_beginInvoke                   = 70,
     LOP_FILLED_NEW_ARRAY       = 72,//ABCCCCDEFG retval = create array obj(A),put count(B) DEFG in it, ref(CCCC),AABBBBCCCC
     LOP_CMPG                       = 73,
     LOP_PHI                        = 74,
+    LOP_PACKED_SWITCH_PAYLOAD = 75,
+    LOP_SPARSE_SWITCH_PAYLOAD = 76,
 };
 
 typedef UInt8 LIROpkind;
@@ -407,6 +409,7 @@ enum _opcodeFormats{
     lirFmtRAL = lirFmtR|lirFmtA|lirFmtL,
     lirFmtABS = lirFmtA|lirFmtB|lirFmtS,
     lirFmtRAS = lirFmtR|lirFmtA|lirFmtS,
+    lirFmt00X = 3,  // For pseudo code format.
 };
 
 typedef struct LIROpcodeCatchStruct{

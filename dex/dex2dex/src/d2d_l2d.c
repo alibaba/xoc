@@ -2055,7 +2055,7 @@ Int32 transformCode(LIRCode const* code, DexCode* nCode)
    //Try/Catch buf will be added.
    // Fix: Trycatched should be 4-byte aligned.
    // And then the code_item will also be 4-byte aligned.
-   if (nCode->insnsSize & 0x01){
+   if (nCode->insnsSize & 0x01 && code->triesSize){
      cbsWrite16(regIns, (UInt16)0);
    }
    err += fixTryCatches(regIns, code, &dexInstrList);
