@@ -39,7 +39,7 @@ extern "C" {
 #endif
 
 //Export Functions.
-bool compile_func(D2Dpool * pool, LIRCode * fu, DexFile * df, DexMethod const* dm);
+bool compileFunc(D2Dpool * pool, LIRCode * fu, DexFile * df, DexMethod const* dm);
 
 #ifdef __cplusplus
 }

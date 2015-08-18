@@ -184,15 +184,15 @@ template <UINT BitsPerSeg>
 void dump_segmgr(SegMgr<BitsPerSeg> & m)
 {
 	if (g_tfile == NULL) { return; }
-	TSEGIter * st = NULL;
+	SC<SEG<BitsPerSeg>*> * st = NULL;
 	fprintf(g_tfile, "\n====start %d:%d===\n",
 			m.get_free_list()->get_elem_count(),
 			m.get_seg_count());
 
 	BitSet x;
-	SList<SEG*> const* flst = m.get_free_list();
+	SList<SEG<BitsPerSeg>*> const* flst = m.get_free_list();
 	for (flst->get_head(&st); st != flst.end(); st = flst->get_next(st)) {
-		SEG const* s = st->val();
+		SEG<BitsPerSeg> const* s = st->val();
 		fprintf(g_tfile, "%d,", s->id);
 		x.bunion(s->id);
 	}

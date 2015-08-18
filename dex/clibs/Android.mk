@@ -45,7 +45,7 @@ MY_LOCAL_CFLAGS := \
 ########################################################
 include $(CLEAR_VARS)
 #must include vmkid/config.mk after CLEAR_VARS
-include $(RELATIVE_VMKID)/config.mk
+include $(RELATIVE_VMKID)/../config.mk
 
 LOCAL_CFLAGS += $(MY_LOCAL_CFLAGS)
 
@@ -82,7 +82,7 @@ include $(BUILD_SHARED_LIBRARY)
 ########################################################
 include $(CLEAR_VARS)
 #must include vmkid/config.mk after CLEAR_VARS
-include $(RELATIVE_VMKID)/config.mk
+include $(RELATIVE_VMKID)/../config.mk
 
 LOCAL_CFLAGS += $(MY_LOCAL_CFLAGS)
 LOCAL_CFLAGS += -DHOST_LEMUR
@@ -105,7 +105,7 @@ include $(BUILD_HOST_SHARED_LIBRARY)
 ########################################################
 include $(CLEAR_VARS)
 #must include vmkid/config.mk after CLEAR_VARS
-include $(RELATIVE_VMKID)/config.mk
+include $(RELATIVE_VMKID)/../config.mk
 
 LOCAL_CFLAGS += $(MY_LOCAL_CFLAGS)
 LOCAL_CFLAGS += -DHOST_LEMUR
