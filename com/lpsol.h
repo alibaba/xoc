@@ -2084,7 +2084,7 @@ template <class Mat, class T> class MIP : public Element<T> {
 					IN INTMat & fork_count);
 public:
 	MIP();
-	~MIP();
+	virtual ~MIP();
 	void init();
 	void destroy();
 	void verify(IN Mat const& leq,
