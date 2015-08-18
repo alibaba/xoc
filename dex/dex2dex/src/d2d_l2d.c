@@ -55,7 +55,6 @@ author: GongKai, JinYue
 #include "d2d_comm.h"
 #include "d2d_dexlib.h"
 #include "lir.h"
-#include "anainterface.h"
 
 static inline UInt8 getlirOpcode(ULong codePtr){
     BYTE* data = (BYTE*)codePtr;

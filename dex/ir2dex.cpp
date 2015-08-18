@@ -31,33 +31,17 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 author: Su Zhenyu
 @*/
-#include "anablock.h"
-#include "anatypes.h"
-#include "anaopcode.h"
-#include "ananode.h"
-#include "anadot.h" //for debug
-#include "anaglobal.h"
-#include "anamethod.h"
-#include "anamem.h"
-#include "anautility.h"
-#include "anaprofile.h"
-
 #include "libdex/DexFile.h"
 #include "libdex/DexClass.h"
 #include "liropcode.h"
+
 #include "drAlloc.h"
 #include "d2d_comm.h"
-
 #include "../opt/cominc.h"
-
-#include "tcomf.h"
-#include "anacomf.h"
 #include "dx_mgr.h"
-
 #include "../opt/prdf.h"
 #include "dex.h"
 #include "gra.h"
-
 #include "dex_util.h"
 #include "dex2ir.h"
 #include "ir2dex.h"

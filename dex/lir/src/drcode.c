@@ -51,16 +51,7 @@ author: GongKai, JinYue
 #include "xassert.h"
 #include "lircomm.h"
 #include "lir.h"
-#include "anainterface.h"
 #include "dex_driver.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-    LIRCode* anaEntry(LIRCode* lirCode);
-#ifdef __cplusplus
-}
-#endif
 
 Int32 gMemAlloc = 0;
 
@@ -520,14 +511,21 @@ static void genTryCatches(
     }
 }
 
-static Int32 l2dWithAot(D2Dpool* pool, const DexCode* pCode, LIRCode* code)
-{
-    Int32 err = 0;
-    code = anaEntry(code);
-    lir2dexCode(pool, pCode, code);
-
-    return err;
-}
+//Obsolete code.
+//#ifdef __cplusplus
+//extern "C" {
+//#endif
+//    LIRCode* anaEntry(LIRCode* lirCode);
+//#ifdef __cplusplus
+//}
+//#endif
+//astatic Int32 l2dWithAot(D2Dpool* pool, const DexCode* pCode, LIRCode* code)
+//{
+//   Int32 err = 0;
+//    code = anaEntry(code);
+//    lir2dexCode(pool, pCode, code);
+//    return err;
+//}
 
 #ifdef COMPILE_DEX2LEX
 bool aotDrGenCode(
@@ -693,7 +691,7 @@ bool d2rMethod(D2Dpool* pool, DexFile* pDexFile, const DexMethod* pDexMethod)
     //Leave it to verify.
     //lir2dexCode_orig(pool, pCode, code);
 
-    //Obsolete
+    //Obsolete code.
     //l2dWithAot(pool, pCode, code);
     drLinearFree();
     return true;
