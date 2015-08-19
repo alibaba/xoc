@@ -29,5 +29,5 @@ There are two level IR representations used throughout all phases of the
 compilation.
 
 Build:
-	cd xoc
+	cd xoc &
 	make all
