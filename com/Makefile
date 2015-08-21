@@ -23,7 +23,7 @@ INC=.
 com_objs: $(COM_OBJS)
 
 all: com_objs 
-	ar rvs libcom.a $(COM_OBJS)
+	ar rvs libxcom.a $(COM_OBJS)
 	@echo "success!!"
 
 clean:

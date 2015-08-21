@@ -43,7 +43,6 @@ class LTMgr;
 class LTG;
 class RA;
 class GltMgr;
-class PRDF;
 class RSC;
 class RG;
 

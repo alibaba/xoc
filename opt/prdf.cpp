@@ -34,6 +34,8 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "prdf.h"
 
+namespace xoc {
+
 //#define STATISTIC_PRDF
 
 //
@@ -322,3 +324,5 @@ bool PRDF::perform(OptCTX & oc)
 	return false;
 }
 //END PRDF
+
+} //namespace xoc

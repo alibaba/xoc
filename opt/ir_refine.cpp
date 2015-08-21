@@ -36,6 +36,8 @@ author: Su Zhenyu
 #include "prssainfo.h"
 #include "ir_ssa.h"
 
+namespace xoc {
+
 //Algebraic identities.
 IR * Region::refineIload1(IR * ir, bool & change)
 {
@@ -779,7 +781,7 @@ IR * Region::refineDiv(IR * ir, bool & change, RefineCTX & rc)
 			//X/0
 			return ir;
 		}
-		if ((is_power_of_2(abs((INT)(fp_imm))) || is_power_of_5(fp_imm))) {
+		if ((isPowerOf2(abs((INT)(fp_imm))) || isPowerOf5(fp_imm))) {
 			//X/n => X*(1.0/n)
 			IR_type(ir) = IR_MUL;
 			CONST_fp_val(op1) = ((HOST_FP)1.0) / fp_imm;
@@ -788,7 +790,7 @@ IR * Region::refineDiv(IR * ir, bool & change, RefineCTX & rc)
 		}
 	} else if (op1->is_const() &&
 			   op1->is_int(dm) &&
-			   is_power_of_2(CONST_int_val(op1)) &&
+			   isPowerOf2(CONST_int_val(op1)) &&
 			   RC_refine_div_const(rc)) {
 		//X/2 => X>>1, arith shift right.
 		if (op0->is_sint(dm)) {
@@ -798,7 +800,7 @@ IR * Region::refineDiv(IR * ir, bool & change, RefineCTX & rc)
 		} else {
 			ASSERT0(0);
 		}
-		CONST_int_val(op1) = get_power_of_2(CONST_int_val(op1));
+		CONST_int_val(op1) = getPowerOf2(CONST_int_val(op1));
 		change = true;
 		return ir; //No need for updating DU.
 	} else if (op0->is_ir_equal(op1, true)) {
@@ -941,10 +943,10 @@ IR * Region::refineMul(IR * ir, bool & change, RefineCTX & rc)
 			freeIRTree(ir);
 			change = true;
 			return newir;
-		} else if (is_power_of_2(CONST_int_val(op1)) &&
+		} else if (isPowerOf2(CONST_int_val(op1)) &&
 				   RC_refine_mul_const(rc)) {
 			//mul X,4 => lsl X,2, logical shift left.
-			CONST_int_val(op1) = get_power_of_2(CONST_int_val(op1));
+			CONST_int_val(op1) = getPowerOf2(CONST_int_val(op1));
 			IR_type(ir) = IR_LSL;
 			change = true;
 			return ir; //No need for updating DU.
@@ -2465,3 +2467,5 @@ void Region::invertCondition(IR ** cond)
 		ASSERT(0, ("TODO"));
 	}
 }
+
+} //namespace xoc

@@ -33,21 +33,24 @@ author: Su Zhenyu
 @*/
 #ifndef _INLINER_H_
 #define _INLINER_H_
+
+namespace xoc {
+
 #define INLINFO_need_el(i)		((i)->need_el)
 #define INLINFO_has_ret(i)		((i)->has_ret)
-class INLINE_INFO {
+class InlineInfo {
 public:
 	BYTE need_el:1;
 	BYTE has_ret:1;
 };
 
 
-class INLINER {
+class Inliner {
 protected:
 	RegionMgr * m_ru_mgr;
 	SMemPool * m_pool;
 	CallGraph * m_callg;
-	TMap<Region*, INLINE_INFO*> m_ru2inl;
+	TMap<Region*, InlineInfo*> m_ru2inl;
 
 	void ck_ru(IN Region * ru, OUT bool & need_el, OUT bool & has_ret) const;
 
@@ -59,23 +62,29 @@ protected:
 		return p;
 	}
 
-	INLINE_INFO * map_ru2ii(Region * ru, bool alloc)
+	InlineInfo * map_ru2ii(Region * ru, bool alloc)
 	{
-		INLINE_INFO * ii = m_ru2inl.get(ru);
+		InlineInfo * ii = m_ru2inl.get(ru);
 		if (ii == NULL && alloc) {
-			ii = (INLINE_INFO*)xmalloc(sizeof(INLINE_INFO));
+			ii = (InlineInfo*)xmalloc(sizeof(InlineInfo));
 			m_ru2inl.set(ru, ii);
 		}
 		return ii;
 	}
+
+	IR * replaceReturnImpl(
+			Region * caller,
+			IR * caller_call,
+			IR * new_irs,
+			LabelInfo * el);
 public:
-	INLINER(RegionMgr * ru_mgr)
+	Inliner(RegionMgr * ru_mgr)
 	{
 		m_ru_mgr = ru_mgr;
 		m_callg = ru_mgr->get_callg();
 		m_pool = smpoolCreate(16, MEM_COMM);
 	}
-	virtual ~INLINER() { smpoolDelete(m_pool); }
+	virtual ~Inliner() { smpoolDelete(m_pool); }
 
 	bool can_be_cand(Region * ru);
 
@@ -84,13 +93,15 @@ public:
 
 	inline bool is_call_site(IR * call, Region * ru);
 
-	virtual CHAR const* get_pass_name() const { return "INLINER"; }
+	virtual CHAR const* get_pass_name() const { return "Inliner"; }
 
-	IR * replace_return_c(Region * caller, IR * caller_call,
-						  IR * new_irs, LabelInfo * el);
-	IR * replace_return(Region * caller, IR * caller_call,
-						IR * new_irs, INLINE_INFO * ii);
+	IR * replaceReturn(
+			Region * caller,
+			IR * caller_call,
+			IR * new_irs,
+			InlineInfo * ii);
 	virtual bool perform(OptCTX & oc);
 };
-#endif
 
+} //namespace xoc
+#endif

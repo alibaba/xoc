@@ -35,10 +35,12 @@ author: Su Zhenyu
 #include "callg.h"
 #include "inliner.h"
 
+namespace xoc {
+
 //
-//START INLINER
+//START Inliner
 //
-bool INLINER::is_call_site(IR * call, Region * ru)
+bool Inliner::is_call_site(IR * call, Region * ru)
 {
 	ASSERT0(call->is_call());
 	SYM * name = VAR_name(CALL_idinfo(call));
@@ -52,7 +54,7 @@ bool INLINER::is_call_site(IR * call, Region * ru)
 'caller_call': call site in caller.
 'new_irs': indicate the duplicated IR list in caller. Note that
 	these IR must be allocated in caller's region. */
-IR * INLINER::replace_return_c(Region * caller, IR * caller_call,
+IR * Inliner::replaceReturnImpl(Region * caller, IR * caller_call,
 							   IR * new_irs, LabelInfo * el)
 {
 	IR * next = NULL;
@@ -63,17 +65,17 @@ IR * INLINER::replace_return_c(Region * caller, IR * caller_call,
 		case IR_WHILE_DO:
 		case IR_DO_LOOP: //loop with init , boundary , and step info
 			LOOP_body(x) =
-				replace_return_c(caller, caller_call, LOOP_body(x), el);
+				replaceReturnImpl(caller, caller_call, LOOP_body(x), el);
 			break;
 		case IR_IF:
 			IF_truebody(x) =
-				replace_return_c(caller, caller_call, IF_truebody(x), el);
+				replaceReturnImpl(caller, caller_call, IF_truebody(x), el);
 			IF_falsebody(x) =
-				replace_return_c(caller, caller_call, IF_falsebody(x), el);
+				replaceReturnImpl(caller, caller_call, IF_falsebody(x), el);
 			break;
 		case IR_SWITCH:
 			SWITCH_body(x) =
-				replace_return_c(caller, caller_call, SWITCH_body(x), el);
+				replaceReturnImpl(caller, caller_call, SWITCH_body(x), el);
 			break;
 		case IR_RETURN:
 			if (!caller_call->hasReturnValue()) {
@@ -113,7 +115,7 @@ IR * INLINER::replace_return_c(Region * caller, IR * caller_call,
 
 
 
-void INLINER::ck_ru(IN Region * ru, OUT bool & need_el,
+void Inliner::ck_ru(IN Region * ru, OUT bool & need_el,
 					OUT bool & has_ret) const
 {
 	need_el = false;
@@ -177,15 +179,15 @@ void INLINER::ck_ru(IN Region * ru, OUT bool & need_el,
 }
 
 
-IR * INLINER::replace_return(Region * caller, IR * caller_call,
-							 IR * new_irs, INLINE_INFO * ii)
+IR * Inliner::replaceReturn(Region * caller, IR * caller_call,
+							 IR * new_irs, InlineInfo * ii)
 {
 	LabelInfo * el = NULL;
 	if (INLINFO_need_el(ii)) {
 		el = caller->genIlabel();
 	}
 	if (INLINFO_has_ret(ii)) {
-		new_irs = replace_return_c(caller, caller_call, new_irs, el);
+		new_irs = replaceReturnImpl(caller, caller_call, new_irs, el);
 	}
 	if (el != NULL) {
 		add_next(&new_irs, caller->buildLabel(el));
@@ -194,7 +196,7 @@ IR * INLINER::replace_return(Region * caller, IR * caller_call,
 }
 
 
-bool INLINER::do_inline_c(Region * caller, Region * callee)
+bool Inliner::do_inline_c(Region * caller, Region * callee)
 {
 	IR * caller_irs = caller->get_ir_list();
 	IR * callee_irs = callee->get_ir_list();
@@ -208,7 +210,7 @@ bool INLINER::do_inline_c(Region * caller, Region * callee)
 			is_call_site(caller_irs, callee)) {
 			IR * new_irs_in_caller = caller->dupIRTreeList(callee_irs);
 
-			INLINE_INFO * ii = map_ru2ii(callee, false);
+			InlineInfo * ii = map_ru2ii(callee, false);
 			if (ii == NULL) {
 				bool need_el;
 				bool has_ret;
@@ -217,7 +219,7 @@ bool INLINER::do_inline_c(Region * caller, Region * callee)
 				INLINFO_has_ret(ii) = has_ret;
 				INLINFO_need_el(ii) = need_el;
  			}
-			new_irs_in_caller = replace_return(caller, caller_irs, new_irs_in_caller, ii);
+			new_irs_in_caller = replaceReturn(caller, caller_irs, new_irs_in_caller, ii);
 			insertafter(&caller_irs, new_irs_in_caller);
 			remove(&head, caller_irs);
 			change = true;
@@ -229,7 +231,7 @@ bool INLINER::do_inline_c(Region * caller, Region * callee)
 
 
 //'cand': candidate that expected to be inlined.
-void INLINER::do_inline(Region * cand)
+void Inliner::do_inline(Region * cand)
 {
 	CALL_NODE * cn = m_callg->map_ru2cn(cand);
 	ASSERT0(cn);
@@ -246,7 +248,7 @@ void INLINER::do_inline(Region * cand)
 
 
 //Evaluate whether ru can be inlining candidate.
-bool INLINER::can_be_cand(Region * ru)
+bool Inliner::can_be_cand(Region * ru)
 {
 	IR * ru_irs = ru->get_ir_list();
 	if (REGION_is_expect_inline(ru) && cnt_list(ru_irs) < g_inline_threshold) {
@@ -256,7 +258,7 @@ bool INLINER::can_be_cand(Region * ru)
 }
 
 
-bool INLINER::perform(OptCTX & oc)
+bool Inliner::perform(OptCTX & oc)
 {
 	UNUSED(oc);
 	ASSERT0(OC_is_callg_valid(oc));
@@ -275,4 +277,6 @@ bool INLINER::perform(OptCTX & oc)
 	}
 	return false;
 }
-//END INLINER
+//END Inliner
+
+} //namespace xoc

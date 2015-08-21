@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_DCE_H_
 #define _IR_DCE_H_
 
+namespace xoc {
+
 class EFFECT_STMT : public BitSet {
 public:
 	void bunion(INT elem)
@@ -124,4 +126,6 @@ public:
 
 	virtual bool perform(OptCTX & oc);
 };
+
+} //namespace xoc
 #endif

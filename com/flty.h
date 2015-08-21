@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __FLTY_H__
 #define __FLTY_H__
 
+namespace xcom {
+
 /*
 //The precision of 'double' is too high to
 //some operation of those value that approaching infinitesimal.
@@ -110,4 +112,6 @@ Float operator - (Float const& a, Float const& b);
 Float operator - (Float a);
 PRECISION_TYPE integralize(PRECISION_TYPE const& a);
 Float zerolinz(Float const& a);
+
+} //namespace xcom
 #endif

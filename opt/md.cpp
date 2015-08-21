@@ -33,6 +33,8 @@ author: Su Zhenyu
 @*/
 #include "cominc.h"
 
+namespace xoc {
+
 //
 //START MDID
 //
@@ -459,15 +461,18 @@ void MD2MDSet::dump(Region * ru)
 	//Dump all MDs.
 	MDSystem * ms = ru->get_md_sys();
 	ms->get_id2md_map()->dump();
-	INT i;
-	for (i = get_first(); i >= 0; i = get_next(i)) {
-		MD * md = ms->get_md(i);
+	MD2MDSetIter mxiter;
+	MDSet const* pts = NULL;
+	for (UINT mdid = get_first(mxiter, &pts);
+		 mdid > 0; mdid = get_next(mxiter, &pts)) {
+		MD const* md = ms->get_md(mdid);
 		ASSERT0(md);
+
 		buf[0] = 0;
 		fprintf(g_tfile, "\n\t%s", md->dump(buf, MAX_BUF_LEN, ru->get_dm()));
 
 		//Dumps MDSet related to 'md'.
-		MDSet const* pts = get(MD_id(md));
+
 		ASSERT0(pts);
 		fprintf(g_tfile, "\n\t\tPOINT TO:\n");
 		SEGIter * iter_j;
@@ -476,7 +481,8 @@ void MD2MDSet::dump(Region * ru)
 			MD * mmd = ms->get_md(j);
 			ASSERT0(mmd);
 			buf[0] = 0;
-			fprintf(g_tfile, "\t\t\t%s\n", mmd->dump(buf, MAX_BUF_LEN, ru->get_dm()));
+			fprintf(g_tfile, "\t\t\t%s\n",
+					mmd->dump(buf, MAX_BUF_LEN, ru->get_dm()));
 		}
 	}
 
@@ -906,3 +912,5 @@ void MDSystem::removeMDforVAR(VAR const* v, ConstMDIter & iter)
 	m_var2mdtab.remove(v);
 }
 //END MDSystem
+
+} //namespace xoc

@@ -28,6 +28,8 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __XMAT_H__
 #define __XMAT_H__
 
+namespace xcom {
+
 class INTMat;
 class RMat;
 class FloatMat;
@@ -176,4 +178,6 @@ public:
 	void sete(UINT num, ...);
 	BMAT & operator = (BMAT const& m);
 };
+
+} //namespace xcom
 #endif

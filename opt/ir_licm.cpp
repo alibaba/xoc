@@ -37,6 +37,8 @@ author: Su Zhenyu
 #include "ir_ssa.h"
 #include "ir_licm.h"
 
+namespace xoc {
+
 //
 //START IR_LICM
 //
@@ -764,3 +766,5 @@ bool IR_LICM::perform(OptCTX & oc)
 	return change;
 }
 //END IR_LICM
+
+} //namespace xoc

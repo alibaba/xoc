@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __DU_H__
 #define __DU_H__
 
+namespace xoc {
+
 class IR_DU_MGR;
 
 typedef SEGIter * DU_ITER;
@@ -87,4 +89,6 @@ public:
 	bool has_clean() const
 	{ return md == NULL && mds == NULL && duset == NULL; }
 };
+
+} //namespace xoc
 #endif

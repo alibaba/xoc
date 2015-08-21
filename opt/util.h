@@ -197,7 +197,6 @@ void dump_vec(Vector<UINT> & v);
 void initdump(CHAR const* f, bool is_del);
 void interwarn(CHAR const* format, ...);
 void finidump();
-UINT get_const_bit_len(LONGLONG v);
 void scr(CHAR const* format , ...) ;
 void * tlloc(LONG size);
 void tfree();

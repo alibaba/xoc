@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_LOOP_CVT_H_
 #define _IR_LOOP_CVT_H_
 
+namespace xoc {
+
 /* Perform Loop Convertion.
 Transform while-do loop to do-while loop.
 
@@ -86,4 +88,6 @@ public:
 
 	virtual bool perform(OptCTX & oc);
 };
+
+} //namespace xoc
 #endif

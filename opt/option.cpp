@@ -33,6 +33,8 @@ author: Su Zhenyu
 @*/
 #include "cominc.h"
 
+namespace xoc {
+
 //Optimize float operation.
 bool g_is_opt_float = true;
 
@@ -181,3 +183,5 @@ bool g_do_loop_convert = false;
 
 //Polyhedral Transformations.
 bool g_do_poly_tran = false;
+
+} //namespace xoc

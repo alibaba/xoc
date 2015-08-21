@@ -55,7 +55,6 @@ typedef enum {
 } MEMPOOLTYPE;
 
 
-
 #define MEMPOOL_type(p)					((p)->pool_type)
 #define MEMPOOL_next(p)					((p)->next)
 #define MEMPOOL_prev(p)					((p)->prev)
@@ -114,4 +113,3 @@ void dumpPool(SMemPool * handler, FILE * h);
 
 extern ULONGLONG g_stat_mem_size;
 #endif
-

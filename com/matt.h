@@ -27,6 +27,9 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 @*/
 #ifndef __MATT_H__
 #define __MATT_H__
+
+namespace xcom {
+
 /*
 START Matrix
 
@@ -4218,4 +4221,6 @@ void Matrix<T>::dumps() const
 #endif
 }
 //END Matrix
+
+}
 #endif

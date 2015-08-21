@@ -33,6 +33,8 @@ author: Su Zhenyu
 @*/
 #include "cominc.h"
 
+namespace xoc {
+
 /* Find the bb that is the start of the unqiue backedge of loop.
    BB1: loop start bb
    BB2: body start bb
@@ -149,3 +151,5 @@ IRBB * findAndInsertPreheader(LI<IRBB> const* li, Region * ru,
 	}
 	return newbb;
 }
+
+} //namespace xoc

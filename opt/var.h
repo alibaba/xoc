@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __VAR_H__
 #define __VAR_H__
 
+namespace xoc {
+
 class RegionMgr;
 
 //
@@ -230,7 +232,7 @@ public:
 				dm->get_bytesize(VAR_type(this));
 	}
 
-	virtual CHAR * dump_var_decl(CHAR*, UINT) { return NULL; }
+	virtual CHAR * dumpVARDecl(CHAR*, UINT) { return NULL; }
 	virtual void dump(FILE * h, TypeMgr * dm);
 	virtual CHAR * dump(CHAR * buf, TypeMgr * dm);
 };
@@ -336,4 +338,6 @@ public:
 	//Create a String VAR.
 	VAR * registerStringVar(CHAR const* var_name, SYM * s, UINT align);
 };
+
+} //namespace xoc
 #endif

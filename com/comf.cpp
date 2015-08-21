@@ -46,6 +46,7 @@ author: Su Zhenyu
 #include "sstl.h"
 #include "bs.h"
 
+namespace xcom {
 
 static CHAR g_hexdigits[] = "0123456789ABCDEF";
 
@@ -495,7 +496,7 @@ void xstrcpy(CHAR * tgt, CHAR const* src, UINT size)
 
 
 //Reverse the string.
-UCHAR * reverse_string(UCHAR * v)
+UCHAR * reverseString(UCHAR * v)
 {
 	INT end = strlen((CHAR*)v) - 1;
 	INT start = 0;
@@ -528,7 +529,7 @@ UCHAR * xltoa(LONG v, OUT UCHAR * buf)
 		*str++ = '-';
 	}
 	*str = 0; //end of string
-	reverse_string(buf);
+	reverseString(buf);
 	return buf;
 }
 
@@ -677,7 +678,7 @@ void af2i(IN CHAR * f, OUT BYTE * buf, UINT buflen, bool is_double)
 
 //Compute the power of 2, return the result.
 //Note v must be power of 2.
-UINT get_power_of_2(ULONGLONG v)
+UINT getPowerOf2(ULONGLONG v)
 {
 	UINT n = 0;
 	while ((v & 1) == 0) {
@@ -689,7 +690,7 @@ UINT get_power_of_2(ULONGLONG v)
 
 
 //Compute the number of 1.
-UINT get_sparse_popcount(ULONGLONG v)
+UINT getSparsePopCount(ULONGLONG v)
 {
 	int n = 0;
 	while (v != 0) {
@@ -701,7 +702,7 @@ UINT get_sparse_popcount(ULONGLONG v)
 
 
 //Compute the number of 1.
-UINT get_lookup_popcount(ULONGLONG v)
+UINT getLookupPopCount(ULONGLONG v)
 {
 	BYTE * p = (BYTE*)&v;
 	return g_bit_count[p[0]] + g_bit_count[p[1]] +
@@ -933,7 +934,7 @@ CHAR * lower(CHAR * n)
 Get the index of the first '1' start at most right side.
 e.g: given m=0x8, the first '1' index is 3.
 */
-INT get_first_one_pos(INT m)
+INT getFirstOneAtRightSide(INT m)
 {
 	static const INT dbitpos[32] = {
 	  0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
@@ -954,7 +955,7 @@ bool is_integer(float f)
 	INT i = *(INT*)p;
 	INT m = i & 0x007FFFFF; //mantissa
 	INT n = ((i & 0x7F800000) >> 23) - 127; //number of exp
-	INT j = get_first_one_pos(m);
+	INT j = getFirstOneAtRightSide(m);
 	return 23 - j <= n;
 }
 
@@ -977,7 +978,7 @@ bool is_integerd(double d)
 }
 
 
-bool is_power_of_5(double f)
+bool isPowerOf5(double f)
 {
 	ASSERT0(f >= 0.0);
 	if (f == 0.0) { return false; }
@@ -1467,3 +1468,4 @@ OVER:
 	return buf;
 }
 
+} //namespace xcom

@@ -34,9 +34,11 @@ author: Su Zhenyu
 #ifndef __REGION_H__
 #define __REGION_H__
 
+class TargMach;
+
+namespace xoc {
 class IPA;
 class CfsMgr;
-class TargMach;
 class IR_DU_MGR;
 class IR_AA;
 class IR_EXPR_TAB;
@@ -835,4 +837,6 @@ public:
 	bool verifyIRinRegion();
 };
 //END Region
+
+} //namespace xoc
 #endif

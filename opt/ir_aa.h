@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_ALIAS_ANALYSIS_H_
 #define _IR_ALIAS_ANALYSIS_H_
 
+namespace xoc {
+
 class IR_CFG;
 
 //PtPair
@@ -426,7 +428,7 @@ public:
 
 	void clean();
 	void cleanPointTo(MD const* md, IN OUT MD2MDSet & ctx)
-	{ ctx.set(MD_id(md), NULL); }
+	{ ctx.setAlways(MD_id(md), NULL); }
 
 	void computeFlowSensitive(List<IRBB*> const& bbl);
 	void computeStmt(IRBB const* bb,
@@ -530,7 +532,7 @@ public:
 	{
 		ASSERT0(md && ptset);
 		ASSERT(m_mds_hash->find(*ptset), ("ptset should be in hash"));
-		ctx.set(MD_id(md), ptset);
+		ctx.setAlways(MD_id(md), ptset);
 	}
 
 	//Set pointer points to 'target'.
@@ -634,4 +636,6 @@ public:
 	bool verify();
 	bool perform(OptCTX & oc);
 };
+
+} //namespace xoc
 #endif

@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __CFS_OPT_H__
 #define __CFS_OPT_H__
 
+namespace xoc {
+
 class IR_CFS_OPT : public Pass {
 protected:
 	Region * m_ru;
@@ -62,4 +64,6 @@ public:
 	}
 	virtual bool perform(IN SimpCTX const& simp);
 };
+
+} //namespace xoc
 #endif

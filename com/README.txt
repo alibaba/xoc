@@ -1,4 +1,4 @@
-libcom.a is a concise and readable C++ template library.
+libxcom.a is a concise and readable C++ template library.
 
 The template library includes vector, list, stack, hash, map, bitset, graph, matrix,
 

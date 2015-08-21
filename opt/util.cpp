@@ -35,6 +35,9 @@ author: Su Zhenyu
 #include "comf.h"
 #include "smempool.h"
 #include "sstl.h"
+
+using namespace xcom;
+
 #include "errno.h"
 #include "util.h"
 

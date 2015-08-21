@@ -52,6 +52,9 @@ author: Su Zhenyu
 #include "../dex/dex_const_info.h"
 #include "../dex/dex_util.h"
 
+#elif defined(FOR_V8)
+#include "../v8/v8_const_info.h"
+
 #endif
 
 #endif

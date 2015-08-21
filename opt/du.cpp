@@ -33,6 +33,8 @@ author: Su Zhenyu
 @*/
 #include "cominc.h"
 
+namespace xoc {
+
 bool DUSet::verify_def(IR_DU_MGR * du) const
 {
 	CK_USE(du);
@@ -85,3 +87,5 @@ void DUSet::removeDef(IR const* stmt, DefMiscBitSetMgr & m)
 	ASSERT0(stmt && stmt->is_stmt());
 	diff(IR_id(stmt), m);
 }
+
+} //namespace xoc

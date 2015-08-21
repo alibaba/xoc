@@ -34,92 +34,62 @@ author: Su Zhenyu
 #include "../opt/cominc.h"
 #include "ex1.h"
 
-REGION_MGR * g_region_mgr = NULL;
-
-//
-//START CVAR
-//
-CHAR * CVAR::dump_var_decl(OUT CHAR * buf)
-{
-	return NULL;
-}
-//END CVAR
-
-
-//
-//START CVAR_MGR
-//
-VAR * CVAR_MGR::new_var()
-{
-	return new CVAR();
-}
-//END CVAR_MGR
-
-
-//
-//START DBG_MGR
-//
-/*
-Append src file line into dump file.
-Only print statement line.
-*/
-static LONG g_cur_lineno = 0;
-void CDBG_MGR::print_src_line(IR * ir)
-{
-	return;
-}
-//END DBG_MGR
-
-
-static UINT generate_region(REGION_MGR * rm)
+List<Region*> g_ru_list;
+static UINT generate_region(RegionMgr * rm)
 {
 	//Generate region for file.
-	REGION * topru = rm->new_region(RU_PROGRAM);
-	rm->register_region(topru);
-	topru->set_ru_var(rm->get_var_mgr()->register_var(
-													".file",
-													D_MC,
-													D_UNDEF,
-													0,
-													0,
-													0,
-													VAR_GLOBAL|VAR_FAKE));
+	Region * topru = rm->newRegion(RU_PROGRAM);
+	rm->registerRegion(topru);
+	topru->set_ru_var(rm->get_var_mgr()->registerVar(
+										".file",
+										rm->get_dm()->getMCType(0),
+										0,
+										VAR_GLOBAL|VAR_FAKE));
 
 	//-----------
 	//Generate region for func
-	IR * funcru = topru->build_region(RU_FUNC,
-								rm->get_var_mgr()->register_var(
-													".func.name",
-													D_MC,
-													D_UNDEF,
-													0,
-													0,
-													0,
-													VAR_GLOBAL|VAR_FAKE));
-	topru->add_to_ir_list(funcru);
+	Region * func_ru = rm->newRegion(RU_FUNC);
+	g_ru_list.append_tail(func_ru);
+	func_ru->set_ru_var(rm->get_var_mgr()->registerVar(
+										".func.name",
+										rm->get_dm()->getMCType(0),
+										0,
+										VAR_GLOBAL|VAR_FAKE));
+	IR * ir = topru->buildRegion(func_ru);
+	topru->addToIRlist(ir);
+
 	//----------
 	//For simply, only generate a return IR.
-	IR * r = IR_region(funcru)->build_return(NULL);
-	IR_region(funcru)->add_to_ir_list(r);
+	REGION_ru(ir)->addToIRlist(REGION_ru(ir)->buildReturn(NULL));
 	return ST_SUCC;
 }
 
 
 int main(int argc, char * argv[])
 {
-	g_dbg_mgr = new CDBG_MGR();
-	REGION_MGR * rm = new REGION_MGR();
-	rm->init_var_mgr();
+	g_dbg_mgr = new DbxMgr();
+	RegionMgr * rm = new RegionMgr();
+	rm->initVarMgr();
+
+	printf("\nGenerate region");
 
 	//Generate region.
 	generate_region(rm);
 
+	printf("\nProcess region");
+
 	//Compile region.
 	rm->process();
+
+	for (Region * ru = g_ru_list.get_head();
+		 ru != NULL; ru = g_ru_list.get_next()) {
+		delete ru;
+	}
 
 	delete rm;
 	delete g_dbg_mgr;
 	g_dbg_mgr = NULL;
+	printf("\nFinish\n");
 	return 0;
 }
 

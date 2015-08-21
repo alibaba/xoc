@@ -27,6 +27,9 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 @*/
 #ifndef __LPSOLF_H_
 #define __LPSOLF_H_
+
+namespace xcom {
+
 /* The file includes the following main components:
  * implementation of the linear programming solver.
  * implementation of the exact simplex based
@@ -2379,31 +2382,32 @@ bool MIP<Mat, T>::is_satisfying(OUT UINT & row,
 
 
 template <class Mat, class T>
-void MIP<Mat, T>::reviseTargetFunc(IN OUT Mat & tgtf,
-									 Mat const& eq,
-									 Mat const& leq,
-									 INT rhs_idx)
+void MIP<Mat, T>::reviseTargetFunc(
+		IN OUT Mat & tgtf,
+		Mat const& eq,
+		Mat const& leq,
+		INT rhs_idx)
 {
 	SIX<Mat, T> six;
 	six.reviseTargetFunc(tgtf, eq, leq, rhs_idx);
 }
 
 
-/* Recursive subroutine.
-'is_max': true refers to solve the maximum problem
-'is_bin': true refers to solve the binary(0-1) programming
-*/
+//Recursive subroutine.
+//'is_max': true refers to solve the maximum problem
+//'is_bin': true refers to solve the binary(0-1) programming
 template <class Mat, class T>
-UINT MIP<Mat, T>::RecusivePart(OUT T & v,
-							OUT Mat & sol,
-							Mat const& tgtf,
-							IN Mat & vc,
-							Mat const& eq,
-							Mat const& leq,
-							INT rhs_idx,
-							bool is_max,
-							bool is_bin,
-							IN INTMat & fork_count)
+UINT MIP<Mat, T>::RecusivePart(
+		OUT T & v,
+		OUT Mat & sol,
+		Mat const& tgtf,
+		IN Mat & vc,
+		Mat const& eq,
+		Mat const& leq,
+		INT rhs_idx,
+		bool is_max,
+		bool is_bin,
+		IN INTMat & fork_count)
 {
 	STATUS status;
 	SIX<Mat, T> six;
@@ -2623,7 +2627,7 @@ UINT MIP<Mat, T>::maxm(OUT T & maxv,
 	m_indent = 0;
 	INTMat fork_count(1, tgtf.get_col_size());
 	return RecusivePart(maxv, sol, tgtf, vc, eq, leq,
-					 rhs_idx, true, is_bin, fork_count);
+						rhs_idx, true, is_bin, fork_count);
 }
 
 
@@ -2670,4 +2674,6 @@ UINT MIP<Mat, T>::minm(OUT T & minv,
 	return RecusivePart(minv, sol, tgtf, vc, eq, leq,
 					 rhs_idx, false, is_bin, fork_count);
 }
+
+} //namespace xcom
 #endif

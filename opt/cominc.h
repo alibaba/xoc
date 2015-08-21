@@ -41,7 +41,7 @@ author: Su Zhenyu
 #include "string.h"
 #include "ltype.h"
 
-//Most general utilies for common used
+//libxcom
 #include "comf.h"
 #include "smempool.h"
 #include "sstl.h"
@@ -52,7 +52,9 @@ author: Su Zhenyu
 #include "rational.h"
 #include "flty.h"
 #include "xmat.h"
-//#include "lpsol.h"
+
+using namespace xcom;
+
 #include "option.h"
 #include "targ_const_info.h"
 #include "util.h"
@@ -83,4 +85,6 @@ author: Su Zhenyu
 #include "ir_du.h"
 #include "ir_aa.h"
 #include "ir_expr_tab.h"
+
+using namespace xoc;
 #endif

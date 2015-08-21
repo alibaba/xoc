@@ -145,7 +145,7 @@ public:
 		m_tr = tr;
 		m_ti = NULL;
 		m_pool = smpoolCreate(16, MEM_COMM);
-		m_pr2v.init(MAX(4, get_nearest_power_of_2(fu->maxVars)));
+		m_pr2v.init(MAX(4, getNearestPowerOf2(fu->maxVars)));
 		m_ptr_addend = m_dm->getSimplexType(D_U32);
 		m_ofst_addend = m_dm->get_dtype_bytesize(D_I64);
 		m_pr2v.maxreg = fu->maxVars - 1;

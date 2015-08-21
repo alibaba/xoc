@@ -38,6 +38,8 @@ author: Su Zhenyu
 #include "ir_gvn.h"
 #include "ir_rp.h"
 
+namespace xoc {
+
 class RefHashFunc {
 	IR_GVN * m_gvn;
 	ConstIRIter m_iter;
@@ -50,7 +52,7 @@ public:
 
 	UINT get_hash_value(IR * t, UINT bucket_size)
 	{
-		ASSERT0(bucket_size != 0 && is_power_of_2(bucket_size));
+		ASSERT0(bucket_size != 0 && isPowerOf2(bucket_size));
 		UINT hval = 0;
 		switch (IR_type(t)) {
 		case IR_LD:
@@ -197,9 +199,9 @@ public:
 };
 
 
-class RefTab : public SHash<IR*, RefHashFunc> {
+class RefTab : public Hash<IR*, RefHashFunc> {
 public:
-	RefTab(UINT bucksize) : SHash<IR*, RefHashFunc>(bucksize) {}
+	RefTab(UINT bucksize) : Hash<IR*, RefHashFunc>(bucksize) {}
 
 	void initMem(IR_GVN * gvn)
 	{ m_hf.initMem(gvn); }
@@ -1837,7 +1839,7 @@ bool IR_RP::promoteInexactAccess(
 
 	//Record a delegate to IR expressions which have same value in
 	//array base and subexpression.
-	RefTab delegate_tab(get_nearest_power_of_2(
+	RefTab delegate_tab(getNearestPowerOf2(
 					inexact_access.get_elem_count()));
 	delegate_tab.initMem(m_gvn);
 
@@ -2211,3 +2213,5 @@ bool IR_RP::perform(OptCTX & oc)
 	return change;
 }
 //END IR_RP
+
+} //namespace xoc

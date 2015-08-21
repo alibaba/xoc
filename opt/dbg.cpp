@@ -33,6 +33,8 @@ author: Su Zhenyu
 @*/
 #include "cominc.h"
 
+namespace xoc {
+
 DbxMgr * g_dbg_mgr = NULL;
 
 void set_lineno(IR * ir, UINT lineno, Region * ru)
@@ -106,3 +108,5 @@ Dbx * get_dbx(IR * ir)
 	if (da == NULL) { return NULL; }
 	return &da->dbx;
 }
+
+} //namespace xoc

@@ -41,8 +41,10 @@ author: Su Zhenyu
 #include "sgraph.h"
 #include "agraph.h"
 
+namespace xcom {
+
 //Build matrix to describe edge-weight.
-void AGRAPH::build_adj_matrix(Matrix<UINT> & adj_mat)
+void AGraph::buildAdjacentMatrix(Matrix<UINT> & adj_mat)
 {
 	UNUSED(adj_mat);
 	ASSERT(0, ("Target Dependent Code"));
@@ -53,11 +55,11 @@ void AGRAPH::build_adj_matrix(Matrix<UINT> & adj_mat)
 /* Nonrecursive algo to compute the shorest-path.
 See <Shortest_Path-Dijkstra.txt>
 'infinite': the value indiates infinity. */
-void AGRAPH::shortest_path(UINT infinite)
+void AGraph::ShortestPath(UINT infinite)
 {
 	ASSERT(m_ec_pool != NULL, ("not yet initialized."));
 	Matrix<UINT> adj_mat;
-	build_adj_matrix(adj_mat);
+	buildAdjacentMatrix(adj_mat);
 	UINT row = adj_mat.get_row_size();
 	UINT col = adj_mat.get_col_size();
 	UINT i,j,k,min,v1,v2;
@@ -87,7 +89,7 @@ void AGRAPH::shortest_path(UINT infinite)
 					}
 				}
 			}
-			ASSERT(min <= infinite, ("exception occur in shortest_path"));
+			ASSERT(min <= infinite, ("exception occur in ShortestPath"));
 			if (min != infinite) {
 				adj_mat.set(i, j, min);
 			}
@@ -95,3 +97,5 @@ void AGRAPH::shortest_path(UINT infinite)
 		}
 	}
 }
+
+} //namespace xcom

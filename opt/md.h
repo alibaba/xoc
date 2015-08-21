@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _MEM_DESC_H_
 #define _MEM_DESC_H_
 
+namespace xoc {
+
 class MDSystem;
 class Region;
 
@@ -1026,9 +1028,12 @@ bool MDSet::is_pr_set(MDSystem const* mdsys) const
 }
 
 
+typedef TMapIter<UINT, MDSet const*> MD2MDSetIter;
+
 //MD2MD_SET_MAP
 //Record MD->MDS relations.
-class MD2MDSet : public BSVec<MDSet const*> {
+//Note MD may mapped to NULL, means the MD does not point to anything.
+class MD2MDSet : public TMap<UINT, MDSet const*> {
 public:
 	~MD2MDSet()
 	{
@@ -1039,19 +1044,7 @@ public:
 	//Clean each MD->MDSet, but do not free MDSet.
 	//This function might be invoked during each iter
 	//in computing PT_SET in general.
-	void clean() { BSVec<MDSet const*>::clean(); }
-
-	UINT count_mem()
-	{
-		UINT count = 0;
-		for (INT i = get_first(); i >= 0; i = get_next((UINT)i)) {
-			MDSet const* mds = BSVec<MDSet const*>::get((UINT)i);
-			if (mds == NULL) { continue; }
-			count += mds->count_mem();
-		}
-		count += BSVec<MDSet const*>::count_mem();
-		return count;
-	}
+	void clean() { TMap<UINT, MDSet const*>::clean(); }
 
 	void dump(Region * ru);
 };
@@ -1076,4 +1069,6 @@ bool MDSet::is_overlap_ex(MD const* md, MDSystem const* mdsys) const
 
 	return false;
 }
+
+} //namespace xoc
 #endif

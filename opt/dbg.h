@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _DBG_H_
 #define _DBG_H_
 
+namespace xoc {
+
 class Region;
 //
 //START Dbx
@@ -53,7 +55,7 @@ public:
 class DbxMgr {
 public:
 	virtual ~DbxMgr() {}
-	virtual void print_src_line(IR const*) {}
+	virtual void printSrcLine(IR const*) {}
 };
 
 extern DbxMgr * g_dbg_mgr;
@@ -63,4 +65,6 @@ void copyDbx(IR * tgt, IR const* src, Region * ru);
 void set_lineno(IR * ir, UINT lineno, Region * ru);
 UINT get_lineno(IR const* ir);
 Dbx * get_dbx(IR * ir);
+
+} //namespace xoc
 #endif

@@ -34,10 +34,10 @@ author: Su Zhenyu
 #ifndef _IR_LCSE_H_
 #define _IR_LCSE_H_
 
-/*
-IR_LCSE
-Perform Local Common Subexpression Elimination.
-*/
+namespace xoc {
+
+//IR_LCSE
+//Perform Local Common Subexpression Elimination.
 class IR_LCSE : public Pass {
 protected:
 	bool m_enable_filter; //filter determines which expression can be CSE.
@@ -91,4 +91,6 @@ public:
 	inline void set_enable_filter(bool is_enable) { m_enable_filter = is_enable; }
 	bool perform(OptCTX & oc);
 };
+
+} //namespace xoc
 #endif

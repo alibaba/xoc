@@ -36,6 +36,8 @@ author: Su Zhenyu
 #ifndef _IR_GCSE_H_
 #define _IR_GCSE_H_
 
+namespace xoc {
+
 class TG : public DGraph {
 protected:
 	Region * m_ru;
@@ -131,5 +133,6 @@ public:
 
 	bool perform(OptCTX & oc);
 };
-#endif
 
+} //namespace xoc
+#endif

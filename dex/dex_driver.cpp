@@ -277,7 +277,7 @@ static bool handleRegion(IN DexRegion * func_ru,
 		return false;
 	}
 
-	Prno2UINT prno2v(get_nearest_power_of_2(
+	Prno2UINT prno2v(getNearestPowerOf2(
 			d2ir.get_pr2v_map()->get_elem_count() + 1));
 	//dump_irs(ir_list, func_ru->get_dm());
 	#if 0

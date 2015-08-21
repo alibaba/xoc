@@ -29,6 +29,8 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __LIN_SYS_H_
 #define __LIN_SYS_H_
 
+namespace xcom {
+
 //
 //START ZPoly
 //
@@ -150,4 +152,6 @@ public:
 	void dumps_var_bound(UINT u);
 
 };
+
+} //namespace xcom
 #endif

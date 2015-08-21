@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _CDG_H_
 #define _CDG_H_
 
+namespace xoc {
+
 class Region;
 
 //Control Dependence Graph
@@ -49,4 +51,6 @@ public:
 	void build(IN OUT OptCTX & oc, DGraph & cfg);
 	void rebuild(IN OUT OptCTX & oc, DGraph & cfg);
 };
+
+} //namespace xoc
 #endif

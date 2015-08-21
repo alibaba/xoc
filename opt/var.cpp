@@ -33,6 +33,8 @@ author: Su Zhenyu
 @*/
 #include "cominc.h"
 
+namespace xoc {
+
 VarMgr::VarMgr(RegionMgr * rm)
 {
 	ASSERT0(rm);
@@ -171,7 +173,7 @@ CHAR * VAR::dump(CHAR * buf, TypeMgr * dm)
 
 	strcat(buf, ",decl:'");
 	buf += strlen(buf);
-	dump_var_decl(buf, 40);
+	dumpVARDecl(buf, 40);
 	strcat(buf, "'");
 
 	#ifdef _DEBUG_
@@ -319,3 +321,4 @@ void VarMgr::dump(CHAR * name)
 }
 //END VarMgr
 
+} //namespace xoc

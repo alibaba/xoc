@@ -34,6 +34,8 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "comopt.h"
 
+namespace xoc {
+
 /* Perform high-level optimizaitions.
 Basis step to do:
 	1. Build control flow graph.
@@ -147,3 +149,5 @@ bool Region::HighProcess(OptCTX & oc)
 	*/
 	return true;
 }
+
+} //namespace xoc

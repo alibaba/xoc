@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_DU_
 #define	_IR_DU_
 
+namespace xoc {
+
 /* Util Functions supplied by IR_DU_MGR
 * These functions manipulate the reference of IR.
   IR may reference MD, or MDSet, or both MD and MDSet.
@@ -798,4 +800,6 @@ public:
 							 SOL_REF|
 							 SOL_RU_REF);
 };
+
+} //namespace xoc
 #endif

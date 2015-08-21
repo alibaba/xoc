@@ -34,6 +34,8 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "comopt.h"
 
+namespace xoc {
+
 //
 //START AnalysisInstrument
 //
@@ -81,6 +83,11 @@ static void destroyVARandMD(Region * ru, AnalysisInstrument * anainstr)
 
 AnalysisInstrument::~AnalysisInstrument()
 {
+	#if defined(_DEBUG_) && defined(DEBUG_SEG)
+	DefSegMgr * segmgr = m_sbs_mgr.get_seg_mgr();
+	dumpSegMgr(segmgr, g_tfile);
+	#endif
+
 	if (m_ir_cfg != NULL) {
 		delete m_ir_cfg;
 		m_ir_cfg = NULL;
@@ -2359,7 +2366,7 @@ IR_CFG * Region::initCfg(OptCTX & oc)
 {
 	ASSERT0(REGION_analysis_instrument(this));
 	if (get_cfg() == NULL) {
-		UINT n = MAX(8, get_nearest_power_of_2(get_bb_list()->get_elem_count()));
+		UINT n = MAX(8, getNearestPowerOf2(get_bb_list()->get_elem_count()));
 		REGION_analysis_instrument(this)->m_ir_cfg = new IR_CFG(C_SEME, get_bb_list(), this, n, n);
 		IR_CFG * cfg = REGION_analysis_instrument(this)->m_ir_cfg;
 		//cfg->removeEmptyBB();
@@ -2579,7 +2586,7 @@ void Region::dumpVARInRegion(INT indent)
 	fprintf(g_tfile, "\nREGION:%s:", get_ru_name());
 	CHAR buf[8192]; //Is it too large?
 	buf[0] = 0;
-	m_var->dump_var_decl(buf, 100);
+	m_var->dumpVARDecl(buf, 100);
 
 	//Dump formal parameter list.
 	if (REGION_type(this) == RU_FUNC) {
@@ -3083,7 +3090,7 @@ void RegionMgr::process()
 
 		OC_is_callg_valid(oc) = true;
 
-		INLINER inl(this);
+		Inliner inl(this);
 		inl.perform(oc);
 	}
 
@@ -3115,3 +3122,5 @@ void RegionMgr::process()
 	}
 }
 //END RegionMgr
+
+} //namespace xoc

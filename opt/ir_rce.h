@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_RCE_H_
 #define _IR_RCE_H_
 
+namespace xoc {
+
 //Perform Redundant Code Elimination.
 class IR_RCE : public Pass {
 protected:
@@ -77,5 +79,6 @@ public:
 	bool performSimplyRCE(IN OUT bool & cfg_mod);
 	virtual bool perform(OptCTX & oc);
 };
-#endif
 
+} //namespace xoc
+#endif

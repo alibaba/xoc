@@ -35,6 +35,8 @@ author: Su Zhenyu
 #include "comf.h"
 #include "rational.h"
 
+namespace xcom {
+
 #define REDUCE
 #define abs(x) ((x) >= 0 ? (x) : -(x))
 
@@ -392,3 +394,5 @@ Rational operator + (Rational const& a, Rational const& b)
 	rat.m_den = (FRAC_TYPE)rden;
 	return rat;
 }
+
+} //namespace xcom

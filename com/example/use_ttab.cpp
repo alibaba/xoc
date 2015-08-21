@@ -3,6 +3,7 @@
 #include "comf.h"
 #include "smempool.h"
 #include "sstl.h"
+using namespace xcom;
 class CompareString {
 public:
 	bool is_equ(char const* s1, char const* s2) const

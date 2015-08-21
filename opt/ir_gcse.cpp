@@ -38,6 +38,8 @@ author: Su Zhenyu
 #include "ir_ssa.h"
 #include "ir_gcse.h"
 
+namespace xoc {
+
 //#define DEBUG_GCSE
 #ifdef DEBUG_GCSE
 static INT g_num_of_elim = 0;
@@ -777,3 +779,5 @@ bool IR_GCSE::perform(OptCTX & oc)
 	return change;
 }
 //END IR_GCSE
+
+} //namespace xoc

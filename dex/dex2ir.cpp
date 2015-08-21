@@ -1854,8 +1854,10 @@ void Dex2IR::markLabel()
 
 				ASSERT0(each_catch->handler_pc < (UInt32)LIRC_num_of_op(m_fu));
 				LIR * x = LIRC_op(m_fu, each_catch->handler_pc);
-				ASSERT(LIR_opcode(x) == LOP_MOVE_EXCEPTION,
-						("LIR at catch start must be move_exception"));
+
+                //CASE: it is not always true. Apk may be messed up.
+                //ASSERT(LIR_opcode(x) == LOP_MOVE_EXCEPTION,
+                //		 ("LIR at catch start must be move_exception"));
 
 				LabelInfo * lab = NULL;
 				lst = m_lir2labs.get(x);

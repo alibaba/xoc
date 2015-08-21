@@ -39,6 +39,8 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "linsys.h"
 #include "lpsol.h"
 
+namespace xcom {
+
 //Map from  unknowns of system of inequality to their max/min vaule.
 typedef Vector<Vector<INT>*> VECOFVECINT; //int vec of vec
 class X2V_MAP {
@@ -1898,3 +1900,5 @@ void Lineq::PolyImage(OUT RMat & res, IN RMat & a, UINT rhs_idx)
 	ASSERT0(0);
 }
 //END Lineq
+
+} //namespace xcom

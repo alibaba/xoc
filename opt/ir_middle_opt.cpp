@@ -34,6 +34,8 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "comopt.h"
 
+namespace xoc {
+
 void Region::lowerIRTreeToLowestHeight(OptCTX & oc)
 {
 	SimpCTX simp;
@@ -132,3 +134,5 @@ bool Region::MiddleProcess(OptCTX & oc)
 	passmgr->performScalarOpt(oc);
 	return true;
 }
+
+} //namespace xoc

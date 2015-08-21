@@ -101,7 +101,7 @@ static inline DIROpcode getOpcodeFromCodeUnit(UInt16 codeUnit)
     if (codeUnit == 0x100)
         return 227;
     if (codeUnit == 0x200)
-        return 228; 
+        return 228;
     if (lowByte != 0xff) {
         return (DIROpcode) lowByte;
     } else {
@@ -174,7 +174,7 @@ void genInstruction(
 
             result = (LIRBaseOp*)lir;
             break;
-        } 
+        }
         case lirFmtV:
         {
             LIRBaseOp* lir =  (LIRBaseOp*)LIRMALLOC(sizeof(LIRBaseOp));
@@ -469,7 +469,7 @@ END:
                     UInt16* data = codePtr;
                     UInt32 size = data[1];
                     width = size * 4 + 2;
-                    break;                
+                    break;
                 }
                 default:
                     abort();
@@ -702,7 +702,7 @@ bool d2rMethod(D2Dpool* pool, DexFile* pDexFile, const DexMethod* pDexMethod)
                     UInt16* data = codePtr;
                     UInt32 size = data[1];
                     width = size * 4 + 2;
-                    break;                
+                    break;
                 }
                 default:
                     abort();

@@ -36,6 +36,8 @@ author: Su Zhenyu
 #include "prssainfo.h"
 #include "ir_ssa.h"
 
+namespace xoc {
+
 //
 //START IRBB
 //
@@ -315,3 +317,5 @@ void dumpBBList(BBList * bbl, Region * ru, CHAR const* name)
 	}
 	g_tfile = org_g_tfile;
 }
+
+} //namespace xoc

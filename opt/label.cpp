@@ -35,9 +35,14 @@ author: Su Zhenyu
 #include "comf.h"
 #include "smempool.h"
 #include "sstl.h"
+
+using namespace xcom;
+
 #include "util.h"
 #include "symtab.h"
 #include "label.h"
+
+namespace xoc {
 
 LabelInfo * newCustomerLabel(SYM * st, SMemPool * pool)
 {
@@ -99,3 +104,5 @@ void dumpLabel(LabelInfo const* li)
 	}
 	fflush(g_tfile);
 }
+
+} //namespace xoc

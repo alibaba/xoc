@@ -35,6 +35,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "matt.h"
 #include "xmat.h"
 
+namespace xcom {
 
 Matrix<Rational> operator * (Matrix<Rational> const& a,
 							 Matrix<Rational> const& b)
@@ -1698,3 +1699,5 @@ BMAT& BMAT::operator = (BMAT const& m)
 	((Matrix<bool>*)this)->copy(*((Matrix<bool>*)&m));
 	return *this;
 }
+
+} //namespace xcom

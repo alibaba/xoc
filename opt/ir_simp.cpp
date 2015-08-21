@@ -34,6 +34,8 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "cfs_mgr.h"
 
+namespace xoc {
+
 bool Region::is_lowest_heigh_exp(IR const* ir) const
 {
 	ASSERT0(ir->is_exp());
@@ -2108,3 +2110,5 @@ void Region::simplifyBBlist(BBList * bbl, SimpCTX * ctx)
 	}
 	END_TIMER();
 }
+
+} //namespace xoc

@@ -36,6 +36,8 @@ author: Su Zhenyu
 #include "flty.h"
 #include "math.h"
 
+namespace xcom {
+
 bool operator == (Float const& a, Float const& b)
 {
 	PRECISION_TYPE av = a.m_f;
@@ -198,3 +200,4 @@ bool Float::is_int()
 	return false;
 }
 
+} //namespace xcom

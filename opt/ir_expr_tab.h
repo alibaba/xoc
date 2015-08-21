@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_EXPR_TAB_
 #define	_IR_EXPR_TAB_
 
+namespace xoc {
+
 #define EXPR_id(i)					(i)->id
 #define EXPR_ir(i)					(i)->ir
 #define EXPR_next(i)				(i)->next
@@ -124,4 +126,6 @@ public:
 
 	virtual bool perform(IN OUT OptCTX & oc);
 };
+
+} //namespace xoc
 #endif

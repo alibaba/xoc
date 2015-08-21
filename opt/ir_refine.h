@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_REFINE_H_
 #define _IR_REFINE_H_
 
+namespace xoc {
+
 //Refine operation context variable.
 //Set the following option true or false to enable or disable the refinement.
 #define RC_refine_div_const(r)		((r).u1.s1.refine_div_const)
@@ -96,4 +98,5 @@ public:
 	}
 };
 
+} //namespace xoc
 #endif

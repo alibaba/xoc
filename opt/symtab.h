@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __SYMTAB_H__
 #define __SYMTAB_H__
 
+namespace xoc {
+
 //Record a variety of symbols such as user defined variables,
 //compiler internal variables, LABEL, ID, TYPE_NAME etc.
 #define SYM_name(sym)			((sym)->s)
@@ -58,7 +60,7 @@ public:
 
 	UINT get_hash_value(SYM const* s, UINT bs) const
 	{
-		ASSERT0(is_power_of_2(bs));
+		ASSERT0(isPowerOf2(bs));
 		UINT v = computeCharSum(SYM_name(s));
 		return hash32bit(v) & (bs - 1);
 	}
@@ -68,7 +70,7 @@ public:
 	{
 		ASSERT(sizeof(OBJTY) == sizeof(CHAR const*),
 				("exception will taken place in type-cast"));
-		ASSERT0(is_power_of_2(bs));
+		ASSERT0(isPowerOf2(bs));
 		UINT n = computeCharSum((CHAR const*)v);
 		return hash32bit(n) & (bs - 1);
 	}
@@ -100,7 +102,7 @@ public:
 
 	UINT get_hash_value(SYM * s, UINT bs) const
 	{
-		ASSERT0(is_power_of_2(bs));
+		ASSERT0(isPowerOf2(bs));
 		UINT v = computeCharSum(SYM_name(s));
 		return hash32bit(v) & (bs - 1);
 	}
@@ -110,7 +112,7 @@ public:
 	{
 		ASSERT(sizeof(OBJTY) == sizeof(CHAR*),
 				("exception will taken place in type-cast"));
-		ASSERT0(is_power_of_2(bs));
+		ASSERT0(isPowerOf2(bs));
 		UINT n = computeCharSum((CHAR*)v);
 		return hash32bit(n) & (bs - 1);
 	}
@@ -127,10 +129,10 @@ public:
 };
 
 
-class SymTab : public SHash<SYM*, SymbolHashFunc> {
+class SymTab : public Hash<SYM*, SymbolHashFunc> {
 	SMemPool * m_pool;
 public:
-	explicit SymTab(UINT bsize) : SHash<SYM*, SymbolHashFunc>(bsize)
+	explicit SymTab(UINT bsize) : Hash<SYM*, SymbolHashFunc>(bsize)
 	{ m_pool = smpoolCreate(64, MEM_COMM); }
 	virtual ~SymTab()
 	{ smpoolDelete(m_pool); }
@@ -156,14 +158,16 @@ public:
 
 	inline SYM * add(CHAR const* s)
 	{
-		UINT sz = SHash<SYM*, SymbolHashFunc>::get_bucket_size() * 4;
-		if (sz < SHash<SYM*, SymbolHashFunc>::get_elem_count()) {
-			SHash<SYM*, SymbolHashFunc>::grow(sz);
+		UINT sz = Hash<SYM*, SymbolHashFunc>::get_bucket_size() * 4;
+		if (sz < Hash<SYM*, SymbolHashFunc>::get_elem_count()) {
+			Hash<SYM*, SymbolHashFunc>::grow(sz);
 		}
-		return SHash<SYM*, SymbolHashFunc>::append((OBJTY)s);
+		return Hash<SYM*, SymbolHashFunc>::append((OBJTY)s);
 	}
 
 	inline SYM * get(CHAR const* s)
-	{ return SHash<SYM*, SymbolHashFunc>::find((OBJTY)s); }
+	{ return Hash<SYM*, SymbolHashFunc>::find((OBJTY)s); }
 };
+
+} //namespace xoc
 #endif

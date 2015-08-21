@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __PRDF_H__
 #define __PRDF_H__
 
+namespace xoc {
+
 //Map between VAR and PRno.
 class VAR2PR : public TMap<VAR const*, UINT, CompareConstVar> {
 };
@@ -213,4 +215,6 @@ public:
 
 	virtual bool perform(OptCTX & oc);
 };
+
+} //namespace xoc
 #endif

@@ -37,6 +37,8 @@ author: Su Zhenyu
 #include "ir_ssa.h"
 #include "ir_gvn.h"
 
+namespace xoc {
+
 //
 //START IR_GVN
 //
@@ -65,7 +67,7 @@ IR_GVN::IR_GVN(Region * ru)
 	for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
 		n += bb->getNumOfIR();
 	}
-	m_stmt2domdef.init(MAX(4, get_nearest_power_of_2(n/2)));
+	m_stmt2domdef.init(MAX(4, getNearestPowerOf2(n/2)));
 	m_pool = smpoolCreate(sizeof(VN) * 4, MEM_COMM);
 }
 
@@ -1479,3 +1481,5 @@ bool IR_GVN::perform(OptCTX & oc)
 	return true;
 }
 //END IR_GVN
+
+} //namespace xoc

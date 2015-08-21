@@ -34,6 +34,8 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "cfs_opt.h"
 
+namespace xoc {
+
 /* If the IF has a nested IF in the ELSE part with identical THEN stmt:
 	IF (A) {
 	  S1;
@@ -574,3 +576,5 @@ bool IR_CFS_OPT::perform(IN SimpCTX const& sc)
 	}
 	return change;
 }
+
+} //namespace xoc

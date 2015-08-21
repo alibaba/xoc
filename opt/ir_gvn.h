@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_GVN_H_
 #define _IR_GVN_H_
 
+namespace xoc {
+
 typedef enum _VN_TYPE {
 	VN_UNKNOWN = 0,
 	VN_OP,
@@ -199,7 +201,7 @@ public:
 	UINT get_hash_value(VNE_SC * x, UINT bucket_size) const
 	{
 		UINT n = (x->mdid << 20) | (x->ofst << 10) | x->sz;
-		ASSERT0(is_power_of_2(bucket_size));
+		ASSERT0(isPowerOf2(bucket_size));
 		return hash32bit(n) & (bucket_size - 1);
 	}
 
@@ -254,7 +256,7 @@ public:
 	UINT get_hash_value(VNE_ILD * x, UINT bucket_size) const
 	{
 		UINT n = (x->base_vn_id << 20) | (x->ofst << 10) | x->sz;
-		ASSERT0(is_power_of_2(bucket_size));
+		ASSERT0(isPowerOf2(bucket_size));
 		return hash32bit(n) & (bucket_size - 1);
 	}
 
@@ -356,7 +358,7 @@ public:
 	{
 		UINT n = (x->base_vn_id << 24) | (x->ofst_vn_id << 16) |
 				 (x->ofst << 8) | x->sz;
-		ASSERT0(is_power_of_2(bucket_size));
+		ASSERT0(isPowerOf2(bucket_size));
 		return hash32bit(n) & (bucket_size - 1);
 	}
 
@@ -563,4 +565,6 @@ public:
 	bool verify();
 	virtual bool perform(OptCTX & oc);
 };
+
+} //namespace xoc
 #endif

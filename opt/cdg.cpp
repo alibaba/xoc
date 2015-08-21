@@ -33,6 +33,8 @@ author: Su Zhenyu
 @*/
 #include "cominc.h"
 
+namespace xoc {
+
 //
 //START CDG
 //
@@ -191,3 +193,5 @@ void CDG::build(IN OUT OptCTX & oc, DGraph & cfg)
 	END_TIMER();
 }
 //END CDG
+
+} //namespace xoc

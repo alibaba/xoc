@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __IR_H__
 #define __IR_H__
 
+namespace xoc {
+
 class SimpCTX;
 class IRBB;
 class DU;
@@ -179,7 +181,7 @@ public:
 };
 
 
-typedef SHash<IR*> IRAddressHash;
+typedef Hash<IR*> IRAddressHash;
 
 #ifdef _DEBUG_
 INT checkKidNumValid(IR const* ir, UINT n, CHAR const* file, INT lineno);
@@ -246,8 +248,6 @@ extern IRDesc const g_ir_desc[];
 #define CKID_BIN(ir, n)			CK_KID_NUM_BIN(ir, n, __FILE__, __LINE__)
 #define CKID_CALL(ir, n)		CK_KID_NUM_CALL(ir, n, __FILE__, __LINE__)
 #define CKID_ARR(ir, n)			CK_KID_NUM_ARR(ir, n, __FILE__, __LINE__)
-
-
 
 //Used by all IR.
 #define IRNAME(ir)				(IRDES_name(g_ir_desc[IR_type(ir)]))
@@ -937,7 +937,7 @@ public:
 			if (kid == NULL) { continue; }
 			for (IR * x = kid; x != NULL; x = IR_next(x)) {
 				if (x == oldk) {
-					::replace(&kid, oldk, newk);
+					xcom::replace(&kid, oldk, newk);
 					if (IR_prev(newk) == NULL) {
 						//oldk is the header, and update the kid i.
 						set_kid(i, kid);
@@ -1735,8 +1735,8 @@ public:
 
 	inline void removeOpnd(IR * opnd)
 	{
-		ASSERT0(in_list(PHI_opnd_list(this), opnd));
-		remove(&PHI_opnd_list(this), opnd);
+		ASSERT0(xcom::in_list(PHI_opnd_list(this), opnd));
+		xcom::remove(&PHI_opnd_list(this), opnd);
 	}
 
 	//Add opnd to the tail of operand list.
@@ -1744,8 +1744,8 @@ public:
 	//of BB that current phi located in.
 	inline void addOpnd(IR * opnd)
 	{
-		ASSERT0(!in_list(PHI_opnd_list(this), opnd));
-		add_next(&PHI_opnd_list(this), opnd);
+		ASSERT0(!xcom::in_list(PHI_opnd_list(this), opnd));
+		xcom::add_next(&PHI_opnd_list(this), opnd);
 		IR_parent(opnd) = this;
 	}
 };
@@ -2705,4 +2705,6 @@ inline IR_TYPE invertIRType(IR_TYPE src)
 
 void setParentPointerForIRList(IR * ir_list);
 UINT getArithPrecedence(IR_TYPE ty);
+
+} //namespace xoc
 #endif

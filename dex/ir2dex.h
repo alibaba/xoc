@@ -117,7 +117,7 @@ public:
 		ASSERT0(m_org_pr2v);
 		m_var2blt = m_d2ir->get_var2blt_map();
 		m_var2ofst = m_d2ir->get_var2ofst_map();
-		m_lab2idx.init(get_nearest_power_of_2(
+		m_lab2idx.init(getNearestPowerOf2(
 						MAX(4, ru->get_bb_list()->get_elem_count())));
 		m_pool = smpoolCreate(16, MEM_COMM);
 	}

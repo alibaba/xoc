@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_BB_H_
 #define _IR_BB_H_
 
+namespace xoc {
+
 class IRBB;
 
 //
@@ -429,7 +431,8 @@ public:
 };
 //END IRBBMgr
 
-
 //Exported Functions
 extern void dumpBBList(BBList * bbl, Region * ru, CHAR const* name = NULL);
+
+} //namespace xoc
 #endif
