@@ -944,6 +944,8 @@ static void fixAndCopyMapItemOffset(DexFile* pDexFile, D2Dpool* pool) {
                break;
            case kDexTypeClassDataItem:
                item->offset = pool->classDataOffset;
+               // fix size to be identical to class data size writen in WriteCodeItem.
+               item->size = pDexFile->pHeader->classDefsSize;
                break;
            case kDexTypeCodeItem:
                item->offset = pool->codeItemOff;
