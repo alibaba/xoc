@@ -34,6 +34,8 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "cfs_mgr.h"
 
+namespace xoc {
+
 //
 //START CfsMgr
 //
@@ -338,3 +340,5 @@ AbsNode * CfsMgr::construct_abstract_cfs()
 	return a;
 }
 //END CfsMgr
+
+} //namespace xoc

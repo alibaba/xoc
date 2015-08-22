@@ -34,6 +34,9 @@ author: Su Zhenyu
 #ifndef _GOTO_OPT_H_
 #define _GOTO_OPT_H_
 
+namespace xoc {
+
 bool goto_opt(IR_CFG * cfg, IRBB * bb);
 
+} //namespace xoc
 #endif

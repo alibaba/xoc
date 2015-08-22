@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IF_OPT_H_
 #define _IF_OPT_H_
 
+namespace xoc {
+
 /*
 1.  This moves certain 'if' nodes up in the code under
     some cirumstances that can allow the test for the if
@@ -109,4 +111,6 @@ typedef enum  {
 	SIMP_IF_ELSE_TYPE,
 
 } IF_TYPE;
+
+} //namespace xoc
 #endif

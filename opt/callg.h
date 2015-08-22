@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _CALLG_H_
 #define _CALLG_H_
 
+namespace xoc {
+
 //CALL NODE
 #define CN_id(c)		((c)->id)
 #define CN_sym(c)		((c)->ru_name)
@@ -128,4 +130,6 @@ public:
 		Graph::erase();
 	}
 };
+
+} //namespace xoc
 #endif

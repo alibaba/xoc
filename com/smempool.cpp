@@ -41,13 +41,14 @@ author: Su Zhenyu
 #define BOUNDARY_NUM 	0xAA
 #define END_BOUND_BYTE 	4
 
+using namespace xcom;
 
-class MEMPOOL_HASH : public SHash<SMemPool*> {
+class MEMPOOL_HASH : public Hash<SMemPool*> {
 public:
 #ifdef _VC6_
-	MEMPOOL_HASH():SHash<SMemPool*>(1024){}
+	MEMPOOL_HASH():Hash<SMemPool*>(1024){}
 #else
-	MEMPOOL_HASH():SHash<SMemPool*>::SHash(1024){}
+	MEMPOOL_HASH():Hash<SMemPool*>::Hash(1024){}
 #endif
 	~MEMPOOL_HASH(){}
 };

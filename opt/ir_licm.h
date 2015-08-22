@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_LICM_H_
 #define _IR_LICM_H_
 
+namespace xoc {
+
 //Loop Invariant code Motion.
 class IR_LICM : public Pass {
 protected:
@@ -127,4 +129,6 @@ public:
 
 	virtual bool perform(OptCTX & oc);
 };
+
+} //namespace xoc
 #endif

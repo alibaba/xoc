@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __LABEL_H__
 #define __LABEL_H__
 
+namespace xoc {
+
 typedef enum {
 	L_UNDEF = 0,
 	L_CLABEL, //customer defined label
@@ -163,4 +165,6 @@ public:
 	bool compare(LabelInfo const* li1, LabelInfo const* li2) const
 	{ return isSameLabel(li1, li2); }
 };
+
+} //namespace xoc
 #endif

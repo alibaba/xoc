@@ -29,7 +29,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SPARSE_BITSET_H__
 #define __SPARSE_BITSET_H__
 
+namespace xcom {
+
+#ifdef _DEBUG_
 #define DEBUG_SEG
+#endif
 #define BITS_PER_SEG	512
 
 class BitSet;
@@ -100,7 +104,6 @@ public:
 //Note this class only handle Default SEG.
 template <UINT BitsPerSeg = BITS_PER_SEG>
 class SegMgr {
-
 #ifdef _DEBUG_
 public:
 	UINT seg_count;
@@ -128,10 +131,6 @@ public:
 	{
 		#ifdef _DEBUG_
 		UINT n = m_free_list.get_elem_count();
-
-		#ifdef DEBUG_SEG
-		dumpSegMgr(this);
-		#endif
 
 		ASSERT(seg_count == n, ("MemLeak! There still are SEGs not freed"));
 		#endif
@@ -941,4 +940,6 @@ typedef MiscBitSetMgr<> DefMiscBitSetMgr;
 
 //If you want to use different size SEG, then declare the new iter.
 typedef SC<DefSEG*> SEGIter; //Default SEG iter.
+
+} //namespace xcom
 #endif

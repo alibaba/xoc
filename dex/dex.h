@@ -35,7 +35,7 @@ author: Su Zhenyu
 #define _DEX_H_
 
 #ifdef _ENABLE_LOG_
-#define LOG LOGE
+#define LOG ALOGE
 #else
 #define LOG
 #endif

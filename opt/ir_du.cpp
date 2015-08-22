@@ -37,6 +37,8 @@ author: Su Zhenyu
 #include "prssainfo.h"
 #include "ir_ssa.h"
 
+namespace xoc {
+
 //Set the interal data attribute to no sparse
 //if you think the analysis objects are few enough,
 //and no-sparse set may speed up compilation.
@@ -5400,3 +5402,5 @@ void IR_DU_MGR::computeMDDUChain(IN OUT OptCTX & oc)
 	END_TIMER();
 }
 //END IR_DU_MGR
+
+} //namespace xoc

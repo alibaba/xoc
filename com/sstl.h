@@ -34,6 +34,34 @@ author: Su Zhenyu
 #ifndef __SSTL_H__
 #define __SSTL_H__
 
+namespace xcom {
+template <class T> class allocator {
+public:
+	allocator() throw() {}
+	allocator (allocator const& alloc) throw() {}
+	template <class U> allocator (allocator<U> const& alloc) throw() {}
+	~allocator() {}
+};
+} //namespace xcom
+
+
+template <class T>
+void * operator new(size_t size, xcom::allocator<T> * pool)
+{
+	UNUSED(pool);
+	return ::operator new(size);
+}
+
+
+template <class T>
+void operator delete(void * ptr, xcom::allocator<T> * pool)
+{
+	UNUSED(pool);
+	::operator delete(ptr);
+}
+
+namespace xcom {
+
 #define NO_BASIC_MAT_DUMP //Default option
 #define MAX_SHASH_BUCKET 97 //Default option
 
@@ -132,12 +160,34 @@ inline void add_next(IN OUT T ** pheader, IN OUT T ** last, IN T * t)
 
 
 template <class T>
+inline void remove(T ** pheader, T * t)
+{
+	if (pheader == NULL || t == NULL) { return; }
+	if (t == *pheader) {
+		*pheader = t->next;
+		if (*pheader != NULL) {
+			(*pheader)->prev = NULL;
+		}
+		t->next = t->prev = NULL;
+		return;
+	}
+
+	ASSERT(t->prev, ("t is not in list"));
+	t->prev->next = t->next;
+	if (t->next != NULL) {
+		t->next->prev = t->prev;
+	}
+	t->next = t->prev = NULL;
+}
+
+
+template <class T>
 inline void replace(T ** pheader, T * olds, T * news)
 {
 	if (pheader == NULL || olds == NULL) return;
 	if (olds == news) { return; }
 	if (news == NULL) {
-		remove(pheader, olds);
+		xcom::remove(pheader, olds);
 		return;
 	}
 
@@ -191,28 +241,6 @@ inline T * removetail(T ** pheader)
 	while (t->next != NULL) { t = t->next; }
 	remove(pheader, t);
 	return t;
-}
-
-
-template <class T>
-inline void remove(T ** pheader, T * t)
-{
-	if (pheader == NULL || t == NULL) { return; }
-	if (t == *pheader) {
-		*pheader = t->next;
-		if (*pheader != NULL) {
-			(*pheader)->prev = NULL;
-		}
-		t->next = t->prev = NULL;
-		return;
-	}
-
-	ASSERT(t->prev, ("t is not in list"));
-	t->prev->next = t->next;
-	if (t->next != NULL) {
-		t->next->prev = t->prev;
-	}
-	t->next = t->prev = NULL;
 }
 
 
@@ -457,31 +485,6 @@ public:
 	}
 };
 //END FreeList
-
-template <class T> class allocator {
-public:
-	allocator() throw() {}
-	allocator (allocator const& alloc) throw() {}
-	template <class U> allocator (allocator<U> const& alloc) throw() {}
-	~allocator() {}
-};
-
-
-template <class T>
-void * operator new(size_t size, allocator<T> * pool)
-{
-	UNUSED(pool);
-	return ::operator new(size);
-}
-
-
-template <class T>
-void operator delete(void * ptr, allocator<T> * pool)
-{
-	UNUSED(pool);
-	::operator delete(ptr);
-}
-
 
 /* Dual Linked List.
 NOTICE:
@@ -2164,14 +2167,14 @@ public:
 	C<T> * append_tail(T t)
 	{
 		C<T> * c = List<T>::append_tail(t);
-		m_typename2holder.aset(t, c);
+		m_typename2holder.setAlways(t, c);
 		return c;
 	}
 
 	C<T> * append_head(T t)
 	{
 		C<T> * c = List<T>::append_head(t);
-		m_typename2holder.aset(t, c);
+		m_typename2holder.setAlways(t, c);
 		return c;
 	}
 
@@ -2182,7 +2185,7 @@ public:
 		for (T t = list.get_head(); i < list.get_elem_count();
 			 i++, t = list.get_next()) {
 			c = List<T>::append_tail(t);
-			m_typename2holder.aset(t, c);
+			m_typename2holder.setAlways(t, c);
 		}
 	}
 
@@ -2193,7 +2196,7 @@ public:
 		for (T t = list.get_tail(); i < list.get_elem_count();
 			 i++, t = list.get_prev()) {
 			c = List<T>::append_head(t);
-			m_typename2holder.aset(t, c);
+			m_typename2holder.setAlways(t, c);
 		}
 	}
 
@@ -2204,7 +2207,7 @@ public:
 			return T(0);
 		}
 		T tt = List<T>::remove(c);
-		m_typename2holder.aset(t, NULL);
+		m_typename2holder.setAlways(t, NULL);
 		return tt;
 	}
 
@@ -2212,21 +2215,21 @@ public:
 	{
 		ASSERT0(m_typename2holder.get(C_val(holder)) == holder);
 		T t = List<T>::remove(holder);
-		m_typename2holder.aset(t, NULL);
+		m_typename2holder.setAlways(t, NULL);
 		return t;
 	}
 
 	T remove_tail()
 	{
 		T t = List<T>::remove_tail();
-		m_typename2holder.aset(t, NULL);
+		m_typename2holder.setAlways(t, NULL);
 		return t;
 	}
 
 	T remove_head()
 	{
 		T t = List<T>::remove_head();
-		m_typename2holder.aset(t, NULL);
+		m_typename2holder.setAlways(t, NULL);
 		return t;
 	}
 
@@ -2237,11 +2240,11 @@ public:
 		if (marker_holder == NULL) {
 			ASSERT0(List<T>::get_elem_count() == 0);
 			C<T> * t_holder = List<T>::append_head(t);
-			m_typename2holder.aset(t, t_holder);
+			m_typename2holder.setAlways(t, t_holder);
 			return t_holder;
 		}
 		C<T> * t_holder = List<T>::insert_before(t, marker_holder);
-		m_typename2holder.aset(t, t_holder);
+		m_typename2holder.setAlways(t, t_holder);
 		return t_holder;
 	}
 
@@ -2251,7 +2254,7 @@ public:
 	{
 		ASSERT0(marker && m_typename2holder.get(C_val(marker)) == marker);
 		C<T> * t_holder = List<T>::insert_before(t, marker);
-		m_typename2holder.aset(t, t_holder);
+		m_typename2holder.setAlways(t, t_holder);
 		return t_holder;
 	}
 
@@ -2260,7 +2263,7 @@ public:
 	{
 		ASSERT0(c && marker && m_typename2holder.get(C_val(marker)) == marker);
 		List<T>::insert_before(c, marker);
-		m_typename2holder.aset(C_val(c), c);
+		m_typename2holder.setAlways(C_val(c), c);
 	}
 
 	//NOTICE: 'marker' should have been in the list.
@@ -2270,11 +2273,11 @@ public:
 		if (marker_holder == NULL) {
 			ASSERT0(List<T>::get_elem_count() == 0);
 			C<T> * t_holder = List<T>::append_tail(t);
-			m_typename2holder.aset(t, t_holder);
+			m_typename2holder.setAlways(t, t_holder);
 			return t_holder;
 		}
 		C<T> * t_holder = List<T>::insert_after(t, marker_holder);
-		m_typename2holder.aset(t, t_holder);
+		m_typename2holder.setAlways(t, t_holder);
 		return t_holder;
 	}
 
@@ -2284,7 +2287,7 @@ public:
 		ASSERT0(marker && m_typename2holder.get(C_val(marker)) == marker);
 		C<T> * marker_holder = marker;
 		C<T> * t_holder = List<T>::insert_after(t, marker_holder);
-		m_typename2holder.aset(t, t_holder);
+		m_typename2holder.setAlways(t, t_holder);
 		return t_holder;
 	}
 
@@ -2293,7 +2296,7 @@ public:
 	{
 		ASSERT0(c && marker && m_typename2holder.get(C_val(marker)) == marker);
 		List<T>::insert_after(c, marker);
-		m_typename2holder.aset(C_val(c), c);
+		m_typename2holder.setAlways(C_val(c), c);
 	}
 
 	bool find(T t, C<T> ** holder = NULL) const
@@ -2358,10 +2361,10 @@ public:
 
 		//add new one
 		C<T> * new_holder = List<T>::insert_before(newt, old_holder);
-		m_typename2holder.aset(newt, new_holder);
+		m_typename2holder.setAlways(newt, new_holder);
 
 		//remove old one
-		m_typename2holder.aset(oldt, NULL);
+		m_typename2holder.setAlways(oldt, NULL);
 		List<T>::remove(old_holder);
 		return new_holder;
 	}
@@ -2557,7 +2560,7 @@ public:
 	{
 		ASSERT(is_init(), ("VECTOR not yet initialized."));
 		if (index >= (UINT)m_elem_num) {
-			grow(get_nearest_power_of_2(index) + 2);
+			grow(getNearestPowerOf2(index) + 2);
 		}
 		m_last_idx = MAX((INT)index, m_last_idx);
 		m_vec[index] = elem;
@@ -2619,18 +2622,18 @@ elements indicate free slot.
 In the case, the first free index is 0, the second is 3, and the
 third is 5. */
 template <class T, UINT GrowSize = 8>
-class SVectorWithFreeIndex : public Vector<T, GrowSize> {
+class VectorWithFreeIndex : public Vector<T, GrowSize> {
 protected:
 	//Always refers to free space to Vector,
 	//and the first free space position is '0'
 	UINT m_free_idx;
 public:
-	SVectorWithFreeIndex()
+	VectorWithFreeIndex()
 	{
 		SVEC_init(this) = false;
 		init();
 	}
-	COPY_CONSTRUCTOR(SVectorWithFreeIndex);
+	COPY_CONSTRUCTOR(VectorWithFreeIndex);
 	inline void init()
 	{
 		Vector<T, GrowSize>::init();
@@ -2643,7 +2646,7 @@ public:
 		m_free_idx = 0;
 	}
 
-	void copy(SVectorWithFreeIndex const& vec)
+	void copy(VectorWithFreeIndex const& vec)
 	{
 		Vector<T, GrowSize>::copy(vec);
 		m_free_idx = vec.m_free_idx;
@@ -2867,13 +2870,13 @@ public:
 
 
 
-/* SHash
+/* Hash
 
 Hash element recorded not only in hash table but also in Vector,
 which is used in order to speed up accessing hashed elements.
 
 NOTICE:
-	1.T(0) is defined as default NULL in SHash, so do not use T(0) as element.
+	1.T(0) is defined as default NULL in Hash, so do not use T(0) as element.
 
 	2.There are four hash function classes are given as default, and
 	  if you are going to define you own hash function class, the
@@ -2905,9 +2908,9 @@ template <class T> struct HC {
 	T val;
 };
 
-#define SHB_member(hm)		(hm).hash_member
-#define SHB_count(hm)		(hm).hash_member_count
-class SHashBucket {
+#define HB_member(hm)		(hm).hash_member
+#define HB_count(hm)		(hm).hash_member_count
+class HashBucket {
 public:
     void * hash_member; //hash member list
 	UINT hash_member_count; //
@@ -2941,14 +2944,14 @@ public:
 	UINT get_hash_value(T t, UINT bucket_size) const
 	{
 		ASSERT0(bucket_size != 0);
-		ASSERT0(is_power_of_2(bucket_size));
+		ASSERT0(isPowerOf2(bucket_size));
 		return hash32bit((UINT)(size_t)t) & (bucket_size - 1);
 	}
 
 	UINT get_hash_value(OBJTY val, UINT bucket_size) const
 	{
 		ASSERT0(bucket_size != 0);
-		ASSERT0(is_power_of_2(bucket_size));
+		ASSERT0(isPowerOf2(bucket_size));
 		return hash32bit((UINT)(size_t)val) & (bucket_size - 1);
 	}
 };
@@ -2994,7 +2997,7 @@ public:
 		while (*s++) {
 			v += (UINT)(*s);
 		}
-		ASSERT0(is_power_of_2(bucket_size));
+		ASSERT0(isPowerOf2(bucket_size));
 		return hash32bit(v) & (bucket_size - 1);
 	}
 };
@@ -3002,14 +3005,14 @@ public:
 
 //'T': the element type.
 //'HF': Hash function type.
-template <class T, class HF = HashFuncBase<T> > class SHash {
+template <class T, class HF = HashFuncBase<T> > class Hash {
 protected:
 	HF m_hf;
 	SMemPool * m_free_list_pool;
 	FreeList<HC<T> > m_free_list; //Hold for available containers
 	UINT m_bucket_size;
-	SHashBucket * m_bucket;
-	SVectorWithFreeIndex<T, 8> m_elem_vector;
+	HashBucket * m_bucket;
+	VectorWithFreeIndex<T, 8> m_elem_vector;
 	UINT m_elem_count;
 
 	inline HC<T> * newhc() //Allocate hash container.
@@ -3019,7 +3022,7 @@ protected:
 		HC<T> * c = m_free_list.get_free_elem();
 		if (c == NULL) {
 			c = (HC<T>*)smpoolMallocConstSize(sizeof(HC<T>),
-												m_free_list_pool);
+											m_free_list_pool);
 			ASSERT0(c);
 			memset(c, 0, sizeof(HC<T>));
 		}
@@ -3094,7 +3097,7 @@ protected:
 		return T(0);
 	}
 public:
-	SHash(UINT bsize = MAX_SHASH_BUCKET)
+	Hash(UINT bsize = MAX_SHASH_BUCKET)
 	{
 		m_bucket = NULL;
 		m_bucket_size = 0;
@@ -3102,8 +3105,8 @@ public:
 		m_elem_count = 0;
 		init(bsize);
 	}
-	COPY_CONSTRUCTOR(SHash);
-	virtual ~SHash() { destroy(); }
+	COPY_CONSTRUCTOR(Hash);
+	virtual ~Hash() { destroy(); }
 
 	/* Append 't' into hash table and record its reference into
 	Vector in order to walk through the table rapidly.
@@ -3115,7 +3118,7 @@ public:
 		Maximum size of T equals sizeof(void*). */
 	T append(T t, OUT HC<T> ** hct = NULL, bool * find = NULL)
 	{
-		ASSERT(m_bucket != NULL, ("SHash not yet initialized."));
+		ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
 		if (t == T(0)) return T(0);
 
 		UINT hashv = m_hf.get_hash_value(t, m_bucket_size);
@@ -3123,8 +3126,8 @@ public:
 				("hash value must less than bucket size"));
 
 		HC<T> * elemhc = NULL;
-		if (!insert_t((HC<T>**)&SHB_member(m_bucket[hashv]), &elemhc, t)) {
-			SHB_count(m_bucket[hashv])++;
+		if (!insert_t((HC<T>**)&HB_member(m_bucket[hashv]), &elemhc, t)) {
+			HB_count(m_bucket[hashv])++;
 			m_elem_count++;
 
 			//Get a free slot in elem-vector
@@ -3150,13 +3153,13 @@ public:
 	NOTE: Do NOT append T(0) to table. */
 	T append(OBJTY val, OUT HC<T> ** hct = NULL, bool * find = NULL)
 	{
-		ASSERT(m_bucket != NULL, ("SHash not yet initialized."));
+		ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
 		UINT hashv = m_hf.get_hash_value(val, m_bucket_size);
 
 		ASSERT(hashv < m_bucket_size, ("hash value must less than bucket size"));
 		HC<T> * elemhc = NULL;
-		if (!insert_v((HC<T>**)&SHB_member(m_bucket[hashv]), &elemhc, val)) {
-			SHB_count(m_bucket[hashv])++;
+		if (!insert_v((HC<T>**)&HB_member(m_bucket[hashv]), &elemhc, val)) {
+			HB_count(m_bucket[hashv])++;
 			m_elem_count++;
 
 			//Get a free slot in elem-vector
@@ -3192,7 +3195,7 @@ public:
 	void clean()
 	{
 		if (m_bucket == NULL) return;
-		memset(m_bucket, 0, sizeof(SHashBucket) * m_bucket_size);
+		memset(m_bucket, 0, sizeof(HashBucket) * m_bucket_size);
 		m_elem_count = 0;
 		m_elem_vector.clean();
 	}
@@ -3201,7 +3204,7 @@ public:
 	UINT get_bucket_size() const { return m_bucket_size; }
 
 	//Get the hash bucket.
-	SHashBucket const* get_bucket() const { return m_bucket; }
+	HashBucket const* get_bucket() const { return m_bucket; }
 
 	//Get the memory pool handler of free_list.
 	//Note this pool is const size.
@@ -3221,7 +3224,7 @@ public:
 		or is -1. */
 	T get_first(INT & iter) const
 	{
-		ASSERT(m_bucket != NULL, ("SHash not yet initialized."));
+		ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
 		T t = T(0);
 		iter = -1;
 		if (m_elem_count <= 0) return T(0);
@@ -3245,7 +3248,7 @@ public:
 		or is -1. */
 	T get_next(INT & iter) const
 	{
-		ASSERT(m_bucket != NULL && iter >= -1, ("SHash not yet initialized."));
+		ASSERT(m_bucket != NULL && iter >= -1, ("Hash not yet initialized."));
 		T t = T(0);
 		if (m_elem_count <= 0) return T(0);
 		INT l = m_elem_vector.get_last_idx();
@@ -3269,7 +3272,7 @@ public:
 		or is -1. */
 	T get_last(INT & iter) const
 	{
-		ASSERT(m_bucket != NULL, ("SHash not yet initialized."));
+		ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
 		T t = T(0);
 		iter = -1;
 		if (m_elem_count <= 0) return T(0);
@@ -3293,7 +3296,7 @@ public:
 		or is -1. */
 	T get_prev(INT & iter) const
 	{
-		ASSERT(m_bucket != NULL, ("SHash not yet initialized."));
+		ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
 		T t = T(0);
 		if (m_elem_count <= 0) return T(0);
 		for (INT i = iter - 1; i >= 0; i--) {
@@ -3310,8 +3313,8 @@ public:
 	{
 		if (m_bucket != NULL) return;
 		if (bsize == 0) { return; }
-		m_bucket = (SHashBucket*)::malloc(sizeof(SHashBucket) * bsize);
-		memset(m_bucket, 0, sizeof(SHashBucket) * bsize);
+		m_bucket = (HashBucket*)::malloc(sizeof(HashBucket) * bsize);
+		memset(m_bucket, 0, sizeof(HashBucket) * bsize);
 		m_bucket_size = bsize;
 		m_elem_count = 0;
 		m_free_list_pool = smpoolCreate(sizeof(HC<T>) * 4, MEM_CONST_SIZE);
@@ -3338,8 +3341,8 @@ public:
 	{
 		if (h == NULL) return;
 		UINT bsize = get_bucket_size();
-		SHashBucket const* bucket = get_bucket();
-		fprintf(h, "\n=== SHash ===");
+		HashBucket const* bucket = get_bucket();
+		fprintf(h, "\n=== Hash ===");
 		for (UINT i = 0; i < bsize; i++) {
 			HC<T> * elemhc = (HC<T>*)bucket[i].hash_member;
 			fprintf(h, "\nENTRY[%d]:", i);
@@ -3363,13 +3366,13 @@ public:
 	get_next(), get_last() and get_prev(). */
 	T removed(T t)
 	{
-		ASSERT(m_bucket != NULL, ("SHash not yet initialized."));
+		ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
 		if (t == 0) return T(0);
 
 		UINT hashv = m_hf.get_hash_value(t, m_bucket_size);
 		ASSERT(hashv < m_bucket_size,
 				("hash value must less than bucket size"));
-		HC<T> * elemhc = (HC<T>*)SHB_member(m_bucket[hashv]);
+		HC<T> * elemhc = (HC<T>*)HB_member(m_bucket[hashv]);
 		if (elemhc != NULL) {
 			while (elemhc != NULL) {
 				ASSERT(HC_val(elemhc) != T(0),
@@ -3381,9 +3384,9 @@ public:
 			}
 			if (elemhc != NULL) {
 				m_elem_vector.set(HC_vec_idx(elemhc), T(0));
-				remove((HC<T>**)&SHB_member(m_bucket[hashv]), elemhc);
+				remove((HC<T>**)&HB_member(m_bucket[hashv]), elemhc);
 				m_free_list.add_free_elem(elemhc);
-				SHB_count(m_bucket[hashv])--;
+				HB_count(m_bucket[hashv])--;
 				m_elem_count--;
 				return t;
 			}
@@ -3400,16 +3403,16 @@ public:
 		The position of element in m_elem_vector is unchanged. */
 	void grow(UINT bsize = 0)
 	{
-		ASSERT(m_bucket != NULL, ("SHash not yet initialized."));
+		ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
 		if (bsize != 0) {
 			ASSERT0(bsize > m_bucket_size);
 		} else {
 			bsize = m_bucket_size * 2;
 		}
 
-		SHashBucket * new_bucket =
-			(SHashBucket*)::malloc(sizeof(SHashBucket) * bsize);
-		memset(new_bucket, 0, sizeof(SHashBucket) * bsize);
+		HashBucket * new_bucket =
+			(HashBucket*)::malloc(sizeof(HashBucket) * bsize);
+		memset(new_bucket, 0, sizeof(HashBucket) * bsize);
 		if (m_elem_count == 0) {
 			::free(m_bucket);
 			m_bucket = new_bucket;
@@ -3420,7 +3423,7 @@ public:
 		//Free HC containers.
 		for (UINT i = 0; i < m_bucket_size; i++) {
 			HC<T> * hc = NULL;
-			while ((hc = removehead((HC<T>**)&SHB_member(m_bucket[i]))) != NULL) {
+			while ((hc = removehead((HC<T>**)&HB_member(m_bucket[i]))) != NULL) {
 				m_free_list.add_free_elem(hc);
 			}
 		}
@@ -3442,14 +3445,14 @@ public:
 					("hash value must less than bucket size"));
 
 			HC<T> * elemhc = NULL;
-			bool doit = insert_t((HC<T>**)&SHB_member(m_bucket[hashv]),
+			bool doit = insert_t((HC<T>**)&HB_member(m_bucket[hashv]),
 								 &elemhc, t);
 			ASSERT0(!doit);
 			UNUSED(doit); //to avoid -Werror=unused-variable.
 
 			HC_vec_idx(elemhc) = (UINT)i;
 
-			SHB_count(m_bucket[hashv])++;
+			HB_count(m_bucket[hashv])++;
 		}
 	}
 
@@ -3460,10 +3463,10 @@ public:
 	get_last() and get_prev(). */
 	T find(OBJTY val) const
 	{
-		ASSERT(m_bucket != NULL, ("SHash not yet initialized."));
+		ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
 		UINT hashv = m_hf.get_hash_value(val, m_bucket_size);
 		ASSERT(hashv < m_bucket_size, ("hash value must less than bucket size"));
-		HC<T> const* elemhc = (HC<T> const*)SHB_member(m_bucket[hashv]);
+		HC<T> const* elemhc = (HC<T> const*)HB_member(m_bucket[hashv]);
 		if (elemhc != NULL) {
 			while (elemhc != NULL) {
 				ASSERT(HC_val(elemhc) != T(0),
@@ -3485,13 +3488,13 @@ public:
 	get_last() and get_prev(). */
 	bool find(T t, HC<T> const** ct = NULL)
 	{
-		ASSERT(m_bucket != NULL, ("SHash not yet initialized."));
+		ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
 		if (t == T(0)) { return false; }
 
 		UINT hashv = m_hf.get_hash_value(t, m_bucket_size);
 		ASSERT(hashv < m_bucket_size,
 				("hash value must less than bucket size"));
-		HC<T> const* elemhc = (HC<T> const*)SHB_member(m_bucket[hashv]);
+		HC<T> const* elemhc = (HC<T> const*)HB_member(m_bucket[hashv]);
 		if (elemhc != NULL) {
 			while (elemhc != NULL) {
 				ASSERT(HC_val(elemhc) != T(0),
@@ -3528,7 +3531,7 @@ public:
 		return false;
 	}
 };
-//END SHash
+//END Hash
 
 
 
@@ -4122,7 +4125,7 @@ public:
 
 	//Alway set new mapping even if it has done.
 	//This function will enforce mapping between t and mapped.
-	void aset(Tsrc t, Ttgt mapped)
+	void setAlways(Tsrc t, Ttgt mapped)
 	{
 		TN * z = BaseType::insert(t, NULL);
 		ASSERT0(z);
@@ -4219,7 +4222,7 @@ public:
 			ASSERT0(mapped == t);
 		}
 		#endif
-		BaseTMap::aset(t, t);
+		BaseTMap::setAlways(t, t);
 	}
 
 	//Add element into table, if it is exist, return the exist one.
@@ -4233,7 +4236,7 @@ public:
 			return mapped;
 		}
 
-		BaseTMap::aset(t, t);
+		BaseTMap::setAlways(t, t);
 		return t;
 	}
 
@@ -4263,7 +4266,7 @@ Usage: Make a mapping from OPND to OPER.
 
 NOTICE:
 	1. Tsrc(0) is defined as default NULL in HMap, so do not use T(0) as element.
-	2. The map is implemented base on SHash, and one hash function class
+	2. The map is implemented base on Hash, and one hash function class
 	   have been given.
 
 	3. Must use 'new'/'delete' operator to allocate/free the
@@ -4271,7 +4274,7 @@ NOTICE:
 	   virtual-function-pointers-table is needed.
 */
 template <class Tsrc, class Ttgt, class HF = HashFuncBase<Tsrc> >
-class HMap : public SHash<Tsrc, HF> {
+class HMap : public Hash<Tsrc, HF> {
 protected:
 	Vector<Ttgt> m_mapped_elem_table;
 
@@ -4279,17 +4282,17 @@ protected:
 	HC<Tsrc> * findhc(Tsrc t) const
 	{
 		if (t == Tsrc(0)) { return NULL; }
-		UINT hashv = SHash<Tsrc, HF>::m_hf.get_hash_value(t,
-								SHash<Tsrc, HF>::m_bucket_size);
-		ASSERT((hashv < SHash<Tsrc, HF>::m_bucket_size),
+		UINT hashv = Hash<Tsrc, HF>::m_hf.get_hash_value(t,
+								Hash<Tsrc, HF>::m_bucket_size);
+		ASSERT((hashv < Hash<Tsrc, HF>::m_bucket_size),
 				("hash value must less than bucket size"));
 		HC<Tsrc> * elemhc =
-			(HC<Tsrc>*)SHB_member((SHash<Tsrc, HF>::m_bucket[hashv]));
+			(HC<Tsrc>*)HB_member((Hash<Tsrc, HF>::m_bucket[hashv]));
 		if (elemhc != NULL) {
 			while (elemhc != NULL) {
 				ASSERT(HC_val(elemhc) != Tsrc(0),
 						("Hash element has so far as to be overrided!"));
-				if (SHash<Tsrc, HF>::m_hf.compare(HC_val(elemhc), t)) {
+				if (Hash<Tsrc, HF>::m_hf.compare(HC_val(elemhc), t)) {
 					return elemhc;
 				}
 				elemhc = HC_next(elemhc);
@@ -4298,28 +4301,28 @@ protected:
 		return NULL;
 	}
 public:
-	HMap(UINT bsize = MAX_SHASH_BUCKET) : SHash<Tsrc, HF>(bsize)
+	HMap(UINT bsize = MAX_SHASH_BUCKET) : Hash<Tsrc, HF>(bsize)
 	{ m_mapped_elem_table.init(); }
 	COPY_CONSTRUCTOR(HMap);
 	virtual ~HMap() { destroy(); }
 
 	//Alway set new mapping even if it has done.
-	void aset(Tsrc t, Ttgt mapped)
+	void setAlways(Tsrc t, Ttgt mapped)
 	{
-		ASSERT((SHash<Tsrc, HF>::m_bucket != NULL), ("not yet initialize."));
+		ASSERT((Hash<Tsrc, HF>::m_bucket != NULL), ("not yet initialize."));
 		if (t == Tsrc(0)) { return; }
 		HC<Tsrc> * elemhc = NULL;
-		SHash<Tsrc, HF>::append(t, &elemhc, NULL);
+		Hash<Tsrc, HF>::append(t, &elemhc, NULL);
 		ASSERT(elemhc != NULL, ("Element does not append into hash table."));
 		m_mapped_elem_table.set(HC_vec_idx(elemhc), mapped);
 	}
 
-	SMemPool * get_pool() { return SHash<Tsrc, HF>::get_free_list_pool(); }
+	SMemPool * get_pool() { return Hash<Tsrc, HF>::get_free_list_pool(); }
 
 	//Get mapped pointer of 't'
 	Ttgt get(Tsrc t, bool * find = NULL)
 	{
-		ASSERT((SHash<Tsrc, HF>::m_bucket != NULL), ("not yet initialize."));
+		ASSERT((Hash<Tsrc, HF>::m_bucket != NULL), ("not yet initialize."));
 		HC<Tsrc> * elemhc = findhc(t);
 		if (elemhc != NULL) {
 			if (find != NULL) { *find = true; }
@@ -4332,7 +4335,7 @@ public:
 	//Get mapped object of 't', this function is readonly.
 	Ttgt get_c(Tsrc t, bool * find = NULL) const
 	{
-		ASSERT((SHash<Tsrc, HF>::m_bucket != NULL), ("not yet initialize."));
+		ASSERT((Hash<Tsrc, HF>::m_bucket != NULL), ("not yet initialize."));
 		HC<Tsrc> * elemhc = findhc(t);
 		if (elemhc != NULL) {
 			if (find != NULL) { *find = true; }
@@ -4346,28 +4349,28 @@ public:
 
 	void clean()
 	{
-		ASSERT((SHash<Tsrc, HF>::m_bucket != NULL), ("not yet initialize."));
-		SHash<Tsrc, HF>::clean();
+		ASSERT((Hash<Tsrc, HF>::m_bucket != NULL), ("not yet initialize."));
+		Hash<Tsrc, HF>::clean();
 		m_mapped_elem_table.clean();
 	}
 
 	UINT count_mem() const
 	{
 		UINT count = m_mapped_elem_table.count_mem();
-		count += ((SHash<Tsrc, HF>*)this)->count_mem();
+		count += ((Hash<Tsrc, HF>*)this)->count_mem();
 		return count;
 	}
 
 	void init(UINT bsize = MAX_SHASH_BUCKET)
 	{
 		//Only do initialization while m_bucket is NULL.
-		SHash<Tsrc, HF>::init(bsize);
+		Hash<Tsrc, HF>::init(bsize);
 		m_mapped_elem_table.init();
 	}
 
 	void destroy()
 	{
-		SHash<Tsrc, HF>::destroy();
+		Hash<Tsrc, HF>::destroy();
 		m_mapped_elem_table.destroy();
 	}
 
@@ -4408,11 +4411,11 @@ public:
 	//Establishing mapping in between 't' and 'mapped'.
 	void set(Tsrc t, Ttgt mapped)
 	{
-		ASSERT((SHash<Tsrc, HF>::m_bucket != NULL), ("not yet initialize."));
+		ASSERT((Hash<Tsrc, HF>::m_bucket != NULL), ("not yet initialize."));
 		if (t == Tsrc(0)) { return; }
 
 		HC<Tsrc> * elemhc = NULL;
-		SHash<Tsrc, HF>::append(t, &elemhc, NULL);
+		Hash<Tsrc, HF>::append(t, &elemhc, NULL);
 
 		ASSERT(elemhc != NULL,
 				("Element does not append into hash table yet."));
@@ -4423,11 +4426,11 @@ public:
 
 	void setv(OBJTY v, Ttgt mapped)
 	{
-		ASSERT((SHash<Tsrc, HF>::m_bucket != NULL), ("not yet initialize."));
+		ASSERT((Hash<Tsrc, HF>::m_bucket != NULL), ("not yet initialize."));
 		if (v == 0) { return; }
 
 		HC<Tsrc> * elemhc = NULL;
-		SHash<Tsrc, HF>::append(v, &elemhc, NULL);
+		Hash<Tsrc, HF>::append(v, &elemhc, NULL);
 		ASSERT(elemhc != NULL,
 				("Element does not append into hash table yet."));
 		ASSERT(Ttgt(0) == m_mapped_elem_table.get(HC_vec_idx(elemhc)),
@@ -4470,11 +4473,11 @@ public:
 	~DMap() {}
 
 	//Alway overlap the old value by new 'mapped' value.
-	void aset(Tsrc t, Ttgt mapped)
+	void setAlways(Tsrc t, Ttgt mapped)
 	{
 		if (t == Tsrc(0)) { return; }
-		m_src2tgt_map.aset(t, mapped);
-		m_tgt2src_map.aset(mapped, t);
+		m_src2tgt_map.setAlways(t, mapped);
+		m_tgt2src_map.setAlways(mapped, t);
 	}
 
 	UINT count_mem() const
@@ -4509,9 +4512,9 @@ public:
 Map src with type Tsrc to many tgt elements with type Ttgt.
 
 'TAB_Ttgt': records tgt elements.
-	e.g: We implement TAB_Ttgt via deriving from SHash.
+	e.g: We implement TAB_Ttgt via deriving from Hash.
 
-	class TAB_Ttgt: public SHash<Ttgt, HashFuncBase<Ttgt> > {
+	class TAB_Ttgt: public Hash<Ttgt, HashFuncBase<Ttgt> > {
 	public:
 	};
 
@@ -4525,7 +4528,7 @@ NOTICE:
 
 	3. TAB_Ttgt should be pointer type.
 		e.g: Given type of tgt's table is a class that
-			OP_HASH : public SHash<OPER*>,
+			OP_HASH : public Hash<OPER*>,
 			then type MMap<OPND*, OPER*, OP_HASH> is ok, but
 			type MMap<OPND*, OPER*, OP_HASH*> is not expected.
 
@@ -4573,7 +4576,7 @@ public:
 		if (t == Tsrc(0)) return;
 		TAB_Ttgt * tgttab = HMap<Tsrc, TAB_Ttgt*, HF>::get(t);
 		if (tgttab == NULL) {
-			//Do NOT use SHash::xmalloc(sizeof(TAB_Ttgt)) to allocate memory,
+			//Do NOT use Hash::xmalloc(sizeof(TAB_Ttgt)) to allocate memory,
 			//because __vfptr is NULL. __vfptr points to TAB_Ttgt::vftable.
 			tgttab = new TAB_Ttgt;
 			HMap<Tsrc, TAB_Ttgt*, HF>::set(t, tgttab);
@@ -4608,4 +4611,6 @@ public:
 		m_is_init = false;
 	}
 };
+
+} //namespace xcom
 #endif

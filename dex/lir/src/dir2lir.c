@@ -263,9 +263,11 @@ author: GongKai, JinYue
     DIR2LIR(OP_SHL_INT_LIT8               ,LOP_SHL_LIT                   ,LIR_JDT_int                   )\
     DIR2LIR(OP_SHR_INT_LIT8               ,LOP_SHR_LIT                   ,LIR_JDT_int                   )\
     DIR2LIR(OP_USHR_INT_LIT8              ,LOP_USHR_LIT                  ,LIR_JDT_int                   )\
+    DIR2LIR(OP_PACKED_SWITCH_PAYLOAD      ,LOP_PACKED_SWITCH_PAYLOAD     ,0                             )\
+    DIR2LIR(OP_SPARSE_SWITCH_PAYLOAD      ,LOP_SPARSE_SWITCH_PAYLOAD     ,0                             )\
 
 
-#define kNumOpcodes 227
+#define kNumOpcodes 229
 
 
 #define DIR2LIR(dop,lop,flags) lop,

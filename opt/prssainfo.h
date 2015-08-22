@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _PRSSAINFO_H_
 #define _PRSSAINFO_H_
 
+namespace xoc {
+
 class IRSet : public DefSBitSet {
 public:
 	IRSet(DefSegMgr * sm) : DefSBitSet(sm) {}
@@ -122,11 +124,11 @@ public:
 	}
 };
 
-
 //Mapping from PRNO to vector of VP.
 typedef Vector<Vector<VP*>*> UINT2VPvec;
 
-
 //Mapping from PRNO to Stack of VP.
 typedef Vector<Stack<VP*>*> UINT2VPstack;
+
+} //namespace xoc
 #endif

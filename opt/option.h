@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __OPTION_H__
 #define __OPTION_H__
 
+namespace xoc {
+
 class PassMgr;
 
 #define NO_OPT        0
@@ -235,4 +237,6 @@ extern UINT g_thres_opt_ir_num;
 extern UINT g_thres_opt_bb_num;
 extern bool g_do_loop_convert;
 extern bool g_do_poly_tran;
+
+} //namespace xoc
 #endif

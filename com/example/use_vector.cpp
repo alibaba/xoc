@@ -3,6 +3,7 @@
 #include "comf.h"
 #include "smempool.h"
 #include "sstl.h"
+using namespace xcom;
 int main()
 {
 	Vector<char const*> SS;

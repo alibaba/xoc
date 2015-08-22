@@ -34,13 +34,15 @@ author: Su Zhenyu
 #ifndef __A_GRAPH_H_
 #define __A_GRAPH_H_
 
+namespace xcom {
+
 //Alogrithmic Graph.
-class AGRAPH : public Graph {
+class AGraph : public Graph {
 protected:
 	Matrix<UINT> * m_spath_mat; //record shortest-path.
-	void build_adj_matrix(Matrix<UINT> & adj_mat);
+	void buildAdjacentMatrix(Matrix<UINT> & adj_mat);
 public:
-	AGRAPH(UINT edge_hash_size = 64, UINT vex_hash_size = 64) :
+	AGraph(UINT edge_hash_size = 64, UINT vex_hash_size = 64) :
 		Graph(edge_hash_size, vex_hash_size)
 	{
 		m_edge_hash_size = edge_hash_size;
@@ -48,14 +50,14 @@ public:
 		m_spath_mat = NULL;
 	}
 
-	AGRAPH(AGRAPH & g) : Graph(g)
+	AGraph(AGraph & g) : Graph(g)
 	{
 		m_edge_hash_size = g.m_edge_hash_size;
 		m_vex_hash_size = g.m_vex_hash_size;
 		clone(g);
 	}
 
-	virtual ~AGRAPH()
+	virtual ~AGraph()
 	{
 		if (m_spath_mat != NULL) {
 			delete m_spath_mat;//Delete shortest path matrix
@@ -63,7 +65,7 @@ public:
 		}
 	}
 
-	void clone(AGRAPH & src)
+	void clone(AGraph & src)
 	{
 		if (src.m_spath_mat != NULL) {
 			if (m_spath_mat == NULL) {
@@ -86,7 +88,7 @@ public:
 		return count;
 	}
 
-	void shortest_path(UINT infinite);
+	void ShortestPath(UINT infinite);
 
 	//Erasing graph, include all nodes and edges,
 	//except for mempool, freelist.
@@ -99,5 +101,6 @@ public:
 		Graph::erase();
 	}
 };
-#endif
 
+}
+#endif

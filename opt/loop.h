@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _LOOP_H_
 #define _LOOP_H_
 
+namespace xoc {
+
 //This file represent loop structure and relate algorithms.
 
 //CFG Loop Info.
@@ -80,4 +82,6 @@ IRBB * findSingleBackedgeStartBB(LI<IRBB> const* li, IR_CFG * cfg);
 bool findTwoSuccessorBBOfLoopHeader(
 			LI<IRBB> const* li, IR_CFG * cfg,
 			UINT * succ1, UINT * succ2);
+
+} //namespace xoc
 #endif

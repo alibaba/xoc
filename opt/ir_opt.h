@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __IR_OPT_H__
 #define __IR_OPT_H__
 
+namespace xoc {
+
 //Basis Class of pass.
 class Pass {
 protected:
@@ -63,4 +65,6 @@ public:
 		return false;
 	}
 };
+
+} //namespace xoc
 #endif

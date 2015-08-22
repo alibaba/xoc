@@ -55,7 +55,6 @@ author: GongKai, JinYue
 #include "d2d_comm.h"
 #include "d2d_dexlib.h"
 #include "lir.h"
-#include "anainterface.h"
 
 static inline UInt8 getlirOpcode(ULong codePtr){
     BYTE* data = (BYTE*)codePtr;
@@ -2055,7 +2054,7 @@ Int32 transformCode(LIRCode const* code, DexCode* nCode)
 
    //Try/Catch buf will be added.
    // Fix: Trycatched should be 4-byte aligned.
-   // And then the code_item will also be 4-byte aligned.
+   // And then the code_item will also be 4-byte aligned. whenever tries size is zero or not.
    if (nCode->insnsSize & 0x01){
      cbsWrite16(regIns, (UInt16)0);
    }

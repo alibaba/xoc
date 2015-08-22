@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __CFS_MGR_H__
 #define __CFS_MGR_H__
 
+namespace xoc {
+
 //Abstract Tree Type to describe high level control flow struct.
 typedef enum _ABS_TYPE {
 	ABS_LOOP = 0,
@@ -188,4 +190,6 @@ public:
 
 	PASS_TYPE get_pass_type() const { return PASS_CFS_MGR; }
 };
+
+} //namespace xoc
 #endif

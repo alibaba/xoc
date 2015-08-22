@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_SIMP_H_
 #define _IR_SIMP_H_
 
+namespace xoc {
+
 class CfsMgr;
 
 #define MAX_SIMP_WORD_LEN  1
@@ -272,4 +274,6 @@ public:
 		SIMP_to_lowest_heigh(this) = true;
 	}
 };
+
+} //namespace xoc
 #endif

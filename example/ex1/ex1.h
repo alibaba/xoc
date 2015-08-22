@@ -33,22 +33,25 @@ author: Su Zhenyu
 @*/
 #ifndef _EX1_H_
 #define _EX1_H_
+
 class CVAR : public VAR {
 public:
-	virtual CHAR * dump_var_decl(OUT CHAR * buf);
+	virtual CHAR * dumpVARDecl(OUT CHAR * buf) { return NULL; }
 };
 
 
-class CVAR_MGR : public VAR_MGR {
+class CVarMgr : public VarMgr {
 public:
-	CVAR_MGR(REGION_MGR * mgr) : VAR_MGR(mgr) {}
-	virtual ~CVAR_MGR() {}
-	virtual VAR * new_var();
+	CVarMgr(RegionMgr * mgr) : VarMgr(mgr) {}
+	virtual ~CVarMgr() {}
+	virtual VAR * newVar() { return new CVAR(); }
 };
 
 
-class CDBG_MGR : public DBG_MGR {
+class CDdxMgr : public DbxMgr {
 public:
-	virtual void print_src_line(IR * ir);
+	//Append src file line into dump file.
+	//Only print statement line.
+	virtual void printSrcLine(IR const* ir) { return; }
 };
 #endif

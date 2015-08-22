@@ -34,6 +34,8 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "ir_ivr.h"
 
+namespace xoc {
+
 //
 //START IR_IVR
 //
@@ -124,7 +126,7 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
 					if (c == 1) {
 						map_md2defir.set(MD_id(exact_md), ir);
 					} else {
-						map_md2defir.aset(MD_id(exact_md), NULL);
+						map_md2defir.setAlways(MD_id(exact_md), NULL);
 						tmp.diff(MD_id(exact_md));
 					}
 				}
@@ -495,3 +497,5 @@ bool IR_IVR::perform(OptCTX & oc)
 	return false;
 }
 //END IR_IVR
+
+} //namespace xoc

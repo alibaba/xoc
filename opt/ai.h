@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __AI_H__
 #define __AI_H__
 
+namespace xoc {
+
 //Attach Info Type.
 typedef enum _AI_TYPE {
 	AI_UNDEF = 0,
@@ -162,4 +164,6 @@ public:
 	TbaaAttachInfo() : BaseAttachInfo(AI_TBAA) {}
 	COPY_CONSTRUCTOR(TbaaAttachInfo);
 };
+
+} //namespace xoc
 #endif

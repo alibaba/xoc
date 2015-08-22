@@ -36,6 +36,8 @@ author: Su Zhenyu
 #include "prssainfo.h"
 #include "ir_ssa.h"
 
+namespace xoc {
+
 //IR_CFG
 IR_CFG::IR_CFG(CFG_SHAPE cs, BBList * bbl, Region * ru,
 			   UINT edge_hash_size, UINT vertex_hash_size)
@@ -310,7 +312,7 @@ void IR_CFG::unionLabels(IRBB * src, IRBB * tgt)
 	//Set label2bb map.
 	for (LabelInfo * li = tgt->get_lab_list().get_head();
 		 li != NULL; li = tgt->get_lab_list().get_next()) {
-		m_lab2bb.aset(li, tgt);
+		m_lab2bb.setAlways(li, tgt);
 	}
 }
 
@@ -976,3 +978,5 @@ bool IR_CFG::performMiscOpt(OptCTX & oc)
 	END_TIMER_AFTER("CFG Opt");
 	return change;
 }
+
+} //namespace xoc

@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_SSA_H_
 #define _IR_SSA_H_
 
+namespace xoc {
+
 class IR_SSA_MGR;
 
 //Dominace Frontier manager
@@ -325,4 +327,6 @@ public:
 
 
 bool verifySSAInfo(Region * ru);
+
+} //namespace xoc
 #endif

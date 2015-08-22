@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __PASS_MGR_H__
 #define __PASS_MGR_H__
 
+namespace xoc {
+
 //Time Info.
 #define TI_pn(ti)		(ti)->pass_name
 #define TI_pt(ti)		(ti)->pass_time
@@ -123,4 +125,6 @@ public:
 
 	virtual void performScalarOpt(OptCTX & oc);
 };
+
+} //namespace xoc
 #endif

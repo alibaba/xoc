@@ -34,8 +34,9 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "if_opt.h"
 
-/*
-Recognizing simple IF control flow node
+namespace xoc {
+
+/* Recognize simple IF control flow node
 only recog such as:
 	if (cond)
 		single_BB
@@ -147,3 +148,5 @@ bool IR_CFG::if_opt(IRBB * bb)
 	}
 	return false;
 }
+
+} //namespace xoc

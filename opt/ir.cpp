@@ -34,6 +34,8 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "prssainfo.h"
 
+namespace xoc {
+
 #if (WORD_LENGTH_OF_HOST_MACHINE == 32)
 	#define PADDR(ir) (dump_addr ? fprintf(g_tfile, " 0x%lx",(ULONG)(ir)) : 0)
 	 //fprintf(g_tfile, " 0x%.8x",(ir)) : 0)
@@ -471,7 +473,7 @@ void dump_ir(IN IR const* ir, TypeMgr const* dm, IN CHAR * attr,
 	buf[0] = 0;
 	buf2[0] = 0;
 	if (g_dbg_mgr != NULL && dump_src_line) {
-		g_dbg_mgr->print_src_line(ir);
+		g_dbg_mgr->printSrcLine(ir);
 	}
 
 	Type const* d = NULL;
@@ -498,7 +500,7 @@ void dump_ir(IN IR const* ir, TypeMgr const* dm, IN CHAR * attr,
 
 			//Dump declaration info if the frontend supplied.
 			buf[0] = 0;
-			if (ST_idinfo(ir)->dump_var_decl(buf, 40) != NULL) {
+			if (ST_idinfo(ir)->dumpVARDecl(buf, 40) != NULL) {
 				fprintf(g_tfile, " decl:%s", buf);
 			}
 
@@ -608,7 +610,7 @@ void dump_ir(IN IR const* ir, TypeMgr const* dm, IN CHAR * attr,
 
 			//Dump declaration if frontend supplied.
 			buf[0] = 0;
-			if (LD_idinfo(ir)->dump_var_decl(buf, 40) != NULL) {
+			if (LD_idinfo(ir)->dumpVARDecl(buf, 40) != NULL) {
 				fprintf(g_tfile, " decl:%s", buf);
 			}
 
@@ -647,7 +649,7 @@ void dump_ir(IN IR const* ir, TypeMgr const* dm, IN CHAR * attr,
 			CHAR * name = xstrcat(tt, 40, "%s", SYM_name(VAR_name(ID_info(ir))));
 			note("\nid:%s '%s'", xdm->dump_type(d, buf), name);
 			buf[0] = 0;
-			if (ID_info(ir)->dump_var_decl(buf, 40) != NULL) {
+			if (ID_info(ir)->dumpVARDecl(buf, 40) != NULL) {
 				fprintf(g_tfile, " decl:%s", buf);
 			}
 
@@ -1092,7 +1094,7 @@ void dump_ir(IN IR const* ir, TypeMgr const* dm, IN CHAR * attr,
 									  SYM_name(VAR_name(CALL_idinfo(ir))));
 				fprintf(g_tfile, "call '%s' ", name);
 				buf[0] = 0;
-				if (CALL_idinfo(ir)->dump_var_decl(buf, 40) != NULL) {
+				if (CALL_idinfo(ir)->dumpVARDecl(buf, 40) != NULL) {
 					fprintf(g_tfile, "decl:%s", buf);
 				}
 			} else {
@@ -2353,3 +2355,5 @@ void IR::removeSSAUse()
 	removeSSAUseRecur(this);
 }
 //END IR
+
+} //namespace xoc

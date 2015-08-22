@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _CFG_H_
 #define _CFG_H_
 
+namespace xoc {
+
 //Sort Sequence
 typedef enum {
 	SEQ_UNDEF = 0,
@@ -121,7 +123,7 @@ public:
 	{
 		erase();
 		UINT newsz =
-			MAX(16, get_nearest_power_of_2(m_bb_list->get_elem_count()));
+			MAX(16, getNearestPowerOf2(m_bb_list->get_elem_count()));
 		resize(newsz, newsz);
 		build(oc);
 
@@ -1672,4 +1674,6 @@ void CFG<BB, XR>::compute_rpo(OptCTX & oc)
 	OC_is_rpo_valid(oc) = true;
 	END_TIMER();
 }
+
+} //namespace xoc
 #endif

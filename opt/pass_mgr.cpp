@@ -34,6 +34,8 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "comopt.h"
 
+namespace xoc {
+
 PassMgr::PassMgr(Region * ru)
 {
 	ASSERT0(ru);
@@ -362,3 +364,5 @@ void PassMgr::performScalarOpt(OptCTX & oc)
 		appendTimeInfo(r->get_pass_name(), getusec() - t);
 	}
 }
+
+} //namespace xoc

@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_CP_H_
 #define _IR_CP_H_
 
+namespace xoc {
+
 //Record Context info during Copy Propagation.
 #define CPC_change(c)			(c).change
 #define CPC_need_recomp_aa(c)	(c).need_recompute_alias_info
@@ -154,4 +156,6 @@ public:
 
 	virtual bool perform(OptCTX & oc);
 };
+
+} //namespace xoc
 #endif

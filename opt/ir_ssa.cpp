@@ -34,6 +34,8 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "comopt.h"
 
+namespace xoc {
+
 //#define TRAVERSE_IN_DOM_TREE_ORDER
 
 //
@@ -533,9 +535,12 @@ void IR_SSA_MGR::insertPhi(UINT prno, IN IRBB * bb)
 
 //Insert phi for PR.
 //defbbs: record BBs which defined the PR identified by 'prno'.
-void IR_SSA_MGR::placePhiForPR(UINT prno, IN List<IRBB*> * defbbs,
-								  DfMgr & dfm, BitSet & visited,
-								  List<IRBB*> & wl)
+void IR_SSA_MGR::placePhiForPR(
+		UINT prno,
+		IN List<IRBB*> * defbbs,
+		DfMgr & dfm,
+		BitSet & visited,
+		List<IRBB*> & wl)
 {
 	visited.clean();
 	wl.clean();
@@ -784,8 +789,10 @@ Stack<VP*> * IR_SSA_MGR::mapPRNO2VPStack(UINT prno)
 }
 
 
-void IR_SSA_MGR::handleBBRename(IRBB * bb, DefSBitSet & defed_prs,
-						   IN OUT BB2VP & bb2vp)
+void IR_SSA_MGR::handleBBRename(
+		IRBB * bb,
+		DefSBitSet & defed_prs,
+		IN OUT BB2VP & bb2vp)
 {
 	ASSERT0(bb2vp.get(BB_id(bb)) == NULL);
 	Vector<VP*> * ve_vec = new Vector<VP*>();
@@ -1826,3 +1833,5 @@ bool verifySSAInfo(Region * ru)
 	}
 	return true;
 }
+
+} //namespace xoc

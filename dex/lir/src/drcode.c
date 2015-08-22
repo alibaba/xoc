@@ -51,16 +51,7 @@ author: GongKai, JinYue
 #include "xassert.h"
 #include "lircomm.h"
 #include "lir.h"
-#include "anainterface.h"
 #include "dex_driver.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-    LIRCode* anaEntry(LIRCode* lirCode);
-#ifdef __cplusplus
-}
-#endif
 
 Int32 gMemAlloc = 0;
 
@@ -96,6 +87,10 @@ static inline bool contentIsInsn(const UInt16 *codePtr)
 {
     UInt16 instr = *codePtr;
     DIROpcode opcode = (DIROpcode)(instr & 0xff);
+    // if it is pseudo code: switch-data, return true
+    if (instr == 0x100 || instr == 0x200) {
+        return true;
+    }
 
     return (opcode != 0 || instr == 0);
 }
@@ -103,6 +98,10 @@ static inline bool contentIsInsn(const UInt16 *codePtr)
 static inline DIROpcode getOpcodeFromCodeUnit(UInt16 codeUnit)
 {
     int lowByte = codeUnit & 0xff;
+    if (codeUnit == 0x100)
+        return 227;
+    if (codeUnit == 0x200)
+        return 228;
     if (lowByte != 0xff) {
         return (DIROpcode) lowByte;
     } else {
@@ -167,6 +166,15 @@ void genInstruction(
         DIRDecodeInstruction(codePtr,&dInsn);
 
         switch(formats) {
+        case lirFmt00X:
+        {
+            LIRBaseOp* lir =  (LIRBaseOp*)LIRMALLOC(sizeof(LIRBaseOp));
+            lir->opcode = lirOpcode;
+            lir->flags = flags;
+
+            result = (LIRBaseOp*)lir;
+            break;
+        }
         case lirFmtV:
         {
             LIRBaseOp* lir =  (LIRBaseOp*)LIRMALLOC(sizeof(LIRBaseOp));
@@ -442,6 +450,37 @@ END:
         }
         }
 
+        // if we happen to 0x100/200, add the codePtr+width, then continue
+        // to find next instruction.
+        // Calculate the width for 0x100/0x200
+        // if 0x100, width = size * 2 + 4
+        // if 0x200, width = size * 4 + 2
+        // size is data[1]
+        if (formats == lirFmt00X) {
+            UInt32 width;
+            switch (instr) {
+                case 0x100: {
+                    UInt16* data = codePtr;
+                    UInt32 size = data[1];
+                    width = size * 2 + 4;
+                    break;
+                }
+                case 0x200: {
+                    UInt16* data = codePtr;
+                    UInt32 size = data[1];
+                    width = size * 4 + 2;
+                    break;
+                }
+                default:
+                    abort();
+                    width = gDIROpcodeInfo.widths[opcode];
+                    break;
+            }
+            codePtr += width;
+            dexOffset += width;
+            continue;
+        }
+
         lirList[instrIdx] = result;
         UInt32 width = gDIROpcodeInfo.widths[opcode];
         codePtr += width;
@@ -520,14 +559,21 @@ static void genTryCatches(
     }
 }
 
-static Int32 l2dWithAot(D2Dpool* pool, const DexCode* pCode, LIRCode* code)
-{
-    Int32 err = 0;
-    code = anaEntry(code);
-    lir2dexCode(pool, pCode, code);
-
-    return err;
-}
+//Obsolete code.
+//#ifdef __cplusplus
+//extern "C" {
+//#endif
+//    LIRCode* anaEntry(LIRCode* lirCode);
+//#ifdef __cplusplus
+//}
+//#endif
+//astatic Int32 l2dWithAot(D2Dpool* pool, const DexCode* pCode, LIRCode* code)
+//{
+//   Int32 err = 0;
+//    code = anaEntry(code);
+//    lir2dexCode(pool, pCode, code);
+//    return err;
+//}
 
 #ifdef COMPILE_DEX2LEX
 bool aotDrGenCode(
@@ -643,6 +689,29 @@ bool d2rMethod(D2Dpool* pool, DexFile* pDexFile, const DexMethod* pDexMethod)
         }
 
         UInt16 instr = *codePtr;
+        if (instr == 0x100 || instr == 0x200) {
+            UInt32 width;
+            switch (instr) {
+                case 0x100: {
+                    UInt16* data = codePtr;
+                    UInt32 size = data[1];
+                    width = size * 2 + 4;
+                    break;
+                }
+                case 0x200: {
+                    UInt16* data = codePtr;
+                    UInt32 size = data[1];
+                    width = size * 4 + 2;
+                    break;
+                }
+                default:
+                    abort();
+                    break;
+            }
+            codePtr += width;
+            dexOffset += width;
+            continue;
+        }
         DIROpcode opcode = getOpcodeFromCodeUnit(instr);
         UInt32 width = gDIROpcodeInfo.widths[opcode];
 
@@ -693,7 +762,7 @@ bool d2rMethod(D2Dpool* pool, DexFile* pDexFile, const DexMethod* pDexMethod)
     //Leave it to verify.
     //lir2dexCode_orig(pool, pCode, code);
 
-    //Obsolete
+    //Obsolete code.
     //l2dWithAot(pool, pCode, code);
     drLinearFree();
     return true;

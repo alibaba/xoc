@@ -38,6 +38,8 @@ author: Su Zhenyu
 #include "ir_gvn.h"
 #include "ir_rce.h"
 
+namespace xoc {
+
 //
 //START IR_RCE
 //
@@ -308,3 +310,5 @@ bool IR_RCE::perform(OptCTX & oc)
 	return change;
 }
 //END IR_RCE
+
+} //namespace xoc

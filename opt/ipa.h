@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IPA_H_
 #define _IPA_H_
 
+namespace xoc {
+
 class IPA : public Pass {
 protected:
 	RegionMgr * m_ru_mgr;
@@ -57,5 +59,6 @@ public:
 	virtual PASS_TYPE get_pass_type() const { return PASS_IPA; }
 	virtual bool perform(OptCTX & oc);
 };
-#endif
 
+} //namespace xoc
+#endif

@@ -37,6 +37,8 @@ author: Su Zhenyu
 #include "ir_ssa.h"
 #include "ir_loop_cvt.h"
 
+namespace xoc {
+
 bool IR_LOOP_CVT::is_while_do(LI<IRBB> const* li, OUT IRBB ** gobackbb,
 							  UINT * succ1, UINT * succ2)
 {
@@ -233,3 +235,5 @@ bool IR_LOOP_CVT::perform(OptCTX & oc)
 	END_TIMER_AFTER(get_pass_name());
 	return change;
 }
+
+} //namespace xoc

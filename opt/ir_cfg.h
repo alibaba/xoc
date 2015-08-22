@@ -34,9 +34,9 @@ author: Su Zhenyu
 #ifndef _IR_CFG_H_
 #define _IR_CFG_H_
 
+namespace xoc {
 
 typedef TMap<LabelInfo*, IRBB*> LAB2BB;
-
 
 /*
 NOTICE:
@@ -62,7 +62,7 @@ public:
 		src->addLabel(li);
 
 		//Set label->bb map.
-		m_lab2bb.aset(li, src);
+		m_lab2bb.setAlways(li, src);
 	}
 
 	/* Add new IRBB into CFG, but the BB list should be modified
@@ -217,4 +217,6 @@ public:
 	the trampolin branch. */
 	bool performMiscOpt(OptCTX & oc);
 };
+
+} //namespace xoc
 #endif

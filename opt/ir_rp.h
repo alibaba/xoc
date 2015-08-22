@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_REG_PROMOTION_H_
 #define _IR_REG_PROMOTION_H_
 
+namespace xoc {
+
 //
 //START MD_LT
 //
@@ -355,4 +357,6 @@ public:
 
 	virtual bool perform(OptCTX & oc);
 };
+
+} //namespace xoc
 #endif

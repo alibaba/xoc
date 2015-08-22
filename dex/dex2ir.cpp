@@ -31,17 +31,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 author: Su Zhenyu
 @*/
-#include "anablock.h"
-#include "anatypes.h"
-#include "anaopcode.h"
-#include "ananode.h"
-#include "anadot.h" //for debug
-#include "anaglobal.h"
-#include "anamethod.h"
-#include "anamem.h"
-#include "anautility.h"
-#include "anaprofile.h"
-
 #include "libdex/DexFile.h"
 #include "libdex/DexClass.h"
 #include "libdex/DexOpcodes.h"
@@ -49,8 +38,6 @@ author: Su Zhenyu
 
 #include "../opt/cominc.h"
 
-#include "tcomf.h"
-#include "anacomf.h"
 #include "dx_mgr.h"
 #include "../opt/prdf.h"
 #include "dex.h"
@@ -1867,8 +1854,10 @@ void Dex2IR::markLabel()
 
 				ASSERT0(each_catch->handler_pc < (UInt32)LIRC_num_of_op(m_fu));
 				LIR * x = LIRC_op(m_fu, each_catch->handler_pc);
-				ASSERT(LIR_opcode(x) == LOP_MOVE_EXCEPTION,
-						("LIR at catch start must be move_exception"));
+
+                //CASE: it is not always true. Apk may be messed up.
+                //ASSERT(LIR_opcode(x) == LOP_MOVE_EXCEPTION,
+                //		 ("LIR at catch start must be move_exception"));
 
 				LabelInfo * lab = NULL;
 				lst = m_lir2labs.get(x);

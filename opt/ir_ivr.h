@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef _IR_IVR_H_
 #define _IR_IVR_H_
 
+namespace xoc {
+
 #define IV_INIT_VAL_IS_INT	0
 #define IV_INIT_VAL_IS_VAR	1
 
@@ -134,4 +136,6 @@ public:
 	bool is_loop_invariant(LI<IRBB> const* li, IR const* ir);
 	virtual bool perform(OptCTX & oc);
 };
+
+} //namespace xoc
 #endif

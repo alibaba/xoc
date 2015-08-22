@@ -37,6 +37,8 @@ author: Su Zhenyu
 #include "prssainfo.h"
 #include "ir_ssa.h"
 
+namespace xoc {
+
 //
 //START IR_DCE
 //
@@ -679,3 +681,5 @@ bool IR_DCE::perform(OptCTX & oc)
 	return change;
 }
 //END IR_DCE
+
+} //namespace xoc

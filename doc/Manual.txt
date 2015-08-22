@@ -1201,3 +1201,18 @@ Programming Guides
 		As it show, your pass should determine and recompute the infrastructure
 		information necessary to do optimization so that the pass is running
 		as rapid as possible.
+
+	¡ñ How to add a new target
+		e.g: We are going to add a new target, named NT.
+		1. Create a directory under xoc/nt
+		2. Generate a header file that includes all predefined macros for const
+		   values which compiler used, named nt_const_info.h
+		3. Define a marco FOR_NT and add nt_const_info.h into 
+		   xoc/opt/targ_const_info.h, suck as:
+		     ...
+		     #elif defined(FOR_NT)
+		     #include "../nt/nt_const_info.h"
+		     ...
+		   Add -DFOR_NT into build system. 
+		4. Add compiler driver files ntdriver.cpp and ntdriver.h, and place 
+		   them at xoc/nt.

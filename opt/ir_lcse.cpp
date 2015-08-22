@@ -34,6 +34,8 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "ir_lcse.h"
 
+namespace xoc {
+
 //
 //START IR_LCSE
 //
@@ -682,3 +684,5 @@ bool IR_LCSE::perform(OptCTX & oc)
 	return change;
 }
 //END IR_LCSE
+
+} //namespace xoc

@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __RATIONAL_H__
 #define __RATIONAL_H__
 
+namespace xcom {
+
 #define FRAC_TYPE INT
 class Rational {
 	friend bool operator != (Rational const& a, Rational const& b);
@@ -99,4 +101,6 @@ inline Rational operator - (Rational const& a)
 	b.m_num = -b.m_num;
 	return b;
 }
+
+} //namespace xcom
 #endif

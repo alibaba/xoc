@@ -37,6 +37,8 @@ author: Su Zhenyu
 #include "sstl.h"
 #include "bs.h"
 
+namespace xcom {
+
 #if BITS_PER_BYTE == 8
 #define DIVBPB(a) ((a) >> 3)
 #define MULBPB(a) ((a) << 3)
@@ -1824,3 +1826,5 @@ BitSet * bs_intersect(BitSet const& set1, BitSet const& set2, OUT BitSet & res)
 	}
 	return &res;
 }
+
+} //namespace xcom

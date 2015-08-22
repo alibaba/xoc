@@ -33,6 +33,8 @@ author: Su Zhenyu
 @*/
 #include "cominc.h"
 
+namespace xoc {
+
 TypeDesc const g_type_desc[] = {
 	{D_UNDEF, "none",  0},
 	{D_B,     "bool",  8}, //BOOL
@@ -464,3 +466,4 @@ void TypeMgr::dump_type_tab()
 	fflush(g_tfile);
 }
 
+} //namespace xoc

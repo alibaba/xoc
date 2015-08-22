@@ -36,13 +36,12 @@ author: Su Zhenyu
 #include "prssainfo.h"
 #include "ir_ssa.h"
 
-/*
-This pass performs a flow sensitive/insensitive (SSA-based) points-to analysis.
-The resulting analysis information is used to promote variables from
-in-memory addressable objects to non-aliased variables PR that can be renamed
-into SSA form.
-*/
+namespace xoc {
 
+//This pass performs a flow sensitive/insensitive (SSA-based) points-to analysis.
+//The resulting analysis information is used to promote variables from
+//in-memory addressable objects to non-aliased variables PR that can be renamed
+//into SSA form.
 //
 //START PPSetMgr
 //
@@ -165,21 +164,24 @@ UINT IR_AA::count_mem()
 
 UINT IR_AA::countMD2MDSetMemory()
 {
-	UINT count1 = 0;
+	UINT count = 0;
 	BBList * bbl = m_ru->get_bb_list();
+	MD2MDSetIter iter;
 	for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
 		MD2MDSet * mx = m_md2mds_vec.get(BB_id(bb));
 		if (mx == NULL) { continue; }
-		for (INT i = mx->get_first(); i >= 0; i = mx->get_next((UINT)i)) {
-			MDSet const* mds = mx->get((UINT)i);
+		iter.clean();
+		MDSet const* mds = NULL;
+		for (UINT mdid = mx->get_first(iter, &mds);
+			 mdid > 0; mdid = mx->get_next(iter, &mds)) {
 			if (mds != NULL) {
-				count1 += mds->count_mem();
+				count += mds->count_mem();
 			}
 		}
-		count1 += mx->count_mem();
+		count += mx->count_mem();
 	}
-	count1 += m_md2mds_vec.count_mem();
-	return count1;
+	count += m_md2mds_vec.count_mem();
+	return count;
 }
 
 
@@ -3212,24 +3214,29 @@ void IR_AA::dumpMD2MDSet(MD const* md, IN MD2MDSet * mx)
 }
 
 
-void IR_AA::convertMD2MDSet2PT(OUT PtPairSet & pps, IN PtPairMgr & pt_pair_mgr,
-					  IN MD2MDSet * mx)
+void IR_AA::convertMD2MDSet2PT(
+			OUT PtPairSet & pps,
+			IN PtPairMgr & pt_pair_mgr,
+			IN MD2MDSet * mx)
 {
 	MD * allm = m_md_sys->get_md(MD_ALL_MEM);
-	for (INT i = mx->get_first(); i >= 0; i = mx->get_next((UINT)i)) {
-		MD const* from_md = m_md_sys->get_md((UINT)i);
-		MDSet const* from_md_pts = getPointTo((UINT)i, *mx);
-		if (from_md_pts == NULL) {
-			continue;
-		}
+	MD2MDSetIter mxiter;
+	MDSet const* from_md_pts = NULL;
+	for (UINT mdid = mx->get_first(mxiter, &from_md_pts);
+		 mdid > 0; mdid = mx->get_next(mxiter, &from_md_pts)) {
+		MD const* from_md = m_md_sys->get_md(mdid);
+		ASSERT0(from_md);
+
+		if (from_md_pts == NULL) { continue; }
+
 		if (from_md_pts->is_contain_all()) {
 			PtPair const* pp = pt_pair_mgr.add(from_md, allm);
 			ASSERT0(pp);
 			pps.bunion(PP_id(pp));
 		} else {
-			SEGIter * iter;
-			for (INT j = from_md_pts->get_first(&iter);
-				 j >= 0; j = from_md_pts->get_next((UINT)j, &iter)) {
+			SEGIter * segiter;
+			for (INT j = from_md_pts->get_first(&segiter);
+				 j >= 0; j = from_md_pts->get_next((UINT)j, &segiter)) {
 				MD const* to_md = m_md_sys->get_md((UINT)j);
 				PtPair const* pp = pt_pair_mgr.add(from_md, to_md);
 				ASSERT0(pp != NULL);
@@ -3806,3 +3813,5 @@ bool IR_AA::perform(IN OUT OptCTX & oc)
 	END_TIMER_AFTER(get_pass_name());
 	return true;
 }
+
+} //namespace xoc

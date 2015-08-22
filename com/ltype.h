@@ -165,7 +165,7 @@ author: Su Zhenyu
 #define GET_HIGH_32BIT(l)	(((l)>>32)&0xffffFFFF)
 
 #define IS_UNSIGN_TY(type)		((type)0 - 1 > 0) //Be true if type is unsigned.
-#define IS_UNSIGN_VAR(var)			(var > 0 && ~var > 0) //Be true if variable is unsigned.
+#define IS_UNSIGN_VAR(var)		(var > 0 && ~var > 0) //Be true if variable is unsigned.
 
 #define IN //input
 #define OUT //output
@@ -184,4 +184,3 @@ author: Su Zhenyu
 #endif
 
 #endif
-

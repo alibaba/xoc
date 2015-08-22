@@ -37,6 +37,8 @@ author: Su Zhenyu
 #include "ir_ssa.h"
 #include "ir_cp.h"
 
+namespace xoc {
+
 //
 //START IR_CP
 //
@@ -506,3 +508,5 @@ bool IR_CP::perform(OptCTX & oc)
 	return change;
 }
 //END IR_CP
+
+} //namespace xoc

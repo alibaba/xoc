@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __BITSET_H__
 #define __BITSET_H__
 
+namespace xcom {
+
 #define BS_ZERO			0
 #define BS_DUMP_BITSET	1
 #define BS_DUMP_POS		2
@@ -512,4 +514,5 @@ extern BitSet * bs_diff(IN BitSet const& set1, IN BitSet const& set2,
 						OUT BitSet & res);
 extern BitSet * bs_intersect(IN BitSet const& set1, IN BitSet const& set2,
 						OUT BitSet & res);
+} //namespace xcom
 #endif

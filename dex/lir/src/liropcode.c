@@ -34,7 +34,7 @@ author: GongKai, JinYue
 /*Copyright 2011 Alibaba Group*/
 #include "liropcode.h"
 
-#define lirOPCount 79
+#define lirOPCount 81
 
 //GENERATED AUTOMATICALLY BY lir-gen
 #define DECLARE_LIR_OPCODES                                                                \
@@ -112,7 +112,9 @@ LIR_OPCODE(LOP_beginInvoke          ,0                               ,lirFmtV   
 LIR_OPCODE(LOP_INVOKE               ,lirContinue|lirInvoke|lirThrow  ,lirFmtINVOKE         )\
 LIR_OPCODE(LOP_FILLED_NEW_ARRAY     ,lirContinue|lirThrow            ,lirFmtINVOKE         )\
 LIR_OPCODE(LOP_CMPG                 ,lirContinue                     ,lirFmtRAB            )\
-LIR_OPCODE(LOP_PHI                  ,0                               , 0                   )
+LIR_OPCODE(LOP_PHI                  ,0                               , 0                   )\
+LIR_OPCODE(LOP_PACKED_SWITCH_PAYLOAD,0                               ,lirFmt00X            )\
+LIR_OPCODE(LOP_SPARSE_SWITCH_PAYLOAD,0                               ,lirFmt00X            )\
 
 
 

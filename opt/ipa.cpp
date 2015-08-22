@@ -34,6 +34,8 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "ipa.h"
 
+namespace xoc {
+
 //
 //START IPA
 //
@@ -55,3 +57,4 @@ bool IPA::perform(OptCTX & oc)
 }
 //END IPA
 
+} //namespace xoc

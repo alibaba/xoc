@@ -3,6 +3,7 @@
 #include "comf.h"
 #include "smempool.h"
 #include "sstl.h"
+using namespace xcom;
 int main()
 {
 	TMap<int, char const*> map;

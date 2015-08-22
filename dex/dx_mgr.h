@@ -291,6 +291,8 @@ typedef enum _DX_OPC {
 	DX_UNUSED_FD,
 	DX_UNUSED_FE,
 	DX_UNUSED_FF,
+	DX_PACKED_SWITCH_PAYLOAD,
+	DX_SPARSE_SWITCH_PAYLOAD,
 } DX_OPC;
 
 
@@ -319,6 +321,7 @@ typedef enum _DX_OP_FMT {
 	FMT35c,  // op {vC, vD, vE, vF, vG}, thing@BBBB (B: count, A: vG)
 	FMT3rc,  // op {vCCCC .. v(CCCC+AA-1)}, meth@BBBB
 	FMT51l,  // op vAA, #+BBBBBBBBBBBBBBBB
+	FMT00x,
 } DX_OP_FMT;
 
 

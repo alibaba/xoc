@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __GRAPH_H_
 #define __GRAPH_H_
 
+namespace xcom {
+
 #define MAGIC_METHOD
 
 class Vertex;
@@ -111,7 +113,7 @@ class EdgeHashFunc {
 public:
 	UINT get_hash_value(Edge * e, UINT bs) const
 	{
-		ASSERT0(is_power_of_2(bs));
+		ASSERT0(isPowerOf2(bs));
 		return hash32bit(MAKE_VALUE(VERTEX_id(EDGE_from(e)),
 									VERTEX_id(EDGE_to(e)))) & (bs - 1);
 	}
@@ -134,22 +136,22 @@ public:
 };
 
 
-class EdgeHash : public SHash<Edge*, EdgeHashFunc> {
+class EdgeHash : public Hash<Edge*, EdgeHashFunc> {
 	Graph * m_g;
 public:
-	EdgeHash(UINT bsize = 64) : SHash<Edge*, EdgeHashFunc>(bsize) {}
+	EdgeHash(UINT bsize = 64) : Hash<Edge*, EdgeHashFunc>(bsize) {}
 	virtual ~EdgeHash() {}
 
 	void init(Graph * g, UINT bsize)
 	{
 		m_g = g;
-		SHash<Edge*, EdgeHashFunc>::init(bsize);
+		Hash<Edge*, EdgeHashFunc>::init(bsize);
 	}
 
 	void destroy()
 	{
 		m_g = NULL;
-		SHash<Edge*, EdgeHashFunc>::destroy();
+		Hash<Edge*, EdgeHashFunc>::destroy();
 	}
 
 	virtual Edge * create(OBJTY v);
@@ -160,13 +162,13 @@ class VertexHashFunc {
 public:
 	UINT get_hash_value(OBJTY val, UINT bs) const
 	{
-		ASSERT0(is_power_of_2(bs));
+		ASSERT0(isPowerOf2(bs));
 		return hash32bit((UINT)(size_t)val) & (bs - 1);
 	}
 
 	UINT get_hash_value(Vertex const* vex, UINT bs) const
 	{
-		ASSERT0(is_power_of_2(bs));
+		ASSERT0(isPowerOf2(bs));
 		return hash32bit(VERTEX_id(vex)) & (bs - 1);
 	}
 
@@ -178,11 +180,11 @@ public:
 };
 
 
-class VertexHash : public SHash<Vertex*, VertexHashFunc> {
+class VertexHash : public Hash<Vertex*, VertexHashFunc> {
 protected:
 	SMemPool * m_ec_pool;
 public:
-	VertexHash(UINT bsize = 64) : SHash<Vertex*, VertexHashFunc>(bsize)
+	VertexHash(UINT bsize = 64) : Hash<Vertex*, VertexHashFunc>(bsize)
 	{
 		m_ec_pool = smpoolCreate(sizeof(Vertex) * 4, MEM_CONST_SIZE);
 	}
@@ -621,4 +623,6 @@ public:
 	void set_bs_mgr(BitSetMgr * bs_mgr) { m_bs_mgr = bs_mgr; }
 	bool removeUnreachNode(UINT entry_id);
 };
+
+} //namespace xcom
 #endif

@@ -2777,7 +2777,7 @@ void LTMgr::renameLT(LT * l, IR ** newpr)
 	}
 	if (*newpr != NULL) {
 		LT_prno(l) = PR_no(*newpr);
-		m_prno2lt.aset(LT_prno(l), l);
+		m_prno2lt.setAlways(LT_prno(l), l);
 	}
 }
 
@@ -2819,7 +2819,7 @@ void LTMgr::rename(TMap<UINT, LT*> & prno2lt, BitSet & met)
 			//Do not rename global lifetime in LTMgr.
 			IR * newpr = NULL;
 			if (LT_is_global(l) && !LT_is_global(prior)) {
-				prno2lt.aset(LT_prno(l), l);
+				prno2lt.setAlways(LT_prno(l), l);
 				renameLT(prior, &newpr);
 			} else {
 				ASSERT(!LT_is_global(l) || !LT_is_global(prior),
@@ -2838,7 +2838,7 @@ void LTMgr::rename(TMap<UINT, LT*> & prno2lt, BitSet & met)
 void LTMgr::removeLT(LT * lt)
 {
 	m_lt_vec.set(LT_uid(lt), NULL);
-	m_prno2lt.aset(LT_prno(lt), NULL);
+	m_prno2lt.setAlways(LT_prno(lt), NULL);
 	m_gltm->get_bs_mgr()->free(LT_range(lt));
 	m_gltm->get_bs_mgr()->free(LT_occ(lt));
 	LT_range(lt) = NULL;
@@ -5623,7 +5623,7 @@ bool RA::verify_usable()
 //Verify usable regs.
 bool RA::verify_reg(bool check_usable, bool check_alloc)
 {
-	Prno2UINT prno2v(get_nearest_power_of_2((UINT)57));
+	Prno2UINT prno2v(getNearestPowerOf2((UINT)57));
 	UINT maxreg = 0;
 	Vector<GLT*> * gltv = m_gltm.get_gltvec();
 	for (INT i = 1; i <= gltv->get_last_idx(); i++) {

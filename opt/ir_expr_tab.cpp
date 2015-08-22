@@ -33,6 +33,8 @@ author: Su Zhenyu
 @*/
 #include "cominc.h"
 
+namespace xoc {
+
 //
 //START IR_EXPR_TAB
 //
@@ -618,3 +620,5 @@ bool IR_EXPR_TAB::perform(IN OUT OptCTX & oc)
 	return true;
 }
 //END IR_EXPR_TAB
+
+} //namespace xoc

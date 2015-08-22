@@ -34,6 +34,8 @@ author: Su Zhenyu
 #ifndef __DATA_TYPE_H__
 #define __DATA_TYPE_H__
 
+namespace xoc {
+
 class IR;
 class Type;
 
@@ -411,6 +413,7 @@ public:
 	DATA_TYPE hoistBSdtype(UINT bit_size, bool is_signed) const;
 	DATA_TYPE hoistDtype(UINT bit_size, OUT UINT * hoisted_data_size);
 	DATA_TYPE hoistDtype(DATA_TYPE stype) const;
+
 	Type const* hoistDtypeForBinop(IR const* opnd0, IR const* opnd1);
 
 	//Return DATA_TYPE which 'bitsize' corresponding to
@@ -725,4 +728,6 @@ public:
 			!type->is_pointer();
 	}
 };
+
+} //namespace xoc
 #endif

@@ -1579,17 +1579,19 @@ exit:
     return  err;
 }
 
-static inline LIRCode* anaDoAnalyse(LIRCode* code)
-{
-    LIRCode* newCode;
-    newCode = anaEntry(code);
-    return newCode;
-}
+//static inline LIRCode* anaDoAnalyse(LIRCode* code)
+//{
+//    LIRCode* newCode;
+//    newCode = anaEntry(code);
+//    return newCode;
+//}
 
 UInt32 lir2lexTransform(LIRCode* code, LCodeData* codeData)
 {
     UInt32 err = 0;
-    code = anaDoAnalyse(code);
+
+    //code = anaDoAnalyse(code);
+    ASSERT(0);//obsolete code.
 
     err = lir2lexCode(code, codeData);
     return err;

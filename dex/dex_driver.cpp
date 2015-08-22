@@ -31,18 +31,6 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 author: Su Zhenyu
 @*/
-#include "anablock.h"
-#include "anatypes.h"
-#include "anaopcode.h"
-#include "ananode.h"
-#include "anadot.h" //for debug
-#include "anaglobal.h"
-#include "anamethod.h"
-#include "anamem.h"
-#include "anautility.h"
-#include "anaprofile.h"
-#include "anainterface.h"
-
 #include "libdex/DexFile.h"
 #include "libdex/DexClass.h"
 #include "liropcode.h"
@@ -51,8 +39,6 @@ author: Su Zhenyu
 
 #include "../opt/cominc.h"
 
-#include "tcomf.h"
-#include "anacomf.h"
 #include "dx_mgr.h"
 #include "aoc_dx_mgr.h"
 
@@ -291,7 +277,7 @@ static bool handleRegion(IN DexRegion * func_ru,
 		return false;
 	}
 
-	Prno2UINT prno2v(get_nearest_power_of_2(
+	Prno2UINT prno2v(getNearestPowerOf2(
 			d2ir.get_pr2v_map()->get_elem_count() + 1));
 	//dump_irs(ir_list, func_ru->get_dm());
 	#if 0

@@ -5,6 +5,7 @@
 #include "sstl.h"
 #include "bs.h"
 #include "sbs.h"
+using namespace xcom;
 void bs()
 {
 	BitSet bs;

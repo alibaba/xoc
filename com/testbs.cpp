@@ -32,6 +32,8 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "bs.h"
 #include "sbs.h"
 
+using namespace xcom;
+
 #ifdef _DEBUG_
 void bs_test()
 {

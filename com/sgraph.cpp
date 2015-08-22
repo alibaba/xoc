@@ -39,6 +39,8 @@ author: Su Zhenyu
 #include "sbs.h"
 #include "sgraph.h"
 
+namespace xcom {
+
 //Expect for unique vertex in graphic depitction
 #define ALWAYS_VERTEX_UNIQUE
 
@@ -1748,3 +1750,5 @@ bool DGraph::removeUnreachNode(UINT entry_id)
 	return removed;
 }
 //END DGraph
+
+} //namespace xcom

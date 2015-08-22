@@ -34,6 +34,8 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "callg.h"
 
+namespace xoc {
+
 //
 //START CallGraph
 //
@@ -263,3 +265,5 @@ void CallGraph::build(Region * top)
 	set_bs_mgr(m_ru_mgr->get_bs_mgr());
 }
 //END CallGraph
+
+} //namespace xoc
