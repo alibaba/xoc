@@ -212,7 +212,11 @@ public:
 
 	void dump_lir2lab();
 
-	UINT get_ofst_addend() const { return m_ofst_addend; }
+	UINT get_ofst_addend() const 
+	{ 
+		return 8;
+		//return m_ofst_addend; 
+	}
 	CHAR const* get_var_type_name(UINT field_id);
 	UINT get_dexopcode(UINT flag);
 	Type const* getType(LIR * ir);
@@ -227,6 +231,7 @@ public:
 	bool is_readonly(CHAR const* method_name) const;
 	bool hasCatch() const { return m_has_catch; }
 
+	Type const* mapDexType2XocType(CHAR charty);
 	Type const* mapFieldType2Type(UINT field_id);
 	void markLabel();
 

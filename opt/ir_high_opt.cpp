@@ -92,6 +92,15 @@ bool Region::HighProcess(OptCTX & oc)
 		}
 	}
 
+	if (g_do_ssa) {
+		//Note lowering IR now may be too early and will be 
+		//a hindrance to optmizations.
+		//low_to_pr_mode(oc);
+		IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)passmgr->registerPass(PASS_SSA_MGR);
+		ASSERT0(ssamgr);
+		ssamgr->construction(oc);
+	}
+
 	if (g_do_aa) {
 		ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc));
 		initAliasAnalysis(oc);

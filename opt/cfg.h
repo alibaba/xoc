@@ -103,7 +103,9 @@ protected:
 		return p;
 	}
 public:
-	CFG(List<BB*> * bb_list, UINT edge_hash_size = 16, UINT vertex_hash_size = 16)
+	CFG(List<BB*> * bb_list, 
+		UINT edge_hash_size = 16, 
+		UINT vertex_hash_size = 16)
 		: DGraph(edge_hash_size, vertex_hash_size)
 	{
 		ASSERT0(bb_list);
@@ -132,8 +134,7 @@ public:
 		//disturb the computation of entry and exit.
 	}
 
-	void build(OptCTX & oc);
-	void build_eh();
+	void build(OptCTX & oc);	
 
 	void clean_loop_info();
 	bool computeDom(BitSet const* uni)
@@ -176,7 +177,7 @@ public:
 			ASSERT(vex, ("No vertex corresponds to BB%d", bb->id));
 			if (comp_entry) {
 				if (VERTEX_in_list(vex) == NULL &&
-					(is_ru_entry(bb) || is_exp_handling(bb))) {
+					(is_ru_entry(bb) || bb->is_exp_handling())) {
 					m_entry_list.append_tail(bb);
 				}
 			}
@@ -257,7 +258,7 @@ public:
 
 	virtual BB * get_fallthrough_bb(BB * bb)
 	{
-		ASSERT0(bb);
+		ASSERT0(bb);		
 		C<BB*> * ct;
 		ASSERT0(m_bb_list->find(bb, &ct));
 		m_bb_list->find(bb, &ct);
@@ -342,13 +343,7 @@ public:
 		ASSERT(0, ("Target Dependent Code"));
 		return false;
 	}
-	//Return true if bb is exception handling.
-	virtual bool is_exp_handling(BB const*) const
-	{
-		ASSERT(0, ("Target Dependent Code"));
-		return false;
-	}
-
+	
 	virtual bool is_loop_head(BB * bb)
 	{ return _is_loop_head(m_loop_info, bb); }
 
@@ -572,8 +567,9 @@ bool CFG<BB, XR>::verify_rmbb(IN CDG * cdg, OptCTX & oc)
 		if (next_ct != NULL) {
 			next_bb = C_val(next_ct);
 		}
-		if (get_last_xr(bb) == NULL && !is_ru_entry(bb) &&
-			!is_exp_handling(bb)) {
+		if (get_last_xr(bb) == NULL && 
+			!is_ru_entry(bb) &&
+			!bb->is_exp_handling()) {
 			if (next_bb == NULL) {
 				continue;
 			}
@@ -648,7 +644,7 @@ bool CFG<BB, XR>::removeEmptyBB(OptCTX & oc)
 		need to update. */
 		if (get_last_xr(bb) == NULL &&
 			!is_ru_entry(bb) &&
-			!is_exp_handling(bb)) {
+			!bb->is_exp_handling()) {
 
 			/* Do not replace is_ru_exit/entry() to is_cfg_exit/entry().
 			Some redundant cfg has multi bb which
@@ -1080,7 +1076,7 @@ bool CFG<BB, XR>::removeUnreachBB()
 		BB * bb = ct->val();
 		next_ct = m_bb_list->get_next(ct);
 		if (!visited.is_contain(bb->id)) {
-			ASSERT(!is_exp_handling(bb),
+			ASSERT(!bb->is_exp_handling(),
 				("For conservative purpose, exception handler should be reserved."));
 			bb->removeSuccessorPhiOpnd(this);
 			remove_bb(ct);
@@ -1186,7 +1182,7 @@ void CFG<BB, XR>::build(OptCTX & oc)
 		}
 
 		//Check bb boundary
-		if (last->is_call()) {
+		if (last->is_calls_stmt()) {
 			//Add fall-through edge
 			//The last bb may not be terminated by 'return' stmt.
 			if (next != NULL && !next->is_unreachable()) {
@@ -1244,51 +1240,6 @@ void CFG<BB, XR>::build(OptCTX & oc)
 		}
 	}
 	OC_is_cfg_valid(oc) = true;
-}
-
-
-//Construct eh edge after cfg is built.
-template <class BB, class XR>
-void CFG<BB, XR>::build_eh()
-{
-	ASSERT(m_bb_list, ("bb_list is emt"));
-	List<BB*> jumpo;
-	List<BB*> ehl;
-	BB * entry = NULL;
-	UNUSED(entry);
-	C<BB*> * ct;
-	for (m_bb_list->get_head(&ct);
-		 ct != m_bb_list->end(); ct = m_bb_list->get_next(ct)) {
-		BB * bb = ct->val();
-		if (is_ru_entry(bb)) {
-			ASSERT(entry == NULL, ("multi entries"));
-			entry = bb;
-			//jumpo.append_tail(bb);
-		}
-
-		if (is_exp_handling(bb)) {
-			ehl.append_tail(bb);
-		}
-
-		if (is_exp_jumpo(bb)) {
-			jumpo.append_tail(bb);
-		}
-	}
-
-	if (ehl.get_elem_count() == 0) { return; }
-
-	for (ehl.get_head(&ct); ct != ehl.end(); ct = ehl.get_next(ct)) {
-		BB * b = ct->val();
-		C<BB*> * ct2;
-		for (jumpo.get_head(&ct2);
-			 ct2 != jumpo.end(); ct2 = jumpo.get_next(ct2)) {
-			BB * a = ct2->val();
-			Edge * e = addEdge(a->id, b->id);
-			EDGE_info(e) = xmalloc(sizeof(EI));
-			EI_is_eh((EI*)EDGE_info(e)) = true;
-			m_has_eh_edge = true;
-		}
-	}
 }
 
 

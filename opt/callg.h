@@ -114,7 +114,7 @@ public:
 	CALL_NODE * map_sym2cn(SYM * name) { return m_sym2cn_map.get(name); }
 	Region * map_ir2ru(IR const* ir)
 	{
-		ASSERT0(IR_type(ir) == IR_CALL || IR_type(ir) == IR_ICALL);
+		ASSERT0(ir->is_calls_stmt());
 		SYM * name = VAR_name(CALL_idinfo(ir));
 		CALL_NODE * cn = map_sym2cn(name);
 		if (cn == NULL) return NULL;

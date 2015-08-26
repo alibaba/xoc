@@ -77,6 +77,77 @@ public:
 		addVertex(BB_id(bb));
 	}
 
+	//Construct EH edge after cfg built.
+	void buildEHEdgeEx()
+	{
+		ASSERT(m_bb_list, ("bb_list is emt"));	
+		C<IRBB*> * ct;
+		for (m_bb_list->get_head(&ct);
+			 ct != m_bb_list->end(); ct = m_bb_list->get_next(ct)) {
+			IRBB const* bb = ct->val();
+			C<IR*> * ct;
+			IR * x = BB_irlist(const_cast<IRBB*>(bb)).get_tail(&ct);
+			if (x != NULL && x->is_may_throw() && x->get_ai() != NULL) {
+				EHLabelAttachInfo const* ehlab = 
+					(EHLabelAttachInfo const*)x->get_ai()->get(AI_EH_LABEL);
+				SC<LabelInfo*> * sc;
+				SList<LabelInfo*> const& labs = ehlab->get_labels();
+				for (sc = labs.get_head(); 
+					 sc != labs.end(); sc = labs.get_next(sc)) {
+					IRBB * tgt = findBBbyLabel(sc->val());
+					ASSERT0(tgt);
+					Edge * e = addEdge(BB_id(bb), BB_id(tgt));
+					EDGE_info(e) = xmalloc(sizeof(EI));
+					EI_is_eh((EI*)EDGE_info(e)) = true;
+					m_has_eh_edge = true;	
+				}
+			}
+		}
+	}
+
+	//Construct EH edge after cfg built.
+	void buildEHEdge()
+	{
+		ASSERT(m_bb_list, ("bb_list is emt"));
+		List<IRBB*> maythrow;
+		List<IRBB*> ehl;
+		IRBB * entry = NULL;
+		UNUSED(entry);
+		
+		C<IRBB*> * ct;
+		for (m_bb_list->get_head(&ct);
+			 ct != m_bb_list->end(); ct = m_bb_list->get_next(ct)) {
+			IRBB * bb = ct->val();
+			if (is_ru_entry(bb)) {
+				ASSERT(entry == NULL, ("multi entries"));
+				entry = bb;
+			}
+	
+			if (bb->is_exp_handling()) {
+				ehl.append_tail(bb);
+			}
+	
+			if (bb->mayThrowException()) {
+				maythrow.append_tail(bb);
+			}
+		}
+	
+		if (ehl.get_elem_count() == 0) { return; }
+	
+		for (ehl.get_head(&ct); ct != ehl.end(); ct = ehl.get_next(ct)) {
+			IRBB * b = ct->val();
+			C<IRBB*> * ct2;
+			for (maythrow.get_head(&ct2);
+				 ct2 != maythrow.end(); ct2 = maythrow.get_next(ct2)) {
+				IRBB * a = ct2->val();
+				Edge * e = addEdge(a->id, b->id);
+				EDGE_info(e) = xmalloc(sizeof(EI));
+				EI_is_eh((EI*)EDGE_info(e)) = true;
+				m_has_eh_edge = true;
+			}
+		}
+	}
+	
 	virtual void cf_opt();
 	void computeDomAndIdom(IN OUT OptCTX & oc, BitSet const* uni = NULL);
 	void computePdomAndIpdom(IN OUT OptCTX & oc, BitSet const* uni = NULL);
@@ -92,7 +163,7 @@ public:
 			ASSERT(vex, ("No vertex corresponds to BB%d", bb->id));
 			if (comp_entry) {
 				if (VERTEX_in_list(vex) == NULL &&
-					(is_ru_entry(bb) || is_exp_handling(bb))) {
+					(is_ru_entry(bb) || bb->is_exp_handling())) {
 					m_entry_list.append_tail(bb);
 				}
 			}
@@ -121,21 +192,13 @@ public:
 
 	virtual bool if_opt(IRBB * bb);
 	bool is_ru_entry(IRBB * bb) { return BB_is_entry(bb); }
-	bool is_ru_exit(IRBB * bb) { return  BB_is_exit(bb); }
-	virtual bool is_exp_handling(IRBB const* bb) const
-	{ return bb->is_exp_handling(); }
-	virtual bool is_exp_jumpo(IRBB const* bb) const
-	{
-		C<IR*> * ct;
-		IR * x = BB_irlist(const_cast<IRBB*>(bb)).get_tail(&ct);
-		if (x != NULL && IR_may_throw(x)) {
-			return true;
-		}
-		return false;
-	}
-	void insertBBbetween(IN IRBB * from, IN C<IRBB*> * from_ct,
-						   IN IRBB * to, IN C<IRBB*> * to_ct,
-						   IN IRBB * newbb);
+	bool is_ru_exit(IRBB * bb) { return  BB_is_exit(bb); }		
+	void insertBBbetween(
+			IN IRBB * from, 
+			IN C<IRBB*> * from_ct,
+			IN IRBB * to, 
+			IN C<IRBB*> * to_ct,
+			IN IRBB * newbb);
 
 	//Return the first operation of 'bb'.
 	IR * get_first_xr(IRBB * bb)
@@ -159,7 +222,7 @@ public:
 	virtual bool goto_opt(IRBB * bb);
 
 	//Find natural loop and scan loop body to find call and early exit, etc.
-	void LoopAnalysis(OptCTX & oc);
+	void LoopAnalysis(OptCTX & oc);	
 
 	//Compute which predecessor is pred to bb.
 	//e.g: If pred is the first predecessor, return 0.

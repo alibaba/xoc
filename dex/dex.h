@@ -277,4 +277,8 @@ public:
 public:
 	TypeIndexRep() { memset(this, 0, sizeof(TypeIndexRep)); }
 };
+
+
+//Perform Dex register allocation.
+extern bool g_do_dex_ra;
 #endif

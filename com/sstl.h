@@ -2567,7 +2567,8 @@ public:
 		return;
 	}
 
-	INT get_size() const
+	//Return the number of element the vector could hold.
+	UINT get_capacity() const
 	{
 		ASSERT(is_init(), ("VECTOR not yet initialized."));
 		return m_elem_num;
@@ -2581,30 +2582,31 @@ public:
 		return m_last_idx;
 	}
 
-	//Growing vector by size, if 'm_size' is NULL , alloc vector.
+	//Growing vector up to hold the most num_of_elem elements.
+	//If 'm_elem_num' is 0 , alloc vector to hold num_of_elem elements.
 	//Reallocate memory if necessory.
-	void grow(UINT size)
+	void grow(UINT num_of_elem)
 	{
 		ASSERT(is_init(), ("VECTOR not yet initialized."));
-		if (size == 0) { return; }
+		if (num_of_elem == 0) { return; }
 		if (m_elem_num == 0) {
 			ASSERT(m_vec == NULL, ("vector should be NULL if size is zero."));
-			m_vec = (T*)::malloc(sizeof(T) * size);
+			m_vec = (T*)::malloc(sizeof(T) * num_of_elem);
 			ASSERT0(m_vec);
-			memset(m_vec, 0, sizeof(T) * size);
-			m_elem_num = size;
+			memset(m_vec, 0, sizeof(T) * num_of_elem);
+			m_elem_num = num_of_elem;
 			return;
 		}
 
-		ASSERT0(size > (UINT)m_elem_num);
-		T * tmp = (T*)::malloc(size * sizeof(T));
+		ASSERT0(num_of_elem > (UINT)m_elem_num);
+		T * tmp = (T*)::malloc(num_of_elem * sizeof(T));
 		ASSERT0(tmp);
 		memcpy(tmp, m_vec, m_elem_num * sizeof(T));
 		memset(((CHAR*)tmp) + m_elem_num * sizeof(T), 0,
-			   (size - m_elem_num)* sizeof(T));
+			   (num_of_elem - m_elem_num)* sizeof(T));
 		::free(m_vec);
 		m_vec = tmp;
-		m_elem_num = size;
+		m_elem_num = num_of_elem;
 	}
 };
 //END Vector
@@ -2737,7 +2739,8 @@ protected:
 	} s1;
 public:
 	T * m_vec;
-
+	
+public:
 	SimpleVec()
 	{
 		s1.m_is_init = false;
@@ -2833,7 +2836,8 @@ public:
 		return;
 	}
 
-	UINT get_size() const
+	//Return the number of element the vector could hold.
+	UINT get_capacity() const
 	{
 		ASSERT(is_init(), ("VECTOR not yet initialized."));
 		return SVEC_elem_num(this);

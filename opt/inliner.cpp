@@ -42,7 +42,7 @@ namespace xoc {
 //
 bool Inliner::is_call_site(IR * call, Region * ru)
 {
-	ASSERT0(call->is_call());
+	ASSERT0(call->is_calls_stmt());
 	SYM * name = VAR_name(CALL_idinfo(call));
 	CALL_NODE const* cn1 = m_callg->map_sym2cn(name);
 	CALL_NODE const* cn2 = m_callg->map_ru2cn(ru);
@@ -131,7 +131,7 @@ void Inliner::ck_ru(IN Region * ru, OUT bool & need_el,
 			lst.clean();
 			for (IR const* k = iterInitC(LOOP_body(x), lst);
 				 k != NULL; k = iterNextC(lst)) {
-				if (IR_type(k) == IR_RETURN) {
+				if (k->is_return()) {
 					need_el = true;
 					has_ret = true;
 					break;
@@ -142,7 +142,7 @@ void Inliner::ck_ru(IN Region * ru, OUT bool & need_el,
 			lst.clean();
 			for (IR const* k = iterInitC(IF_truebody(x), lst);
 				 k != NULL; k = iterNextC(lst)) {
-				if (IR_type(k) == IR_RETURN) {
+				if (k->is_return()) {
 					need_el = true;
 					has_ret = true;
 					break;
@@ -151,7 +151,7 @@ void Inliner::ck_ru(IN Region * ru, OUT bool & need_el,
 			lst.clean();
 			for (IR const* k = iterInitC(IF_falsebody(x), lst);
 				 k != NULL; k = iterNextC(lst)) {
-				if (IR_type(k) == IR_RETURN) {
+				if (k->is_return()) {
 					need_el = true;
 					has_ret = true;
 					break;
@@ -162,7 +162,7 @@ void Inliner::ck_ru(IN Region * ru, OUT bool & need_el,
 			lst.clean();
 			for (IR const* k = iterInitC(SWITCH_body(x), lst);
 				 k != NULL; k = iterNextC(lst)) {
-				if (IR_type(k) == IR_RETURN) {
+				if (k->is_return()) {
 					need_el = true;
 					has_ret = true;
 					break;
@@ -206,7 +206,7 @@ bool Inliner::do_inline_c(Region * caller, Region * callee)
 	IR * head = caller_irs;
 	for (; caller_irs != NULL; caller_irs = next) {
 		next = IR_next(caller_irs);
-		if (IR_type(caller_irs) == IR_CALL &&
+		if (caller_irs->is_call() &&
 			is_call_site(caller_irs, callee)) {
 			IR * new_irs_in_caller = caller->dupIRTreeList(callee_irs);
 
@@ -267,7 +267,7 @@ bool Inliner::perform(OptCTX & oc)
 	ASSERT0(REGION_type(top) == RU_PROGRAM);
 	IR * irs = top->get_ir_list();
 	while (irs != NULL) {
-		if (IR_type(irs) == IR_REGION) {
+		if (irs->is_region()) {
 			Region * ru = REGION_ru(irs);
 			if (can_be_cand(ru)) {
 				do_inline(ru);

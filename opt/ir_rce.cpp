@@ -119,10 +119,10 @@ IR * IR_RCE::calcCondMustVal(IN IR * ir, OUT bool & must_true,
 
 IR * IR_RCE::processBranch(IR * ir, IN OUT bool & cfg_mod)
 {
-	ASSERT0(IR_type(ir) == IR_FALSEBR || IR_type(ir) == IR_TRUEBR);
+	ASSERT0(ir->is_cond_br());
 	bool must_true, must_false;
 	BR_det(ir) = calcCondMustVal(BR_det(ir), must_true, must_false);
-	if (IR_type(ir) == IR_TRUEBR) {
+	if (ir->is_truebr()) {
 		if (must_true) {
 			//TRUEBR(0x1)
 			IRBB * from = ir->get_bb();
@@ -191,7 +191,7 @@ IR * IR_RCE::processBranch(IR * ir, IN OUT bool & cfg_mod)
 //Perform dead store elmination: x = x;
 IR * IR_RCE::processStore(IR * ir)
 {
-	ASSERT0(IR_type(ir) == IR_ST);
+	ASSERT0(ir->is_st());
 	if (ST_rhs(ir)->get_exact_ref() == ir->get_exact_ref()) {
 		ir->removeSSAUse();
 		m_ru->freeIRTree(ir);
@@ -204,7 +204,7 @@ IR * IR_RCE::processStore(IR * ir)
 //Perform dead store elmination: x = x;
 IR * IR_RCE::processStorePR(IR * ir)
 {
-	ASSERT0(IR_type(ir) == IR_STPR);
+	ASSERT0(ir->is_stpr());
 	if (STPR_rhs(ir)->get_exact_ref() == ir->get_exact_ref()) {
 		ir->removeSSAUse();
 		m_ru->freeIRTree(ir);

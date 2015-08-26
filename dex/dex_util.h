@@ -52,12 +52,11 @@ public:
 	virtual ~DexRegion() {}
 
 	IR * gen_and_add_sib(IR * ir, UINT prno);
-
-	IR_AA * initAliasAnalysis(OptCTX & oc);
-
+	
 	virtual bool HighProcess(OptCTX & oc);
 
 	virtual PassMgr * newPassMgr();
+	virtual IR_AA * newAliasAnalysis();
 
 	void updateRAresult(RA & ra, Prno2UINT & prno2v);
 

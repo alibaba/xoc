@@ -485,7 +485,7 @@ VN * IR_GVN::computeMemory(IR const* exp, bool & change)
 VN * IR_GVN::computeIloadByAnonDomDef(IR const* ild, VN const* mlvn,
 									 IR const* domdef, bool & change)
 {
-	ASSERT0(IR_type(ild) == IR_ILD && m_du->is_may_def(domdef, ild, false));
+	ASSERT0(ild->is_ild() && m_du->is_may_def(domdef, ild, false));
 	ILD_VNE2VN * vnexp_map = m_def2ildtab.get(domdef);
 	UINT dtsz = ild->get_dtype_size(m_dm);
 	VNE_ILD vexp(VN_id(mlvn), ILD_ofst(ild), dtsz);
@@ -516,7 +516,7 @@ VN * IR_GVN::computeIloadByAnonDomDef(IR const* ild, VN const* mlvn,
 
 VN * IR_GVN::computeIload(IR const* exp, bool & change)
 {
-	ASSERT0(IR_type(exp) == IR_ILD);
+	ASSERT0(exp->is_ild());
 	VN * mlvn = computeVN(ILD_base(exp), change);
 	if (mlvn == NULL) {
 		ASSERT0(m_ir2vn.get(IR_id(exp)) == NULL);
@@ -597,7 +597,7 @@ VN * IR_GVN::computeArrayByAnonDomDef(IR const* arr, VN const* basevn,
 									   VN const* ofstvn, IR const* domdef,
 									   bool & change)
 {
-	ASSERT0(IR_type(arr) == IR_ARRAY && m_du->is_may_def(domdef, arr, false));
+	ASSERT0(arr->is_array() && m_du->is_may_def(domdef, arr, false));
 	ARR_VNE2VN * vnexp_map = m_def2arrtab.get(domdef);
 	UINT dtsz = arr->get_dtype_size(m_dm);
 	VNE_ARR vexp(VN_id(basevn), VN_id(ofstvn), ARR_ofst(arr), dtsz);
@@ -626,7 +626,7 @@ VN * IR_GVN::computeArrayByAnonDomDef(IR const* arr, VN const* basevn,
 
 VN * IR_GVN::computeArray(IR const* exp, bool & change)
 {
-	ASSERT0(IR_type(exp) == IR_ARRAY);
+	ASSERT0(exp->is_array());
 	for (IR const* s = ARR_sub_list(exp); s != NULL; s = IR_next(s)) {
 		computeVN(s, change);
 	}
@@ -1295,7 +1295,7 @@ bool IR_GVN::calcCondMustVal(IN IR const* ir,
 	must_true = false;
 	must_false = false;
 	ASSERT0(ir->is_judge());
-	if (IR_type(ir) == IR_LNOT) {
+	if (ir->is_lnot()) {
 		VN const* v = m_ir2vn.get(IR_id(UNA_opnd0(ir)));
 		if (v == NULL) { return false; }
 
@@ -1358,7 +1358,7 @@ bool IR_GVN::calcCondMustVal(IN IR const* ir,
 		}
 
 		if (VN_type(v1) == VN_INT && VN_type(v2) == VN_INT) {
-			if (IR_type(ir) == IR_LT) {
+			if (ir->is_lt()) {
 				if (VN_int_val(v1) < VN_int_val(v2)) {
 					must_true = true;
 					must_false = false;
@@ -1367,7 +1367,7 @@ bool IR_GVN::calcCondMustVal(IN IR const* ir,
 					must_false = true;
 				}
 				return true;
-			} else if (IR_type(ir) == IR_GT) {
+			} else if (ir->is_gt()) {
 				if (VN_int_val(v1) > VN_int_val(v2)) {
 					must_true = true;
 					must_false = false;
@@ -1388,7 +1388,7 @@ bool IR_GVN::calcCondMustVal(IN IR const* ir,
 		}
 
 		if (VN_type(v1) == VN_INT && VN_type(v2) == VN_INT) {
-			if (IR_type(ir) == IR_LE) {
+			if (ir->is_le()) {
 				if (VN_int_val(v1) <= VN_int_val(v2)) {
 					must_true = true;
 					must_false = false;
@@ -1397,7 +1397,7 @@ bool IR_GVN::calcCondMustVal(IN IR const* ir,
 					must_false = true;
 				}
 				return true;
-			} else if (IR_type(ir) == IR_GE) {
+			} else if (ir->is_ge()) {
 				if (VN_int_val(v1) >= VN_int_val(v2)) {
 					must_true = true;
 					must_false = false;

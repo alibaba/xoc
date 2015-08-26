@@ -47,6 +47,7 @@ author: Su Zhenyu
 #include "dex_util.h"
 #include "dex2ir.h"
 #include "ir2dex.h"
+#include "dexscan.h"
 
 CHAR const* get_dt_name(LIR * ir)
 {
@@ -1079,7 +1080,7 @@ public:
 	/*
 	virtual bool is_promotable(IR const* ir) const
 	{
-		if (IR_type(ir) == IR_ARRAY) {
+		if (ir->is_array()) {
 			IR * sub = ARR_sub_list(ir);
 			ASSERT0(sub);
 			if (cnt_list(sub) == 1) {
@@ -1261,6 +1262,9 @@ void DexPassMgr::performScalarOpt(OptCTX & oc)
 		is_ssa_avail = ssamgr->is_ssa_constructed();
 	}
 
+	DexScan ds(m_ru);
+	ds.perform(oc);
+	return;
 	passlist.append_tail(registerPass(PASS_CP));
 	passlist.append_tail(registerPass(PASS_DCE));
 	passlist.append_tail(registerPass(PASS_RP));
@@ -1404,21 +1408,9 @@ PassMgr * DexRegion::newPassMgr()
 
 
 //Initialize alias analysis.
-IR_AA * DexRegion::initAliasAnalysis(OptCTX & oc)
+IR_AA * DexRegion::newAliasAnalysis()
 {
-	ASSERT0(REGION_analysis_instrument(this));
-	if (get_aa() == NULL) {
-		DEX_AA * aa = new DEX_AA(this);
-
-		REGION_analysis_instrument(this)->m_ir_aa = aa;
-
-		aa->initMayPointToSet();
-
-		aa->set_flow_sensitive(true);
-
-		aa->perform(oc);
-	}
-	return get_aa();
+	return new DEX_AA(this);
 }
 
 
@@ -1607,7 +1599,8 @@ void DexRegion::process(OUT Prno2UINT & prno2v, UINT param_num, UINT vregnum,
 
 	REGION_is_pr_unique_for_same_number(this) = true;
 
-	//g_do_ssa = true;
+	g_do_ssa = true;
+	g_do_dex_ra = true;
 
 	HighProcess(oc);
 
@@ -1634,9 +1627,11 @@ void DexRegion::process(OUT Prno2UINT & prno2v, UINT param_num, UINT vregnum,
 	refineBBlist(bbl, rf);
 	ASSERT0(verifyIRandBB(bbl, this));
 
-	RA ra(this, tr, param_num, vregnum, v2pr, pr2v, &m_var2pr);
-	LOG("\t\tdo DEX Register Allcation for '%s'", get_ru_name());
-	ra.perform(oc);
-	updateRAresult(ra, prno2v);
+	if (g_do_dex_ra) {
+		RA ra(this, tr, param_num, vregnum, v2pr, pr2v, &m_var2pr);
+		LOG("\t\tdo DEX Register Allcation for '%s'", get_ru_name());
+		ra.perform(oc);
+		updateRAresult(ra, prno2v);
+	}
 }
 //END DexRegion

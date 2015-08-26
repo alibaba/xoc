@@ -145,13 +145,13 @@ public:
 		if (t1 == t2) { return true; }
 
 		IR const* base1 = NULL;
-		if (IR_type(t1) == IR_ILD) { base1 = ILD_base(t1); }
-		else if (IR_type(t1) == IR_IST) { base1 = IST_base(t1); }
+		if (t1->is_ild()) { base1 = ILD_base(t1); }
+		else if (t1->is_ist()) { base1 = IST_base(t1); }
 		ASSERT0(base1);
 
 		IR const* base2 = NULL;
-		if (IR_type(t2) == IR_ILD) { base2 = ILD_base(t2); }
-		else if (IR_type(t2) == IR_IST) { base2 = IST_base(t2); }
+		if (t2->is_ild()) { base2 = ILD_base(t2); }
+		else if (t2->is_ist()) { base2 = IST_base(t2); }
 		ASSERT0(base2);
 
 		ASSERT0(m_gvn->mapIR2VN(base1) && m_gvn->mapIR2VN(base2));
@@ -185,13 +185,13 @@ public:
 
 	bool compare(IR * t1, IR * t2) const
 	{
-		if (IR_type(t1) == IR_ARRAY && IR_type(t2) == IR_ARRAY) {
+		if (t1->is_array() && t2->is_array()) {
 			return compareArray(t1, t2);
-		} else if ((IR_type(t1) == IR_ILD || IR_type(t1) == IR_IST) &&
-				   (IR_type(t2) == IR_ILD || IR_type(t2) == IR_IST)) {
+		} else if ((t1->is_ild() || t1->is_ist()) &&
+				   (t2->is_ild() || t2->is_ist())) {
 			return compareIndirectAccess(t1, t2);
-		} else if ((IR_type(t1) == IR_ILD || IR_type(t1) == IR_IST) &&
-				   (IR_type(t2) == IR_ILD || IR_type(t2) == IR_IST)) {
+		} else if ((t1->is_ild() || t1->is_ist()) &&
+				   (t2->is_ild() || t2->is_ist())) {
 			return compareDirectAccess(t1, t2);
 		}
 		return false;
@@ -620,7 +620,7 @@ bool IR_RP::checkExpressionIsLoopInvariant(IN IR * ir, LI<IRBB> const* li)
 
 bool IR_RP::checkArrayIsLoopInvariant(IN IR * ir, LI<IRBB> const* li)
 {
-	ASSERT0(IR_type(ir) == IR_ARRAY && li);
+	ASSERT0(ir->is_array() && li);
 	for (IR * s = ARR_sub_list(ir); s != NULL; s = IR_next(s)) {
 		if (!checkExpressionIsLoopInvariant(s, li)) {
 			return false;
@@ -709,7 +709,7 @@ bool IR_RP::handleGeneralRef(IR * ir,
 							OUT TTab<IR*> & inexact_access)
 {
 	ASSERT0(ir->is_memory_ref());
-	ASSERT0(IR_type(ir) != IR_ARRAY);
+	ASSERT0(!ir->is_array());
 
 	if (ir->get_offset() != 0) {
 		//TODO:not yet support, x is MC type.
@@ -866,12 +866,12 @@ void IR_RP::clobberAccessInList(IR * ir,
 
 bool IR_RP::checkIndirectAccessIsLoopInvariant(IN IR * ir, LI<IRBB> const* li)
 {
-	ASSERT0((IR_type(ir) == IR_ILD || IR_type(ir) == IR_IST) && li);
-	if (IR_type(ir) == IR_ILD) {
+	ASSERT0((ir->is_ild() || ir->is_ist()) && li);
+	if (ir->is_ild()) {
 		if (!checkExpressionIsLoopInvariant(ILD_base(ir), li)) {
 			return false;
 		}
-	} else if (IR_type(ir) == IR_IST) {
+	} else if (ir->is_ist()) {
 		if (!checkExpressionIsLoopInvariant(IST_base(ir), li)) {
 			return false;
 		}
@@ -884,18 +884,18 @@ bool IR_RP::checkIndirectAccessIsLoopInvariant(IN IR * ir, LI<IRBB> const* li)
 UINT IR_RP::analyzeIndirectAccessStatus(IR const* ref1, IR const* ref2)
 {
 	IR const* base1 = NULL;
-	if (IR_type(ref1) == IR_ILD) {
+	if (ref1->is_ild()) {
 		base1 = ILD_base(ref1);
-	} else if (IR_type(ref1) == IR_IST) {
+	} else if (ref1->is_ist()) {
 		base1 = IST_base(ref1);
 	} else {
 		return RP_UNKNOWN;
 	}
 
 	IR const* base2 = NULL;
-	if (IR_type(ref2) == IR_ILD) {
+	if (ref2->is_ild()) {
 		base2 = ILD_base(ref2);
-	} else if (IR_type(ref2) == IR_IST) {
+	} else if (ref2->is_ist()) {
 		base2 = IST_base(ref2);
 	} else {
 		return RP_UNKNOWN;
@@ -928,12 +928,13 @@ UINT IR_RP::analyzeIndirectAccessStatus(IR const* ref1, IR const* ref2)
 Return true if current memory referense does not clobber other
 candidate in list. Or else return false means there are ambiguous
 memory reference. */
-bool IR_RP::scanOpnd(IR * ir,
-					LI<IRBB> const* li,
-					OUT TMap<MD const*, IR*> & exact_access,
-					OUT List<IR*> & exact_occ_list,
-					OUT TTab<IR*> & inexact_access,
-					IRIter & ii)
+bool IR_RP::scanOpnd(
+		IR * ir,
+		LI<IRBB> const* li,
+		OUT TMap<MD const*, IR*> & exact_access,
+		OUT List<IR*> & exact_occ_list,
+		OUT TTab<IR*> & inexact_access,
+		IRIter & ii)
 {
 	ii.clean();
 	for (IR * x = iterRhsInit(ir, ii);
@@ -998,7 +999,7 @@ bool IR_RP::scanBB(IN IRBB * bb,
 {
 	for (IR * ir = BB_last_ir(bb);
 		 ir != NULL; ir = BB_prev_ir(bb)) {
-		if (ir->is_call() && !ir->is_readonly_call()) {
+		if (ir->is_calls_stmt() && !ir->is_readonly_call()) {
 			return false;
 		}
 	}
@@ -1006,7 +1007,7 @@ bool IR_RP::scanBB(IN IRBB * bb,
 	for (IR * ir = BB_first_ir(bb);
 		 ir != NULL; ir = BB_next_ir(bb)) {
 		if (!ir->isContainMemRef()) { continue; }
-		if (IR_type(ir) == IR_REGION) { return false; }
+		if (ir->is_region()) { return false; }
 		if (!scanResult(ir, li, exact_access, exact_occ_list, inexact_access)) {
 			return false;
 		}
@@ -1053,8 +1054,8 @@ IRBB * IR_RP::findSingleExitBB(LI<IRBB> const* li)
 			return NULL;
 		}
 
-		if (z->is_call() || z->is_uncond_br() || z->is_st() ||
-			IR_type(z) == IR_IST || z->is_write_pr()) {
+		if (z->is_calls_stmt() || z->is_uncond_br() || z->is_st() ||
+			z->is_ist() || z->is_write_pr()) {
 			if (succs.get_elem_count() > 1) {
 				//Stmt may throw exception.
 				return NULL;
@@ -1077,10 +1078,10 @@ void IR_RP::replaceUseForTree(IR * oldir, IR * newir)
 	ASSERT0(oldir->is_exp() && newir->is_exp());
 	if (oldir->is_ld()) {
 		m_du->changeUse(newir, oldir, m_du->getMiscBitSetMgr());
-	} else if (IR_type(oldir) == IR_ILD) {
+	} else if (oldir->is_ild()) {
 		m_du->removeUseOutFromDefset(ILD_base(oldir));
 		m_du->changeUse(newir, oldir, m_du->getMiscBitSetMgr());
-	} else if (IR_type(oldir) == IR_ARRAY) {
+	} else if (oldir->is_array()) {
 		m_du->removeUseOutFromDefset(ARR_base(oldir));
 		m_du->removeUseOutFromDefset(ARR_sub_list(oldir));
 		m_du->changeUse(newir, oldir, m_du->getMiscBitSetMgr());
@@ -1090,14 +1091,14 @@ void IR_RP::replaceUseForTree(IR * oldir, IR * newir)
 }
 
 
-void IR_RP::handleRestore2Mem(TTab<IR*> & restore2mem,
-							TMap<IR*, IR*> & delegate2stpr,
-							TMap<IR*, IR*> & delegate2pr,
-							TMap<IR*, DUSet*> & delegate2use,
-							TMap<IR*, SList<IR*>*> &
-									delegate2has_outside_uses_ir_list,
-							TabIter<IR*> & ti,
-							IRBB * exit_bb)
+void IR_RP::handleRestore2Mem(
+		TTab<IR*> & restore2mem,
+		TMap<IR*, IR*> & delegate2stpr,
+		TMap<IR*, IR*> & delegate2pr,
+		TMap<IR*, DUSet*> & delegate2use,
+		TMap<IR*, SList<IR*>*> & delegate2has_outside_uses_ir_list,
+		TabIter<IR*> & ti,
+		IRBB * exit_bb)
 {
 	//Restore value from delegate PR to delegate memory object.
 	ti.clean();
@@ -1209,13 +1210,13 @@ void IR_RP::handleRestore2Mem(TTab<IR*> & restore2mem,
 
 //Return true if there is IR be promoted, otherwise return false.
 bool IR_RP::promoteExactAccess(
-					LI<IRBB> const* li,
-					IRIter & ii,
-					TabIter<IR*> & ti,
-					IRBB * preheader,
-					IRBB * exit_bb,
-					TMap<MD const*, IR*> & exact_access,
-					List<IR*> & exact_occ_list)
+		LI<IRBB> const* li,
+		IRIter & ii,
+		TabIter<IR*> & ti,
+		IRBB * preheader,
+		IRBB * exit_bb,
+		TMap<MD const*, IR*> & exact_access,
+		List<IR*> & exact_occ_list)
 {
 	ASSERT0(preheader && exit_bb && li);
 
@@ -1362,7 +1363,7 @@ bool IR_RP::is_may_throw(IR * ir, IRIter & iter)
 	for (; k != NULL; k = iterNext(iter)) {
 		if (k->is_memory_ref() && !k->is_write_pr() && !k->is_read_pr()) {
 			return true;
-		} else if (k->is_call()) {
+		} else if (k->is_calls_stmt()) {
 			return true;
 		}
 
@@ -1455,10 +1456,7 @@ void IR_RP::removeRedundantDUChain(List<IR*> & fixup_list)
 						continue;
 					}
 
-					ASSERT0(IR_type(use) == IR_ILD ||
-							 IR_type(use) == IR_ARRAY ||
-							 IR_type(use) == IR_LD);
-
+					ASSERT0(use->is_ild() || use->is_array() || use->is_ld());
 					rmvec->set(cnt++, use);
 				}
 			}
@@ -1511,16 +1509,15 @@ void IR_RP::removeRedundantDUChain(List<IR*> & fixup_list)
 
 //fixup_list: record the IR that need to fix up duset.
 void IR_RP::handleAccessInBody(
-				IR * ref,
-				IR * delegate,
-				IR const* delegate_pr,
-				TMap<IR*, SList<IR*>*> const&
-						delegate2has_outside_uses_ir_list,
-				OUT TTab<IR*> & restore2mem,
-				OUT List<IR*> & fixup_list,
-				TMap<IR*, IR*> const& delegate2stpr,
-				LI<IRBB> const* li,
-				IRIter & ii)
+		IR * ref,
+		IR * delegate,
+		IR const* delegate_pr,
+		TMap<IR*, SList<IR*>*> const& delegate2has_outside_uses_ir_list,
+		OUT TTab<IR*> & restore2mem,
+		OUT List<IR*> & fixup_list,
+		TMap<IR*, IR*> const& delegate2stpr,
+		LI<IRBB> const* li,
+		IRIter & ii)
 {
 	ASSERT0(ref && delegate && delegate_pr && li);
 	IR * stmt;
@@ -1679,10 +1676,11 @@ void IR_RP::handleAccessInBody(
 }
 
 
-void IR_RP::handlePrelog(IR * delegate, IR * pr,
-						TMap<IR*, IR*> & delegate2stpr,
-						TMap<IR*, DUSet*> & delegate2def,
-						IRBB * preheader)
+void IR_RP::handlePrelog(
+			IR * delegate, IR * pr,
+			TMap<IR*, IR*> & delegate2stpr,
+			TMap<IR*, DUSet*> & delegate2def,
+			IRBB * preheader)
 {
 	IR * rhs = NULL;
 	IR * stpr = NULL;
@@ -1753,11 +1751,11 @@ void IR_RP::handlePrelog(IR * delegate, IR * pr,
 
 
 void IR_RP::computeOuterDefUse(
-				IR * ref, IR * delegate,
-				TMap<IR*, DUSet*> & delegate2def,
-				TMap<IR*, DUSet*> & delegate2use,
-				DefMiscBitSetMgr * sbs_mgr,
-				LI<IRBB> const* li)
+		IR * ref, IR * delegate,
+		TMap<IR*, DUSet*> & delegate2def,
+		TMap<IR*, DUSet*> & delegate2use,
+		DefMiscBitSetMgr * sbs_mgr,
+		LI<IRBB> const* li)
 {
 	if (ref->is_ild() || ref->is_ld() || ref->is_array()) {
 		//ref is USE.
@@ -1808,9 +1806,9 @@ void IR_RP::computeOuterDefUse(
 
 
 void IR_RP::createDelegateInfo(
-				IR * delegate,
-				TMap<IR*, IR*> & delegate2pr,
-				TMap<IR*, SList<IR*>*> & delegate2has_outside_uses_ir_list)
+		IR * delegate,
+		TMap<IR*, IR*> & delegate2pr,
+		TMap<IR*, SList<IR*>*> & delegate2has_outside_uses_ir_list)
 {
 	SList<IR*> * irlst = (SList<IR*>*)xmalloc(sizeof(SList<IR*>));
 	irlst->init();
@@ -1928,7 +1926,7 @@ bool IR_RP::promoteInexactAccess(
 	ASSERT0(verifyIRandBB(m_ru->get_bb_list(), m_ru));
 
 	handleRestore2Mem(restore2mem, delegate2stpr, delegate2pr, delegate2use,
-					delegate2has_outside_uses_ir_list, ti, exit_bb);
+					  delegate2has_outside_uses_ir_list, ti, exit_bb);
 
 	removeRedundantDUChain(fixup_list);
 
@@ -1990,7 +1988,7 @@ UINT IR_RP::analyzeArrayStatus(IR const* ref1, IR const* ref2)
 
 	IR const* base1 = ARR_base(ref1);
 	IR const* base2 = ARR_base(ref2);
-	if (IR_type(base1) == IR_LDA && IR_type(base2) == IR_LDA) {
+	if (base1->is_lda() && base2->is_lda()) {
 		IR const* b1 = LDA_base(base1);
 		IR const* b2 = LDA_base(base2);
 		if (IR_type(b1) == IR_ID && IR_type(b2) == IR_ID) {
@@ -2033,9 +2031,10 @@ void IR_RP::checkAndRemoveInvalidExactOcc(List<IR*> & exact_occ_list)
 }
 
 
-void IR_RP::buildDepGraph(TMap<MD const*, IR*> & exact_access,
-						TTab<IR*> & inexact_access,
-						List<IR*> & exact_occ_list)
+void IR_RP::buildDepGraph(
+		TMap<MD const*, IR*> & exact_access,
+		TTab<IR*> & inexact_access,
+		List<IR*> & exact_occ_list)
 {
 	UNUSED(exact_access);
 	UNUSED(inexact_access);
@@ -2043,13 +2042,14 @@ void IR_RP::buildDepGraph(TMap<MD const*, IR*> & exact_access,
 }
 
 
-bool IR_RP::tryPromote(LI<IRBB> const* li,
-						IRBB * exit_bb,
-						IRIter & ii,
-						TabIter<IR*> & ti,
-						TMap<MD const*, IR*> & exact_access,
-						TTab<IR*> & inexact_access,
-						List<IR*> & exact_occ_list)
+bool IR_RP::tryPromote(
+		LI<IRBB> const* li,
+		IRBB * exit_bb,
+		IRIter & ii,
+		TabIter<IR*> & ti,
+		TMap<MD const*, IR*> & exact_access,
+		TTab<IR*> & inexact_access,
+		List<IR*> & exact_occ_list)
 {
 	ASSERT0(li && exit_bb);
 	exact_access.clean();
@@ -2083,7 +2083,7 @@ bool IR_RP::tryPromote(LI<IRBB> const* li,
 		preheader = ::findAndInsertPreheader(li, m_ru, m_is_insert_bb, false);
 		ASSERT0(preheader);
 		IR const* last = BB_last_ir(preheader);
-		if (last != NULL && last->is_call()) {
+		if (last != NULL && last->is_calls_stmt()) {
 			preheader = ::findAndInsertPreheader(li, m_ru,
 												m_is_insert_bb, true);
 			ASSERT0(preheader);
@@ -2109,7 +2109,8 @@ bool IR_RP::tryPromote(LI<IRBB> const* li,
 
 	if (inexact_access.get_elem_count() != 0) {
 		buildDepGraph(exact_access, inexact_access, exact_occ_list);
-		change |= promoteInexactAccess(li, preheader, exit_bb, inexact_access, ii, ti);
+		change |= promoteInexactAccess(li, preheader, exit_bb, 
+									   inexact_access, ii, ti);
 	}
 	return change;
 }
@@ -2150,7 +2151,7 @@ bool IR_RP::perform(OptCTX & oc)
 {
 	START_TIMER_AFTER();
 	m_ru->checkValidAndRecompute(&oc, PASS_DU_CHAIN, PASS_LOOP_INFO,
-									PASS_DU_REF, PASS_AA, PASS_UNDEF);
+								 PASS_DU_REF, PASS_UNDEF);
 	//computeLiveness();
 
 	m_is_in_ssa_form = false;
@@ -2160,31 +2161,32 @@ bool IR_RP::perform(OptCTX & oc)
 		m_is_in_ssa_form = true;
 		m_ssamgr = ssamgr;
 	}
-
+	
 	ASSERT(!m_is_in_ssa_form,
-			("TODO: do renaming when register promotion finihed"));
+			("TODO: Do SSA renaming when after register promotion done"));
 
 	LI<IRBB> const* li = m_cfg->get_loop_info();
 	if (li == NULL) { return false; }
 
 	SMemPool * cspool = smpoolCreate(sizeof(SC<LI<IRBB> const*>),
-											  MEM_CONST_SIZE);
+									 MEM_CONST_SIZE);
 	List<LI<IRBB> const*> worklst;
 	while (li != NULL) {
 		worklst.append_tail(li);
 		li = LI_next(li);
 	}
 
+	bool change = false;
 	if (m_gvn == NULL) {
 		//Need gvn.
-		return false;
+		goto FIN;		
 	}
 
 	if (!m_gvn->is_valid()) {
 		m_gvn->reperform(oc);
 	}
 
-	bool change = EvaluableScalarReplacement(worklst);
+	change = EvaluableScalarReplacement(worklst);
 	if (change) {
 		//DU reference and du chain has maintained.
 		ASSERT0(m_du->verifyMDRef());
@@ -2206,6 +2208,7 @@ bool IR_RP::perform(OptCTX & oc)
 		//Loop info is unchanged.
 	}
 
+FIN:
 	//buildLifeTime();
 	//dump_mdlt();
 	smpoolDelete(cspool);

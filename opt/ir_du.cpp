@@ -610,9 +610,9 @@ bool IR_DU_MGR::is_stpr_may_def(IR const* def, IR const* use, bool is_recur)
 
 
 static bool is_call_may_def_core(
-				IR const* call,
-				IR const* use,
-				MDSet const* call_maydef)
+			IR const* call,
+			IR const* use,
+			MDSet const* call_maydef)
 {
 	//MD of use may be exact or inexact.
 	MD const* use_md = use->get_effect_ref();
@@ -637,7 +637,7 @@ static bool is_call_may_def_core(
 
 bool IR_DU_MGR::is_call_may_def(IR const* call, IR const* use, bool is_recur)
 {
-	ASSERT0(call->is_call());
+	ASSERT0(call->is_calls_stmt());
 
 	//MayDef of stmt must involved the overlapped MD with Must Reference,
 	//but except Must Reference itself.
@@ -671,7 +671,7 @@ bool IR_DU_MGR::is_may_def(IR const* def, IR const* use, bool is_recur)
 	if (def->is_stpr()) {
 		return is_stpr_may_def(def, use, is_recur);
 	}
-	if (def->is_call()) {
+	if (def->is_calls_stmt()) {
 		return is_call_may_def(def, use, is_recur);
 	}
 
@@ -775,14 +775,14 @@ void IR_DU_MGR::collectMustUseForLda(IR const* lda, OUT MDSet * ret_mds)
 	if (ldabase->is_id() || ldabase->is_str()) {
 		return;
 	}
-	ASSERT0(IR_type(ldabase) == IR_ARRAY);
+	ASSERT0(ldabase->is_array());
 	IR const* arr = ldabase;
 	for (IR const* s = ARR_sub_list(arr); s != NULL; s = IR_next(s)) {
 		collect_must_use(s, *ret_mds);
 	}
 
 	//Process array base exp.
-	if (IR_type(ARR_base(arr)) == IR_LDA) {
+	if (ARR_base(arr)->is_lda()) {
 		collectMustUseForLda(ARR_base(arr), ret_mds);
 		return;
 	}
@@ -1389,7 +1389,7 @@ void IR_DU_MGR::dump_ir_ref(IN IR * ir, UINT indent)
 		}
 	}
 
-	if (ir->is_call()) {
+	if (ir->is_calls_stmt()) {
 		bool doit = false;
 		CallGraph * callg = m_ru->get_region_mgr()->get_callg();
 		if (callg != NULL) {
@@ -1857,8 +1857,7 @@ copyDUChain: if true to copy DU chain from tree 'from' to tree 'to'.
 'to': root node of target tree.
 'from': root node of source tree.
 NOTICE: IR tree 'to' and 'from' must be identical. to and from may be stmt. */
-void IR_DU_MGR::copyIRTreeDU(IR * to, IR const* from,
-									 bool copyDUChain)
+void IR_DU_MGR::copyIRTreeDU(IR * to, IR const* from, bool copyDUChain)
 {
 	if (to == from) { return; }
 	ASSERT0(to->is_ir_equal(from, true));
@@ -2458,7 +2457,7 @@ void IR_DU_MGR::inferPhi(IR * ir)
 
 void IR_DU_MGR::inferIstore(IR * ir)
 {
-	ASSERT0(IR_type(ir) == IR_IST);
+	ASSERT0(ir->is_ist());
 	computeExpression(IST_base(ir), NULL, COMP_EXP_RECOMPUTE);
 
 	//Compute DEF mdset. AA should guarantee either mustdef is not NULL or
@@ -2476,12 +2475,12 @@ local variables and globals in indefinite ways.
 Variables that may be use and clobbered are global auxiliary var. */
 void IR_DU_MGR::inferCall(IR * ir, IN MD2MDSet * mx)
 {
-	ASSERT0(ir->is_call());
+	ASSERT0(ir->is_calls_stmt());
 	if (!isPRUniqueForSameNo()) {
 		computeOverlapUseMDSet(ir, false);
 	}
 
-	if (IR_type(ir) == IR_ICALL) {
+	if (ir->is_icall()) {
 		computeExpression(ICALL_callee(ir), NULL, COMP_EXP_RECOMPUTE);
 	}
 
@@ -2565,7 +2564,7 @@ void IR_DU_MGR::collectMayUse(IR const* ir, MDSet & may_use, bool computePR)
 	}
 
 	if (is_stmt) {
-		if (ir->is_call()) {
+		if (ir->is_calls_stmt()) {
 			bool done = false;
 			CallGraph * callg = m_ru->get_region_mgr()->get_callg();
 			if (callg != NULL) {
@@ -2584,7 +2583,7 @@ void IR_DU_MGR::collectMayUse(IR const* ir, MDSet & may_use, bool computePR)
 					may_use.bunion(*muse, *m_misc_bs_mgr);
 				}
 			}
-		} else if (IR_type(ir) == IR_REGION) {
+		} else if (ir->is_region()) {
 			MDSet const* x = REGION_ru(ir)->get_may_use();
 			if (x != NULL) {
 				may_use.bunion(*x, *m_misc_bs_mgr);
@@ -2606,7 +2605,7 @@ void IR_DU_MGR::collectMayUseRecursive(
 	case IR_ID:
 	case IR_LD:
 		ASSERT0(IR_parent(ir) != NULL);
-		if (IR_type(IR_parent(ir)) != IR_LDA) {
+		if (!IR_parent(ir)->is_lda()) {
 			ASSERT0(get_must_use(ir));
 			may_use.bunion(get_must_use(ir), *m_misc_bs_mgr);
 
@@ -2625,7 +2624,7 @@ void IR_DU_MGR::collectMayUseRecursive(
 	case IR_ILD:
 		collectMayUseRecursive(ILD_base(ir), may_use, computePR);
 		ASSERT0(IR_parent(ir) != NULL);
-		if (IR_type(IR_parent(ir)) != IR_LDA) {
+		if (!IR_parent(ir)->is_lda()) {
 			MD const* t = get_must_use(ir);
 			if (t != NULL) {
 				may_use.bunion(t, *m_misc_bs_mgr);
@@ -2718,7 +2717,7 @@ void IR_DU_MGR::collectMayUseRecursive(
 	case IR_ARRAY:
 		{
 			ASSERT0(IR_parent(ir) != NULL);
-			if (IR_type(IR_parent(ir)) != IR_LDA) {
+			if (!IR_parent(ir)->is_lda()) {
  				MD const* t = get_must_use(ir);
 				if (t != NULL) {
 					may_use.bunion(t, *m_misc_bs_mgr);
@@ -2855,7 +2854,7 @@ void IR_DU_MGR::computeBBMayDef(
 
 void IR_DU_MGR::computeBBMustDef(
 		IR const* ir,
-		MDSet * bb_mustdefmds,
+		OUT MDSet * bb_mustdefmds,
 		DefDBitSetCore * mustgen_stmt,
 		ConstMDIter & mditer)
 {
@@ -3291,7 +3290,7 @@ void IR_DU_MGR::computeGenForBB(
 		case IR_ICALL:
 			{
 				//Compute the generated expressions set.
-				if (IR_type(ir) == IR_ICALL) {
+				if (ir->is_icall()) {
 					ASSERT0(ICALL_callee(ir)->is_ld());
 					if (canBeLiveExprCand(ICALL_callee(ir))) {
 						gen_ir_exprs->bunion(IR_id(ICALL_callee(ir)), *m_misc_bs_mgr);
@@ -3439,8 +3438,9 @@ void IR_DU_MGR::computeGenForBB(
 
 //Compute local-gen IR-EXPR set and killed IR-EXPR set.
 //'expr_universe': record the universal of all ir-expr of region.
-void IR_DU_MGR::computeAuxSetForExpression(OUT DefDBitSetCore * expr_universe,
-							 Vector<MDSet*> const* maydefmds)
+void IR_DU_MGR::computeAuxSetForExpression(
+		OUT DefDBitSetCore * expr_universe,
+		Vector<MDSet*> const* maydefmds)
 {
 	ASSERT0(expr_universe && maydefmds);
 	MDSet * tmp = m_mds_mgr->create();
@@ -3486,8 +3486,10 @@ void IR_DU_MGR::computeAuxSetForExpression(OUT DefDBitSetCore * expr_universe,
 
 
 //This equation needs May Kill Def and Must Gen Def.
-bool IR_DU_MGR::ForAvailReachDef(UINT bbid, List<IRBB*> & preds,
-									List<IRBB*> * lst)
+bool IR_DU_MGR::ForAvailReachDef(
+		UINT bbid, 
+		List<IRBB*> & preds,
+		List<IRBB*> * lst)
 {
 	UNUSED(lst);
 	bool change = false;
@@ -3534,8 +3536,10 @@ bool IR_DU_MGR::ForAvailReachDef(UINT bbid, List<IRBB*> & preds,
 }
 
 
-bool IR_DU_MGR::ForReachDef(UINT bbid, List<IRBB*> & preds,
-							  List<IRBB*> * lst)
+bool IR_DU_MGR::ForReachDef(
+		UINT bbid, 
+		List<IRBB*> & preds,
+		List<IRBB*> * lst)
 {
 	UNUSED(lst);
 	bool change = false;
@@ -3585,8 +3589,10 @@ bool IR_DU_MGR::ForReachDef(UINT bbid, List<IRBB*> & preds,
 }
 
 
-bool IR_DU_MGR::ForAvailExpression(UINT bbid, List<IRBB*> & preds,
-								List<IRBB*> * lst)
+bool IR_DU_MGR::ForAvailExpression(
+			UINT bbid, 
+			List<IRBB*> & preds,
+			List<IRBB*> * lst)
 {
 	UNUSED(lst);
 	bool change = false;
@@ -3727,8 +3733,10 @@ they must be identical.
 	ist(dt, ofst:n), x = ...
 	... = ild(dt, ofst:n), x
 Stmt and exp must be in same bb. */
-UINT IR_DU_MGR::checkIsLocalKillingDef(IR const* stmt, IR const* exp,
-											C<IR*> * expct)
+UINT IR_DU_MGR::checkIsLocalKillingDef(
+		IR const* stmt, 
+		IR const* exp,
+		C<IR*> * expct)
 {
 	ASSERT0(stmt->get_bb() == exp->get_stmt()->get_bb());
 
@@ -3736,13 +3744,13 @@ UINT IR_DU_MGR::checkIsLocalKillingDef(IR const* stmt, IR const* exp,
 
 	IR const* t = ILD_base(exp);
 
-	while (IR_type(t) == IR_CVT) { t = CVT_exp(t); }
+	while (t->is_cvt()) { t = CVT_exp(t); }
 
 	if (!t->is_pr() && !t->is_ld()) { return CK_UNKNOWN; }
 
 	IR const* t2 = IST_base(stmt);
 
-	while (IR_type(t2) == IR_CVT) { t2 = CVT_exp(t2); }
+	while (t2->is_cvt()) { t2 = CVT_exp(t2); }
 
 	if (!t2->is_pr() && !t2->is_ld()) { return CK_UNKNOWN; }
 
@@ -3802,8 +3810,10 @@ x is a pointer that we do not know where it pointed to.
 In the case, the last reference of g in stmt 4 may be defined by
 stmt 2 or 3. */
 IR const* IR_DU_MGR::findKillingLocalDef(
-					IR const* stmt, C<IR*> * ct,
-					IR const* exp, MD const* expmd)
+			IR const* stmt, 
+			C<IR*> * ct,
+			IR const* exp, 
+			MD const* expmd)
 {
 	ASSERT0(!exp->is_pr() || isComputePRDU());
 
@@ -3855,9 +3865,10 @@ IR const* IR_DU_MGR::findKillingLocalDef(
 //Build DU chain for exp and local killing def stmt.
 //Return true if find local killing def, otherwise means
 //there are not local killing def.
-bool IR_DU_MGR::buildLocalDUChain(IR const* stmt, IR const* exp,
-									 MD const* expmd, DUSet * expdu,
-									 C<IR*> * ct)
+bool IR_DU_MGR::buildLocalDUChain(
+			IR const* stmt, IR const* exp,
+			MD const* expmd, DUSet * expdu,
+			C<IR*> * ct)
 {
 	IR const* nearest_def = findKillingLocalDef(stmt, ct, exp, expmd);
 	if (nearest_def == NULL) { return false; }
@@ -4092,11 +4103,11 @@ UINT IR_DU_MGR::checkIsNonLocalKillingDef(IR const* stmt, IR const* exp)
 	if (IR_type(exp) != IR_ILD || IR_type(stmt) != IR_IST) { return CK_UNKNOWN; }
 
 	IR const* t = ILD_base(exp);
-	while (IR_type(t) == IR_CVT) { t = CVT_exp(t); }
+	while (t->is_cvt()) { t = CVT_exp(t); }
 	if (!t->is_pr() && !t->is_ld()) { return CK_UNKNOWN; }
 
 	IR const* t2 = IST_base(stmt);
-	while (IR_type(t2) == IR_CVT) { t2 = CVT_exp(t2); }
+	while (t2->is_cvt()) { t2 = CVT_exp(t2); }
 	if (!t2->is_pr() && !t2->is_ld()) { return CK_UNKNOWN; }
 
 	if (IR_type(t) != IR_type(t2)) { return CK_UNKNOWN; }
@@ -4122,8 +4133,7 @@ UINT IR_DU_MGR::checkIsNonLocalKillingDef(IR const* stmt, IR const* exp)
 
 
 //Check and build DU chain for operand accroding to md.
-void IR_DU_MGR::buildChainForMust(IR const* exp, MD const* expmd,
-									DUSet * expdu)
+void IR_DU_MGR::buildChainForMust(IR const* exp, MD const* expmd, DUSet * expdu)
 {
 	ASSERT0(exp && expmd && expdu);
 	SEGIter * sc = NULL;
@@ -4331,7 +4341,7 @@ void IR_DU_MGR::updateDef(IR * ir)
 	}
 
 	ASSERT0(ir->is_st() || ir->is_ist() || ir->is_starray() ||
-			 ir->is_stpr() || ir->is_phi() || ir->is_call());
+			 ir->is_stpr() || ir->is_phi() || ir->is_calls_stmt());
 
 	//Handle general stmt.
 
@@ -4987,6 +4997,8 @@ void IR_DU_MGR::resetLocalAuxSet(bool cleanMember)
 	if (cleanMember) {
 		m_bb_killed_ir_expr.clean();
 	}
+
+	m_tmp_mds.clean(*m_misc_bs_mgr);
 }
 
 
@@ -4997,8 +5009,11 @@ NOTE: RPO of bb of stmt must be available.
 'exp_stmt': stmt that exp is belong to.
 'expdu': def set of exp.
 'omit_self': true if we do not consider the 'exp_stmt' itself. */
-IR * IR_DU_MGR::findDomDef(IR const* exp, IR const* exp_stmt,
-							 DUSet const* expdu, bool omit_self)
+IR * IR_DU_MGR::findDomDef(
+		IR const* exp, 
+		IR const* exp_stmt,
+		DUSet const* expdu, 
+		bool omit_self)
 {
 	ASSERT0(const_cast<IR_DU_MGR*>(this)->get_may_use(exp) != NULL ||
 			 const_cast<IR_DU_MGR*>(this)->get_must_use(exp) != NULL);
@@ -5052,9 +5067,10 @@ IR * IR_DU_MGR::findDomDef(IR const* exp, IR const* exp_stmt,
 
 
 //Compute maydef, mustdef, mayuse information for current region.
-void IR_DU_MGR::computeRegionMDDU(Vector<MDSet*> const* mustdef_mds,
-						   Vector<MDSet*> const* maydef_mds,
-						   MDSet const* mayuse_mds)
+void IR_DU_MGR::computeRegionMDDU(
+		Vector<MDSet*> const* mustdef_mds,
+		Vector<MDSet*> const* maydef_mds,
+		MDSet const* mayuse_mds)
 {
 	ASSERT0(mustdef_mds && maydef_mds && mayuse_mds);
 	m_ru->initRefInfo();
@@ -5108,13 +5124,14 @@ void IR_DU_MGR::computeRegionMDDU(Vector<MDSet*> const* mustdef_mds,
 }
 
 
-UINT IR_DU_MGR::count_mem_local_data(DefDBitSetCore * expr_univers,
-									Vector<MDSet*> * maydef_mds,
-									Vector<MDSet*> * mustdef_mds,
-									MDSet * mayuse_mds,
-									MDSet mds_arr_for_must[],
-									MDSet mds_arr_for_may[],
-									UINT elemnum)
+UINT IR_DU_MGR::count_mem_local_data(
+		DefDBitSetCore * expr_univers,
+		Vector<MDSet*> * maydef_mds,
+		Vector<MDSet*> * mustdef_mds,
+		MDSet * mayuse_mds,
+		MDSet mds_arr_for_must[],
+		MDSet mds_arr_for_may[],
+		UINT elemnum)
 {
 	UINT count = 0;
 	if (expr_univers != NULL) {
@@ -5149,6 +5166,16 @@ UINT IR_DU_MGR::count_mem_local_data(DefDBitSetCore * expr_univers,
 bool IR_DU_MGR::perform(IN OUT OptCTX & oc, UINT flag)
 {
 	if (flag == 0) { return true; }
+	
+	#ifdef _DEBUG_
+	{
+	UINT mds_count = m_mds_mgr->get_mdset_count();
+	UINT free_mds_count = m_mds_mgr->get_free_mdset_count();
+	UINT mds_in_hash = m_mds_hash->get_elem_count();
+	ASSERT(mds_count == free_mds_count + mds_in_hash,
+		   ("there are MD_SETs leaked."));
+	}
+	#endif
 
 	BBList * bbl = m_ru->get_bb_list();
 	if (bbl->get_elem_count() == 0) { return true; }
@@ -5327,14 +5354,25 @@ bool IR_DU_MGR::perform(IN OUT OptCTX & oc, UINT flag)
 	if (HAVE_FLAG(flag, SOL_REACH_DEF)) {
 		resetReachDefOutSet(true);
 	}
-	ASSERT0(verifyMDRef());
+	ASSERT0(verifyMDRef());	
+
+	#ifdef _DEBUG_
+	{
+	UINT mds_count = m_mds_mgr->get_mdset_count();
+	UINT free_mds_count = m_mds_mgr->get_free_mdset_count();
+	UINT mds_in_hash = m_mds_hash->get_elem_count();
+	ASSERT(mds_count == free_mds_count + mds_in_hash,
+		   ("there are MD_SETs leaked."));
+	}
+	#endif
+
 	return true;
 }
 
 
-/* Construct inexactly Du, Ud chain.
-NOTICE: Reach-Definition and Must-Def, May-Def,
-May-Use must be avaliable. */
+//Construct inexactly Du, Ud chain.
+//NOTICE: Reach-Definition and Must-Def, May-Def,
+//May-Use must be avaliable.
 void IR_DU_MGR::computeMDDUChain(IN OUT OptCTX & oc)
 {
 	START_TIMER("Build DU-CHAIN");
@@ -5392,6 +5430,8 @@ void IR_DU_MGR::computeMDDUChain(IN OUT OptCTX & oc)
 
 	//Reach def info will be cleaned.
 	resetReachDefInSet(true);
+	m_tmp_mds.clean(*m_misc_bs_mgr);
+	
 	OC_is_reach_def_valid(oc) = false;
 
 	//m_md_sys->dumpAllMD();

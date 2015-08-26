@@ -92,12 +92,12 @@ void IR_CP::replaceExpViaSSADu(IR * exp, IR const* cand_expr,
 	}
 
 	IR * parent = IR_parent(exp);
-	if (IR_type(parent) == IR_ILD) {
+	if (parent->is_ild()) {
 		CPC_need_recomp_aa(ctx) = true;
-	} else if (IR_type(parent) == IR_IST && exp == IST_base(parent)) {
+	} else if (parent->is_ist() && exp == IST_base(parent)) {
 		if (!cand_expr->is_ld() &&
 			!cand_expr->is_pr() &&
-			IR_type(cand_expr) != IR_LDA) {
+			!cand_expr->is_lda()) {
 			return;
 		}
 		CPC_need_recomp_aa(ctx) = true;
@@ -163,7 +163,7 @@ void IR_CP::replaceExp(IR * exp, IR const* cand_expr,
 	}
 
 	IR * parent = IR_parent(exp);
-	if (IR_type(parent) == IR_ILD) {
+	if (parent->is_ild()) {
 		CPC_need_recomp_aa(ctx) = true;
 	} else if (parent->is_ist() && exp == IST_base(parent)) {
 		if (!cand_expr->is_ld() && !cand_expr->is_pr() && !cand_expr->is_lda()) {
@@ -283,7 +283,7 @@ bool IR_CP::is_simp_cvt(IR const* ir) const
 	if (IR_type(ir) != IR_CVT) return false;
 
 	for (;;) {
-		if (IR_type(ir) == IR_CVT) {
+		if (ir->is_cvt()) {
 			ir = CVT_exp(ir);
 		} else if (ir->is_ld() || ir->is_const() || ir->is_pr()) {
 			return true;
@@ -441,8 +441,8 @@ bool IR_CP::doProp(IN IRBB * bb, Vector<IR*> & usevec)
 
 			if (use_stmt != NULL && use_stmt != old_use_stmt) {
 				//use_stmt has been removed and new stmt generated.
-				ASSERT(IR_type(old_use_stmt) == IR_UNDEF,
-						("the old one should be freed"));
+				ASSERT(old_use_stmt->is_undef(), 
+					   ("the old one should be freed"));
 
 				C<IR*> * irct = NULL;
 				BB_irlist(use_bb).find(old_use_stmt, &irct);

@@ -36,12 +36,25 @@ author: Su Zhenyu
 
 namespace xoc {
 
+/* How to use AttachInfo?
+1. Allocate AttachInfo from Region.
+2. Construct your data structure to be attached.
+3. Set the AttachInfo type and the data structure.
+
+e.g:
+	IR * ir = ...; Given IR.
+	IR_ai(ir) = region->newAI();
+	Dbx * dbx = getDbx();
+	IR_ai(ir)->set(AI_DBX, (BaseAttachInfo*)dbx);
+*/
+
 //Attach Info Type.
 typedef enum _AI_TYPE {
 	AI_UNDEF = 0,
 	AI_DBX, //Debug Info
 	AI_PROF, //Profile Info
 	AI_TBAA, //Type Based AA
+	AI_EH_LABEL, //Record a list of Labels.
 	AI_USER_DEF, //User Defined
 } AI_TYPE;
 
@@ -92,7 +105,7 @@ public:
 		}
 
 		UINT i;
-		for (i = 0; i < cont.get_size(); i++) {
+		for (i = 0; i < cont.get_capacity(); i++) {
 			BaseAttachInfo * ac = cont.get(i);
 			if (ac == NULL) { emptyslot = (INT)i; }
 			if (ac->type != type) { continue; }
@@ -109,10 +122,10 @@ public:
 		}
 	}
 
-	BaseAttachInfo * get(AI_TYPE type)
+	BaseAttachInfo const* get(AI_TYPE type) const
 	{
 		if (!cont.is_init()) { return NULL; }
-		for (UINT i = 0; i < cont.get_size(); i++) {
+		for (UINT i = 0; i < cont.get_capacity(); i++) {
 			BaseAttachInfo * ac = cont.get(i);
 			if (ac != NULL && ac->type == type) {
 				return ac;
@@ -120,6 +133,26 @@ public:
 		}
 		return NULL;
 	}
+};
+
+
+//Exception Handler Labels.
+class EHLabelAttachInfo : public BaseAttachInfo {
+public:
+	SList<LabelInfo*> labels; //record a list of Labels.
+	
+public:
+	EHLabelAttachInfo(SMemPool * pool = NULL) : BaseAttachInfo(AI_EH_LABEL)
+	{ init(pool); }
+	COPY_CONSTRUCTOR(EHLabelAttachInfo);
+
+	void init(SMemPool * pool)
+	{
+		BaseAttachInfo::init(AI_EH_LABEL);
+		labels.set_pool(pool);
+	}
+
+	SList<LabelInfo*> const& get_labels() const { return labels; }
 };
 
 

@@ -49,7 +49,7 @@ author: Su Zhenyu
 
 bool IR2Dex::is_builtin(IR const* ir, BLTIN_TYPE bt)
 {
-	ASSERT0(ir && IR_type(ir) == IR_CALL);
+	ASSERT0(ir && ir->is_call());
 	VAR const* v = CALL_idinfo(ir);
 	BLTIN_TYPE tbt = (BLTIN_TYPE)m_var2blt->mget(v);
 	if (tbt != bt) return false;
@@ -349,7 +349,7 @@ LIR * IR2Dex::buildSgetObj(IN IR ** ir)
 {
 	IR * tir = *ir;
 	ASSERT0(tir->is_stpr());
-	ASSERT0(IR_type(STPR_rhs(tir)) == IR_LDA);
+	ASSERT0(STPR_rhs(tir)->is_lda());
 	UINT vx = get_vreg(STPR_no(tir));
 	VAR * v = ID_info(LDA_base(STPR_rhs(tir)));
 	CHAR const* n = SYM_name(VAR_name(v));
@@ -974,36 +974,51 @@ LIR * IR2Dex::convertStorePR(IN OUT IR ** ir, IN IR2D_CTX * cont)
 }
 
 
+//Bulid aput: res -> op0(array base), op1(subscript)
+LIR * IR2Dex::convertStoreArray(IN OUT IR ** ir, IN IR2D_CTX * cont)
+{
+	IR * tir = *ir;
+	ASSERT0(tir->is_starray());
+	LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
+	IR * rhs = STARR_rhs(tir);
+	IR * lhs = ARR_base(tir);
+	ASSERT0(rhs->is_pr());
+	LIR_res(lir) = get_vreg(rhs);
+	LIR_dt(lir) = get_lir_ty(TY_dtype(tir->get_type()));
+
+	IR * base = ARR_base(tir);
+	IR * ofst = ARR_sub_list(tir);
+	ASSERT0(base->is_pr() && base->is_ptr());
+
+	//ofst may be renamed with a signed type.
+	ASSERT0(ofst->is_pr());
+	LIR_op0(lir) = get_vreg(base);
+	LIR_op1(lir) = get_vreg(ofst);
+	lir->opcode = LOP_APUT;
+	
+	ASSERT0(IR_dt(tir) == IR_dt(rhs) ||
+			tir->get_dtype_size(m_dm) == rhs->get_dtype_size(m_dm));
+	*ir = IR_next(*ir);
+	return (LIR*)lir;
+}
+
+
 //Bulid iput: res -> op0(obj-ptr), op1(ofst)
 LIR * IR2Dex::convertIstore(IN OUT IR ** ir, IN IR2D_CTX * cont)
 {
 	IR * tir = *ir;
-	ASSERT0(IR_type(tir) == IR_IST);
+	ASSERT0(tir->is_ist());
 	LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
 	IR * rhs = IST_rhs(tir);
 	IR * lhs = IST_base(tir);
-	ASSERT0(IR_type(rhs) == IR_PR);
+	ASSERT0(rhs->is_pr());
 	LIR_res(lir) = get_vreg(rhs);
 	LIR_dt(lir) = get_lir_ty(TY_dtype(tir->get_type()));
 
-	IR * ml = lhs;
-	if (IR_type(ml) == IR_PR) {
-		LIR_op0(lir) = get_vreg(ml);
-		LIR_op1(lir) = IST_ofst(tir) / m_d2ir->get_ofst_addend();
-		lir->opcode = LOP_IPUT;
-	} else if (IR_type(ml) == IR_ARRAY) {
-		IR * base = ARR_base(ml);
-		IR * ofst = ARR_sub_list(ml);
-		ASSERT0(base->is_pr() && IR_dt(base) == m_tr->ptr);
-
-		//ofst may be renamed with a signed type.
-		ASSERT0(ofst->is_pr());
-		LIR_op0(lir) = get_vreg(base);
-		LIR_op1(lir) = get_vreg(ofst);
-		lir->opcode = LOP_APUT;
-	} else {
-		ASSERT0(0); //unexpected.
-	}
+	ASSERT0(lhs->is_pr());
+	LIR_op0(lir) = get_vreg(lhs);
+	LIR_op1(lir) = IST_ofst(tir) / m_d2ir->get_ofst_addend();
+	lir->opcode = LOP_IPUT;
 	ASSERT0(IR_dt(tir) == IR_dt(rhs) ||
 			 tir->get_dtype_size(m_dm) == rhs->get_dtype_size(m_dm));
 	*ir = IR_next(*ir);
@@ -1578,6 +1593,8 @@ LIR * IR2Dex::convert(IN OUT IR ** ir, IN IR2D_CTX * cont)
 		return convertStoreVar(ir, cont);
 	case IR_STPR:
 		return convertStorePR(ir, cont);
+	case IR_STARRAY:
+		return convertStoreArray(ir, cont);
 	case IR_IST:
 		return convertIstore(ir, cont);
 	case IR_CALL:

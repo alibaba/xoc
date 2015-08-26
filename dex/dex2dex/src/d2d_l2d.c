@@ -54,6 +54,7 @@ author: GongKai, JinYue
 #include "liropcode.h"
 #include "d2d_comm.h"
 #include "d2d_dexlib.h"
+#include "ltype.h"
 #include "lir.h"
 
 static inline UInt8 getlirOpcode(ULong codePtr){
@@ -106,7 +107,7 @@ static inline bool signedFitsInWide32(Int64 value){
         dexInstr->instrSize = 2;\
         BYTE* instrData = (BYTE*)LIRMALLOC(2);\
         dexInstr->instrData = instrData; \
-        ASSERT(unsignedFitsIn8(data));\
+        ASSERT0(unsignedFitsIn8(data));\
         WRITE_16(instrData,((UInt8)(data) << 8)|((UInt8)dexOpCode))\
         }
 
@@ -114,7 +115,7 @@ static inline bool signedFitsInWide32(Int64 value){
         dexInstr->instrSize = 4;\
         BYTE* instrData = (BYTE*)LIRMALLOC(4);\
         dexInstr->instrData = instrData; \
-        ASSERT(unsignedFitsIn8(dataA));\
+        ASSERT0(unsignedFitsIn8(dataA));\
         WRITE_16(instrData,((UInt8)(dataA) << 8)|((UInt8)dexOpCode))\
         WRITE_16(instrData, (UInt16)dataB);
 
@@ -122,7 +123,7 @@ static inline bool signedFitsInWide32(Int64 value){
         dexInstr->instrSize = 6;\
         BYTE* instrData = (BYTE*)LIRMALLOC(6);\
         dexInstr->instrData = instrData; \
-        ASSERT(unsignedFitsIn8(dataA));\
+        ASSERT0(unsignedFitsIn8(dataA));\
         WRITE_16(instrData,((UInt8)(dataA) << 8)|((UInt8)dexOpCode))\
         WRITE_32(instrData, (UInt32)dataB)
 
@@ -130,7 +131,7 @@ static inline bool signedFitsInWide32(Int64 value){
         dexInstr->instrSize = 10; \
         BYTE* instrData = (BYTE*)LIRMALLOC(10);\
         dexInstr->instrData = instrData; \
-        ASSERT(unsignedFitsIn8(dataA));\
+        ASSERT0(unsignedFitsIn8(dataA));\
         WRITE_16(instrData, ((UInt8)(dataA) << 8)|((UInt8)dexOpCode))\
         memcpy(instrData,&dataB,8);
 
@@ -138,9 +139,9 @@ static inline bool signedFitsInWide32(Int64 value){
         dexInstr->instrSize = 4;\
         BYTE* instrData = (BYTE*)LIRMALLOC(4);\
         dexInstr->instrData = instrData; \
-        ASSERT(unsignedFitsIn8(dataA));\
-        ASSERT(unsignedFitsIn8(dataB));\
-        ASSERT(unsignedFitsIn8(dataC));\
+        ASSERT0(unsignedFitsIn8(dataA));\
+        ASSERT0(unsignedFitsIn8(dataB));\
+        ASSERT0(unsignedFitsIn8(dataC));\
         WRITE_16(instrData,((UInt8)(dataA) << 8)|((UInt8)dexOpCode))\
         WRITE_16(instrData,((UInt8)(dataC) << 8)|((UInt8)dataB & 0xff))
 
@@ -148,9 +149,9 @@ static inline bool signedFitsInWide32(Int64 value){
         dexInstr->instrSize = 4;\
         BYTE* instrData = (BYTE*)LIRMALLOC(4);\
         dexInstr->instrData = instrData; \
-        ASSERT(unsignedFitsIn8(dataA));\
-        ASSERT(unsignedFitsIn8(dataB));\
-        ASSERT(signedFitsIn8(dataC));\
+        ASSERT0(unsignedFitsIn8(dataA));\
+        ASSERT0(unsignedFitsIn8(dataB));\
+        ASSERT0(signedFitsIn8(dataC));\
         WRITE_16(instrData,((UInt8)(dataA) << 8)|((UInt8)dexOpCode))\
         WRITE_16(instrData,((UInt8)(dataC) << 8)|((UInt8)dataB & 0xff))
 
@@ -158,7 +159,7 @@ static inline bool signedFitsInWide32(Int64 value){
         dexInstr->instrSize = 6;\
         BYTE* instrData = (BYTE*)LIRMALLOC(6);\
         dexInstr->instrData = instrData; \
-        ASSERT(unsignedFitsIn8(dataA));\
+        ASSERT0(unsignedFitsIn8(dataA));\
         WRITE_16(instrData,((UInt8)(dataA) << 8)|((UInt8)dexOpCode))\
         WRITE_16(instrData, (UInt16)dataB);\
         WRITE_16(instrData, (UInt16)dataC);
@@ -167,15 +168,15 @@ static inline bool signedFitsInWide32(Int64 value){
         WRITE_FORMATAABBBBCCCC(dexInstr, 0, dataA, dataB)
 
 #define WRITE_FORMATABCCCCDDDD(dexInstr,dataA,dataB,dataC,dataD) \
-        ASSERT(unsignedFitsIn4(dataA));\
-        ASSERT(unsignedFitsIn4(dataB));\
+        ASSERT0(unsignedFitsIn4(dataA));\
+        ASSERT0(unsignedFitsIn4(dataB));\
         UInt8 va = (UInt8)dataA; \
         UInt8 vb = (UInt8)dataB; \
         WRITE_FORMATAABBBBCCCC(dexInstr, (vb << 4) | (va & 0x0f),dataC,dataD)
 
 #define WRITE_FORMATAB(dexInstr,dataA,dataB) \
-        ASSERT(unsignedFitsIn4(dataA));\
-        ASSERT(unsignedFitsIn4(dataB));\
+        ASSERT0(unsignedFitsIn4(dataA));\
+        ASSERT0(unsignedFitsIn4(dataB));\
         UInt8 va = (UInt8)dataA; \
         UInt8 vb = (UInt8)dataB; \
         WRITE_FORMATAA(dexInstr, (vb << 4) | (va & 0x0f))
@@ -189,15 +190,15 @@ static inline bool signedFitsInWide32(Int64 value){
         }
 
 #define WRITE_FORMATABLIT(dexInstr,dataA,dataB) \
-        ASSERT(unsignedFitsIn4(dataA));\
-        ASSERT(signedFitsIn4(dataB));\
+        ASSERT0(unsignedFitsIn4(dataA));\
+        ASSERT0(signedFitsIn4(dataB));\
         UInt8 va = (UInt8)dataA; \
         UInt8 vb = (UInt8)dataB; \
         WRITE_FORMATAALIT(dexInstr, (vb << 4) | (va & 0x0f))
 
 #define WRITE_FORMATABCCCC(dexInstr,dataA,dataB,dataC) \
-        ASSERT(unsignedFitsIn4(dataA));\
-        ASSERT(unsignedFitsIn4(dataB));\
+        ASSERT0(unsignedFitsIn4(dataA));\
+        ASSERT0(unsignedFitsIn4(dataB));\
          UInt8 va = (UInt8)dataA;\
         UInt8 vb = (UInt8)dataB;\
         WRITE_FORMATAABBBB(dexInstr, (vb << 4) | (va & 0x0f),dataC)
@@ -1535,7 +1536,7 @@ void writeSignedLeb128ToCbs(CBSHandle handle, Int32 data)
 #if CHECK
     const UInt8* ptr = (const UInt8*)lebData;
     Int32 tData = readSignedLeb128(&ptr);
-    ASSERT(tData == data);
+    ASSERT0(tData == data);
 #endif
 
     cbsWrite(handle, lebData, size);
@@ -1553,8 +1554,8 @@ Int32 writeUnSignedLeb128ToCbs(CBSHandle handle, UInt32 data)
 #if CHECK
     const BYTE* ptr = lebData;
     UInt32 tData = readUnsignedLeb128(&ptr);
-    ASSERT(tData == data);
-    ASSERT(((ULong)ptr - (ULong)lebData) == size);
+    ASSERT0(tData == data);
+    ASSERT0(((ULong)ptr - (ULong)lebData) == size);
 #endif
 
     cbsWrite(handle, lebData, size);
@@ -1629,7 +1630,7 @@ static Int32 fixTryCatches(CBSHandle regIns, LIRCode const* code,
             tryHandleSize = (end - start) / 2;
         }
 
-        ASSERT(tryHandleSize > 0);
+        ASSERT0(tryHandleSize > 0);
         /*fill the try item*/
         cbsWrite32(hTryBuff, (start/2));
         cbsWrite16(hTryBuff, tryHandleSize);
@@ -1638,11 +1639,11 @@ static Int32 fixTryCatches(CBSHandle regIns, LIRCode const* code,
         offset = baseOffset + cbsGetSize(catchBuff);
 
         cbsWrite16(hTryBuff, (UInt16)offset);
-        ASSERT(offset < (1<<16));
+        ASSERT0(offset < (1<<16));
         Int32 catchSize = ltry->catchSize;
         bool ifHaveCatchAll = false;
 
-        ASSERT(catchSize >= 0);
+        ASSERT0(catchSize >= 0);
         for(j = 0; j < (UInt32)catchSize; j++)
         {
            LIROpcodeCatch* lcatch = ltry->catches + j;
@@ -1652,7 +1653,7 @@ static Int32 fixTryCatches(CBSHandle regIns, LIRCode const* code,
                ifHaveCatchAll = true;
         }
 
-        ASSERT(catchSize >= 0);
+        ASSERT0(catchSize >= 0);
         if(ifHaveCatchAll)
             catchSize = -(catchSize - 1 );
 
@@ -1677,11 +1678,11 @@ static Int32 fixTryCatches(CBSHandle regIns, LIRCode const* code,
     if(triesSize)
     {
         writeUnSignedLeb128ToCbs(hTryBuff, triesSize);
-        //ASSERT(!(cbsGetSize(regIns) % 4));
+        //ASSERT0(!(cbsGetSize(regIns) % 4));
         cbsCopy(regIns, hTryBuff);
-        //ASSERT(!(cbsGetSize(regIns) % 4));
+        //ASSERT0(!(cbsGetSize(regIns) % 4));
         cbsCopy(regIns, catchBuff);
-        //ASSERT(!(cbsGetSize(regIns) % 4));
+        //ASSERT0(!(cbsGetSize(regIns) % 4));
     }
     cbsDestroy(hTryBuff);
     cbsDestroy(catchBuff);
@@ -1728,11 +1729,11 @@ static Int32 fixTryCatches_orig(D2Dpool* pool, CBSHandle regIns, LIRCode* code, 
         offset = baseOffset + cbsGetSize(catchBuff);
 
         cbsWrite16(hTryBuff, (UInt16)offset);
-        ASSERT(offset < (1<<16));
+        ASSERT0(offset < (1<<16));
         Int32 catchSize = ltry->catchSize;
         bool ifHaveCatchAll = false;
 
-        ASSERT(catchSize >= 0);
+        ASSERT0(catchSize >= 0);
         for(j = 0; j < (UInt32)catchSize; j++)
         {
            LIROpcodeCatch* lcatch = ltry->catches + j;
@@ -1742,7 +1743,7 @@ static Int32 fixTryCatches_orig(D2Dpool* pool, CBSHandle regIns, LIRCode* code, 
                ifHaveCatchAll = true;
         }
 
-        ASSERT(catchSize >= 0);
+        ASSERT0(catchSize >= 0);
         if(ifHaveCatchAll)
             catchSize = -(catchSize - 1 );
 
@@ -1767,11 +1768,11 @@ static Int32 fixTryCatches_orig(D2Dpool* pool, CBSHandle regIns, LIRCode* code, 
     if(triesSize)
     {
         writeUnSignedLeb128ToCbs(hTryBuff, triesSize);
-        //ASSERT(!(cbsGetSize(regIns) % 4));
+        //ASSERT0(!(cbsGetSize(regIns) % 4));
         cbsCopy(regIns, hTryBuff);
-        //ASSERT(!(cbsGetSize(regIns) % 4));
+        //ASSERT0(!(cbsGetSize(regIns) % 4));
         cbsCopy(regIns, catchBuff);
-        //ASSERT(!(cbsGetSize(regIns) % 4));
+        //ASSERT0(!(cbsGetSize(regIns) % 4));
     }
 
     nCode->triesSize = triesSize;
@@ -1897,7 +1898,7 @@ Int32 transformCode_orig(D2Dpool* pool, LIRCode* code, DexCode* nCode)
             }
            default:
             {
-                ASSERT(false);
+                ASSERT0(false);
                 break;
             }
       }
@@ -2035,7 +2036,7 @@ Int32 transformCode(LIRCode const* code, DexCode* nCode)
             }
            default:
             {
-                ASSERT(false);
+                ASSERT0(false);
                 break;
             }
       }
@@ -2098,7 +2099,7 @@ void aligmentBy4Bytes(D2Dpool* pool)
 
     data = cbsGetData(pool->lbs);
     data += pool->currentSize;
-    ASSERT(((ULong)data & 3) == 0);
+    ASSERT0(((ULong)data & 3) == 0);
 
     return;
 }
@@ -2133,7 +2134,7 @@ static Int32 writeCodeItem_orig(D2Dpool* pool, CBSHandle cbsCode, DexCode* nCode
 
     DexCode* pCode = (DexCode*)((BYTE*)cbsGetData(lbs) + cbsGetSize(lbs) - writeSize);
 
-    ASSERT((UInt32)(writeSize) == dexGetDexCodeSize(pCode));
+    ASSERT0((UInt32)(writeSize) == dexGetDexCodeSize(pCode));
 
     /*to record the current code off*/
     pool->codeOff = pool->currentSize;
@@ -2141,7 +2142,7 @@ static Int32 writeCodeItem_orig(D2Dpool* pool, CBSHandle cbsCode, DexCode* nCode
     pool->codeItemSize++;
     /*to destory the code buff*/
     cbsDestroy(cbsCode);
-    ASSERT(pool->currentSize == cbsGetSize(pool->lbs));
+    ASSERT0(pool->currentSize == cbsGetSize(pool->lbs));
     return writeSize;
 }
 
@@ -2181,7 +2182,7 @@ DexCode * writeCodeItem(D2Dpool* pool, CBSHandle cbsCode,
 
     DexCode* pCode = (DexCode*)((BYTE*)cbsGetData(lbs) + cbsGetSize(lbs) - writeSize);
 
-    ASSERT((UInt32)(writeSize) == dexGetDexCodeSize(pCode));
+    ASSERT0((UInt32)(writeSize) == dexGetDexCodeSize(pCode));
 
     /*to record the current code off*/
     pool->codeOff = pool->currentSize;
@@ -2189,7 +2190,7 @@ DexCode * writeCodeItem(D2Dpool* pool, CBSHandle cbsCode,
     pool->codeItemSize++;
     /*to destory the code buff*/
     cbsDestroy(cbsCode);
-    ASSERT(pool->currentSize == cbsGetSize(pool->lbs));
+    ASSERT0(pool->currentSize == cbsGetSize(pool->lbs));
     return pCode;
 }
 

@@ -530,7 +530,7 @@ public:
 	bool computeDom3(List<Vertex const*> const* vlst, BitSet const* uni);
 	bool computeDom2(List<Vertex const*> const& vlst);
 	bool computeDom(List<Vertex const*> const* vlst = NULL,
-					 BitSet const* uni = NULL);
+					BitSet const* uni = NULL);
 	bool computePdomByRpo(Vertex * root, BitSet const* uni);
 	bool computePdom(List<Vertex const*> const* vlst);
 	bool computePdom(List<Vertex const*> const* vlst, BitSet const* uni);

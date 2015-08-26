@@ -161,7 +161,7 @@ bool Region::is_lowest_heigh(IR const* ir) const
 IR * Region::simplifyIf(IR * ir, SimpCTX * ctx)
 {
 	if (ir == NULL) return NULL;
-	ASSERT(IR_type(ir) == IR_IF, ("expect IR_IF node"));
+	ASSERT(ir->is_if(), ("expect IR_IF node"));
 	SimpCTX tcont(*ctx);
 	SIMP_ret_array_val(&tcont) = 1;
 
@@ -236,7 +236,7 @@ IR * Region::simplifyWhileDo(IR * ir, SimpCTX * ctx)
 	SimpCTX local;
 	local.copy_topdown_flag(*ctx);
 	IR * ret_list = NULL;
-	ASSERT(IR_type(ir) == IR_WHILE_DO, ("expect IR_WHILE_DO node"));
+	ASSERT(ir->is_whiledo(), ("expect IR_WHILE_DO node"));
 	LabelInfo * startl = genIlabel();
 
 	//det exp
@@ -297,7 +297,7 @@ IR * Region::simplifyDoWhile (IR * ir, SimpCTX * ctx)
 	SimpCTX local;
 	local.copy_topdown_flag(*ctx);
 	IR * ret_list = NULL;
-	ASSERT(IR_type(ir) == IR_DO_WHILE, ("expect IR_DO_WHILE node"));
+	ASSERT(ir->is_dowhile(), ("expect IR_DO_WHILE node"));
 
 	LabelInfo * startl = genIlabel();
 	LabelInfo * endl = genIlabel();
@@ -364,7 +364,7 @@ IR * Region::simplifyDoLoop(IR * ir, SimpCTX * ctx)
 	SimpCTX local;
 	local.copy_topdown_flag(*ctx);
 	IR * ret_list = NULL;
-	ASSERT(IR_type(ir) == IR_DO_LOOP, ("expect IR_DO_LOOP node"));
+	ASSERT(ir->is_doloop(), ("expect IR_DO_LOOP node"));
 
 	LabelInfo * startl = genIlabel();
 
@@ -476,7 +476,7 @@ e.g: a = !(exp), where rhs would be translated to:
 In the case, return 'pr'. */
 IR * Region::simplifyLogicalNot(IN IR * ir, SimpCTX * ctx)
 {
-	ASSERT0(IR_type(ir) == IR_LNOT);
+	ASSERT0(ir->is_lnot());
 	LabelInfo * label1 = genIlabel();
 	IR * pr = buildPR(IR_dt(ir));
 	allocRefForPR(pr);
@@ -543,7 +543,7 @@ e.g: a = b&&c, where rhs would be translated to:
 In the case, return 'pr'. */
 IR * Region::simplifyLogicalAnd(IN IR * ir, SimpCTX * ctx)
 {
-	ASSERT0(IR_type(ir) == IR_LAND);
+	ASSERT0(ir->is_land());
 	LabelInfo * label1 = genIlabel();
 	IR * pr = buildPR(IR_dt(ir));
 	allocRefForPR(pr);
@@ -584,7 +584,7 @@ would be translated to:
 NOTE: ir's parent can NOT be FALSEBR. */
 IR * Region::simplifyLogicalAndAtTruebr(IN IR * ir, IN LabelInfo * tgt_label)
 {
-	ASSERT0(IR_type(ir) == IR_LAND && tgt_label != NULL);
+	ASSERT0(ir->is_land() && tgt_label != NULL);
 	IR * ret_list = NULL;
 
 	//Process opnd0.
@@ -628,7 +628,7 @@ would be translated to:
 NOTE: ir's parent must be FALSEBR. */
 IR * Region::simplifyLogicalAndAtFalsebr(IN IR * ir, IN LabelInfo * tgt_label)
 {
-	ASSERT0(IR_type(ir) == IR_LAND && tgt_label != NULL);
+	ASSERT0(ir->is_land() && tgt_label != NULL);
 	IR * ret_list = NULL;
 
 	//Process opnd0.
@@ -669,7 +669,7 @@ or
 NOTE: ir's parent can NOT be FALSEBR. */
 IR * Region::simplifyLogicalOrAtTruebr(IN IR * ir, IN LabelInfo * tgt_label)
 {
-	ASSERT0(IR_type(ir) == IR_LOR && tgt_label != NULL);
+	ASSERT0(ir->is_lor() && tgt_label != NULL);
 	IR * ret_list = NULL;
 
 	//Process opnd0.
@@ -713,7 +713,7 @@ would be translated to:
 NOTE: ir's parent must be be FALSEBR. */
 IR * Region::simplifyLogicalOrAtFalsebr(IN IR * ir, IN LabelInfo * tgt_label)
 {
-	ASSERT0(IR_type(ir) == IR_LOR && tgt_label != NULL);
+	ASSERT0(ir->is_lor() && tgt_label != NULL);
 	IR * ret_list = NULL;
 
 	//ir is FALSEBR
@@ -767,7 +767,7 @@ or
 In the case, return 'pr'. */
 IR * Region::simplifyLogicalOr(IN IR * ir, SimpCTX * ctx)
 {
-	ASSERT0(IR_type(ir) == IR_LOR);
+	ASSERT0(ir->is_lor());
 	LabelInfo * label1 = genIlabel();
 	IR * pr = buildPR(IR_dt(ir));
 	allocRefForPR(pr);
@@ -802,12 +802,12 @@ IR * Region::simplifyLogicalOr(IN IR * ir, SimpCTX * ctx)
 //Return generate IR stmts.
 IR * Region::simplifyLogicalDet(IR * ir, SimpCTX * ctx)
 {
-	if (ir == NULL) return NULL;
-	ASSERT0(IR_type(ir) == IR_TRUEBR || IR_type(ir) == IR_FALSEBR);
+	if (ir == NULL) { return NULL; }
+	ASSERT0(ir->is_cond_br());
 	ASSERT0(BR_det(ir)->is_logical());
 	IR * ret_list = NULL;
-	if (IR_type(BR_det(ir)) == IR_LOR) {
-		if (IR_type(ir) == IR_TRUEBR) {
+	if (BR_det(ir)->is_lor()) {
+		if (ir->is_truebr()) {
 			ret_list = simplifyLogicalOrAtTruebr(BR_det(ir), BR_lab(ir));
 			BR_det(ir) = NULL;
 			freeIRTree(ir);
@@ -823,8 +823,8 @@ IR * Region::simplifyLogicalDet(IR * ir, SimpCTX * ctx)
 		SIMP_changed(ctx) = true;
 		SIMP_need_recon_bblist(ctx) = true;
 		return ret_list;
-	} else if (IR_type(BR_det(ir)) == IR_LAND) {
-		if (IR_type(ir) == IR_TRUEBR) {
+	} else if (BR_det(ir)->is_land()) {
+		if (ir->is_truebr()) {
 			ret_list = simplifyLogicalAndAtTruebr(BR_det(ir), BR_lab(ir));
 			BR_det(ir) = NULL;
 			freeIRTree(ir);
@@ -840,8 +840,8 @@ IR * Region::simplifyLogicalDet(IR * ir, SimpCTX * ctx)
 		SIMP_changed(ctx) = true;
 		SIMP_need_recon_bblist(ctx) = true;
 		return ret_list;
-	} else if (IR_type(BR_det(ir)) == IR_LNOT) {
-		if (IR_type(ir) == IR_TRUEBR) {
+	} else if (BR_det(ir)->is_lnot()) {
+		if (ir->is_truebr()) {
 			IR_type(ir) = IR_FALSEBR;
 		} else {
 			IR_type(ir) = IR_TRUEBR;
@@ -894,7 +894,7 @@ IR * Region::simplifyKids(IR * ir, SimpCTX * ctx)
 IR * Region::simplifySelect(IR * ir, SimpCTX * ctx)
 {
 	if (ir == NULL) { return NULL; }
-	ASSERT(IR_type(ir) == IR_SELECT, ("expect select node"));
+	ASSERT(ir->is_select(), ("expect select node"));
 	if (!SIMP_select(ctx)) {
 		return simplifyKids(ir, ctx);
 	}
@@ -982,7 +982,7 @@ IR * Region::simplifySelect(IR * ir, SimpCTX * ctx)
 IR * Region::simplifyIgoto(IR * ir, SimpCTX * ctx)
 {
 	if (ir == NULL) { return NULL; }
-	ASSERT(IR_type(ir) == IR_IGOTO, ("expect igoto"));
+	ASSERT(ir->is_igoto(), ("expect igoto"));
 
 	IGOTO_vexp(ir) = simplifyExpression(IGOTO_vexp(ir), ctx);
 	return ir;
@@ -992,7 +992,7 @@ IR * Region::simplifyIgoto(IR * ir, SimpCTX * ctx)
 IR * Region::simplifySwitch(IR * ir, SimpCTX * ctx)
 {
 	if (ir == NULL) { return NULL; }
-	ASSERT(IR_type(ir) == IR_SWITCH, ("expect switch node"));
+	ASSERT(ir->is_switch(), ("expect switch node"));
 
 	IR * vexp_stmt = NULL;
 	IR * swt_val = SWITCH_vexp(ir);
@@ -1223,17 +1223,17 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCTX * ctx)
 //Simplify IR_LDA.
 IR * Region::simplifyLda(IR * ir, SimpCTX * ctx)
 {
-	ASSERT0(IR_type(ir) == IR_LDA);
+	ASSERT0(ir->is_lda());
 	IR * lda_base = LDA_base(ir);
 	ASSERT0(lda_base != NULL);
 
-	if (IR_type(lda_base) == IR_ARRAY) {
+	if (lda_base->is_array()) {
 		SimpCTX tc(*ctx);
 		SIMP_array(&tc) = true;
 		return simplifyArrayAddrExp(lda_base, &tc);
 	}
 
-	if (IR_type(lda_base) == IR_ID || lda_base->is_str()) {
+	if (lda_base->is_id() || lda_base->is_str()) {
 		if (SIMP_to_pr_mode(ctx)) {
 			IR * pr = buildPR(IR_dt(ir));
 			allocRefForPR(pr);
@@ -1320,11 +1320,11 @@ IR * Region::simplifyExpression(IR * ir, SimpCTX * ctx)
 			if (SIMP_to_lowest_heigh(ctx) && p != NULL) {
 				if (!p->is_stmt() || //tree height is more than 2.
 
-					p->is_call() || //parent is call, ir is the parameter.
+					p->is_calls_stmt() || //parent is call, ir is the parameter.
 					//We always reduce the height for parameter even if its height is 2.
 
 					//ir is lhs expression, lower it.
-					(IR_type(p) == IR_IST && ir == IST_base(p))) {
+					(p->is_ist() && ir == IST_base(p))) {
 					doit = true;
 				}
 			}
@@ -1340,7 +1340,7 @@ IR * Region::simplifyExpression(IR * ir, SimpCTX * ctx)
 							t2 = b[i]
 							t1 + t2 */
 						if (SIMP_array_to_pr_mode(ctx) &&
-							IR_type(k) == IR_ARRAY) {
+							k->is_array()) {
 							IR * pr = buildPR(IR_dt(k));
 							allocRefForPR(pr);
 							IR * st = buildStorePR(PR_no(pr), IR_dt(pr), k);
@@ -1391,7 +1391,7 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCTX * ctx)
 				SimpCTX tcont(*ctx);
 				SIMP_ret_array_val(&tcont) = true;
 				IR * newir = NULL;
-				if (IR_type(ir) == IR_LOR) {
+				if (ir->is_lor()) {
 					newir = simplifyLogicalOr(ir, &tcont);
 				} else {
 					newir = simplifyLogicalAnd(ir, &tcont);
@@ -1479,7 +1479,7 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCTX * ctx)
 			}
 			if (SIMP_to_lowest_heigh(ctx) && !IR_parent(ir)->is_stmt()) {
 				bool is_det = false;
-				if (IR_type(IR_parent(ir)) == IR_SELECT) {
+				if (IR_parent(ir)->is_select()) {
 					/* Check if det is lowest binary operation to COND_EXE,
 					although its parent is not a stmt.
 					e.g: Regard NE expression as lowest heigh.
@@ -1644,7 +1644,7 @@ IR * Region::simplifyArray(IR * ir, SimpCTX * ctx)
 
 IR * Region::simplifyCall(IR * ir, SimpCTX * ctx)
 {
-	ASSERT0(IR_type(ir) == IR_CALL || IR_type(ir) == IR_ICALL);
+	ASSERT0(ir->is_calls_stmt());
 	SimpCTX tcont(*ctx);
 	ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
 	SIMP_ret_array_val(&tcont) = true;
@@ -1804,7 +1804,7 @@ IR * Region::simplifyGetelem(IR * ir, SimpCTX * ctx)
 
 IR * Region::simplifyIstore(IR * ir, SimpCTX * ctx)
 {
-	ASSERT0(IR_type(ir) == IR_IST);
+	ASSERT0(ir->is_ist());
 	IR * ret_list = NULL;
 	IR * last = NULL;
 	ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
@@ -1818,7 +1818,7 @@ IR * Region::simplifyIstore(IR * ir, SimpCTX * ctx)
 		add_next(&ret_list, &last, SIMP_ir_stmt_list(&tcont2));
 	}
 
-	if (SIMP_to_lowest_heigh(ctx) && IR_type(IST_base(ir)) == IR_ILD) {
+	if (SIMP_to_lowest_heigh(ctx) && IST_base(ir)->is_ild()) {
 		/* Simplify
 			IST(ILD(PR1), ...)
 		=>

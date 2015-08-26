@@ -70,9 +70,8 @@ bool IR_LICM::scanOpnd(IN LI<IRBB> * li,
 		for (IR * ir = BB_first_ir(bb);
 			 ir != NULL; ir = BB_next_ir(bb)) {
 			if (!ir->isContainMemRef()) { continue; }
-			if ((ir->is_call() && !ir->is_readonly_call()) ||
-				IR_type(ir) == IR_REGION ||
-				IR_type(ir) == IR_PHI) {
+			if ((ir->is_calls_stmt() && !ir->is_readonly_call()) ||
+				ir->is_region() || ir->is_phi()) {
 				//TODO: support call.
 				*is_legal = false;
 				return false;
@@ -179,7 +178,7 @@ bool IR_LICM::markExpAndStmt(IR * ir, TTab<IR*> & invariant_exp)
 		}
 
 		e = IST_base(ir);
-		if (!e->is_pr() && IR_type(e) != IR_ARRAY) {
+		if (!e->is_pr() && !e->is_array()) {
 			//e.g: IST(a+b, P2), regard a+b as cand.
 			if (!invariant_exp.find(e)) {
 				invariant_exp.append(e);

@@ -165,13 +165,11 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
 }
 
 
-/*
-Insure CALL_NODE for function is unique.
-Do NOT modify ir' content.
-*/
+//Insure CALL_NODE for function is unique.
+//Do NOT modify ir' content.
 CALL_NODE * CallGraph::newCallNode(IR * ir)
 {
-	ASSERT0(IR_type(ir) == IR_CALL);
+	ASSERT0(ir->is_call());
 	SYM * name = VAR_name(CALL_idinfo(ir));
 	CALL_NODE * cn  = m_sym2cn_map.get(name);
 	if (cn != NULL) return cn;
@@ -216,7 +214,7 @@ void CallGraph::build(Region * top)
 	IR * irs = top->get_ir_list();
 	List<CALL_NODE*> ic;
 	while (irs != NULL) {
-		if (IR_type(irs) == IR_REGION) {
+		if (irs->is_region()) {
 			Region * ru = REGION_ru(irs);
 			ASSERT0(ru && REGION_type(ru) == RU_FUNC);
 			CALL_NODE * cn = newCallNode(ru);
@@ -231,9 +229,9 @@ void CallGraph::build(Region * top)
 			for (call_list->get_head(&ct);
 				 ct != NULL; ct = call_list->get_next(ct)) {
 				IR const* ir = ct->val();
-				ASSERT0(ir && ir->is_call());
+				ASSERT0(ir && ir->is_calls_stmt());
 
-				if (IR_type(ir) == IR_CALL) {
+				if (ir->is_call()) {
 					//Direct call.
 					CALL_NODE * cn2 = newCallNode(const_cast<IR*>(ir));
 					add_node(cn2);

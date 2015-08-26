@@ -51,6 +51,7 @@ author: GongKai, JinYue
 #include "xassert.h"
 #include "lircomm.h"
 #include "lir.h"
+#include "ltype.h"
 #include "dex_driver.h"
 
 Int32 gMemAlloc = 0;
@@ -134,7 +135,7 @@ Int32 findPos(PositionMap* posMap,UInt32 target)
             low = mid;
     }
 
-    abort();
+    ASSERT0(0);
     return -1;
 }
 
@@ -391,7 +392,7 @@ void genInstruction(
                 memcpy(lir->data,(BYTE*)data,dataSize);
                 break;
             }
-            default: abort();
+            default: ASSERT0(0);
             }
             result = (LIRBaseOp*)lir;
             break;
@@ -446,7 +447,7 @@ END:
             break;
         }default:{
             result = NULL;
-            abort();
+            ASSERT0(0);
         }
         }
 
@@ -471,8 +472,7 @@ END:
                     width = size * 4 + 2;
                     break;
                 }
-                default:
-                    abort();
+                default: ASSERT0(0);
                     width = gDIROpcodeInfo.widths[opcode];
                     break;
             }
@@ -705,7 +705,7 @@ bool d2rMethod(D2Dpool* pool, DexFile* pDexFile, const DexMethod* pDexMethod)
                     break;
                 }
                 default:
-                    abort();
+                    ASSERT0(0);
                     break;
             }
             codePtr += width;

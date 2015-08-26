@@ -140,7 +140,7 @@ void IR_CFG::cf_opt()
 void IR_CFG::findTargetBBOfMulticondBranch(IN IR * ir,
 								OUT List<IRBB*> & tgt_bbs)
 {
-	ASSERT0(IR_type(ir) == IR_SWITCH);
+	ASSERT0(ir->is_switch());
 	tgt_bbs.clean();
 	if (m_bb_list == NULL) return;
 	IR * casev_list = SWITCH_case_list(ir);
@@ -217,11 +217,12 @@ IRBB * IR_CFG::findBBbyLabel(LabelInfo * lab)
 }
 
 
-void IR_CFG::insertBBbetween(IN IRBB * from,
-							   IN C<IRBB*> * from_ct,
-							   IN IRBB * to,
-							   IN C<IRBB*> * to_ct,
-							   IN IRBB * newbb)
+void IR_CFG::insertBBbetween(
+		IN IRBB * from,
+		IN C<IRBB*> * from_ct,
+		IN IRBB * to,
+		IN C<IRBB*> * to_ct,
+		IN IRBB * newbb)
 {
 	/* Revise BB list, note that 'from' is either fall-through to 'to',
 	or jumping to 'to'.	*/
@@ -344,7 +345,7 @@ bool IR_CFG::removeTrampolinBB()
 	List<IRBB*> preds;
 	for (IRBB * bb = m_bb_list->get_head(&ct);
 		 bb != NULL; bb = m_bb_list->get_next(&ct)) {
-		if (is_exp_handling(bb)) { continue; }
+		if (bb->is_exp_handling()) { continue; }
 		IR * br = get_first_xr(bb);
 		if (br != NULL &&
 			br->is_uncond_br() &&
@@ -417,7 +418,7 @@ bool IR_CFG::removeTrampolinEdge()
 		if (bb->getNumOfIR() != 1) { continue; }
 
 		IR * last_xr = get_last_xr(bb);
-		if (IR_type(last_xr) == IR_GOTO && !bb->is_attach_dedicated_lab()) {
+		if (last_xr->is_goto() && !bb->is_attach_dedicated_lab()) {
 			LabelInfo * tgt_li = last_xr->get_label();
 			ASSERT0(tgt_li != NULL);
 
@@ -468,7 +469,7 @@ bool IR_CFG::removeTrampolinEdge()
 					continue;
 				} //end if
 
-				if (IR_type(last_xr_of_pred) == IR_GOTO) {
+				if (last_xr_of_pred->is_goto()) {
 					/* CASE: pred->bb,
 						pred is:
 							goto L1
@@ -563,8 +564,8 @@ bool IR_CFG::removeRedundantBranch()
 								det->is_int(m_dm) &&
 								CONST_int_val(det) == 0;
 
-			if ((IR_type(last_xr) == IR_TRUEBR && always_true) ||
-				(IR_type(last_xr) == IR_FALSEBR && always_false)) {
+			if ((last_xr->is_truebr() && always_true) ||
+				(last_xr->is_falsebr() && always_false)) {
 				//Substitute cond_br with 'goto'.
 				LabelInfo * tgt_li = last_xr->get_label();
 				ASSERT0(tgt_li != NULL);
@@ -592,8 +593,8 @@ bool IR_CFG::removeRedundantBranch()
 					}
 				}
 				removed = true;
-			} else if ((IR_type(last_xr) == IR_TRUEBR && always_false) ||
-					   (IR_type(last_xr) == IR_FALSEBR && always_true)) {
+			} else if ((last_xr->is_truebr() && always_false) ||
+					   (last_xr->is_falsebr() && always_true)) {
 				IR * r = BB_irlist(bb).remove_tail();
 				if (dumgr != NULL) {
 					dumgr->removeIROutFromDUMgr(r);

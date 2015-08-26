@@ -336,14 +336,10 @@ IR * Dex2IR::convertSget(IN LIR * lir)
 }
 
 
-Type const* Dex2IR::mapFieldType2Type(UINT field_id)
+Type const* Dex2IR::mapDexType2XocType(CHAR charty)
 {
-	CHAR const* type_name = get_var_type_name(field_id);
-	ASSERT0(type_name);
-	Type const* ty = m_typename2type.get(type_name);
-	if (ty != NULL) { return ty; }
-
-	switch (*type_name) {
+	Type const* ty;
+	switch (charty) {
 	case 'V': ty = m_dm->getSimplexTypeEx(D_VOID); break;
 	case 'Z': ty = m_dm->getSimplexTypeEx(D_B); break;
 	case 'B': ty = m_dm->getSimplexTypeEx(D_U8); break;
@@ -357,9 +353,18 @@ Type const* Dex2IR::mapFieldType2Type(UINT field_id)
 	case '[': ty = m_tr->array; break;
 	default: ASSERT(0, ("TODO: not yet support")); break;
 	}
-
 	ASSERT0(ty);
-	m_typename2type.set(type_name, ty);
+	return ty;
+}
+
+
+Type const* Dex2IR::mapFieldType2Type(UINT field_id)
+{
+	CHAR const* type_name = get_var_type_name(field_id);
+	ASSERT0(type_name);
+	Type const* ty = m_typename2type.get(type_name);
+	if (ty != NULL) { return ty; }
+	m_typename2type.set(type_name, mapDexType2XocType(*type_name));
 	return ty;
 }
 
@@ -392,16 +397,11 @@ IR * Dex2IR::convertAput(IN LIR * lir)
 {
 	Type const* ty = getType(lir);
 	//st-val
-	IR * res = genMappedPR(LIR_res(lir), ty);
+	IR * src = genMappedPR(LIR_res(lir), ty);
 	//array
 	IR * base = genMappedPR(LIR_op0(lir), m_tr->ptr);
 	IR * ofst = genMappedPR(LIR_op1(lir), m_tr->u32);
 	TMWORD enbuf = 0;
-	IR * array = m_ru->buildArray(base, ofst, ty, ty, 1, &enbuf);
-
-	//Even if array operation may throw exception in DEX, we still
-	//set the may-throw property at its stmt but is not itself.
-	//IR_may_throw(array) = true;
 
 	//base type info.
 	AttachInfo * ai = m_ru->newAI();
@@ -411,7 +411,7 @@ IR * Dex2IR::convertAput(IN LIR * lir)
 	ai->set(AI_TBAA, tbaa);
 	IR_ai(base) = ai;
 
-	IR * c = m_ru->buildIstore(array, res, ty);
+	IR * c = m_ru->buildStoreArray(base, ofst, ty, ty, 1, &enbuf, src);
 	IR_may_throw(c) = true;
 	if (m_has_catch) {
 		IR * lab = m_ru->buildLabel(m_ru->genIlabel());
@@ -966,41 +966,13 @@ IR * Dex2IR::convertInvoke(IN LIR * lir)
 		if (has_this && i == 0) {
 			param = genMappedPR(r->args[i], m_tr->ptr);
 		} else {
+			ASSERT(*paramty != '[', ("should be convert to L"));
+			param = genMappedPR(r->args[i], mapDexType2XocType(*paramty));			
 			switch (*paramty) {
-			case 'V':
-				param = genMappedPR(r->args[i], m_tr->i32);
-				break;
-			case 'Z':
-				param = genMappedPR(r->args[i], m_tr->b);
-				break;
-			case 'B':
-				param = genMappedPR(r->args[i], m_tr->u8);
-				break;
-			case 'S':
-				param = genMappedPR(r->args[i], m_tr->i16);
-				break;
-			case 'C':
-				param = genMappedPR(r->args[i], m_tr->i8);
-				break;
-			case 'I':
-				param = genMappedPR(r->args[i], m_tr->i32);
-				break;
 			case 'J':
-				param = genMappedPR(r->args[i], m_tr->i64);
-				i++;
-				break;
-			case 'F':
-				param = genMappedPR(r->args[i], m_tr->f32);
-				break;
 			case 'D':
-				param = genMappedPR(r->args[i], m_tr->f64);
-				i++;
-				break;
-			case 'L':
-				param = genMappedPR(r->args[i], m_tr->ptr);
-				break;
-			case '[': ASSERT(0, ("should be convert to L")); break;
-			default: ASSERT0(0);
+				i++; break;
+			default:;
 			}
 			paramty++;
 		}
@@ -1326,6 +1298,7 @@ IR * Dex2IR::convertThrow(IN LIR * lir)
 	CALL_is_readonly(c) = true;
 	CALL_is_intrinsic(c) = true;
 	IR_has_sideeffect(c) = true;
+	IR_is_termiate(c) = true;
 	return c;
 }
 

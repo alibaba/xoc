@@ -278,7 +278,21 @@ void PassMgr::performScalarOpt(OptCTX & oc)
 		}
 	}
 
-	passlist.append_tail(registerPass(PASS_RP));
+	bool in_ssa_form = false;
+	IR_SSA_MGR * ssamgr =
+			(IR_SSA_MGR*)(m_ru->get_pass_mgr()->query_opt(PASS_SSA_MGR));
+	if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
+		in_ssa_form = true;		
+	}
+
+	if (!in_ssa_form) {
+		//RP can reduce the memory operations and 
+		//improve the effect of PR SSA, so perform 
+		//RP before SSA construction.
+		//TODO: Do SSA renaming when after register promotion done.
+		passlist.append_tail(registerPass(PASS_RP));
+	}
+
 	passlist.append_tail(registerPass(PASS_CP));
 	passlist.append_tail(registerPass(PASS_LICM));
 	passlist.append_tail(registerPass(PASS_DCE));

@@ -333,66 +333,6 @@ void logd_fu_param(CHAR const* runame, LIRCode * fu)
 bool g_dd = false;
 bool is_compile(CHAR const* runame, LIRCode * fu)
 {
-	#ifdef _DEBUG_
-	//if (strcmp(runame, "Lcom/admob/android/ads/Ad;::clicked") == 0) {
-	//if (strcmp(runame, "Lcom/greenecomputing/linpack/Linpack;::second") == 0) {
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/expr230/expr23001/expr23001;::run") == 0) {
-	//if (strcmp(runame, "Lcom/admob/android/ads/Ad;::skipToNext") == 0) {
-	//if (strcmp(runame, "Lcom/admob/android/ads/AdContainer;::breakIntoLines") == 0) {
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/icls116/icls11691m3/icls11691m3;::infiniteLoop") == 0)  //rm useless dead loop.
-	//if (strcmp(runame, "Lgr/androiddev/BenchmarkPi/UpdateCheck;::isConnected") == 0) {
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/excp004/excp00409/excp00409;::run") == 0) { //rm aget, not revise try/catch
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/binc061/binc06101/binc06101;::run") == 0) {
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/thrd041/thrd04101/thrd04101;::waitFor") == 0) {
-	//if (strcmp(runame, "Lcom/adwhirl/AdWhirlManager;::parseRationsJson") == 0) { //switch-lir with many labels attacted.
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/lex062/lex06292m2/lex06292m2;::run") == 0)  //invoke be removed!  fix_multi_out()
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/binc061/binc06101/binc06101;::run") == 0)
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/api/java/text/DecimalFormat/serial/InputTests;::serial2002") == 0) { //seem to remove incorrect lir.
-	//if (strcmp(runame, "Lcom/android/membench/MemBench$myAdd;::run") == 0) //how to remove redundant call to access$...
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/api/java/math/BigDecimal/DecTestLine;::interpret") == 0) //aggressive-cp cost too many compile time, it incur recomp_aa. it is necessary to recomp-aa if ild's base changed?
-	//if (strcmp(runame, "Lcom/android/membench/MemBench$benchMark;::run") == 0) //how to remove redundant ild to this$0
-	//if (strcmp(runame, "Lcom/android/membench/MemBench$myAdd;::run") == 0) //how to remove redundant call to access$...
-	//if (strcmp(runame, "Lcom/wiyun/engine/actions/grid/WavesTiles3D;::copy") == 0)
-	//if (strcmp(runame, "La/a/a/g;::a") == 0) //Antutu
-	//if (strcmp(runame, "Lcom/adwhirl/AdWhirlLayout;::onMeasure") == 0) //crashed in gcse.
-	//if (strcmp(runame, "Lcom/android/membench/MemBench$myInit;::run") == 0)
-		//strcmp(runame, "Lcom/android/membench/MemBench$benchMark;::run") == 0)
-	//if (strcmp(runame, "La/a/a/g;::a") == 0) //Check antutu3.4.apk, prdf.compute_global_live	up to 87 times!
-	//if (strcmp(runame, "Lcom/antutu/benchmark/f/h;::c") == 0) //antutu_abenchmark_4.4.1.apk
-	//if (strcmp(runame, "Landroid/support/v4/app/h;::dump") == 0) //antutu_abenchmark_4.4.1.apk  make ir_expr_tab crash
-	//if (strcmp(runame, "Lcom/antutu/benchmark/test3d/i;::b") == 0) //generate redundant cvt.
-	//if (strstr(runame, "Lcom/android/cm3/FloatAtom;::execute") != 0) //gvn+gcse
-	//if (strstr(runame, "Ljava/lang/Object;::<init>") != 0) //gvn+gcse
-	//if (strstr(runame, "Lcom/antutu/benchmark/g/a;::m") != 0)
-	//if (strstr(runame, "Lcom/flurry/android/w;::a") != 0) //PRDF run more than 178 times.
-	//if (strstr(runame, "Lorg/a/a/a;::a") != 0) //antutu, crashed in sstl:3806 line
-	//if (strstr(runame, "Lan;::foo") != 0) //antutu test
-	//if (strstr(runame, "Lan;::pig") != 0) //antutu test
-	//if (strstr(runame, "Landroid/support/v4/app/aa;::onItemClick") != 0) //antutu, failed in allocGroup
-	//if (strstr(runame, "Lcom/antutu/benchmark/view/CircleProgress;::onDraw") != 0) //assignLTG() not set_local()
-	//if (strstr(runame, "Lcom/antutu/benchmark/f/b;::b") != 0) //assert in ir2dex, support f64,u64
-	//if (strstr(runame, "Lcom/xiaomi/network/HostManager;::generateHostStats") != 0)
-	//if (strstr(runame, "Lorg/a/a/h;::a") != 0)
-	//if (strstr(runame, "Lcom/antutu/benchmark/h/eq;::a") != 0) //prdf iter up to 238 times.
-	//if (strstr(runame, "Lorg/cocos2dx/lib/Cocos2dxBitmap;::createTextBitmapShadowStroke") != 0) //prdf iter up to 238 times.
-	//if (strstr(runame, "Lcom/antutu/benchmark/view/CircleProgress;::onDraw") != 0) //antutu, ltg bug.
-	//if (strstr(runame, "Lorg/a/a/h;::a") != 0) //antutu, runtime error
-	//if (strstr(runame, "Lcom/antutu/benchmark/f/v;::b") != 0) //antutu, runtime error
-	//if (strstr(runame, "Lorg/a/a/h;::a") != 0) //antutu, runtime error
-
-	//if (strstr(runame, "Lcom/antutu/benchmark/f/v;::c") != 0)  //hot, small
-	//if (strstr(runame, "Lcom/antutu/benchmark/f/v;::b") != 0) //hot, large
-	//if (strcmp(runame, "Lcom/adwhirl/AdWhirlManager;::fetchConfig") == 0)
-	//if (strcmp(runame, "Lcom/adwhirl/adapters/CustomAdapter;::displayCustom") == 0)
-	//if (strcmp(runame, "Lsoftweg/hw/performance/CPUTest;::runSingle") != 0) { //softweg hot func.
-	//if (strcmp(runame, "Lsoftweg/hw/performance/CPUTest;::runDouble") != 0) { //softweg hot func.
-	//if (strcmp(runame, "Lsoftweg/hw/performance/CPUTest;::paDouble") != 0) { //softweg hot func.
-	//	return false;
-	//}
-
-	//if (pcount!=1) { return false; }
-	#endif
-
 	xdebug();
 	logd_fu_param(runame, fu);
 	g_dd = 0; //set to 1 to open dex2ir.log ir2dex.log

@@ -232,15 +232,15 @@ public:
 #define REF_INFO_mayuse(ri)		((ri)->may_use_mds)
 class RefInfo {
 public:
-	MDSet * must_def_mds; //Record the MD set for Region usage
-	MDSet * may_def_mds; //Record the MD set for Region usage
-	MDSet * may_use_mds; //Record the MD set for Region usage
+	MDSet must_def_mds; //Record the MD set for Region usage
+	MDSet may_def_mds; //Record the MD set for Region usage
+	MDSet may_use_mds; //Record the MD set for Region usage
 
 	UINT count_mem()
 	{
-		UINT c = must_def_mds->count_mem();
-		c += may_def_mds->count_mem();
-		c += may_use_mds->count_mem();
+		UINT c = must_def_mds.count_mem();
+		c += may_def_mds.count_mem();
+		c += may_use_mds.count_mem();
 		c += sizeof(MDSet*) * 3;
 		return c;
 	}
@@ -563,21 +563,21 @@ public:
 	//Get the MustUse of Region.
 	inline MDSet * get_must_def()
 	{
-		if (m_ref_info != NULL) { return REF_INFO_mustdef(m_ref_info); }
+		if (m_ref_info != NULL) { return &REF_INFO_mustdef(m_ref_info); }
 		return NULL;
 	}
 
 	//Get the MayDef of Region.
 	inline MDSet * get_may_def()
 	{
-		if (m_ref_info != NULL) { return REF_INFO_maydef(m_ref_info); }
+		if (m_ref_info != NULL) { return &REF_INFO_maydef(m_ref_info); }
 		return NULL;
 	}
 
 	//Get the MayUse of Region.
 	inline MDSet * get_may_use()
 	{
-		if (m_ref_info != NULL) { return REF_INFO_mayuse(m_ref_info); }
+		if (m_ref_info != NULL) { return &REF_INFO_mayuse(m_ref_info); }
 		return NULL;
 	}
 
@@ -604,7 +604,7 @@ public:
 	//Generate MD corresponding to PR load or write.
 	MD const* genMDforPR(IR const* ir)
 	{
-		ASSERT0(ir->is_write_pr() || ir->is_read_pr() || ir->is_call());
+		ASSERT0(ir->is_write_pr() || ir->is_read_pr() || ir->is_calls_stmt());
 		return genMDforPR(ir->get_prno(), IR_dt(ir));
 	}
 
@@ -661,33 +661,23 @@ public:
 	//Initialze Region.
 	void init(REGION_TYPE rt, RegionMgr * rm);
 
-	//Allocate and initialize Region reference structure.
 	void initRefInfo()
 	{
 		if (m_ref_info != NULL) { return; }
-		m_ref_info = (RefInfo*)xmalloc(sizeof(RefInfo));
-		if (REF_INFO_maydef(m_ref_info) == NULL) {
-			REF_INFO_maydef(m_ref_info) = get_mds_mgr()->create();
-		}
-		if (REF_INFO_mustdef(m_ref_info) == NULL) {
-			REF_INFO_mustdef(m_ref_info) = get_mds_mgr()->create();
-		}
-		if (REF_INFO_mayuse(m_ref_info) == NULL) {
-			REF_INFO_mayuse(m_ref_info) = get_mds_mgr()->create();
-		}
+		m_ref_info = (RefInfo*)xmalloc(sizeof(RefInfo));		
 	}
 
 	//Allocate and initialize control flow graph.
-	virtual IR_CFG * initCfg(OptCTX & oc);
+	IR_CFG * initCfg(OptCTX & oc);
 
 	//Allocate and initialize alias analysis.
 	virtual IR_AA * initAliasAnalysis(OptCTX & oc);
 
 	//Allocate and initialize pass manager.
-	virtual PassMgr * initPassMgr();
+	PassMgr * initPassMgr();
 
 	//Allocate and initialize def-use manager.
-	virtual IR_DU_MGR * initDuMgr(OptCTX & oc);
+	IR_DU_MGR * initDuMgr(OptCTX & oc);
 
 	//Invert condition for relation operation.
 	virtual void invertCondition(IR ** cond);
@@ -717,6 +707,12 @@ public:
 	VAR * mapPR2Var(UINT prno)
 	{ return REGION_analysis_instrument(this)->m_prno2var.get(prno); }
 
+	//Allocate PassMgr
+	virtual PassMgr * newPassMgr();
+
+	//Allocate AliasAnalysis.
+	virtual IR_AA * newAliasAnalysis();
+	
 	//Allocate IRBB.
 	IRBB * newBB();
 

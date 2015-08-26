@@ -1041,9 +1041,7 @@ public:
 		//ASSERT0(get_elem_count() == 0); //should call free first.
 	}
 
-	//Clean each MD->MDSet, but do not free MDSet.
-	//This function might be invoked during each iter
-	//in computing PT_SET in general.
+	//Clean each MD->MDSet, but do not free MDSet.	
 	void clean() { TMap<UINT, MDSet const*>::clean(); }
 
 	void dump(Region * ru);

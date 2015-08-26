@@ -78,7 +78,7 @@ IR * IR_LCSE::hoist_cse(IN IRBB * bb, IN IR * ir_pos, IN ExpRep * ie)
 				ir_pos->setParentPointer(false);
 			} //end if
 
-			if (IR_type(ir_pos) == IR_IST) {
+			if (ir_pos->is_ist()) {
 				//Move MEM ADDR to Temp PR.
 				tie = m_expr_tab->map_ir2ir_expr(IST_base(ir_pos));
 				if (tie != NULL && tie == ie) {
@@ -211,12 +211,14 @@ IR * IR_LCSE::hoist_cse(IN IRBB * bb, IN IR * ir_pos, IN ExpRep * ie)
 }
 
 
-bool IR_LCSE::processBranch(IN IRBB * bb, IN IR * ir,
-						 IN OUT BitSet & avail_ir_expr,
-						 IN OUT Vector<IR*> & map_expr2avail_pos,
-						 IN OUT Vector<IR*> & map_expr2avail_pr)
+bool IR_LCSE::processBranch(
+		IN IRBB * bb, 
+		IN IR * ir,
+		IN OUT BitSet & avail_ir_expr,
+		IN OUT Vector<IR*> & map_expr2avail_pos,
+		IN OUT Vector<IR*> & map_expr2avail_pr)
 {
-	ASSERT0(IR_type(ir) == IR_TRUEBR || IR_type(ir) == IR_FALSEBR);
+	ASSERT0(ir->is_cond_br());
 	bool change = false;
 	if (!canBeCandidate(BR_det(ir))) { return false; }
 	ExpRep * ie = m_expr_tab->map_ir2ir_expr(BR_det(ir));
@@ -305,35 +307,34 @@ bool IR_LCSE::canBeCandidate(IR * ir)
 {
 	if (!m_enable_filter) {
 		return ir->is_binary_op() ||
-			IR_type(ir) == IR_BNOT ||
-			IR_type(ir) == IR_LNOT ||
-			IR_type(ir) == IR_NEG;
+			ir->is_bnot() ||
+			ir->is_lnot() ||
+			ir->is_neg();
 	}
 	ASSERT0(ir->is_exp());
-	if (IR_type(ir) == IR_ILD) {
-		/*
-		Avoid perform the opposite behavior to Copy-Propagation.
+	if (ir->is_ild()) {
+		/* Avoid perform the opposite behavior to Copy-Propagation.
 		e.g:
 			ST(P1, ILD(P2))
 			ST(P3, ILD(P2))
 			after LCSE, we get:
 			ST(P1, ILD(P2))
 			ST(P3, P1)
-			But CP will progagate P1 because ILD is the copy-prop candidate.
-		*/
+			But CP will progagate P1 because ILD is the copy-prop candidate. */
 		return false;
 	}
-	return ir->is_binary_op() || IR_type(ir) == IR_BNOT ||
-		   IR_type(ir) == IR_LNOT || IR_type(ir) == IR_NEG;
+	return ir->is_binary_op() || ir->is_bnot() ||
+		   ir->is_lnot() || ir->is_neg();
 }
 
 
-bool IR_LCSE::processRhsOfStore(IN IRBB * bb, IN IR * ir,
-							 IN OUT BitSet & avail_ir_expr,
-							 IN OUT Vector<IR*> & map_expr2avail_pos,
-							 IN OUT Vector<IR*> & map_expr2avail_pr)
+bool IR_LCSE::processRhsOfStore(
+		IN IRBB * bb, IN IR * ir,
+		IN OUT BitSet & avail_ir_expr,
+		IN OUT Vector<IR*> & map_expr2avail_pos,
+		IN OUT Vector<IR*> & map_expr2avail_pr)
 {
-	ASSERT0(IR_type(ir) == IR_ST || IR_type(ir) == IR_IST);
+	ASSERT0(ir->is_st() || ir->is_ist());
 	bool change = false;
 	if (!canBeCandidate(ST_rhs(ir))) {
 		return false;
@@ -371,7 +372,7 @@ bool IR_LCSE::processRhsOfStore(IN IRBB * bb, IN IR * ir,
 		}
 	}
 
-	if (IR_type(ir) == IR_IST) {
+	if (ir->is_ist()) {
 		ie = m_expr_tab->map_ir2ir_expr(IST_base(ir));
 		if (ie != NULL) {
 			avail_ir_expr.bunion(EXPR_id(ie));

@@ -29,14 +29,15 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-author: GongKai, JinYue
+author: Su Zhenyu
 @*/
-#ifndef _XASSERT_
-#define _XASSERT_
-#define ABORT()\
-    do {\
-        *(UInt32*)(0x0)=0xdeaddaad;\
-    } while (0)
-#endif
+#include "cominc.h"
+#include "dexscan.h"
 
-#include "trace/ctrace.h"
+bool DexScan::perform(OptCTX & oc)
+{
+	START_TIMER("DexScan");
+
+	END_TIMER();
+	return false;
+}

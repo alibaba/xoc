@@ -161,6 +161,7 @@ public:
 	LIR * convertReturn(IN OUT IR ** ir, IN IR2D_CTX * cont);
 	LIR * convertStoreVar(IN OUT IR ** ir, IN IR2D_CTX * cont);
 	LIR * convertStorePR(IN OUT IR ** ir, IN IR2D_CTX * cont);
+	LIR * convertStoreArray(IN OUT IR ** ir, IN IR2D_CTX * cont);
 	LIR * convertIstore(IN OUT IR ** ir, IN IR2D_CTX * cont);
 	LIR * convertCall(IN OUT IR ** ir, IN IR2D_CTX * cont);
 	LIR * convertIcall(IN OUT IR ** ir, IN IR2D_CTX * cont);

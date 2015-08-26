@@ -107,8 +107,10 @@ void PRDF::processMay(
 
 
 void PRDF::processOpnd(
-		IR const* ir, List<IR const*> & lst,
-		DefSBitSetCore * use, DefSBitSetCore * gen)
+		IR const* ir, 
+		List<IR const*> & lst,
+		DefSBitSetCore * use, 
+		DefSBitSetCore * gen)
 {
 	for (IR const* k = iterInitC(ir, lst);
 		 k != NULL; k = iterNextC(lst)) {
@@ -133,7 +135,7 @@ void PRDF::computeLocal(IRBB * bb, List<IR const*> & lst)
 			lst.clean();
 			processOpnd(ST_rhs(x), lst, use, gen);
 			break;
-		case IR_STPR:
+		case IR_STPR:			
 			gen->bunion(STPR_no(x), m_sbs_mgr);
 			use->diff(STPR_no(x), m_sbs_mgr);
 			processMay(x, gen, use, true);
@@ -163,10 +165,14 @@ void PRDF::computeLocal(IRBB * bb, List<IR const*> & lst)
 			lst.clean();
 			processOpnd(GETELEM_ofst(x), lst, use, gen);
 			break;
-		case IR_IST:
+		case IR_STARRAY:
 			lst.clean();
 			processOpnd(x, lst, use, gen);
 			break;
+		case IR_IST:
+			lst.clean();
+			processOpnd(x, lst, use, gen);
+			break;		
 		case IR_SWITCH:
 			lst.clean();
 			processOpnd(SWITCH_vexp(x), lst, use, gen);

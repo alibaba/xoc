@@ -75,11 +75,12 @@ public:
 				!tir->is_cond_br() &&
 				!tir->is_multicond_br() &&
 				!tir->is_return() &&
-				!tir->is_call()) {
+				!tir->is_calls_stmt()) {
 				break;
 			}
 		}
-		ASSERT0(m_bb != NULL);
+
+		ASSERT0(m_bb);
 		ir->set_bb(m_bb);
 		if (ct == NULL) {
 			return EList<IR*, IR2Holder>::append_head(ir);
@@ -240,7 +241,7 @@ public:
 		BBIRList * irlst = const_cast<BBIRList*>(&BB_irlist(this));
 		for (IR * ir = irlst->get_tail();
 			 ir != NULL; ir = irlst->get_prev()) {
-			if (ir->is_call()) {
+			if (ir->is_calls_stmt()) {
 				return true;
 			}
 		}
@@ -358,6 +359,16 @@ public:
 			if (ir == ir2) {
 				return false;
 			}
+		}
+		return false;
+	}
+	
+	bool mayThrowException() const
+	{
+		C<IR*> * ct;
+		IR * x = BB_irlist(const_cast<IRBB*>(this)).get_tail(&ct);
+		if (x != NULL && IR_may_throw(x)) {
+			return true;
 		}
 		return false;
 	}

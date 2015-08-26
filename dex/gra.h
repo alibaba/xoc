@@ -715,6 +715,7 @@ public:
 	BitSet * get_16();
 	void comp_st_fmt(IR const* ir);
 	void comp_ist_fmt(IR const* ir);
+	void comp_starray_fmt(IR const* ir);
 	void comp_call_fmt(IR const* ir);
 	void comp_ir_fmt(IR const* ir);
 	void comp_usable_regs(LT * lt, LTMgr * ltm);

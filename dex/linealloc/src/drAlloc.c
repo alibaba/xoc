@@ -32,6 +32,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 author: GongKai, JinYue
 @*/
 #include "drAlloc.h"
+#include "ltype.h"
 #include "xassert.h"
 
 #define PIG_SIZE (4096)
@@ -120,7 +121,7 @@ void drLinearFree(void)
         if(block == NULL)
             break;
         nextBlock = block->next;
-        ASSERT(*(UInt32*)(block->ptr+DEFAULT_BLOCK_SIZE) == 0xdeaddaad);
+        ASSERT0(*(UInt32*)(block->ptr+DEFAULT_BLOCK_SIZE) == 0xdeaddaad);
         free(block);
         block = nextBlock;
     }

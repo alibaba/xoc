@@ -29,14 +29,26 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-author: GongKai, JinYue
+author: Su Zhenyu
 @*/
-#ifndef _XASSERT_
-#define _XASSERT_
-#define ABORT()\
-    do {\
-        *(UInt32*)(0x0)=0xdeaddaad;\
-    } while (0)
-#endif
+#ifndef __DEX_SCAN_H__
+#define __DEX_SCAN_H__
 
-#include "trace/ctrace.h"
+class DexScan : public Pass {
+protected:
+	Region * m_ru;
+	IR_CFG * m_cfg;
+	TypeMgr * m_dm;
+public:
+	DexScan(Region * ru)
+	{
+		ASSERT0(ru);
+		m_ru = ru;
+		m_cfg = ru->get_cfg();
+		m_dm = ru->get_dm();
+	}
+	virtual ~DexScan(){}
+
+	virtual bool perform(OptCTX & oc);
+};
+#endif

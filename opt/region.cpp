@@ -152,6 +152,12 @@ AnalysisInstrument::~AnalysisInstrument()
 		delete m_call_list;
 		m_call_list = NULL;
 	}
+
+	if (REGION_refinfo(m_ru) != NULL) {
+		REF_INFO_mayuse(REGION_refinfo(m_ru)).clean(m_sbs_mgr);
+		REF_INFO_maydef(REGION_refinfo(m_ru)).clean(m_sbs_mgr);
+		REF_INFO_mustdef(REGION_refinfo(m_ru)).clean(m_sbs_mgr);
+	}
 }
 
 
@@ -381,9 +387,9 @@ IR * Region::buildId(IN VAR * var)
 IR * Region::buildLda(IR * lda_base)
 {
 	ASSERT(lda_base &&
-			(IR_type(lda_base) == IR_ID ||
-			 IR_type(lda_base) == IR_ARRAY ||
-			 IR_type(lda_base) == IR_ILD ||
+			(lda_base->is_id() ||
+			 lda_base->is_array() ||
+			 lda_base->is_ild() ||
 			 lda_base->is_str()),
 			("cannot get base of PR"));
 	IR * ir = newIR(IR_LDA);
@@ -748,7 +754,7 @@ IR * Region::buildIstore(IR * lhs, IR * rhs, UINT ofst, Type const* type)
 IR * Region::buildIstore(IR * lhs, IR * rhs, Type const* type)
 {
 	ASSERT0(type);
-	ASSERT(lhs && rhs && (lhs->is_ptr() || IR_type(lhs) == IR_ARRAY),
+	ASSERT(lhs && rhs && (lhs->is_ptr() || lhs->is_array()),
 			("must be pointer"));
 	IR * ir = newIR(IR_IST);
 	IR_dt(ir) = type;
@@ -1664,12 +1670,13 @@ more accurate referrence information via various analysis, since
 the information will affect optimizations. */
 void Region::genDefaultRefInfo()
 {
-	initRefInfo();
-
 	//For conservative, current region may modify all outer regions variables.
 	Region * t = this;
 	ConstMDIter iter;
 	MDSystem * md_sys = get_md_sys();
+
+	initRefInfo();
+	
 	MDSet tmp;
 	DefMiscBitSetMgr * mbs = getMiscBitSetMgr();
 	while (t != NULL) {
@@ -1699,13 +1706,15 @@ void Region::genDefaultRefInfo()
 	}
 
 	if (!tmp.is_empty()) {
-		REF_INFO_mayuse(REGION_refinfo(this))->copy(tmp, *mbs);
-		REF_INFO_maydef(REGION_refinfo(this))->copy(tmp, *mbs);
+		REF_INFO_mayuse(REGION_refinfo(this)).copy(tmp, *mbs);
+		REF_INFO_maydef(REGION_refinfo(this)).copy(tmp, *mbs);
 	} else {
-		REF_INFO_mayuse(REGION_refinfo(this))->clean(*mbs);
-		REF_INFO_maydef(REGION_refinfo(this))->clean(*mbs);
+		REF_INFO_mayuse(REGION_refinfo(this)).clean(*mbs);
+		REF_INFO_maydef(REGION_refinfo(this)).clean(*mbs);
 	}
-	REF_INFO_mustdef(REGION_refinfo(this))->clean(*mbs);
+
+	REF_INFO_mustdef(REGION_refinfo(this)).clean(*mbs);
+
 	tmp.clean(*getMiscBitSetMgr());
 }
 
@@ -1827,6 +1836,20 @@ void Region::freeIRTree(IR * ir)
 		}
 	}
 	freeIR(ir);
+}
+
+
+//Allocate PassMgr
+PassMgr * Region::newPassMgr() 
+{ 
+	return new PassMgr(this); 
+}
+
+
+//Allocate AliasAnalysis.
+IR_AA * Region::newAliasAnalysis() 
+{ 
+	return new IR_AA(this); 
 }
 
 
@@ -2002,7 +2025,7 @@ IR * Region::dupIR(IR const* src)
 	IR_next(res) = IR_prev(res) = IR_parent(res) = NULL;
 	res->cleanDU(); //Do not copy DU info.
 	res->clearSSAInfo(); //Do not copy SSA info.
-	if (IR_ai(src) != NULL) {
+	if (IR_ai(src) != NULL) { //need to copy AttachInfo.
 		if (IR_ai(res) == NULL) {
 			IR_ai(res) = newAI();
 		}
@@ -2019,7 +2042,7 @@ List<IR const*> * Region::scanCallList()
 	cl->clean();
 	if (get_ir_list() != NULL) {
 		for (IR const* t = get_ir_list(); t != NULL; t = IR_next(t)) {
-			if (IR_type(t) == IR_CALL || IR_type(t) == IR_ICALL) {
+			if (t->is_calls_stmt()) {
 				cl->append_tail(t);
 			}
 		}
@@ -2027,8 +2050,7 @@ List<IR const*> * Region::scanCallList()
 		for (IRBB * bb = get_bb_list()->get_head();
 			 bb != NULL; bb = get_bb_list()->get_next()) {
 			IR * t = BB_last_ir(bb);
-			if (t != NULL &&
-				(IR_type(t) == IR_CALL || IR_type(t) == IR_ICALL)) {
+			if (t != NULL && t->is_calls_stmt()) {
 				cl->append_tail(t);
 			}
 		}
@@ -2071,11 +2093,11 @@ void Region::prescan(IR const* ir)
 					MD_size(&md) = ir->get_dtype_size(get_dm());
 					MD_ty(&md) = MD_EXACT;
 					get_md_sys()->registerMD(md);
-				} else if (IR_type(base) == IR_ARRAY) {
+				} else if (base->is_array()) {
 					//... = &a[x]; address of 'a' is taken
 					IR * array_base = ARR_base(base);
-					ASSERT0(array_base != NULL);
-					if (IR_type(array_base) == IR_LDA) {
+					ASSERT0(array_base);
+					if (array_base->is_lda()) {
 						prescan(array_base);
 					}
 				} else if (base->is_str()) {
@@ -2084,10 +2106,10 @@ void Region::prescan(IR const* ir)
 					ASSERT0(v);
 					VAR_is_addr_taken(v) = true;
 					VAR_allocable(v) = true;
-				} else if (IR_type(base) == IR_ILD) {
+				} else if (base->is_ild()) {
 					//We do not known where to be taken.
 					ASSERT(0, ("ILD should not appeared here, "
-								"one should do refining at first."));
+							   "one should do refining at first."));
 				} else {
 					ASSERT(0, ("Illegal LDA base."));
 				}
@@ -2161,13 +2183,13 @@ void Region::dump_mem_usage(FILE * h)
 	for (int i = 0; i <= v->get_last_idx(); i++) {
 		IR * ir = v->get(i);
 		if (ir == NULL) continue;
-		if (IR_type(ir) == IR_ID) nid+=1.0;
-		if (IR_type(ir) == IR_LD) nld+=1.0;
-		if (IR_type(ir) == IR_ST) nst+=1.0;
-		if (IR_type(ir) == IR_LDA) nlda+=1.0;
-		if (IR_type(ir) == IR_CALL) ncallee+=1.0;
-		if (IR_type(ir) == IR_STPR) nstpr+=1.0;
-		if (IR_type(ir) == IR_IST) nist+=1.0;
+		if (ir->is_id()) nid+=1.0;
+		if (ir->is_ld()) nld+=1.0;
+		if (ir->is_st()) nst+=1.0;
+		if (ir->is_lda()) nlda+=1.0;
+		if (ir->is_call()) ncallee+=1.0;
+		if (ir->is_stpr()) nstpr+=1.0;
+		if (ir->is_ist()) nist+=1.0;
 		if (ir->is_binary_op()) nbin+=1.0;
 		if (ir->is_unary_op()) nuna+=1.0;
 	}
@@ -2329,7 +2351,7 @@ IR_AA * Region::initAliasAnalysis(OptCTX & oc)
 
 	ASSERT0(OC_is_cfg_valid(oc));
 
-	REGION_analysis_instrument(this)->m_ir_aa = new IR_AA(this);
+	REGION_analysis_instrument(this)->m_ir_aa = newAliasAnalysis();
 
 	REGION_analysis_instrument(this)->m_ir_aa->initMayPointToSet();
 
@@ -2347,7 +2369,7 @@ PassMgr * Region::initPassMgr()
 		return REGION_analysis_instrument(this)->m_pass_mgr;
 	}
 
-	REGION_analysis_instrument(this)->m_pass_mgr = new PassMgr(this);
+	REGION_analysis_instrument(this)->m_pass_mgr = newPassMgr();
 
 	return REGION_analysis_instrument(this)->m_pass_mgr;
 }
@@ -2367,11 +2389,12 @@ IR_CFG * Region::initCfg(OptCTX & oc)
 	ASSERT0(REGION_analysis_instrument(this));
 	if (get_cfg() == NULL) {
 		UINT n = MAX(8, getNearestPowerOf2(get_bb_list()->get_elem_count()));
-		REGION_analysis_instrument(this)->m_ir_cfg = new IR_CFG(C_SEME, get_bb_list(), this, n, n);
+		REGION_analysis_instrument(this)->m_ir_cfg = 
+			new IR_CFG(C_SEME, get_bb_list(), this, n, n);
 		IR_CFG * cfg = REGION_analysis_instrument(this)->m_ir_cfg;
 		//cfg->removeEmptyBB();
 		cfg->build(oc);
-		cfg->build_eh();
+		cfg->buildEHEdge();
 
 		//Rebuild cfg may generate redundant empty bb, it
 		//disturb the computation of entry and exit.
@@ -2488,6 +2511,12 @@ void Region::process()
 	refineBBlist(bbl, rf);
 	ASSERT0(verifyIRandBB(bbl, this));
 
+	ASSERT0(get_pass_mgr());
+	IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)get_pass_mgr()->query_opt(PASS_SSA_MGR);
+	if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
+		ssamgr->destructionInBBListOrder();
+	}
+
 	destroyPassMgr();
 }
 
@@ -2524,7 +2553,7 @@ bool Region::verifyBBlist(BBList & bbl)
 			ASSERT(lab2bb.get(BR_lab(last)),
 					("branch target cannot be NULL"));
 		} else if (last->is_multicond_br()) {
-			ASSERT0(IR_type(last) == IR_SWITCH);
+			ASSERT0(last->is_switch());
 
 			for (IR * c = SWITCH_case_list(last); c != NULL; c = IR_next(c)) {
 				ASSERT(lab2bb.get(CASE_lab(last)),
@@ -3024,7 +3053,7 @@ CallGraph * RegionMgr::initCallGraph(Region * top)
 	UINT vn = 0, en = 0;
 	IR * irs = top->get_ir_list();
 	while (irs != NULL) {
-		if (IR_type(irs) == IR_REGION) {
+		if (irs->is_region()) {
 			vn++;
 			Region * ru = REGION_ru(irs);
 			List<IR const*> * call_list = ru->scanCallList();
@@ -3058,7 +3087,8 @@ static void test_ru(Region * ru, RegionMgr * rm)
 		x->init(RU_FUNC, rm);
 		x->set_ru_var(v);
 		IR * irs = ru->get_ir_list();
-		x->set_ir_list(x->dupIRTreeList(irs));
+		x->set_ir_list(x->dupIRTreeList(irs));		
+		//g_do_ssa = true;
 		x->process();
 		//VarMgr * vm = x->get_var_mgr();
 		//vm->dump();
@@ -3101,7 +3131,7 @@ void RegionMgr::process()
 
 	IR * irs = top->get_ir_list();
 	while (irs != NULL) {
-		if (IR_type(irs) == IR_REGION) {
+		if (irs->is_region()) {
 			Region * ru = REGION_ru(irs);
 			processFuncRegion(ru);
 			if (!g_do_ipa) {

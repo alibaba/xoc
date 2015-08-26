@@ -329,7 +329,7 @@ AbsNode * CfsMgr::constructAbsTree(
 
 
 //Construct Control Flow Structure.
-AbsNode * CfsMgr::construct_abstract_cfs()
+AbsNode * CfsMgr::constructAbstractControlFlowStruct()
 {
 	IR_CFG * cfg = m_ru->get_cfg();
 	IRBB * entry = cfg->get_entry_list()->get_head();

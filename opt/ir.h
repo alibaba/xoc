@@ -391,9 +391,9 @@ public:
 		set_ref_mds(src->get_ref_mds(), ru);
 	}
 
-	/* Copy each memory reference for whole ir tree.
-	'src': copy MD reference from 'src', it must be equal to current ir tree.
-	'copy_kid_ref': copy MD reference for kid recursively. */
+	//Copy each memory reference for whole ir tree.
+	//'src': copy MD reference from 'src', it must be equal to current ir tree.
+	//'copy_kid_ref': copy MD reference for kid recursively.
 	void copyRefForTree(IR const* src, Region * ru)
 	{
 		ASSERT0(src && is_ir_equal(src, true) && ru);
@@ -474,6 +474,8 @@ public:
 
 	//Return data type descriptor.
 	Type const* get_type() const { return IR_dt(this); }
+
+	AttachInfo const* get_ai() const { return IR_ai(this); }
 
 	//Return rhs if exist. Some stmt has rhs,
 	//such as IR_ST, IR_STPR and IR_IST.
@@ -599,10 +601,7 @@ public:
 
 	//Return true if current ir is memory store operation.
 	bool is_store() const
-	{
-		return IR_type(this) == IR_ST || IR_type(this) == IR_STPR ||
-			   IR_type(this) == IR_IST || IR_type(this) == IR_STARRAY;
-	}
+	{ return is_st() || is_stpr() || is_ist() || is_starray(); }
 
 	//Return true if current ir is valid type to be phi operand.
 	inline bool is_phi_opnd() const { return is_pr() || is_const(); }
@@ -613,6 +612,9 @@ public:
 
 	//Return true if current ir is expression.
 	bool is_exp() const { return !is_stmt(); }
+
+	//Record if ir might throw exception.
+	bool is_may_throw() const { return IR_may_throw(this); }
 
 	//Return true if current ir is binary operation.
 	bool is_binary_op() const { return IRDES_is_bin(g_ir_desc[IR_type(this)]); }
@@ -685,6 +687,16 @@ public:
 	bool is_const() const { return IR_type(this) == IR_CONST; }
 	bool is_ld() const { return IR_type(this) == IR_LD; }
 	bool is_st() const { return IR_type(this) == IR_ST; }
+	//True if store to specified element of pseduo register.
+	//The pseduo register must be D_MC or vector type.
+	bool is_setelem() const { return IR_type(this) == IR_SETELEM; }
+
+	//True if picking up specified element of givne PR and store the value
+	//to a new PR. The base PR must be D_MC or vector type.
+	//And the result PR must be element type of base PR.
+	bool is_getelem() const { return IR_type(this) == IR_GETELEM; }
+	bool is_call() const { return IR_type(this) == IR_CALL; }
+	bool is_icall() const { return IR_type(this) == IR_ICALL; }
 	bool is_starray() const { return IR_type(this) == IR_STARRAY; }
 	bool is_ild() const { return IR_type(this) == IR_ILD; }
 	bool is_array() const { return IR_type(this) == IR_ARRAY; }
@@ -744,12 +756,12 @@ public:
 	//Return true if ir is indirect jump to multiple target.
 	bool is_indirect_br() const { return is_igoto(); }
 
-	bool is_call() const
-	{ return IR_type(this) == IR_CALL || IR_type(this) == IR_ICALL; }
+	bool is_calls_stmt() const
+	{ return is_call() || is_icall(); }
 
 	//Return true if ir is a call and has a return value.
 	inline bool isCallHasRetVal() const
-	{ return is_call() && hasReturnValue(); }
+	{ return is_calls_stmt() && hasReturnValue(); }
 
 	//Return true if current stmt exactly modifies a PR.
 	//CALL/ICALL may modify PR if it has a return value.
@@ -790,15 +802,6 @@ public:
 		}
 		return false;
 	}
-
-	//True if store to specified element of pseduo register.
-	//The pseduo register must be D_MC or vector type.
-	bool is_setelem() const { return IR_type(this) == IR_SETELEM; }
-
-	//True if picking up specified element of givne PR and store the value
-	//to a new PR. The base PR must be D_MC or vector type.
-	//And the result PR must be element type of base PR.
-	bool is_getelem() const { return IR_type(this) == IR_GETELEM; }
 
 	//True if ir is atomic read-modify-write.
 	inline bool is_rmw() const;
@@ -2002,8 +2005,8 @@ UINT IR::getArrayElemDtSize(TypeMgr const* dm) const
 
 bool IR::is_const_exp() const
 {
-	if (IR_type(this) == IR_CONST) { return true; }
-	if (IR_type(this) == IR_CVT) { return CVT_exp(this)->is_const_exp(); }
+	if (is_const()) { return true; }
+	if (is_cvt()) { return CVT_exp(this)->is_const_exp(); }
 	return false;
 }
 
@@ -2053,8 +2056,8 @@ bool IR::is_volatile() const
 bool IR::isDirectArrayRef() const
 {
 	return is_array_op() &&
-		   IR_type(ARR_base(this)) == IR_LDA &&
-		   IR_type(LDA_base(ARR_base(this))) == IR_ID;
+		   ARR_base(this)->is_lda() &&
+		   LDA_base(ARR_base(this))->is_id();
 }
 
 
@@ -2259,7 +2262,7 @@ bool IR::is_rmw() const
 		 		 CALL_param_list(this) != NULL &&
 				 IR_type(CALL_param_list(this)) == IR_ID &&
 				 IR_next(CALL_param_list(this)) != NULL &&
-				 (IR_type(IR_next(CALL_param_list(this))) == IR_LD ||
+				 (IR_next(CALL_param_list(this))->is_ld() ||
 				  IR_next(CALL_param_list(this))->is_pr() ||
 				  IR_next(CALL_param_list(this))->is_const()) &&
 				 CALL_prno(this) != 0);
@@ -2407,11 +2410,12 @@ IR * IR::getResultPR()
 	case IR_STPR:
 	case IR_SETELEM:
 	case IR_GETELEM:
-	case IR_CALL:
-	case IR_ICALL:
 		return this;
+	case IR_CALL:
+	case IR_ICALL:		
+		return hasReturnValue() ? this : NULL;
 	case IR_STARRAY:
-	case IR_IST: return NULL;
+	case IR_IST:
 	case IR_GOTO:
 	case IR_IGOTO:
 	case IR_DO_WHILE:
