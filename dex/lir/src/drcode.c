@@ -709,6 +709,11 @@ bool d2rMethod(D2Dpool* pool, DexFile* pDexFile, const DexMethod* pDexMethod)
                     break;
             }
             codePtr += width;
+            if (codePtr >= codeEnd)
+            {
+                // do not update dexOffset for the end
+                break;
+            }
             dexOffset += width;
             continue;
         }

@@ -96,6 +96,7 @@ struct D2Dpool
     UInt32 dexAnnotationsDirectoryOff;
     UInt32 annotationsDirectorySize;
     UInt32 annotationsDirectoryOff;
+    UInt32 updateClassDataSize;
 
 };
 
