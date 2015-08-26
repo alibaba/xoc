@@ -805,6 +805,7 @@ static void processClass(DexFile* pDexFile, D2Dpool* pool)
     memset(&nDexCd, 0, sizeof(DexClassDef));
 
     pool->codeItemOff = pool->currentSize;
+    UInt32 size = 0;
 
     for(i = 0; i < clsNumber; i++)
     {
@@ -820,6 +821,13 @@ static void processClass(DexFile* pDexFile, D2Dpool* pool)
         //printf("%s\n", dexGetClassDescriptor(pDexFile, pDexClassDef));
 
         convertClassData(pDexFile, pool, pDexClassDef);
+        size ++;
+    }
+    pool->updateClassDataSize = 0;
+    if (size == clsNumber)
+    {
+        // if no offset == 0, use clsnumber as class data item's size.
+        pool->updateClassDataSize = size;
     }
 }
 
@@ -945,7 +953,10 @@ static void fixAndCopyMapItemOffset(DexFile* pDexFile, D2Dpool* pool) {
            case kDexTypeClassDataItem:
                item->offset = pool->classDataOffset;
                // fix size to be identical to class data size writen in WriteCodeItem.
-               item->size = pDexFile->pHeader->classDefsSize;
+               if (pool->updateClassDataSize)
+               {
+                  item->size = pool->updateClassDataSize;
+               }
                break;
            case kDexTypeCodeItem:
                item->offset = pool->codeItemOff;
@@ -1102,6 +1113,8 @@ D2Dpool* doCopyAndFixup(DexFile* pDexFile) {
      * debug info
      * annotation item list
      * encodearray item list*/
+    // annotatais directory item four bytes aligned.
+    aligmentBy4Bytes(pool);
     copyOtherData(pool);
     /*write the class data to file*/
     copyClassData(pool);
