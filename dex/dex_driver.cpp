@@ -33,6 +33,7 @@ author: Su Zhenyu
 @*/
 #include "libdex/DexFile.h"
 #include "libdex/DexClass.h"
+#include "libdex/DexDebugInfo.h"
 #include "liropcode.h"
 #include "drAlloc.h"
 #include "d2d_comm.h"
@@ -56,7 +57,7 @@ author: Su Zhenyu
 static void add_ret(IR * irs, Region * ru)
 {
 	IR * last = get_last(irs);
-	if (last != NULL && IR_type(last) != IR_RETURN) {
+	if (last != NULL && !last->is_return()) {
 		IR * ret = ru->buildReturn(NULL);
 		if (irs == NULL) {
 			irs = ret;
@@ -70,8 +71,8 @@ static void add_ret(IR * irs, Region * ru)
 //Upate try-catch info if any.
 static void updateLIRCode(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
 {
-	TRY_INFO * ti = d2ir.get_try_info();
-	LAB2UINT * lab2idx = ir2d.get_lab2idx();
+	TryInfo * ti = d2ir.getTryInfo();
+	Label2UINT * lab2idx = ir2d.get_lab2idx();
 	if (ti != NULL) {
 		ASSERT0(lircode->trys);
 		UINT i = 0;
@@ -101,7 +102,7 @@ static void updateLIRCode(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
 			//ASSERT0(each_try->end_pc > each_try->start_pc);
 
 			UINT j = 0;
-			for (CATCH_INFO * ci = ti->catch_list;
+			for (CatchInfo * ci = ti->catch_list;
 				 ci != NULL; ci = ci->next, j++) {
 				ASSERT0(each_try->catches);
 				LIROpcodeCatch * each_catch = each_try->catches + j;
@@ -121,29 +122,11 @@ static void updateLIRCode(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
 }
 
 
-static IR * do_opt_only_test(IR * ir_list, DexRegion * func_ru,
-				   Dex2IR & d2ir, OUT Prno2UINT & prno2v,
-				   TypeIndexRep & tr, UINT numargs, UINT maxvars)
+static void do_opt(IR * ir_list, DexRegion * func_ru)
 {
-	LOG("\t\tdo pass test: '%s'", func_ru->get_ru_name());
-	prno2v.clean();
-	prno2v.copy(*d2ir.get_pr2v_map());
-	return ir_list;
-}
-
-
-
-static IR * do_opt(IR * ir_list, DexRegion * func_ru,
-				   Dex2IR & d2ir, Prno2UINT & prno2v,
-				   TypeIndexRep & tr, UINT numargs, UINT maxvars)
-{
-	if (ir_list == NULL) { return NULL; }
+	if (ir_list == NULL) { return; }
 
 	//dump_irs(ir_list, func_ru->get_dm());
-
-	//It is worth to do.
-	//If the RETURN is redundant, the cfs-pass module would remove it.
-	//add_ret(ir_list, func_ru);
 
 	bool change;
 
@@ -156,18 +139,15 @@ static IR * do_opt(IR * ir_list, DexRegion * func_ru,
 
 	verify_irs(ir_list, NULL, func_ru);
 
-	func_ru->addToIRlist(ir_list);
+	func_ru->addToIRList(ir_list);
 
-	#if 0
-	func_ru->process(prno2v, numargs, maxvars,
-					 d2ir.get_v2pr_map(), d2ir.get_pr2v_map(), &tr);
+	#if 1
+	func_ru->process();
 	#else
-	func_ru->processSimply(prno2v, numargs, maxvars, d2ir,
-					 		d2ir.get_v2pr_map(), d2ir.get_pr2v_map(), &tr);
+	func_ru->processSimply();
 	#endif
-	ir_list = func_ru->constructIRlist(true);
 
-	return ir_list;
+	func_ru->addToIRList(func_ru->constructIRlist(true));
 }
 
 
@@ -178,10 +158,11 @@ df: dex file handler.
 dexm: record the dex-method information.
 fu: record the LIR code buffer and related information.
 fupool: record the transformed DEX code. */
-static void convertLIR2Dex(IN DexFile * df,
-							IN DexMethod const* dexm,
-							IN LIRCode * lircode,
-							OUT D2Dpool * fupool)
+static void convertLIR2Dex(
+		IN DexFile * df,
+		DexMethod const* dexm,
+		IN LIRCode * lircode,
+		OUT D2Dpool * fupool)
 {
 	DexCode const* dexcode = dexGetCode(df, dexm);
 	DexCode x; //only for local used.
@@ -216,40 +197,152 @@ static void convertLIR2Dex(IN DexFile * df,
 
 //Convert IR to LIR code. Store the generated IR list
 //at lircode buffer.
-void convertIR2LIR(IN IR * ir_list,
-					IN DexRegion * func_ru,
-					IN DexFile * df,
-					IN Dex2IR & d2ir,
-					IN TypeIndexRep & tr,
-					IN Prno2UINT & prno2v,
-					OUT LIRCode * lircode)
+static void convertIR2LIR(
+		IN DexRegion * func_ru,
+		IN DexFile * df,
+		OUT LIRCode * lircode)
 {
-	IR2Dex ir2dex(func_ru, df, &d2ir, &tr, &prno2v);
+	IR2Dex ir2dex(func_ru, df);
 	List<LIR*> newlirs;
-	ir2dex.convert(ir_list, newlirs, prno2v);
+	ir2dex.convert(func_ru->get_ir_list(), newlirs);
 
 	//to LIRCode.
 	UINT u = newlirs.get_elem_count();
 	lircode->instrCount = u;
 	lircode->lirList = (LIR**)LIRMALLOC(u * sizeof(LIR*));
-	lircode->maxVars = prno2v.maxreg + 1;
-	ASSERT0(lircode->numArgs == prno2v.paramnum);
+	lircode->maxVars = func_ru->getPrno2Vreg()->maxreg + 1;
+	ASSERT0(lircode->numArgs == func_ru->getPrno2Vreg()->paramnum);
 	memset(lircode->lirList, 0, u * sizeof(LIR*));
 	UINT i = 0;
 	for (LIR * l = newlirs.get_head(); l != NULL; l = newlirs.get_next()) {
 		ASSERT0(l);
 		lircode->lirList[i++] = l;
 	}
-	updateLIRCode(lircode, d2ir, ir2dex);
+	updateLIRCode(lircode, *func_ru->getDex2IR(), ir2dex);
 }
 
 
-static bool handleRegion(IN DexRegion * func_ru,
-						  IN DexFile * df,
-						  IN OUT LIRCode * lircode,
-						  D2Dpool * fupool,
-						  IN DexMethod const* dexm)
+class DbxCtx {
+public:
+	DexRegion * region;
+	OffsetVec const& offsetvec;
+	UINT current_instruction_index;
+	DbxVec & dbxvec;
+	SMemPool * pool;
+	UINT lircode_num;
+
+public:
+	DbxCtx(DexRegion * ru,
+		   OffsetVec const& off,
+		   OUT DbxVec & dv,
+		   SMemPool * p,
+		   UINT n) :
+		region(ru),
+		offsetvec(off),
+		dbxvec(dv),
+		pool(p),
+		lircode_num(n),
+		current_instruction_index(0) { ASSERT0(ru); }
+
+	DexDbx * newDexDbx()
+	{
+		ASSERT0(pool);
+		DexDbx * dd = (DexDbx*)smpoolMalloc(sizeof(DexDbx), pool);
+		ASSERT0(dd);
+		memset(dd, 0, sizeof(DexDbx));
+		dd->init(AI_DBX);
+		return dd;
+	}
+};
+
+
+//Callback for "new position table entry".
+//Returning non-0 causes the decoder to stop early.
+int dumpPosition(void * cnxt, u4 address, u4 linenum)
 {
+	DbxCtx * dc = (DbxCtx*)cnxt;
+
+	DexDbx * dd = dc->newDexDbx();
+	dd->linenum = linenum;
+	dd->filename = dc->region->getClassSourceFilePath();
+	UINT num = dc->lircode_num;
+	UINT i = dc->current_instruction_index;
+	for (; i < num && dc->offsetvec[i] <= address; i++) {
+		dc->dbxvec[i] = dd;
+	}
+	dc->current_instruction_index = i;
+
+	fprintf(g_tfile, "\naddress:0x%04x, lineno:%d", address, linenum);
+	fflush(g_tfile);
+
+	return 0;
+}
+
+
+//Callback for "new locals table entry". "signature" is an empty string
+//if no signature is available for an entry.
+void dumpLocal(
+		void *cnxt,
+		u2 reg,
+		u4 startAddress,
+        u4 endAddress,
+		const char *name,
+		const char *descriptor,
+        const char *signature)
+{
+	DbxCtx * dc = (DbxCtx*)cnxt;
+	fprintf(g_tfile, "\nstartAddr:0x%04x, endAddr:0x%04x, name:%s, desc:%s, signature:%s",
+			startAddress,
+			endAddress,
+			name,
+			descriptor,
+			signature);
+	fflush(g_tfile);
+}
+
+
+//Callback for "new locals table entry". "signature" is an empty string
+//if no signature is available for an entry.
+static void parseDebugInfo(
+		DexRegion * ru,
+		DexFile const* df,
+		DexCode const* dexcode,
+		DexMethod const* dexmethod,
+		LIRCode const* lircode,
+		OffsetVec const& offsetvec,
+		SMemPool * pool,
+		OUT DbxVec & dbxvec)
+{
+	DexMethodId const* methodid = dexGetMethodId(df, dexmethod->methodIdx);
+
+	DbxCtx dc(ru, offsetvec, dbxvec, pool, LIRC_num_of_op(lircode));
+
+	dexDecodeDebugInfo(
+			df,
+			dexcode,
+			get_class_name(df, dexmethod),
+			methodid->protoIdx,
+			dexmethod->accessFlags,
+			dumpPosition,
+			dumpLocal,
+			&dc);
+}
+
+
+static void handleRegion(
+		IN DexRegion * func_ru,
+		IN DexFile * df,
+		IN OUT LIRCode * lircode,
+		D2Dpool * fupool,
+		DexMethod const* dexm,
+		DexCode const* dexcode,
+		OffsetVec const& offsetvec)
+{
+	DbxVec dbxvec(LIRC_num_of_op(lircode));
+	SMemPool * dbxpool = smpoolCreate(sizeof(DexDbx), MEM_CONST_SIZE);
+	parseDebugInfo(func_ru, df, dexcode, dexm, lircode,
+				   offsetvec, dbxpool, dbxvec);
+
 	TypeIndexRep tr;
 	TypeMgr * dm = func_ru->get_dm();
 	tr.i8 = dm->getSimplexType(D_I8);
@@ -265,31 +358,42 @@ static bool handleRegion(IN DexRegion * func_ru,
 	tr.b = dm->getSimplexType(D_B);
 	tr.ptr = dm->getPointerType(OBJ_MC_SIZE);
 	tr.array = dm->getPointerType(ARRAY_MC_SIZE);
+	func_ru->setTypeIndexRep(&tr);
 
-	Dex2IR d2ir(func_ru, df, lircode, &tr);
+	Dex2IR d2ir(func_ru, df, lircode, dbxvec);
 	bool succ;
 	IR * ir_list = d2ir.convert(&succ);
+
+	//Map that records the Prno to Vreg mapping.
+	Prno2Vreg prno2v(getNearestPowerOf2(
+			d2ir.getPR2Vreg()->get_elem_count() + 1));
+
 	if (!succ) {
-		return false;
+		goto FIN;
 	}
+
+	func_ru->setDex2IR(&d2ir);
 
 	if (d2ir.hasCatch()) {
-		return false;
+		//goto FIN;
 	}
 
-	Prno2UINT prno2v(getNearestPowerOf2(
-			d2ir.get_pr2v_map()->get_elem_count() + 1));
 	//dump_irs(ir_list, func_ru->get_dm());
-	#if 0
-	ir_list = do_opt(ir_list, func_ru, d2ir, prno2v,
-					 tr, lircode->numArgs, lircode->maxVars);
+	func_ru->setPrno2Vreg(&prno2v);
+
+	#if 1
+	do_opt(ir_list, func_ru);
 	#else
-	ir_list = do_opt_only_test(ir_list, func_ru, d2ir, prno2v,
-					tr, lircode->numArgs, lircode->maxVars);
+	LOG("\t\tdo pass test: '%s'", func_ru->get_ru_name());
+	func_ru->addToIRList(ir_list);
+	func_ru->getPrno2Vreg()->clean();
+	func_ru->getPrno2Vreg()->copy(*func_ru->getDex2IR()->getPR2Vreg());
 	#endif
 
-	convertIR2LIR(ir_list, func_ru, df, d2ir, tr, prno2v, lircode);
-	return true;
+	convertIR2LIR(func_ru, df, lircode);
+
+FIN:
+	smpoolDelete(dbxpool);
 }
 
 
@@ -333,13 +437,6 @@ void logd_fu_param(CHAR const* runame, LIRCode * fu)
 bool g_dd = false;
 bool is_compile(CHAR const* runame, LIRCode * fu)
 {
-	#ifdef _DEBUG_
-	//if (strcmp(runame, "Lcom/admob/android/ads/Ad;::clicked") == 0) {
-	//if (strcmp(runame, "Lcom/greenecomputing/linpack/Linpack;::second") == 0) {
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/expr230/expr23001/expr23001;::run") == 0) {
-	//if (strcmp(runame, "Lcom/admob/android/ads/Ad;::skipToNext") == 0) {
-	//if (strcmp(runame, "Lcom/admob/android/ads/AdContainer;::breakIntoLines") == 0) {
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/icls116/icls11691m3/icls11691m3;::infiniteLoop") == 0)  //rm useless dead loop.
 	//if (strcmp(runame, "Lgr/androiddev/BenchmarkPi/UpdateCheck;::isConnected") == 0) {
 	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/excp004/excp00409/excp00409;::run") == 0) { //rm aget, not revise try/catch
 	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/binc061/binc06101/binc06101;::run") == 0) {
@@ -385,14 +482,6 @@ bool is_compile(CHAR const* runame, LIRCode * fu)
 	//if (strcmp(runame, "Lcom/adwhirl/AdWhirlManager;::fetchConfig") == 0)
 	//if (strcmp(runame, "Lcom/adwhirl/adapters/CustomAdapter;::displayCustom") == 0)
 	//if (strcmp(runame, "Lsoftweg/hw/performance/CPUTest;::runSingle") != 0) { //softweg hot func.
-	//if (strcmp(runame, "Lsoftweg/hw/performance/CPUTest;::runDouble") != 0) { //softweg hot func.
-	//if (strcmp(runame, "Lsoftweg/hw/performance/CPUTest;::paDouble") != 0) { //softweg hot func.
-	//	return false;
-	//}
-
-	//if (pcount!=1) { return false; }
-	#endif
-
 	xdebug();
 	logd_fu_param(runame, fu);
 	g_dd = 0; //set to 1 to open dex2ir.log ir2dex.log
@@ -410,8 +499,14 @@ static void dump_all_method_name(CHAR const* runame)
 
 //Optimizer for LIR.
 //Return true if compilation is successful.
-bool compileFunc(OUT D2Dpool * fupool, IN LIRCode * lircode,
-				 IN DexFile * df, DexMethod const* dexm)
+bool compileFunc(
+		OUT D2Dpool * fupool,
+		IN LIRCode * lircode,
+		IN DexFile * df,
+		DexMethod const* dexm,
+		DexCode const* dexcode,
+		DexClassDef const* dexclassdef,
+		OffsetVec const& offsetvec)
 {
 	CHAR tmp[256];
 	CHAR * runame = NULL;
@@ -423,7 +518,7 @@ bool compileFunc(OUT D2Dpool * fupool, IN LIRCode * lircode,
 		ASSERT0(runame);
 	}
 
-	sprintf(runame, "%s::%s",
+	sprintf(runame, "%s:%s",
 			get_class_name(df, dexm), get_func_name(df, dexm));
 
 	g_do_ssa = false;
@@ -446,12 +541,16 @@ bool compileFunc(OUT D2Dpool * fupool, IN LIRCode * lircode,
 	//Generate Program region.
 	DexRegion * func_ru = (DexRegion*)rm->newRegion(RU_FUNC);
 
+	func_ru->setDexFile(df);
+	func_ru->setDexMethod(dexm);
 	func_ru->set_ru_var(rm->get_var_mgr()->registerVar(
 						runame,
 						rm->get_dm()->getMCType(0),
 						0, VAR_GLOBAL|VAR_FAKE));
-
-	handleRegion(func_ru, df, lircode, fupool, dexm);
+	func_ru->setParamNum(lircode->numArgs);
+	func_ru->setOrgVregNum(lircode->maxVars);
+	func_ru->setClassSourceFilePath(getClassSourceFilePath(df, dexclassdef));
+	handleRegion(func_ru, df, lircode, fupool, dexm, dexcode, offsetvec);
 
 	delete func_ru;
 	delete rm;

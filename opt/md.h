@@ -1042,8 +1042,6 @@ public:
 	}
 
 	//Clean each MD->MDSet, but do not free MDSet.
-	//This function might be invoked during each iter
-	//in computing PT_SET in general.
 	void clean() { TMap<UINT, MDSet const*>::clean(); }
 
 	void dump(Region * ru);

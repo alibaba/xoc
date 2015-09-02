@@ -47,247 +47,6 @@ author: Su Zhenyu
 #include "ir2dex.h"
 
 
-bool IR2Dex::is_builtin(IR const* ir, BLTIN_TYPE bt)
-{
-	ASSERT0(ir && IR_type(ir) == IR_CALL);
-	VAR const* v = CALL_idinfo(ir);
-	BLTIN_TYPE tbt = (BLTIN_TYPE)m_var2blt->mget(v);
-	if (tbt != bt) return false;
-#ifdef _DEBUG_
-	switch (bt) {
-	case BLTIN_INVOKE			:
-		{
-			/* CALL (r:I32:4) id:16
-				ID ('LCAnimal;::<init>' r:I32:4) callee id:9
-				PARAM param0 id:11
-					INTCONST r:U32:4 (2 0x2) id:10
-				PARAM param1 id:13
-					INTCONST r:U32:4 (0 0x0) id:12
-				PARAM param2 id:15
-					PR1 (r:I32:4) id:14 */
-			//The first is inoke-flag.
-			IR * p = CALL_param_list(ir);
-			ASSERT0(IR_type(p) == IR_CONST);
-			UINT invoke_flags = CONST_int_val(p);
-			p = IR_next(p);
-
-			//The second is method-id.
-			ASSERT0(p && IR_type(p) == IR_CONST);
-			UINT method_id = CONST_int_val(p);
-		}
-		break;
-	case BLTIN_NEW				:
-		{
-			/*CALL (r:PTR:4 ptbase:1) id:4
-				ID ('#new' r:PTR:4 ptbase:1) callee id:1
-				PARAM param0 id:3
-					INTCONST r:U32:4 (1 0x1) id:2
-				PR, retv0 */
-			ASSERT0(CALL_param_list(ir) &&
-					 IR_type(CALL_param_list(ir)) == IR_CONST);
-			ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
-			ASSERT0(ir->hasReturnValue());
-		}
-		break;
-	case BLTIN_NEW_ARRAY		:
-		{
-			/* (new_array, res), UNDEF, v5 <-
-				(num_of_elem, op0)v8, (elem_type, op1)'[LCAnimal;'
-
-			CALL (r:PTR:4 ptbase:1) id:66
-				ID ('#new_array' r:PTR:4 ptbase:1) callee id:61
-				PARAM param0 id:64
-					PR2 (r:PTR:4 ptbase:1) id:62
-				PARAM param1 id:65
-        			INTCONST r:U32:4 (14 0xe) id:64
-				PR7 (r:PTR:4 ptbase:1) retv id:69 */
-			//The first is a pr that record the number of array elements.
-			IR * p = CALL_param_list(ir);
-			ASSERT0(p && p->is_pr());
-			p = IR_next(p);
-
-			//The second is array element type id.
-			ASSERT0(p && IR_type(p) == IR_CONST);
-			UINT elem_type_id = CONST_int_val(p);
-			ASSERT0(IR_next(p) == NULL);
-		}
-		break;
-	case BLTIN_MOVE_EXP         :
-		//The res is a pr that record the exception handler.
-		ASSERT0(ir->hasReturnValue());
-		break;
-	case BLTIN_MOVE_RES         :
-		ASSERT0(ir->hasReturnValue());
-		break;
-	case BLTIN_THROW			:
-		{
-			//The first is a pr that is the reference of
-			//the exception object.
-			IR * p = CALL_param_list(ir);
-			ASSERT0(p->is_pr());
-			ASSERT0(IR_next(p) == NULL);
-		}
-		break;
-	case BLTIN_CHECK_CAST       :
-		{
-			/*
-			CALL (r:PTR:4 ptbase:1) id:113
-				ID ('#check_cast' r:PTR:4 ptbase:1) callee id:108
-				PARAM param0 id:110
-					PR8 (r:I32:4) id:109
-				PARAM param1 id:112
-					INTCONST r:I32:4 (16 0x10) id:111
-			*/
-			//The first is a pr that record the object-ptr
-			IR * p = CALL_param_list(ir);
-			ASSERT0(p && p->is_pr());
-			p = IR_next(p);
-
-			//The second is class type id.
-			ASSERT0(p && IR_type(p) == IR_CONST);
-			UINT type_id = CONST_int_val(p);
-			ASSERT0(IR_next(p) == NULL);
-		}
-		break;
-	case BLTIN_FILLED_NEW_ARRAY	:
-		{
-			/*
-			CALL (r:PTR:4 ptbase:1) id:82
-				ID ('#filled_new_array' r:PTR:4 ptbase:1) callee id:75
-				PARAM param0 id:77
-					INTCONST r:I32:4 (0 0x0) id:76
-				PARAM param1 id:77
-					INTCONST r:I32:4 (13 0xd) id:76
-				PARAM param2 id:79
-					PR2 (r:I32:4) id:78
-				PARAM param3 id:81
-					PR8 (r:I32:4) id:80
-			*/
-			IR * p = CALL_param_list(ir);
-
-			//The first record invoke flag.
-			ASSERT0(IR_type(p) == IR_CONST);
-			p = IR_next(p);
-
-			//The second record class type id.
-			ASSERT0(p && IR_type(p) == IR_CONST);
-			p = IR_next(p);
-			while (p != NULL) {
-				ASSERT0(p->is_pr());
-				p = IR_next(p);
-			}
-		}
-		break;
-	case BLTIN_FILL_ARRAY_DATA:
-		{
-			/*
-			CALL (r:PTR:4 ptbase:1) id:82
-				ID ('#fill_array_data' r:PTR:4 ptbase:1) callee id:75
-				PARAM param0 id:77
-					PR2 r:I32:4 id:76
-				PARAM param1 id:77
-					INTCONST r:U32:4 (13 0xd) id:76
-			*/
-			IR * p = CALL_param_list(ir);
-
-			//The first record array obj-ptr.
-			ASSERT0(p->is_pr());
-			p = IR_next(p);
-
-			//The second record binary data.
-			ASSERT0(p && IR_type(p) == IR_CONST);
-			ASSERT0(IR_next(p) == NULL);
-		}
-		break;
-	case BLTIN_CONST_CLASS      :
-		{
-			/*
-			CALL (r:PTR:4 ptbase:1) id:94
-				ID ('#const_class' r:PTR:4 ptbase:1) callee id:88
-				PARAM param0 id:91
-					PR9 (r:I32:4) id:90
-				PARAM param1 id:93
-					INTCONST r:I32:4 (2 0x2) id:92
-			*/
-			ASSERT0(ir->hasReturnValue());
-			ASSERT0(CALL_param_list(ir) &&
-					 IR_type(CALL_param_list(ir)) == IR_CONST);
-			ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
-		}
-		break;
-	case BLTIN_ARRAY_LENGTH     :
-		ASSERT0(ir->hasReturnValue());
-		ASSERT0(CALL_param_list(ir) &&
-				 CALL_param_list(ir)->is_pr());
-		ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
-		break;
-	case BLTIN_MONITOR_ENTER    :
-		ASSERT0(CALL_param_list(ir) &&
-				 CALL_param_list(ir)->is_pr());
-		ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
-		break;
-	case BLTIN_MONITOR_EXIT     :
-		ASSERT0(CALL_param_list(ir) &&
-				 CALL_param_list(ir)->is_pr());
-		ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
-		break;
-	case BLTIN_INSTANCE_OF      :
-		{
-			/*
-			CALL (r:PTR:4 ptbase:1) id:82
-				ID ('#instance_of' r:PTR:4 ptbase:1) callee id:75
-				PARAM param0 id:77
-					PR r:I32:4 (0 0x0) id:76
-				PARAM param1 id:77
-					PR r:I32:4 (13 0xd) id:76
-				PARAM param2 id:79
-					INTCONST
-			*/
-			IR * p = CALL_param_list(ir);
-			//The first is object-ptr reg.
-			ASSERT0(p && p->is_pr());
-			p = IR_next(p);
-
-			//The second is type-id.
-			ASSERT0(IR_type(p) == IR_CONST);
-			ASSERT0(IR_next(p) == NULL);
-
-			//The first is result reg..
-			ASSERT0(ir->hasReturnValue());
-		}
-		break;
-	case BLTIN_CMP_BIAS:
-		{
-			/*
-			AABBCC
-			cmpkind vAA <- vBB, vCC
-			IR will be:
-				IR_CALL
-					param0: cmp-kind.
-					param1: vBB
-					param2: vCC
-					res: vAA
-			*/
-			IR * p = CALL_param_list(ir);
-			//The first is object-ptr reg.
-			ASSERT0(p && p->is_int(m_dm));
-			p = IR_next(p);
-
-			ASSERT0(p && p->is_pr());
-			p = IR_next(p);
-
-			ASSERT0(p && p->is_pr());
-			ASSERT0(IR_next(p) == NULL);
-			ASSERT0(ir->hasReturnValue());
-		}
-		break;
-	default: ASSERT0(0);
-	}
-#endif
-	return true;
-}
-
-
 //AABBBB or AABBBBBBBB
 LIR * IR2Dex::buildConstString(IN IR ** ir)
 {
@@ -349,7 +108,7 @@ LIR * IR2Dex::buildSgetObj(IN IR ** ir)
 {
 	IR * tir = *ir;
 	ASSERT0(tir->is_stpr());
-	ASSERT0(IR_type(STPR_rhs(tir)) == IR_LDA);
+	ASSERT0(STPR_rhs(tir)->is_lda());
 	UINT vx = get_vreg(STPR_no(tir));
 	VAR * v = ID_info(LDA_base(STPR_rhs(tir)));
 	CHAR const* n = SYM_name(VAR_name(v));
@@ -464,7 +223,7 @@ LIR * IR2Dex::buildCvt(IN IR ** ir)
 //move-result-object: vA <- retvalue.
 LIR * IR2Dex::buildMoveResult(IN IR ** ir)
 {
-	ASSERT0(is_builtin(*ir, BLTIN_MOVE_RES));
+	ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_MOVE_RES));
 	LIRAOp * lir = (LIRAOp*)_ymalloc(sizeof(LIRAOp));
 	lir->opcode = LOP_MOVE_RESULT;
 
@@ -492,7 +251,7 @@ LIR * IR2Dex::buildMoveResult(IN IR ** ir)
 //AA
 LIR * IR2Dex::buildThrow(IN IR ** ir)
 {
-	ASSERT0(is_builtin(*ir, BLTIN_THROW));
+	ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_THROW));
 	LIRAOp * lir = (LIRAOp*)_ymalloc(sizeof(LIRAOp));
 	lir->opcode = LOP_THROW;
 	LIR_dt(lir) = LIR_JDT_unknown;
@@ -508,7 +267,7 @@ LIR * IR2Dex::buildThrow(IN IR ** ir)
 //AA
 LIR * IR2Dex::buildMonitorExit(IN IR ** ir)
 {
-	ASSERT0(is_builtin(*ir, BLTIN_MONITOR_EXIT));
+	ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_MONITOR_EXIT));
 	LIRAOp * lir = (LIRAOp*)_ymalloc(sizeof(LIRAOp));
 	lir->opcode = LOP_MONITOR_EXIT;
 	LIR_dt(lir) = LIR_JDT_unknown;
@@ -525,7 +284,7 @@ LIR * IR2Dex::buildMonitorExit(IN IR ** ir)
 //AA
 LIR * IR2Dex::buildMonitorEnter(IN IR ** ir)
 {
-	ASSERT0(is_builtin(*ir, BLTIN_MONITOR_ENTER));
+	ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_MONITOR_ENTER));
 	LIRAOp * lir = (LIRAOp*)_ymalloc(sizeof(LIRAOp));
 	lir->opcode = LOP_MONITOR_ENTER;
 	LIR_dt(lir) = LIR_JDT_unknown;
@@ -542,7 +301,7 @@ LIR * IR2Dex::buildMonitorEnter(IN IR ** ir)
 //AA
 LIR * IR2Dex::buildMoveException(IN IR ** ir)
 {
-	ASSERT0(is_builtin(*ir, BLTIN_MOVE_EXP));
+	ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_MOVE_EXP));
 	LIRAOp * lir = (LIRAOp*)_ymalloc(sizeof(LIRAOp));
 	lir->opcode = LOP_MOVE_EXCEPTION;
 
@@ -572,7 +331,7 @@ LIR * IR2Dex::buildMoveException(IN IR ** ir)
 //AABBBB
 LIR * IR2Dex::buildArrayLength(IN IR ** ir)
 {
-	ASSERT0(is_builtin(*ir, BLTIN_ARRAY_LENGTH));
+	ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_ARRAY_LENGTH));
 	LIRABOp * lir = (LIRABOp*)_ymalloc(sizeof(LIRABOp));
 	lir->opcode = LOP_ARRAY_LENGTH; //see genInstruction()
 	LIR_dt(lir) = LIR_JDT_unknown; //see genInstruction()
@@ -594,7 +353,7 @@ LIR * IR2Dex::buildArrayLength(IN IR ** ir)
 //AABBBB
 LIR * IR2Dex::buildCheckCast(IN IR ** ir)
 {
-	ASSERT0(is_builtin(*ir, BLTIN_CHECK_CAST));
+	ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_CHECK_CAST));
 	LIRABOp * lir = (LIRABOp*)_ymalloc(sizeof(LIRABOp));
 	lir->opcode = LOP_CHECK_CAST;
 	IR * tir = *ir;
@@ -700,7 +459,7 @@ UINT IR2Dex::findFieldId(IR * ir, IR * objptr)
 	IR const* def = du_mgr->getExactAndUniqueDef(objptr);
 	ASSERT0(def);
 
-	ASSERT0(is_builtin(def, BLTIN_NEW));
+	ASSERT0(m_d2ir->is_builtin(def, BLTIN_NEW));
 	UINT field_id = CONST_int_val(CALL_param_list(def));
 	return field_id;
 }
@@ -900,7 +659,7 @@ LIR * IR2Dex::buildUniOp(IN IR ** ir)
 }
 
 
-LIR * IR2Dex::convertStoreVar(IN OUT IR ** ir, IN IR2D_CTX * cont)
+LIR * IR2Dex::convertStoreVar(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
 	IR * tir = *ir;
 	ASSERT0(tir->is_st());
@@ -914,7 +673,7 @@ LIR * IR2Dex::convertStoreVar(IN OUT IR ** ir, IN IR2D_CTX * cont)
 }
 
 
-LIR * IR2Dex::convertStorePR(IN OUT IR ** ir, IN IR2D_CTX * cont)
+LIR * IR2Dex::convertStorePR(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
 	IR * tir = *ir;
 	ASSERT0(tir->is_stpr());
@@ -974,36 +733,51 @@ LIR * IR2Dex::convertStorePR(IN OUT IR ** ir, IN IR2D_CTX * cont)
 }
 
 
-//Bulid iput: res -> op0(obj-ptr), op1(ofst)
-LIR * IR2Dex::convertIstore(IN OUT IR ** ir, IN IR2D_CTX * cont)
+//Bulid aput: res -> op0(array base), op1(subscript)
+LIR * IR2Dex::convertStoreArray(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
 	IR * tir = *ir;
-	ASSERT0(IR_type(tir) == IR_IST);
+	ASSERT0(tir->is_starray());
 	LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
-	IR * rhs = IST_rhs(tir);
-	IR * lhs = IST_base(tir);
-	ASSERT0(IR_type(rhs) == IR_PR);
+	IR * rhs = STARR_rhs(tir);
+	IR * lhs = ARR_base(tir);
+	ASSERT0(rhs->is_pr());
 	LIR_res(lir) = get_vreg(rhs);
 	LIR_dt(lir) = get_lir_ty(TY_dtype(tir->get_type()));
 
-	IR * ml = lhs;
-	if (IR_type(ml) == IR_PR) {
-		LIR_op0(lir) = get_vreg(ml);
-		LIR_op1(lir) = IST_ofst(tir) / m_d2ir->get_ofst_addend();
-		lir->opcode = LOP_IPUT;
-	} else if (IR_type(ml) == IR_ARRAY) {
-		IR * base = ARR_base(ml);
-		IR * ofst = ARR_sub_list(ml);
-		ASSERT0(base->is_pr() && IR_dt(base) == m_tr->ptr);
+	IR * base = ARR_base(tir);
+	IR * ofst = ARR_sub_list(tir);
+	ASSERT0(base->is_pr() && base->is_ptr());
 
-		//ofst may be renamed with a signed type.
-		ASSERT0(ofst->is_pr());
-		LIR_op0(lir) = get_vreg(base);
-		LIR_op1(lir) = get_vreg(ofst);
-		lir->opcode = LOP_APUT;
-	} else {
-		ASSERT0(0); //unexpected.
-	}
+	//ofst may be renamed with a signed type.
+	ASSERT0(ofst->is_pr());
+	LIR_op0(lir) = get_vreg(base);
+	LIR_op1(lir) = get_vreg(ofst);
+	lir->opcode = LOP_APUT;
+
+	ASSERT0(IR_dt(tir) == IR_dt(rhs) ||
+			tir->get_dtype_size(m_dm) == rhs->get_dtype_size(m_dm));
+	*ir = IR_next(*ir);
+	return (LIR*)lir;
+}
+
+
+//Bulid iput: res -> op0(obj-ptr), op1(ofst)
+LIR * IR2Dex::convertIstore(IN OUT IR ** ir, IN IR2DexCtx * cont)
+{
+	IR * tir = *ir;
+	ASSERT0(tir->is_ist());
+	LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
+	IR * rhs = IST_rhs(tir);
+	IR * lhs = IST_base(tir);
+	ASSERT0(rhs->is_pr());
+	LIR_res(lir) = get_vreg(rhs);
+	LIR_dt(lir) = get_lir_ty(TY_dtype(tir->get_type()));
+
+	ASSERT0(lhs->is_pr());
+	LIR_op0(lir) = get_vreg(lhs);
+	LIR_op1(lir) = IST_ofst(tir) / m_d2ir->get_ofst_addend();
+	lir->opcode = LOP_IPUT;
 	ASSERT0(IR_dt(tir) == IR_dt(rhs) ||
 			 tir->get_dtype_size(m_dm) == rhs->get_dtype_size(m_dm));
 	*ir = IR_next(*ir);
@@ -1085,7 +859,7 @@ LIR * IR2Dex::buildInvoke(IN IR ** ir)
 
 LIR * IR2Dex::buildNewInstance(IN IR ** ir)
 {
-	ASSERT0(is_builtin(*ir, BLTIN_NEW));
+	ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_NEW));
 	LIRABOp * lir = (LIRABOp*)_ymalloc(sizeof(LIRABOp));
 	lir->opcode = LOP_NEW_INSTANCE;
 	IR * tir = *ir;
@@ -1114,7 +888,7 @@ NOTE: it is very different with filled-new-array.
 */
 LIR * IR2Dex::buildFillArrayData(IN IR ** ir)
 {
-	ASSERT0(is_builtin(*ir, BLTIN_FILL_ARRAY_DATA));
+	ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_FILL_ARRAY_DATA));
 	LIRSwitchOp * lir = (LIRSwitchOp*)_ymalloc(sizeof(LIRSwitchOp));
 	lir->opcode = LOP_FILL_ARRAY_DATA;
 	IR * tir = *ir;
@@ -1155,7 +929,7 @@ filled-new-array instruction.
 */
 LIR * IR2Dex::buildFilledNewArray(IN IR ** ir)
 {
-	ASSERT0(is_builtin(*ir, BLTIN_FILLED_NEW_ARRAY));
+	ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_FILLED_NEW_ARRAY));
 	LIRInvokeOp * lir = (LIRInvokeOp*)_ymalloc(sizeof(LIRInvokeOp));
 	lir->opcode = LOP_FILLED_NEW_ARRAY;
 	IR * tir = *ir;
@@ -1200,7 +974,7 @@ type_id (e.g. Object.class) into vA.
 */
 LIR * IR2Dex::buildConstClass(IN IR ** ir)
 {
-	ASSERT0(is_builtin(*ir, BLTIN_CONST_CLASS));
+	ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_CONST_CLASS));
 	IR * tir = *ir;
 	LIRABOp * lir = (LIRABOp*)_ymalloc(sizeof(LIRABOp));
 	lir->opcode = LOP_CONST_CLASS;
@@ -1225,7 +999,7 @@ LIR * IR2Dex::buildConstClass(IN IR ** ir)
 //new-array vA(res) <- vB(op0), LCAnimal(op1)
 LIR * IR2Dex::buildNewArray(IN IR ** ir)
 {
-	ASSERT0(is_builtin(*ir, BLTIN_NEW_ARRAY));
+	ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_NEW_ARRAY));
 	IR * tir = *ir;
 	LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
 	lir->opcode = LOP_NEW_ARRAY;
@@ -1260,7 +1034,7 @@ Sets vA non-zero if it is, 0 otherwise.
 */
 LIR * IR2Dex::buildInstanceOf(IN IR ** ir)
 {
-	ASSERT0(is_builtin(*ir, BLTIN_INSTANCE_OF));
+	ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_INSTANCE_OF));
 	IR * tir = *ir;
 	LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
 	lir->opcode = LOP_INSTANCE_OF;
@@ -1298,7 +1072,7 @@ IR will be:
 */
 LIR * IR2Dex::buildCmpBias(IN IR ** ir)
 {
-	ASSERT0(is_builtin(*ir, BLTIN_CMP_BIAS));
+	ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_CMP_BIAS));
 	IR * tir = *ir;
 	LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
 
@@ -1347,10 +1121,10 @@ LIR * IR2Dex::buildCmpBias(IN IR ** ir)
 }
 
 
-LIR * IR2Dex::convertCall(IN OUT IR ** ir, IN IR2D_CTX * cont)
+LIR * IR2Dex::convertCall(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
 	VAR * v = CALL_idinfo(*ir);
-	BLTIN_TYPE bt = (BLTIN_TYPE)m_var2blt->mget(v);
+	BLTIN_TYPE bt = (BLTIN_TYPE)m_d2ir->getVAR2Builtin()->mget(v);
 	switch (bt) {
 	case BLTIN_INVOKE:
 		return buildInvoke(ir);
@@ -1388,7 +1162,7 @@ LIR * IR2Dex::convertCall(IN OUT IR ** ir, IN IR2D_CTX * cont)
 }
 
 
-LIR * IR2Dex::convertIcall(IN OUT IR ** ir, IN IR2D_CTX * cont)
+LIR * IR2Dex::convertIcall(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
 	*ir = IR_next(*ir);
 	return NULL;
@@ -1396,7 +1170,7 @@ LIR * IR2Dex::convertIcall(IN OUT IR ** ir, IN IR2D_CTX * cont)
 
 
 //return vAA
-LIR * IR2Dex::convertReturn(IN OUT IR ** ir, IN IR2D_CTX * cont)
+LIR * IR2Dex::convertReturn(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
 	LIRAOp * lir = (LIRAOp*)_ymalloc(sizeof(LIRAOp));
 	lir->opcode = LOP_RETURN;
@@ -1427,7 +1201,7 @@ LIR * IR2Dex::convertReturn(IN OUT IR ** ir, IN IR2D_CTX * cont)
 
 
 //AABBBBBBBB
-LIR * IR2Dex::convertGoto(IN OUT IR ** ir, IN IR2D_CTX * cont)
+LIR * IR2Dex::convertGoto(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
 	LIRGOTOOp * lir = (LIRGOTOOp*)_ymalloc(sizeof(LIRGOTOOp));
 	lir->opcode = LOP_GOTO;
@@ -1444,7 +1218,7 @@ LIR * IR2Dex::convertGoto(IN OUT IR ** ir, IN IR2D_CTX * cont)
 
 //ABCCCC
 LIR * IR2Dex::convertBranch(bool is_truebr, IN OUT IR ** ir,
-							 IN IR2D_CTX * cont)
+							 IN IR2DexCtx * cont)
 {
 	LIR * lir = NULL;
 	IR * det = BR_det(*ir);
@@ -1495,7 +1269,7 @@ LIR * IR2Dex::convertBranch(bool is_truebr, IN OUT IR ** ir,
 
 
 //AABBBBBBBB
-LIR * IR2Dex::convertSwitch(IN OUT IR ** ir, IN IR2D_CTX * cont)
+LIR * IR2Dex::convertSwitch(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
 	LIRSwitchOp * lir = (LIRSwitchOp*)_ymalloc(sizeof(LIRSwitchOp));
 	IR * vexp = SWITCH_vexp(*ir);
@@ -1570,7 +1344,7 @@ LIR * IR2Dex::convertSwitch(IN OUT IR ** ir, IN IR2D_CTX * cont)
 }
 
 
-LIR * IR2Dex::convert(IN OUT IR ** ir, IN IR2D_CTX * cont)
+LIR * IR2Dex::convert(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
 	ASSERT0((*ir)->is_stmt());
 	switch (IR_type(*ir)) {
@@ -1578,6 +1352,8 @@ LIR * IR2Dex::convert(IN OUT IR ** ir, IN IR2D_CTX * cont)
 		return convertStoreVar(ir, cont);
 	case IR_STPR:
 		return convertStorePR(ir, cont);
+	case IR_STARRAY:
+		return convertStoreArray(ir, cont);
 	case IR_IST:
 		return convertIstore(ir, cont);
 	case IR_CALL:
@@ -1671,7 +1447,7 @@ void IR2Dex::reloc()
 }
 
 
-void IR2Dex::dump_output(List<LIR*> & newlirs, Prno2UINT & prno2v)
+void IR2Dex::dump_output(List<LIR*> & newlirs, Prno2Vreg const& prno2v)
 {
 	if (g_tfile == NULL) { return; }
 	if (m_lab2idx.get_elem_count() != 0) {
@@ -1711,14 +1487,14 @@ void IR2Dex::dump_output(List<LIR*> & newlirs, Prno2UINT & prno2v)
 
 
 extern bool g_dd;
-void IR2Dex::convert(IR * ir_list, List<LIR*> & newlirs, Prno2UINT & prno2v)
+void IR2Dex::convert(IR * ir_list, List<LIR*> & newlirs)
 {
 	bool dump = false;
 	if (dump && g_tfile != NULL) {
 		fprintf(g_tfile, "\n\n==== IR->DEX CONVERT %s =====",
 				m_ru->get_ru_name());
 	}
-	IR2D_CTX cont;
+	IR2DexCtx cont;
 	UINT idx = 0;
 	while (ir_list != NULL) {
 		if (g_tfile != NULL) { fprintf(g_tfile, "\n---"); }
@@ -1740,7 +1516,8 @@ void IR2Dex::convert(IR * ir_list, List<LIR*> & newlirs, Prno2UINT & prno2v)
 	reloc();
 
 	if (dump) {
-		dump_output(newlirs, prno2v);
+		ASSERT0(m_prno2v);
+		dump_output(newlirs, *m_prno2v);
 	}
 
 	#ifdef _DEBUG_

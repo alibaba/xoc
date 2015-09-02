@@ -368,7 +368,7 @@ void IR_SSA_MGR::dump_all_vp(bool have_renamed)
 			} else if (def->is_phi()) {
 				fprintf(g_tfile, "DEF:phi pr%d,id%d",
 						def->get_prno(), IR_id(def));
-			} else if (def->is_call()) {
+			} else if (def->is_calls_stmt()) {
 				fprintf(g_tfile, "DEF:call");
 				if (def->hasReturnValue()) {
 					fprintf(g_tfile, " pr%d,id%d", def->get_prno(), IR_id(def));
@@ -1105,19 +1105,20 @@ bool IR_SSA_MGR::stripPhi(IR * phi, C<IR*> * phict)
 		IR * plast = BB_last_ir(p);
 
 		//In PHI node elimination to insert the copy in the predecessor block,
-		//there is a check if terminator is not an function call then
+		//there is a check if last IR of BB is not a call then
 		//place the copy there only.
-		//However for function call terminator the fallthrough BB is located
-		//for copy insertion.
-		if (plast != NULL && plast->is_call()) {
+		//However for call BB terminator, the copy will be placed at the start
+		//of fallthrough BB.
+		if (plast != NULL && plast->is_calls_stmt()) {
 			IRBB * fallthrough = m_cfg->get_fallthrough_bb(p);
-
-			//Fallthrough BB may not exist if the last ir is terminator.
-			//That will an may-execution path to other bb if
-			//the last ir may throw exception.
-			ASSERT(fallthrough, ("invalid control flow."));
-			BB_irlist(fallthrough).append_head(store_to_phicopy);
-			insert_stmt_after_call = true;
+			if (!plast->is_terminate()) {
+				//Fallthrough BB may not exist if the last ir is terminator.
+				//That will an may-execution path to other bb if
+				//the last ir may throw exception.
+				ASSERT(fallthrough, ("invalid control flow."));
+				BB_irlist(fallthrough).append_head(store_to_phicopy);
+				insert_stmt_after_call = true;
+			}
 		} else {
 			BB_irlist(p).append_tail_ex(store_to_phicopy);
 		}
@@ -1323,7 +1324,7 @@ static void verify_ssainfo_core(IR * ir, BitSet & defset, Region * ru)
 		 vit != NULL; i = SSA_uses(ssainfo).get_next(i, &vit)) {
 		IR * use = ru->get_ir(i);
 
-		ASSERT0(use->is_pr() || use->is_const() || IR_type(use) == IR_LDA);
+		ASSERT0(use->is_pr() || use->is_const() || use->is_lda());
 
 		if (use->is_pr()) {
 			if (opndprno == 0) {

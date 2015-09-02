@@ -39,7 +39,7 @@ author: GongKai, JinYue
     do\
     {\
         offset = getNewOffset(pool, (Int32)(offset));\
-        ASSERT(-1 != (Int32)(offset));\
+        ASSERT0(-1 != (Int32)(offset));\
     }while(0)
 
 #define GET_NEWOFFSET_CHECK(offset)\
@@ -47,7 +47,7 @@ author: GongKai, JinYue
     {\
         Int32 nAddr;\
         nAddr = getNewOffset(pool, (Int32)(offset));\
-        ASSERT(nAddr == (Int32)(offset));\
+        ASSERT0(nAddr == (Int32)(offset));\
     }while(0)
 
 #define GET_NEWADDR_CHECK(addr)\
@@ -55,7 +55,7 @@ author: GongKai, JinYue
     {\
         BYTE* nAddr;\
         nAddr = getNewAddr(pool, (BYTE*)(addr));\
-        ASSERT(nAddr == (BYTE*)(addr));\
+        ASSERT0(nAddr == (BYTE*)(addr));\
     }while(0)
 
 #define GET_NEWADDR(addr)\

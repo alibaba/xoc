@@ -86,8 +86,8 @@ class IR_EXPR_TAB : public Pass {
 	inline UINT compute_hash_key_for_tree(IR * ir);
 	inline ExpRep * encode_istore_memaddr(IN IR * ir)
 	{
-		ASSERT0(IR_type(IR_parent(ir)) == IR_IST);
-		if (IR_type(ir) == IR_ARRAY) {
+		ASSERT0(IR_parent(ir)->is_ist());
+		if (ir->is_array()) {
 			return NULL;
 		}
 		return encode_expr(ir);

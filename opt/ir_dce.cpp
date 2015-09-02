@@ -161,7 +161,7 @@ bool IR_DCE::check_stmt(IR const* ir)
 //Return true if ir is effect.
 bool IR_DCE::check_call(IR const* ir)
 {
-	ASSERT0(ir->is_call());
+	ASSERT0(ir->is_calls_stmt());
 	return !ir->is_readonly_call() || IR_has_sideeffect(ir);
 }
 
@@ -573,11 +573,11 @@ bool IR_DCE::perform(OptCTX & oc)
 	START_TIMER_AFTER();
 	if (m_is_elim_cfs) {
 		m_ru->checkValidAndRecompute(&oc, PASS_DU_REF, PASS_CDG,PASS_PDOM,
-										PASS_DU_CHAIN, PASS_CDG, PASS_UNDEF);
+									 PASS_DU_CHAIN, PASS_CDG, PASS_UNDEF);
 		m_cdg = (CDG*)m_ru->get_pass_mgr()->registerPass(PASS_CDG);
 	} else {
 		m_ru->checkValidAndRecompute(&oc, PASS_DU_REF, PASS_PDOM,
-										PASS_DU_CHAIN, PASS_UNDEF);
+									 PASS_DU_CHAIN, PASS_UNDEF);
 		m_cdg = NULL;
 	}
 

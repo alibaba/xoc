@@ -99,7 +99,7 @@ bool IR_LOOP_CVT::try_convert(LI<IRBB> * li, IRBB * gobackbb,
 
 	C<IR*> * irct;
 	IR * lastir = BB_irlist(gobackbb).get_tail(&irct);
-	ASSERT0(IR_type(lastir) == IR_GOTO);
+	ASSERT0(lastir->is_goto());
 
 	IRBB * head = LI_loop_head(li);
 	ASSERT0(head);

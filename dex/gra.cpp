@@ -67,7 +67,7 @@ class OP_MATCH {
 public:
 	bool match_bin_r_rr(IR_TYPE irt, IR * ir, IR ** res, IR ** op0, IR ** op1)
 	{
-		if (IR_type(ir) != IR_STPR) return false;
+		if (!ir->is_stpr()) return false;
 		if (res != NULL) { *res = ir; }
 
 		IR * rhs = ST_rhs(ir);
@@ -83,7 +83,7 @@ public:
 
 	bool match_bin_r_rr(IR * ir, IR ** res, IR ** op0, IR ** op1)
 	{
-		if (IR_type(ir) != IR_STPR) return false;
+		if (!ir->is_stpr()) return false;
 		if (res != NULL) { *res = ir; }
 
 		switch (IR_type(ST_rhs(ir))) {
@@ -119,7 +119,7 @@ public:
 
 	bool match_uni_r_r(IR_TYPE irt, IR * ir, IR ** res, IR ** op0)
 	{
-		if (IR_type(ir) != IR_STPR) { return false; }
+		if (!ir->is_stpr()) { return false; }
 		if (res != NULL) { *res = ir; }
 		if ((UINT)IR_type(ST_rhs(ir)) != (UINT)irt) return false;
 		if (!UNA_opnd0(ST_rhs(ir))->is_pr()) return false;
@@ -129,7 +129,7 @@ public:
 
 	bool match_uni_r_r(IR * ir, IR ** res, IR ** op0)
 	{
-		if (IR_type(ir) != IR_STPR) return false;
+		if (!ir->is_stpr()) return false;
 		IR * rhs = ST_rhs(ir);
 		switch (IR_type(rhs)) {
 		case IR_BNOT:
@@ -146,7 +146,7 @@ public:
 
 	bool match_mv_r_r(IR * ir, IR ** res, IR ** op0)
 	{
-		if (IR_type(ir) != IR_STPR) return false;
+		if (!ir->is_stpr()) return false;
 		if (res != NULL) { *res = ir; }
 		if (!ST_rhs(ir)->is_pr()) return false;
 		if (op0 != NULL) { *op0 = ST_rhs(ir); }
@@ -410,42 +410,48 @@ void RSC::comp_st_fmt(IR const* ir)
 }
 
 
+void RSC::comp_starray_fmt(IR const* ir)
+{
+	ASSERT0(ir->is_starray());
+	IR const* stv = STARR_rhs(ir);
+	comp_ir_fmt(stv);
+	ASSERT0(stv->is_pr());
+
+	ASSERT(((CArray*)ir)->get_dimn() == 1, ("dex supply only one dim array"));
+
+	//AABBCC
+	//aput, OBJ, vAA -> (array_base_ptr)vBB, (array_elem)vCC
+	ASSERT0(ARR_base(ir)->is_pr() && ARR_sub_list(ir)->is_pr());
+
+	m_ir2fmt.set(IR_id(ir), FAABBCC);
+}
+
+
 void RSC::comp_ist_fmt(IR const* ir)
 {
-	ASSERT0(IR_type(ir) == IR_IST);
+	ASSERT0(ir->is_ist());
 	IR const* stv = IST_rhs(ir);
 	comp_ir_fmt(stv);
 	ASSERT0(stv->is_pr());
 
 	IR const* lhs = IST_base(ir);
-	if (lhs->is_pr()) {
-		//ABCCCC
-		//iput, vA(stv) -> vB(mlr), +CCCC(field_id)
-		m_ir2fmt.set(IR_id(ir), FABCCCCv);
-		return;
-	} else if (IR_type(lhs) == IR_ARRAY) {
-		ASSERT(((CArray*)lhs)->get_dimn() == 1,
-				("dex supply only one dim array"));
-		//AABBCC
-		//aput, OBJ, vAA -> (array_base_ptr)vBB, (array_elem)vCC
-		ASSERT0(ARR_base(lhs)->is_pr() && ARR_sub_list(lhs)->is_pr());
-		m_ir2fmt.set(IR_id(ir), FAABBCC);
-		return;
-	}
-	ASSERT0(0);
+	ASSERT0(lhs->is_pr());
+	//ABCCCC
+	//iput, vA(stv) -> vB(mlr), +CCCC(field_id)
+	m_ir2fmt.set(IR_id(ir), FABCCCCv);
 }
 
 
 void RSC::comp_call_fmt(IR const* ir)
 {
-	ASSERT0(ir->is_call());
+	ASSERT0(ir->is_calls_stmt());
 	if (IR_type(ir) == IR_ICALL) {
 		comp_ir_fmt(ICALL_callee(ir));
 	}
-	if (IR_type(ir) == IR_CALL && CALL_is_intrinsic(ir)) {
+	if (ir->is_call() && CALL_is_intrinsic(ir)) {
 		VAR const* v = CALL_idinfo(ir);
 		ASSERT0(v);
-		BLTIN_TYPE blt = m_str2intri.get(SYM_name(VAR_name(v)));
+		BLTIN_TYPE blt = m_str2builtin.get(SYM_name(VAR_name(v)));
 		ASSERT0(blt != BLTIN_UNDEF);
 		switch (blt) {
 		case BLTIN_NEW:
@@ -515,6 +521,7 @@ void RSC::comp_call_fmt(IR const* ir)
 		default:ASSERT(0, ("Unknown intrinsic"));
 		}
 	}
+
 	IR const* p = CALL_param_list(ir);
 	ASSERT0(p && IR_type(p) == IR_CONST);
 	INVOKE_KIND ik = (INVOKE_KIND)CONST_int_val(p);
@@ -567,6 +574,9 @@ void RSC::comp_ir_fmt(IR const* ir)
 		if (ILD_base(ir)->is_pr()) {
 			m_ir2fmt.set(IR_id(ir), FABCCCCv);
 		} else { ASSERT0(0); }
+		return;
+	case IR_STARRAY:
+		comp_starray_fmt(ir);
 		return;
 	case IR_IST:
 		comp_ist_fmt(ir);
@@ -1707,7 +1717,7 @@ IR * LTMgr::genSpill(LT * lt, INT pos)
 		//Append store before the last non-boundary stmt of BB.
 		//e.g: reload should insert be call/branch.
 		IR * lastir = BB_last_ir(m_bb);
-		if (lastir != NULL && lastir->is_call()) {
+		if (lastir != NULL && lastir->is_calls_stmt()) {
 			BB_irlist(m_bb).append_tail(spill);
 		} else {
 			ASSERT(!lastir->is_cond_br() && !lastir->is_uncond_br(),
@@ -1739,7 +1749,7 @@ e.g: pr1 = pr2 + 3
 */
 IR * LTMgr::genSpillSwap(IR * stmt, UINT prno, Type const* prty, IR * spill_loc)
 {
-	ASSERT0(stmt && (stmt->is_stpr() || stmt->is_call()) && prty);
+	ASSERT0(stmt && (stmt->is_stpr() || stmt->is_calls_stmt()) && prty);
 
 	//Generate and insert spilling operation.
 	if (spill_loc == NULL) {
@@ -1813,7 +1823,7 @@ IR * LTMgr::genReload(LT * lt, INT pos, IR * spill_loc)
 	} else if (pos == (INT)get_last_pos()) {
 		//Append reload before the last non-boundary stmt of BB.
 		IR * lastir = BB_last_ir(m_bb);
-		if (lastir != NULL && lastir->is_call()) {
+		if (lastir != NULL && lastir->is_calls_stmt()) {
 			BB_irlist(m_bb).append_tail(reload);
 		} else {
 			ASSERT(!lastir->is_cond_br() && !lastir->is_uncond_br(),
@@ -2017,10 +2027,10 @@ IR * LTMgr::genMappedPR(UINT vid, Type const* ty)
 
 static bool is_range_call(IR const* ir, TypeMgr const* dm)
 {
-	if (IR_type(ir) != IR_CALL) { return false; }
+	if (!ir->is_call()) { return false; }
 	//The first parameter is used to record invoke-kind.
 	IR const* p = CALL_param_list(ir);
-	if (p == NULL || IR_type(p) != IR_CONST || !p->is_uint(dm)) {
+	if (p == NULL || !p->is_const() || !p->is_uint(dm)) {
 		return false;
 	}
 	CHAR const* fname = SYM_name(VAR_name(CALL_idinfo(ir)));
@@ -2209,16 +2219,19 @@ void LTMgr::processResult(IN IR * ir, INT pos, IN OUT BitSet & lived_lt,
 		}
 		break;
 	case IR_IST: break;
+	case IR_STARRAY: break;
 	case IR_CALL:
 	case IR_ICALL:
-		if (group_part) {
-			if (is_pair(ir)) {
-				processResultGroupPart(ir, pos, lived_lt);
-			}
-		} else {
-			LT * lt = processResultPR(CALL_prno(ir), pos, lived_lt);
-			if (is_pair(ir)) {
-				process_rg(lt);
+		if (ir->hasReturnValue()) {
+			if (group_part) {
+				if (is_pair(ir)) {
+					processResultGroupPart(ir, pos, lived_lt);
+				}
+			} else {
+				LT * lt = processResultPR(CALL_prno(ir), pos, lived_lt);
+				if (is_pair(ir)) {
+					process_rg(lt);
+				}
 			}
 		}
 		break;
@@ -2577,6 +2590,12 @@ void LTMgr::renameUse(IR * ir, LT * l, IR ** newpr)
 {
 	LTG * gr = LT_ltg(l);
 	switch (IR_type(ir)) {
+	case IR_STARRAY:
+		ASSERT0(((CArray*)ir)->get_dimn() == 1);
+		renameUse(STARR_rhs(ir), l, newpr);
+		renameUse(ARR_base(ir), l, newpr);
+		renameUse(ARR_sub_list(ir), l, newpr);
+		break;
 	case IR_IST:
 		renameUse(IST_base(ir), l, newpr);
 		renameUse(IST_rhs(ir), l, newpr);
@@ -5393,7 +5412,7 @@ void RA::dump_ltg()
 
 void RA::assignLTG(LTG * ltg, IR * ir)
 {
-	ASSERT0(ltg && ltg->ty == LTG_RANGE_PARAM && ir->is_call());
+	ASSERT0(ltg && ltg->ty == LTG_RANGE_PARAM && ir->is_calls_stmt());
 	ASSERT0(ir->get_bb());
 	IRBB * bb = ir->get_bb();
 	//ASSERT0(BB_last_ir(bb) == ir);
@@ -5623,7 +5642,7 @@ bool RA::verify_usable()
 //Verify usable regs.
 bool RA::verify_reg(bool check_usable, bool check_alloc)
 {
-	Prno2UINT prno2v(getNearestPowerOf2((UINT)57));
+	Prno2Vreg prno2v(getNearestPowerOf2((UINT)57));
 	UINT maxreg = 0;
 	Vector<GLT*> * gltv = m_gltm.get_gltvec();
 	for (INT i = 1; i <= gltv->get_last_idx(); i++) {

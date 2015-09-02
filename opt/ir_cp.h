@@ -115,7 +115,7 @@ public:
 	{
 		switch (m_prop_kind) {
 		case CP_PROP_CONST:
-			return IR_type(ir) == IR_LDA || ir->is_const_exp();
+			return ir->is_lda() || ir->is_const_exp();
 		case CP_PROP_SIMPLEX:
 			switch (IR_type(ir)) {
 			case IR_LDA:

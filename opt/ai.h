@@ -36,13 +36,29 @@ author: Su Zhenyu
 
 namespace xoc {
 
+/* How to use AttachInfo?
+1. Allocate AttachInfo from Region.
+2. Construct your data structure to be attached.
+3. Set the AttachInfo type and the data structure.
+
+e.g:
+	IR * ir = ...; Given IR.
+	IR_ai(ir) = region->newAI();
+	Dbx * dbx = getDbx();
+	IR_ai(ir)->set(AI_DBX, (BaseAttachInfo*)dbx);
+
+Note that you do not need to free/delete AI structure.
+They will be freed at destructor of region. */
+
 //Attach Info Type.
 typedef enum _AI_TYPE {
 	AI_UNDEF = 0,
 	AI_DBX, //Debug Info
 	AI_PROF, //Profile Info
 	AI_TBAA, //Type Based AA
+	AI_EH_LABEL, //Record a list of Labels.
 	AI_USER_DEF, //User Defined
+	AI_LAST, //The number of ai type.
 } AI_TYPE;
 
 
@@ -83,36 +99,51 @@ public:
 		cont.copy(ai->cont);
 	}
 
-	void set(AI_TYPE type, BaseAttachInfo * c)
+	void clean(AI_TYPE type)
 	{
-		INT emptyslot = -1;
-		if (!cont.is_init()) {
-			if (c == NULL) { return; }
-			cont.init();
+		if (!cont.is_init()) { return; }
+		ASSERT0(type > AI_UNDEF && type < AI_LAST);
+		if ((UINT)type < cont.get_capacity()) {
+			cont.set((UINT)type, NULL);
 		}
+	}
+
+	void set(BaseAttachInfo * c)
+	{
+		ASSERT(c, ("Can not set empty AI"));
+
+		INT emptyslot = -1;
+		if (!cont.is_init()) { cont.init(); }
+
+		AI_TYPE type = c->type;
+		ASSERT0(type > AI_UNDEF && type < AI_LAST);
 
 		UINT i;
-		for (i = 0; i < cont.get_size(); i++) {
+		for (i = 0; i < cont.get_capacity(); i++) {
 			BaseAttachInfo * ac = cont.get(i);
-			if (ac == NULL) { emptyslot = (INT)i; }
-			if (ac->type != type) { continue; }
+			if (ac == NULL) {
+				emptyslot = (INT)i;
+			} else if (ac->type != type) {
+				continue;
+			}
+
+			//Note c will override the prior AttachInfo that has same type.
 			cont.set(i, c);
 			return;
 		}
 
-		if (c != NULL) {
-			if (emptyslot != -1) {
-				cont.set((UINT)emptyslot, c);
-			} else {
-				cont.set(i, c);
-			}
+		if (emptyslot != -1) {
+			cont.set((UINT)emptyslot, c);
+		} else {
+			//AttachInfo buffer will grow bigger.
+			cont.set(i, c);
 		}
 	}
 
-	BaseAttachInfo * get(AI_TYPE type)
+	BaseAttachInfo const* get(AI_TYPE type) const
 	{
 		if (!cont.is_init()) { return NULL; }
-		for (UINT i = 0; i < cont.get_size(); i++) {
+		for (UINT i = 0; i < cont.get_capacity(); i++) {
 			BaseAttachInfo * ac = cont.get(i);
 			if (ac != NULL && ac->type == type) {
 				return ac;
@@ -120,6 +151,26 @@ public:
 		}
 		return NULL;
 	}
+};
+
+
+//Exception Handler Labels.
+class EHLabelAttachInfo : public BaseAttachInfo {
+public:
+	SList<LabelInfo*> labels; //record a list of Labels.
+
+public:
+	EHLabelAttachInfo(SMemPool * pool = NULL) : BaseAttachInfo(AI_EH_LABEL)
+	{ init(pool); }
+	COPY_CONSTRUCTOR(EHLabelAttachInfo);
+
+	void init(SMemPool * pool)
+	{
+		BaseAttachInfo::init(AI_EH_LABEL);
+		labels.set_pool(pool);
+	}
+
+	SList<LabelInfo*> const& get_labels() const { return labels; }
 };
 
 
@@ -161,7 +212,7 @@ class TbaaAttachInfo : public BaseAttachInfo {
 public:
 	Type const* type;
 
-	TbaaAttachInfo() : BaseAttachInfo(AI_TBAA) {}
+	TbaaAttachInfo() : BaseAttachInfo(AI_TBAA) { type = NULL; }
 	COPY_CONSTRUCTOR(TbaaAttachInfo);
 };
 

@@ -64,8 +64,7 @@ NOTE: 'use' should be freed.
 	'use' must be rhs of 'use_stmt'. */
 void IR_GCSE::elimCseAtStore(IR * use, IR * use_stmt, IR * gen)
 {
-	ASSERT0(use_stmt->is_st() || use_stmt->is_stpr() ||
-			 IR_type(use_stmt) == IR_IST);
+	ASSERT0(use_stmt->is_st() || use_stmt->is_stpr() || use_stmt->is_ist());
 	#ifdef DEBUG_GCSE
 	ASSERT0(++g_num_of_elim);
 	ASSERT0(g_elim_irt.append_tail(IR_type(use)));

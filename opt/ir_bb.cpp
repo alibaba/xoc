@@ -177,7 +177,7 @@ void IRBB::verify()
 		default: ASSERT(0, ("BB does not supported this kind of IR."));
 		}
 
-		if (ir->is_call() || ir->is_cond_br() ||
+		if (ir->is_calls_stmt() || ir->is_cond_br() ||
 			ir->is_multicond_br() || ir->is_uncond_br()) {
 			ASSERT(ir == BB_last_ir(this), ("invalid bb boundary."));
 		}

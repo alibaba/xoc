@@ -74,7 +74,7 @@ public:
 	PPSetMgr()
 	{
 		m_pool = smpoolCreate(sizeof(SC<PtPairSet*>) * 4,
-									  MEM_CONST_SIZE);
+							  MEM_CONST_SIZE);
 		m_free_pp_set.set_pool(m_pool);
 		m_pp_set_list.set_pool(m_pool);
 	}
@@ -112,7 +112,7 @@ public:
 
 //PtPairMgr
 class PtPairMgr {
-	TMap<UINT, TMap<UINT, PtPair*>*>  m_from_tmap;
+	TMap<UINT, TMap<UINT, PtPair*>*> m_from_tmap;
 	Vector<PtPair*> m_id2pt_pair;
 	SMemPool * m_pool_pt_pair; //pool of PtPair
 	SMemPool * m_pool_tmap; //pool of TMap<UINT, PtPair*>
@@ -121,7 +121,7 @@ class PtPairMgr {
 	inline PtPair * xmalloc_pt_pair()
 	{
 		PtPair * p = (PtPair*)smpoolMallocConstSize(sizeof(PtPair),
-															m_pool_pt_pair);
+													m_pool_pt_pair);
 		ASSERT0(p);
 		memset(p, 0, sizeof(PtPair));
 		return p;
@@ -131,8 +131,8 @@ class PtPairMgr {
 	{
 		TMap<UINT, PtPair*> * p =
 			(TMap<UINT, PtPair*>*)smpoolMallocConstSize(
-												sizeof(TMap<UINT, PtPair*>),
-												m_pool_tmap);
+									sizeof(TMap<UINT, PtPair*>),
+									m_pool_tmap);
 		ASSERT0(p);
 		memset(p, 0, sizeof(TMap<UINT, PtPair*>));
 		return p;
@@ -145,16 +145,15 @@ public:
 		init();
 	}
 	COPY_CONSTRUCTOR(PtPairMgr);
-	~PtPairMgr() { destroy();	}
+	~PtPairMgr() { destroy(); }
 
 	void init()
 	{
 		if (m_pool_pt_pair != NULL) { return; }
 		m_pp_count = 1;
-		m_pool_pt_pair = smpoolCreate(sizeof(PtPair),
-											MEM_CONST_SIZE);
+		m_pool_pt_pair = smpoolCreate(sizeof(PtPair), MEM_CONST_SIZE);
 		m_pool_tmap = smpoolCreate(sizeof(TMap<UINT, PtPair*>),
-											MEM_CONST_SIZE);
+								   MEM_CONST_SIZE);
 	}
 
 	void destroy()
@@ -167,6 +166,7 @@ public:
 			 v != NULL; m_from_tmap.get_next(ti, &v)) {
 			v->destroy();
 		}
+		m_pp_count = 0;
 
 		smpoolDelete(m_pool_pt_pair);
 		smpoolDelete(m_pool_tmap);

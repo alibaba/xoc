@@ -58,8 +58,7 @@ IR * Region::refineIload1(IR * ir, bool & change)
 		LD,ofst
 	e.g: (&q)->s => q.s */
 	IR * lda = ILD_base(ir);
-	ASSERT(IR_type(lda) == IR_LDA && LDA_ofst(lda) == 0,
-			("not the case"));
+	ASSERT(lda->is_lda() && LDA_ofst(lda) == 0, ("not the case"));
 
 	//ILD offset may not 0.
 	INT ild_ofst = ILD_ofst(ir);
@@ -137,10 +136,10 @@ IR * Region::refineIload2(IR * ir, bool & change)
 
 IR * Region::refineIload(IR * ir, bool & change, RefineCTX & rc)
 {
-	ASSERT0(IR_type(ir) == IR_ILD);
+	ASSERT0(ir->is_ild());
 	ASSERT(IR_next(ir) == NULL && IR_prev(ir) == NULL, ("TODO"));
 	IR * mem_addr = ILD_base(ir);
-	if (IR_type(mem_addr) == IR_LDA && LDA_ofst(mem_addr) == 0) {
+	if (mem_addr->is_lda() && LDA_ofst(mem_addr) == 0) {
 		/* Convert
 				ILD,ofst1
 				 LDA
@@ -157,7 +156,7 @@ IR * Region::refineIload(IR * ir, bool & change, RefineCTX & rc)
 				LD,ofst
 			e.g: (&q)->s => q.s */
 		return refineIload1(ir, change);
-	} else if (IR_type(mem_addr) == IR_LDA && LDA_ofst(mem_addr) != 0) {
+	} else if (mem_addr->is_lda() && LDA_ofst(mem_addr) != 0) {
 		/* Convert
 			ILD
 			 LDA,ofst
@@ -180,7 +179,7 @@ IR * Region::refineLda(IR * ir, bool & change, RefineCTX & rc)
 {
 	ASSERT0(ir->is_lda());
 	ASSERT(IR_next(ir) == NULL && IR_prev(ir) == NULL, ("TODO"));
-	if (IR_type(LDA_base(ir)) == IR_ILD) {
+	if (LDA_base(ir)->is_ild()) {
 		/* Convert
 			LDA
 			 ILD
@@ -219,7 +218,7 @@ IR * Region::refineLda(IR * ir, bool & change, RefineCTX & rc)
 
 IR * Region::refineIstore(IR * ir, bool & change, RefineCTX & rc)
 {
-	ASSERT0(IR_type(ir) == IR_IST);
+	ASSERT0(ir->is_ist());
 	bool t = false;
 	bool lchange = false;
 	IST_base(ir) = refineIR(IST_base(ir), t, rc);
@@ -233,7 +232,7 @@ IR * Region::refineIstore(IR * ir, bool & change, RefineCTX & rc)
 	IR * lhs = IST_base(ir);
 	IR * rhs = IST_rhs(ir);
 	IR_DU_MGR * dumgr = get_du_mgr();
-	if (IR_type(lhs) == IR_LDA && IR_type(LDA_base(lhs)) == IR_ID) {
+	if (lhs->is_lda() && LDA_base(lhs)->is_id()) {
 		/* Convert :
 		1. IST(LDA(ID))=X to ST(ID)=X
 		2. IST(LDA(ID), ofst)=X to ST(ID, ofst)=X
@@ -273,7 +272,7 @@ IR * Region::refineIstore(IR * ir, bool & change, RefineCTX & rc)
 		rhs = ST_rhs(ir); //No need for updating DU.
 	}
 
-	if (IR_type(rhs) == IR_LDA && IR_type(LDA_base(rhs)) == IR_ILD) {
+	if (rhs->is_lda() && LDA_base(rhs)->is_ild()) {
 		ASSERT(IR_next(rhs) == NULL && IR_prev(rhs) == NULL,
 				("expression cannot be linked to chain"));
 		//Convert IST(LHS, LDA(ILD(var))) => IST(LHS, var)
@@ -290,7 +289,7 @@ IR * Region::refineIstore(IR * ir, bool & change, RefineCTX & rc)
 	}
 
 	rhs = ir->get_rhs();
-	if (IR_type(rhs) == IR_ILD && IR_type(ILD_base(rhs)) == IR_LDA) {
+	if (rhs->is_ild() && ILD_base(rhs)->is_lda()) {
 		//IST(X)=ILD(LDA(ID)) => IST(X)=LD
 		IR * rm = rhs;
 		IR * newrhs = buildLoad(ID_info(LDA_base(ILD_base(rhs))), IR_dt(rm));
@@ -329,9 +328,8 @@ IR * Region::refineIstore(IR * ir, bool & change, RefineCTX & rc)
 //Return true if CVT is redundant.
 static inline bool is_redundant_cvt(IR * ir)
 {
-	if (IR_type(ir) == IR_CVT) {
-		if (IR_type(CVT_exp(ir)) == IR_CVT ||
-			IR_dt(CVT_exp(ir)) == IR_dt(ir)) {
+	if (ir->is_cvt()) {
+		if (CVT_exp(ir)->is_cvt() || IR_dt(CVT_exp(ir)) == IR_dt(ir)) {
 			return true;
 		}
 	}
@@ -377,7 +375,7 @@ IR * Region::refineStore(IR * ir, bool & change, RefineCTX & rc)
 		MD const* umd = rhs->get_exact_ref();
 		if (umd != NULL && umd == ir->get_exact_ref()) {
 			//Result and operand refered the same md.
-			if (IR_type(rhs) == IR_CVT) {
+			if (rhs->is_cvt()) {
 				//CASE: pr(i64) = cvt(i64, pr(i32))
 				//Do NOT remove 'cvt'.
 				;
@@ -729,7 +727,7 @@ IR * Region::refineNot(IR * ir, bool & change, RefineCTX & rc)
 		IR_parent(UNA_opnd0(ir)) = ir;
 	}
 
-	if (IR_type(ir) == IR_LNOT) {
+	if (ir->is_lnot()) {
 		IR * op0 = UNA_opnd0(ir);
 		bool lchange = false;
 		switch (IR_type(op0)) {
@@ -1326,7 +1324,7 @@ IR * Region::refineStoreArray(IR * ir, bool & change, RefineCTX & rc)
 		MD const* umd = newrhs->get_exact_ref();
 		if (umd != NULL && umd == ir->get_exact_ref()) {
 			//Result and operand refered the same md.
-			if (IR_type(newrhs) == IR_CVT) {
+			if (newrhs->is_cvt()) {
 				//CASE: pr(i64) = cvt(i64, pr(i32))
 				//Do NOT remove 'cvt'.
 				;
@@ -1407,13 +1405,13 @@ IR * Region::refineLoad(IR * ir)
 
 IR * Region::refineCvt(IR * ir, bool & change, RefineCTX & rc)
 {
-	ASSERT0(IR_type(ir) == IR_CVT);
+	ASSERT0(ir->is_cvt());
 	CVT_exp(ir) = refineIR(CVT_exp(ir), change, rc);
 	if (change) {
 		IR_parent(CVT_exp(ir)) = ir;
 	}
 
-	if (IR_type(CVT_exp(ir)) == IR_CVT) {
+	if (CVT_exp(ir)->is_cvt()) {
 		//cvt1(cvt2,xxx) => cvt1(xxx)
 		IR * tmp = CVT_exp(ir);
 		CVT_exp(ir) = CVT_exp(CVT_exp(ir));
@@ -1979,7 +1977,7 @@ IR * Region::foldConstIntUnary(IR * ir, bool & change)
 
 	ASSERT0(UNA_opnd0(ir)->is_const());
 	HOST_INT v0 = CONST_int_val(UNA_opnd0(ir));
-	if (IR_type(ir) == IR_NEG) {
+	if (ir->is_neg()) {
 		ASSERT(dm->get_bytesize(IR_dt(UNA_opnd0(ir))) <= 8, ("TODO"));
 		IR * oldir = ir;
 		ir = buildImmInt(-v0, IR_dt(ir));
@@ -1987,7 +1985,7 @@ IR * Region::foldConstIntUnary(IR * ir, bool & change)
 		freeIRTree(oldir);
 		change = true;
 		return ir;
-	} else if (IR_type(ir) == IR_LNOT) {
+	} else if (ir->is_lnot()) {
 		ASSERT(dm->get_bytesize(IR_dt(UNA_opnd0(ir))) <= 8, ("TODO"));
 		IR * oldir = ir;
 		ir = buildImmInt(!v0, IR_dt(ir));
@@ -1995,7 +1993,7 @@ IR * Region::foldConstIntUnary(IR * ir, bool & change)
 		freeIRTree(oldir);
 		change = true;
 		return ir;
-	} else if (IR_type(ir) == IR_BNOT) {
+	} else if (ir->is_bnot()) {
 		ASSERT(dm->get_bytesize(IR_dt(UNA_opnd0(ir))) <= 8, ("TODO"));
 		IR * oldir = ir;
 		ir = buildImmInt(~v0, IR_dt(ir));

@@ -46,12 +46,12 @@ bool IR_IVR::computeInitVal(IR const* ir, IV * iv)
 	}
 
 	IR const* v = ST_rhs(ir);
-	if (IR_type(v) == IR_CVT) {
+	if (v->is_cvt()) {
 		//You should have performed refineIR to optimize cvt.
 		v = CVT_exp(v);
 	}
 
-	if (IR_type(v) == IR_CONST && v->is_int(m_dm)) {
+	if (v->is_const() && v->is_int(m_dm)) {
 		if (IV_initv_i(iv) == NULL) {
 			IV_initv_i(iv) = (LONGLONG*)xmalloc(sizeof(LONGLONG));
 		}
@@ -165,9 +165,7 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
 	for (MD * biv = sdlst.get_head(); biv != NULL; biv = sdlst.get_next()) {
 		IR * def = map_md2defir.get(MD_id(biv));
 		ASSERT0(def);
-		if (IR_type(def) != IR_ST &&
-			IR_type(def) != IR_STPR &&
-			IR_type(def) != IR_IST) {
+		if (!def->is_st() && !def->is_stpr() && !def->is_ist()) {
 			continue;
 		}
 
@@ -192,7 +190,7 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
 		if (!selfmod) { continue; }
 
 		IR * stv = ST_rhs(def);
-		if (IR_type(stv) != IR_ADD && IR_type(stv) != IR_SUB) { continue; }
+		if (!stv->is_add() && !stv->is_sub()) { continue; }
 
 		//Make sure self modify stmt is monotonic.
 		IR * op0 = BIN_opnd0(stv);

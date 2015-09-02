@@ -34,37 +34,26 @@ author: Su Zhenyu
 #ifndef __DEX_TO_IR_H__
 #define __DEX_TO_IR_H__
 
-#define VARD_ci(vd)		((vd)->class_idx)
-#define VARD_fi(vd)		((vd)->class_idx)
-#define VARD_var(vd)	((vd)->var)
-class VARD {
-public:
-	UINT class_idx;
-	UINT field_idx;
-	VAR * var;
-};
-
-
 //Map from LIR to LABEL.
 typedef TMap<LIR*, List<LabelInfo*>*> LIR2LABS;
 
 
-class CATCH_INFO {
+class CatchInfo {
 public:
-	CATCH_INFO * prev;
-	CATCH_INFO * next;
+	CatchInfo * prev;
+	CatchInfo * next;
 	LabelInfo * catch_start;
 	UINT kind;
 };
 
 
-class TRY_INFO {
+class TryInfo {
 public:
-	TRY_INFO * prev;
-	TRY_INFO * next;
+	TryInfo * prev;
+	TryInfo * next;
 	LabelInfo * try_start;
 	LabelInfo * try_end;
-	CATCH_INFO * catch_list;
+	CatchInfo * catch_list;
 };
 
 
@@ -100,14 +89,14 @@ protected:
 	TypeMgr * m_dm;
 	DexFile * m_df;
 	VarMgr * m_vm;
-	LIRCode * m_fu;
+	LIRCode * m_lircode;
 	TypeIndexRep const* m_tr;
 	SMemPool * m_pool;
-	VAR2UINT m_map_var2ofst;
-	VAR2UINT m_map_var2blt;
+	Var2UINT m_map_var2ofst;
+	Var2UINT m_var2blt;
 	LIR2LABS m_lir2labs;
 	Str2Type m_typename2type;
-
+	DbxVec const& m_dbxvec;
 	Type const* m_ptr_addend;
 	UINT m_ofst_addend;
 
@@ -115,7 +104,7 @@ protected:
 	//positionIdx in file-class-def-table.
 	FieldTypeIdx2PosIdx m_typeidx2posidx;
 	ConstSym2Var m_str2var;
-	TRY_INFO * m_ti;
+	TryInfo * m_ti;
 	bool m_has_catch; //Set to true if region has catch block.
 	List<LabelInfo*> m_last_try_end_lab_list;
 
@@ -129,11 +118,13 @@ protected:
 		return p;
 	}
 public:
-	UINT2PR m_v2pr; //map from dex register v to IR_PR node.
-	Prno2UINT m_pr2v; //map from dex register v to IR_PR node.
+	Vreg2PR m_v2pr; //map from dex register v to IR_PR node.
+	Prno2Vreg m_pr2v; //map from dex register v to IR_PR node.
 
-	Dex2IR(IN Region * ru, IN DexFile * df,
-		   IN LIRCode * fu, IN TypeIndexRep const* tr)
+	Dex2IR(IN Region * ru,
+		   IN DexFile * df,
+		   IN LIRCode * fu,
+		   DbxVec const& dbxvec) : m_dbxvec(dbxvec)
 	{
 		ASSERT0(ru && df && fu);
 		m_ru = ru;
@@ -141,8 +132,8 @@ public:
 		m_dm = ru->get_dm();
 		m_vm = ru->get_var_mgr();
 		m_df = df;
-		m_fu = fu;
-		m_tr = tr;
+		m_lircode = fu;
+		m_tr = ((DexRegion*)ru)->getTypeIndexRep();
 		m_ti = NULL;
 		m_pool = smpoolCreate(16, MEM_COMM);
 		m_pr2v.init(MAX(4, getNearestPowerOf2(fu->maxVars)));
@@ -212,21 +203,29 @@ public:
 
 	void dump_lir2lab();
 
-	UINT get_ofst_addend() const { return m_ofst_addend; }
+	IR * genMappedPR(UINT vid, Type const* ty);
+	UINT genMappedPrno(UINT vid, Type const* ty);
+	UINT get_ofst_addend() const
+	{
+		return 8;
+		//return m_ofst_addend;
+	}
 	CHAR const* get_var_type_name(UINT field_id);
 	UINT get_dexopcode(UINT flag);
 	Type const* getType(LIR * ir);
-	IR * genMappedPR(UINT vid, Type const* ty);
-	UINT gen_mapped_prno(UINT vid, Type const* ty);
-	inline Prno2UINT * get_pr2v_map() { return &m_pr2v; }
-	inline UINT2PR * get_v2pr_map() { return &m_v2pr; }
-	inline VAR2UINT * get_var2ofst_map() { return &m_map_var2ofst; }
-	inline VAR2UINT * get_var2blt_map() { return &m_map_var2blt; }
-	inline TRY_INFO * get_try_info() { return m_ti; }
+	Prno2Vreg * getPR2Vreg() { return &m_pr2v; }
+	Vreg2PR * getVreg2PR() { return &m_v2pr; }
+	Var2UINT * getVAR2Ofst() { return &m_map_var2ofst; }
+	Var2UINT * getVAR2Builtin() { return &m_var2blt; }
+	TryInfo * getTryInfo() { return m_ti; }
 
 	bool is_readonly(CHAR const* method_name) const;
+
+	//Return true if ir is built-in function.
+	bool is_builtin(IR const* ir, BLTIN_TYPE bt);
 	bool hasCatch() const { return m_has_catch; }
 
+	Type const* mapDexType2XocType(CHAR charty);
 	Type const* mapFieldType2Type(UINT field_id);
 	void markLabel();
 

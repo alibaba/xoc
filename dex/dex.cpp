@@ -34,7 +34,7 @@ author: Su Zhenyu
 #include "../opt/cominc.h"
 #include "dex.h"
 
-BLTIN_INFO g_builtin_info[] = {
+BuiltInInfo g_builtin_info[] = {
 	{BLTIN_UNDEF, 				""					},
 	{BLTIN_INVOKE, 				"invoke"			},
 	{BLTIN_NEW,					"#new"				},
@@ -53,3 +53,8 @@ BLTIN_INFO g_builtin_info[] = {
 	{BLTIN_CMP_BIAS,			"#cmp_bias"			},
 };
 UINT g_builtin_num = sizeof(g_builtin_info) / sizeof(g_builtin_info[0]);
+
+
+//Perform Dex register allocation.
+bool g_do_dex_ra = false;
+

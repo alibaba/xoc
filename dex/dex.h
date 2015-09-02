@@ -76,7 +76,7 @@ typedef enum _BLTIN_TYPE {
 
 #define BLTIN_type(t)			(g_builtin_info[(t)].ty)
 #define BLTIN_name(t)			(g_builtin_info[(t)].name)
-class BLTIN_INFO {
+class BuiltInInfo {
 public:
 	BLTIN_TYPE ty;
 	CHAR const* name;
@@ -84,13 +84,13 @@ public:
 
 
 extern UINT g_builtin_num;
-extern BLTIN_INFO g_builtin_info[];
+extern BuiltInInfo g_builtin_info[];
 
 
-class VAR2UINT : public TMap<VAR const*, UINT> {
+class Var2UINT : public TMap<VAR const*, UINT> {
 public:
-	VAR2UINT() {}
-	virtual ~VAR2UINT() {}
+	Var2UINT() {}
+	virtual ~Var2UINT() {}
 
 	UINT mget(VAR const* v)
 	{
@@ -102,17 +102,17 @@ public:
 };
 
 
-class Prno2UINT : public HMap<UINT, UINT, HashFuncBase2<UINT> > {
+class Prno2Vreg : public HMap<UINT, UINT, HashFuncBase2<UINT> > {
 public:
 	INT maxreg; //record the max vreg used.
 	UINT paramnum; //record the number of parameter.
 
-	Prno2UINT(UINT sz = 0) : HMap<UINT, UINT, HashFuncBase2<UINT> >(sz)
+	Prno2Vreg(UINT sz = 0) : HMap<UINT, UINT, HashFuncBase2<UINT> >(sz)
 	{
 		maxreg = -1;
 		paramnum = 0;
 	}
-	virtual ~Prno2UINT() {}
+	virtual ~Prno2Vreg() {}
 
 	UINT get(UINT prno)
 	{
@@ -141,7 +141,7 @@ public:
 		HMap<UINT, UINT, HashFuncBase2<UINT> >::set(prno, v);
 	}
 
-	void copy(Prno2UINT & src)
+	void copy(Prno2Vreg & src)
 	{
 		INT cur;
 		for (UINT prno = src.get_first(cur); cur >= 0; prno = src.get_next(cur)) {
@@ -155,7 +155,7 @@ public:
 	void dump()
 	{
 		if (g_tfile == NULL) { return; }
-		fprintf(g_tfile, "\n==---- DUMP Prno2UINT ----==");
+		fprintf(g_tfile, "\n==---- DUMP Prno2Vreg ----==");
 		g_indent = 4;
 
 		if (maxreg < 0) {
@@ -188,13 +188,13 @@ public:
 };
 
 
-class UINT2PR : public Vector<IR*> {
+class Vreg2PR : public Vector<IR*> {
 public:
 	void dump()
 	{
 		if (g_tfile == NULL) { return; }
 
-		fprintf(g_tfile, "\n==---- DUMP Prno2UINT ----==");
+		fprintf(g_tfile, "\n==---- DUMP Prno2Vreg ----==");
 
 		for (INT i = 0; i <= get_last_idx(); i++) {
 			IR * pr = get(i);
@@ -208,21 +208,40 @@ public:
 };
 
 
-class STR2INTRI : public HMap<CHAR const*, BLTIN_TYPE, HashFuncString> {
+class Str2BuiltinType : public HMap<CHAR const*, BLTIN_TYPE, HashFuncString> {
 public:
-	STR2INTRI(UINT sz = 13) : HMap<CHAR const*, BLTIN_TYPE, HashFuncString>(sz)
+	Str2BuiltinType(UINT sz = 13) : HMap<CHAR const*, BLTIN_TYPE, HashFuncString>(sz)
 	{
 		for (UINT i = BLTIN_UNDEF + 1; i < g_builtin_num; i++) {
 			set(BLTIN_name((BLTIN_TYPE)i), (BLTIN_TYPE)i);
 		}
 	}
-	virtual ~STR2INTRI() {}
+	virtual ~Str2BuiltinType() {}
 };
 
 
 //Map from typeIdx of type-table to positionIdx in file-class-def-table.
 class FieldTypeIdx2PosIdx : public TMap<UINT, UINT> {
 public:
+};
+
+
+class DexDbx : public BaseAttachInfo {
+public:
+	DexDbx(AI_TYPE t = AI_DBX) : BaseAttachInfo(t) {}
+	UINT linenum;
+	CHAR const* filename;
+};
+
+
+class OffsetVec : public Vector<UINT, 16> {
+public:
+};
+
+
+class DbxVec : public Vector<DexDbx*> {
+public:
+	DbxVec(UINT size) : Vector<DexDbx*>(size) {}
 };
 
 
@@ -277,4 +296,9 @@ public:
 public:
 	TypeIndexRep() { memset(this, 0, sizeof(TypeIndexRep)); }
 };
+
+
+//Perform Dex register allocation.
+extern bool g_do_dex_ra;
+
 #endif

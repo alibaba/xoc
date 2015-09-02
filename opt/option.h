@@ -214,7 +214,7 @@ Note this option may incur user unexpected result:
 e.g: If user is going to write a dead cyclic loop,
 	void non_return()
 	{
-		for(;;) {}
+		for (;;) {}
 	}
 Aggressive DCE will remove the above dead cycle. */
 extern bool g_do_dce_aggressive;

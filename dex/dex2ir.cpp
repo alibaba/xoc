@@ -190,6 +190,248 @@ bool Dex2IR::is_readonly(CHAR const* method_name) const
 }
 
 
+//Return true if ir is built-in function.
+bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
+{
+	ASSERT0(ir && ir->is_call());
+	VAR const* v = CALL_idinfo(ir);
+	BLTIN_TYPE tbt = (BLTIN_TYPE)m_var2blt.mget(v);
+	if (tbt != bt) return false;
+#ifdef _DEBUG_
+	switch (bt) {
+	case BLTIN_INVOKE			:
+		{
+			/* CALL (r:I32:4) id:16
+				ID ('LCAnimal;::<init>' r:I32:4) callee id:9
+				PARAM param0 id:11
+					INTCONST r:U32:4 (2 0x2) id:10
+				PARAM param1 id:13
+					INTCONST r:U32:4 (0 0x0) id:12
+				PARAM param2 id:15
+					PR1 (r:I32:4) id:14 */
+			//The first is inoke-flag.
+			IR * p = CALL_param_list(ir);
+			ASSERT0(IR_type(p) == IR_CONST);
+			UINT invoke_flags = CONST_int_val(p);
+			p = IR_next(p);
+
+			//The second is method-id.
+			ASSERT0(p && IR_type(p) == IR_CONST);
+			UINT method_id = CONST_int_val(p);
+		}
+		break;
+	case BLTIN_NEW				:
+		{
+			/*CALL (r:PTR:4 ptbase:1) id:4
+				ID ('#new' r:PTR:4 ptbase:1) callee id:1
+				PARAM param0 id:3
+					INTCONST r:U32:4 (1 0x1) id:2
+				PR, retv0 */
+			ASSERT0(CALL_param_list(ir) &&
+					 IR_type(CALL_param_list(ir)) == IR_CONST);
+			ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
+			ASSERT0(ir->hasReturnValue());
+		}
+		break;
+	case BLTIN_NEW_ARRAY		:
+		{
+			/* (new_array, res), UNDEF, v5 <-
+				(num_of_elem, op0)v8, (elem_type, op1)'[LCAnimal;'
+
+			CALL (r:PTR:4 ptbase:1) id:66
+				ID ('#new_array' r:PTR:4 ptbase:1) callee id:61
+				PARAM param0 id:64
+					PR2 (r:PTR:4 ptbase:1) id:62
+				PARAM param1 id:65
+        			INTCONST r:U32:4 (14 0xe) id:64
+				PR7 (r:PTR:4 ptbase:1) retv id:69 */
+			//The first is a pr that record the number of array elements.
+			IR * p = CALL_param_list(ir);
+			ASSERT0(p && p->is_pr());
+			p = IR_next(p);
+
+			//The second is array element type id.
+			ASSERT0(p && IR_type(p) == IR_CONST);
+			UINT elem_type_id = CONST_int_val(p);
+			ASSERT0(IR_next(p) == NULL);
+		}
+		break;
+	case BLTIN_MOVE_EXP         :
+		//The res is a pr that record the exception handler.
+		ASSERT0(ir->hasReturnValue());
+		break;
+	case BLTIN_MOVE_RES         :
+		ASSERT0(ir->hasReturnValue());
+		break;
+	case BLTIN_THROW			:
+		{
+			//The first is a pr that is the reference of
+			//the exception object.
+			IR * p = CALL_param_list(ir);
+			ASSERT0(p->is_pr());
+			ASSERT0(IR_next(p) == NULL);
+		}
+		break;
+	case BLTIN_CHECK_CAST       :
+		{
+			/*
+			CALL (r:PTR:4 ptbase:1) id:113
+				ID ('#check_cast' r:PTR:4 ptbase:1) callee id:108
+				PARAM param0 id:110
+					PR8 (r:I32:4) id:109
+				PARAM param1 id:112
+					INTCONST r:I32:4 (16 0x10) id:111
+			*/
+			//The first is a pr that record the object-ptr
+			IR * p = CALL_param_list(ir);
+			ASSERT0(p && p->is_pr());
+			p = IR_next(p);
+
+			//The second is class type id.
+			ASSERT0(p && IR_type(p) == IR_CONST);
+			UINT type_id = CONST_int_val(p);
+			ASSERT0(IR_next(p) == NULL);
+		}
+		break;
+	case BLTIN_FILLED_NEW_ARRAY	:
+		{
+			/*
+			CALL (r:PTR:4 ptbase:1) id:82
+				ID ('#filled_new_array' r:PTR:4 ptbase:1) callee id:75
+				PARAM param0 id:77
+					INTCONST r:I32:4 (0 0x0) id:76
+				PARAM param1 id:77
+					INTCONST r:I32:4 (13 0xd) id:76
+				PARAM param2 id:79
+					PR2 (r:I32:4) id:78
+				PARAM param3 id:81
+					PR8 (r:I32:4) id:80
+			*/
+			IR * p = CALL_param_list(ir);
+
+			//The first record invoke flag.
+			ASSERT0(IR_type(p) == IR_CONST);
+			p = IR_next(p);
+
+			//The second record class type id.
+			ASSERT0(p && IR_type(p) == IR_CONST);
+			p = IR_next(p);
+			while (p != NULL) {
+				ASSERT0(p->is_pr());
+				p = IR_next(p);
+			}
+		}
+		break;
+	case BLTIN_FILL_ARRAY_DATA:
+		{
+			/*
+			CALL (r:PTR:4 ptbase:1) id:82
+				ID ('#fill_array_data' r:PTR:4 ptbase:1) callee id:75
+				PARAM param0 id:77
+					PR2 r:I32:4 id:76
+				PARAM param1 id:77
+					INTCONST r:U32:4 (13 0xd) id:76
+			*/
+			IR * p = CALL_param_list(ir);
+
+			//The first record array obj-ptr.
+			ASSERT0(p->is_pr());
+			p = IR_next(p);
+
+			//The second record binary data.
+			ASSERT0(p && IR_type(p) == IR_CONST);
+			ASSERT0(IR_next(p) == NULL);
+		}
+		break;
+	case BLTIN_CONST_CLASS      :
+		{
+			/*
+			CALL (r:PTR:4 ptbase:1) id:94
+				ID ('#const_class' r:PTR:4 ptbase:1) callee id:88
+				PARAM param0 id:91
+					PR9 (r:I32:4) id:90
+				PARAM param1 id:93
+					INTCONST r:I32:4 (2 0x2) id:92
+			*/
+			ASSERT0(ir->hasReturnValue());
+			ASSERT0(CALL_param_list(ir) &&
+					 IR_type(CALL_param_list(ir)) == IR_CONST);
+			ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
+		}
+		break;
+	case BLTIN_ARRAY_LENGTH     :
+		ASSERT0(ir->hasReturnValue());
+		ASSERT0(CALL_param_list(ir) &&
+				 CALL_param_list(ir)->is_pr());
+		ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
+		break;
+	case BLTIN_MONITOR_ENTER    :
+		ASSERT0(CALL_param_list(ir) &&
+				 CALL_param_list(ir)->is_pr());
+		ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
+		break;
+	case BLTIN_MONITOR_EXIT     :
+		ASSERT0(CALL_param_list(ir) &&
+				 CALL_param_list(ir)->is_pr());
+		ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
+		break;
+	case BLTIN_INSTANCE_OF      :
+		{
+			/*
+			CALL (r:PTR:4 ptbase:1) id:82
+				ID ('#instance_of' r:PTR:4 ptbase:1) callee id:75
+				PARAM param0 id:77
+					PR r:I32:4 (0 0x0) id:76
+				PARAM param1 id:77
+					PR r:I32:4 (13 0xd) id:76
+				PARAM param2 id:79
+					INTCONST
+			*/
+			IR * p = CALL_param_list(ir);
+			//The first is object-ptr reg.
+			ASSERT0(p && p->is_pr());
+			p = IR_next(p);
+
+			//The second is type-id.
+			ASSERT0(IR_type(p) == IR_CONST);
+			ASSERT0(IR_next(p) == NULL);
+
+			//The first is result reg..
+			ASSERT0(ir->hasReturnValue());
+		}
+		break;
+	case BLTIN_CMP_BIAS:
+		{
+			/*
+			AABBCC
+			cmpkind vAA <- vBB, vCC
+			IR will be:
+				IR_CALL
+					param0: cmp-kind.
+					param1: vBB
+					param2: vCC
+					res: vAA
+			*/
+			IR * p = CALL_param_list(ir);
+			//The first is object-ptr reg.
+			ASSERT0(p && p->is_int(m_dm));
+			p = IR_next(p);
+
+			ASSERT0(p && p->is_pr());
+			p = IR_next(p);
+
+			ASSERT0(p && p->is_pr());
+			ASSERT0(IR_next(p) == NULL);
+			ASSERT0(ir->hasReturnValue());
+		}
+		break;
+	default: ASSERT0(0);
+	}
+#endif
+	return true;
+}
+
+
 //'method_id': the global index in method-defining-tab of dexfile.
 VAR * Dex2IR::addFuncVar(UINT method_id, Type const* ty)
 {
@@ -205,7 +447,7 @@ VAR * Dex2IR::addFuncVar(UINT method_id, Type const* ty)
 		pbuf = (CHAR*)ALLOCA(l);
 		ASSERT0(pbuf);
 	}
-	sprintf(pbuf, "%s::%s", class_name, method_name);
+	sprintf(pbuf, "%s:%s", class_name, method_name);
 	VAR * v = addVarByName(pbuf, ty);
 	VAR_is_readonly(v) = is_readonly(method_name);
 	return v;
@@ -275,9 +517,9 @@ Type const* Dex2IR::getType(LIR * ir)
 void Dex2IR::set_map_v2blt(VAR * v, BLTIN_TYPE b)
 {
 	bool find;
-	UINT k = m_map_var2blt.get(v, &find);
+	UINT k = m_var2blt.get(v, &find);
 	if (!find) {
-		m_map_var2blt.set(v, b);
+		m_var2blt.set(v, b);
 	} else {
 		ASSERT0(k == b);
 	}
@@ -329,21 +571,18 @@ IR * Dex2IR::convertSget(IN LIR * lir)
 	TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(sizeof(TbaaAttachInfo));
 	tbaa->init(AI_TBAA);
 	tbaa->type = mapFieldType2Type(LIR_op0(lir));
-	ai->set(AI_TBAA, tbaa);
+	ASSERT0(tbaa->type);
+	ai->set(tbaa);
 	IR_ai(rhs) = ai;
 
 	return m_ru->buildStorePR(PR_no(res), IR_dt(res), rhs);
 }
 
 
-Type const* Dex2IR::mapFieldType2Type(UINT field_id)
+Type const* Dex2IR::mapDexType2XocType(CHAR charty)
 {
-	CHAR const* type_name = get_var_type_name(field_id);
-	ASSERT0(type_name);
-	Type const* ty = m_typename2type.get(type_name);
-	if (ty != NULL) { return ty; }
-
-	switch (*type_name) {
+	Type const* ty;
+	switch (charty) {
 	case 'V': ty = m_dm->getSimplexTypeEx(D_VOID); break;
 	case 'Z': ty = m_dm->getSimplexTypeEx(D_B); break;
 	case 'B': ty = m_dm->getSimplexTypeEx(D_U8); break;
@@ -357,9 +596,19 @@ Type const* Dex2IR::mapFieldType2Type(UINT field_id)
 	case '[': ty = m_tr->array; break;
 	default: ASSERT(0, ("TODO: not yet support")); break;
 	}
-
 	ASSERT0(ty);
-	m_typename2type.set(type_name, ty);
+	return ty;
+}
+
+
+Type const* Dex2IR::mapFieldType2Type(UINT field_id)
+{
+	CHAR const* type_name = get_var_type_name(field_id);
+	ASSERT0(type_name);
+	Type const* ty = m_typename2type.get(type_name);
+	if (ty != NULL) { return ty; }
+	m_typename2type.set(type_name, ty = mapDexType2XocType(*type_name));
+	ASSERT0(ty);
 	return ty;
 }
 
@@ -392,26 +641,22 @@ IR * Dex2IR::convertAput(IN LIR * lir)
 {
 	Type const* ty = getType(lir);
 	//st-val
-	IR * res = genMappedPR(LIR_res(lir), ty);
+	IR * src = genMappedPR(LIR_res(lir), ty);
 	//array
 	IR * base = genMappedPR(LIR_op0(lir), m_tr->ptr);
 	IR * ofst = genMappedPR(LIR_op1(lir), m_tr->u32);
 	TMWORD enbuf = 0;
-	IR * array = m_ru->buildArray(base, ofst, ty, ty, 1, &enbuf);
-
-	//Even if array operation may throw exception in DEX, we still
-	//set the may-throw property at its stmt but is not itself.
-	//IR_may_throw(array) = true;
 
 	//base type info.
 	AttachInfo * ai = m_ru->newAI();
 	TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(sizeof(TbaaAttachInfo));
 	tbaa->init(AI_TBAA);
 	tbaa->type = m_tr->array;
-	ai->set(AI_TBAA, tbaa);
+	ASSERT0(tbaa->type);
+	ai->set(tbaa);
 	IR_ai(base) = ai;
 
-	IR * c = m_ru->buildIstore(array, res, ty);
+	IR * c = m_ru->buildStoreArray(base, ofst, ty, ty, 1, &enbuf, src);
 	IR_may_throw(c) = true;
 	if (m_has_catch) {
 		IR * lab = m_ru->buildLabel(m_ru->genIlabel());
@@ -444,7 +689,8 @@ IR * Dex2IR::convertAget(IN LIR * lir)
 	TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(sizeof(TbaaAttachInfo));
 	tbaa->init(AI_TBAA);
 	tbaa->type = m_tr->array;
-	ai->set(AI_TBAA, tbaa);
+	ASSERT0(tbaa->type);
+	ai->set(tbaa);
 	IR_ai(base) = ai;
 
 	IR * c = m_ru->buildStorePR(PR_no(res), IR_dt(res), array);
@@ -572,7 +818,7 @@ IR * Dex2IR::convertCmp(IN LIR * lir)
 	add_next(&p, &last, r);
 
 	IR * c = m_ru->buildCall(v, p,
-							gen_mapped_prno(LIR_res(lir), m_tr->i32),
+							genMappedPrno(LIR_res(lir), m_tr->i32),
 							m_tr->i32);
 	CALL_is_readonly(c) = true;
 	IR_has_sideeffect(c) = false;
@@ -693,7 +939,8 @@ IR * Dex2IR::convertIget(IN LIR * lir)
 	TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(sizeof(TbaaAttachInfo));
 	tbaa->init(AI_TBAA);
 	tbaa->type = m_tr->ptr;
-	ai->set(AI_TBAA, tbaa);
+	ASSERT0(tbaa->type);
+	ai->set(tbaa);
 	IR_ai(obj) = ai;
 
 	CHAR const* type_name = get_var_type_name(LIR_op1(lir));
@@ -703,7 +950,8 @@ IR * Dex2IR::convertIget(IN LIR * lir)
 		TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(sizeof(TbaaAttachInfo));
 		tbaa->init(AI_TBAA);
 		tbaa->type = m_tr->array;
-		ai->set(AI_TBAA, tbaa);
+		ASSERT0(tbaa->type);
+		ai->set(tbaa);
 		IR_ai(ild) = ai;
 	} else if (is_obj_type(type_name)) {
 		//The type of result value of ild is pointer to object type.
@@ -711,7 +959,8 @@ IR * Dex2IR::convertIget(IN LIR * lir)
 		TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(sizeof(TbaaAttachInfo));
 		tbaa->init(AI_TBAA);
 		tbaa->type = m_tr->ptr;
-		ai->set(AI_TBAA, tbaa);
+		ASSERT0(tbaa->type);
+		ai->set(tbaa);
 		IR_ai(ild) = ai;
 	}
 
@@ -966,41 +1215,13 @@ IR * Dex2IR::convertInvoke(IN LIR * lir)
 		if (has_this && i == 0) {
 			param = genMappedPR(r->args[i], m_tr->ptr);
 		} else {
+			ASSERT(*paramty != '[', ("should be convert to L"));
+			param = genMappedPR(r->args[i], mapDexType2XocType(*paramty));
 			switch (*paramty) {
-			case 'V':
-				param = genMappedPR(r->args[i], m_tr->i32);
-				break;
-			case 'Z':
-				param = genMappedPR(r->args[i], m_tr->b);
-				break;
-			case 'B':
-				param = genMappedPR(r->args[i], m_tr->u8);
-				break;
-			case 'S':
-				param = genMappedPR(r->args[i], m_tr->i16);
-				break;
-			case 'C':
-				param = genMappedPR(r->args[i], m_tr->i8);
-				break;
-			case 'I':
-				param = genMappedPR(r->args[i], m_tr->i32);
-				break;
 			case 'J':
-				param = genMappedPR(r->args[i], m_tr->i64);
-				i++;
-				break;
-			case 'F':
-				param = genMappedPR(r->args[i], m_tr->f32);
-				break;
 			case 'D':
-				param = genMappedPR(r->args[i], m_tr->f64);
-				i++;
-				break;
-			case 'L':
-				param = genMappedPR(r->args[i], m_tr->ptr);
-				break;
-			case '[': ASSERT(0, ("should be convert to L")); break;
-			default: ASSERT0(0);
+				i++; break;
+			default:;
 			}
 			paramty++;
 		}
@@ -1034,7 +1255,7 @@ IR * Dex2IR::convertNewInstance(IN LIR * lir)
 	//return_value = new(CLASS-NAME)
 	IR * class_type_id = m_ru->buildImmInt(LIR_op0(lir), m_tr->u32);
 	IR * c = m_ru->buildCall(v, class_type_id,
-							  gen_mapped_prno(LIR_res(lir), ty), ty);
+							  genMappedPrno(LIR_res(lir), ty), ty);
 	IR_may_throw(c) = true;
 	CALL_is_alloc_heap(c) = true;
 	CALL_is_readonly(c) = true;
@@ -1064,7 +1285,7 @@ IR * Dex2IR::convertNewArray(IN LIR * lir)
 
 	//Call new_array(num_of_elem, class_name_id)
 	IR * c =  m_ru->buildCall(v, param_list,
-							   gen_mapped_prno(LIR_res(lir), ty), ty);
+							   genMappedPrno(LIR_res(lir), ty), ty);
 	IR_may_throw(c) = true;
 	CALL_is_alloc_heap(c) = true;
 	CALL_is_readonly(c) = true;
@@ -1080,7 +1301,7 @@ IR * Dex2IR::convertArrayLength(IN LIR * lir)
 	set_map_v2blt(v, BLTIN_ARRAY_LENGTH);
 	IR * c = m_ru->buildCall(v,
 							  genMappedPR(LIR_op0(lir), m_tr->ptr),
-							  gen_mapped_prno(LIR_res(lir), m_tr->i32),
+							  genMappedPrno(LIR_res(lir), m_tr->i32),
 							  m_tr->i32);
 
 	IR_may_throw(c) = true;
@@ -1142,7 +1363,7 @@ IR * Dex2IR::convertPackedSwitch(IN LIR * lir)
 		UINT * pcase_entry = LIR_packed_switch_case_entry(p);
 		for (USHORT i = 0; i < num_of_case; i++, base_val++) {
 			UINT idx_of_insn = pcase_entry[i];
-			LIR * tgt = LIRC_op(m_fu, idx_of_insn);
+			LIR * tgt = LIRC_op(m_lircode, idx_of_insn);
 			ASSERT0(tgt);
 			List<LabelInfo*> * labs = m_lir2labs.get(tgt);
 
@@ -1218,7 +1439,7 @@ IR * Dex2IR::convertSparseSwitch(IN LIR * lir)
 
 		UINT * pcase_entry = LIR_sparse_switch_case_entry(p);
 		for (UINT i = 0; i < num_of_case; i++) {
-			LIR * tgt = LIRC_op(m_fu, pcase_entry[i]);
+			LIR * tgt = LIRC_op(m_lircode, pcase_entry[i]);
 			ASSERT0(tgt);
 			List<LabelInfo*> * labs = m_lir2labs.get(tgt);
 
@@ -1252,7 +1473,7 @@ IR * Dex2IR::convertInstanceOf(IN LIR * lir)
 	add_next(&p, m_ru->buildImmInt(LIR_op1(lir), m_tr->i32));
 
 	IR * c = m_ru->buildCall(v, p,
-							  gen_mapped_prno(LIR_res(lir), m_tr->i32),
+							  genMappedPrno(LIR_res(lir), m_tr->i32),
 							  m_tr->i32);
 	IR_may_throw(c) = true;
 	CALL_is_readonly(c) = true;
@@ -1326,6 +1547,7 @@ IR * Dex2IR::convertThrow(IN LIR * lir)
 	CALL_is_readonly(c) = true;
 	CALL_is_intrinsic(c) = true;
 	IR_has_sideeffect(c) = true;
+	IR_is_termiate(c) = true;
 	return c;
 }
 
@@ -1336,7 +1558,7 @@ IR * Dex2IR::convertConstClass(IN LIR * lir)
 	set_map_v2blt(v, BLTIN_CONST_CLASS);
 	IR * c = m_ru->buildCall(v,
 							  m_ru->buildImmInt(LIR_op0(lir), m_tr->i32),
-							  gen_mapped_prno(LIR_res(lir), m_tr->i32),
+							  genMappedPrno(LIR_res(lir), m_tr->i32),
 							  m_tr->i32);
 	IR_may_throw(c) = true;
 	CALL_is_readonly(c) = true;
@@ -1351,7 +1573,7 @@ IR * Dex2IR::convertMoveException(IN LIR * lir)
 	VAR * v = addVarByName(BLTIN_name(BLTIN_MOVE_EXP), m_tr->ptr);
 	set_map_v2blt(v, BLTIN_MOVE_EXP);
 	IR * ir = m_ru->buildCall(v, NULL,
-							gen_mapped_prno(LIR_res(lir), m_tr->i32),
+							genMappedPrno(LIR_res(lir), m_tr->i32),
 							m_tr->i32);
 	CALL_is_readonly(ir) = true;
 	CALL_is_intrinsic(ir) = true;
@@ -1375,7 +1597,7 @@ IR * Dex2IR::convertMoveResult(IN LIR * lir)
 	VAR_is_readonly(v) = true;
 	set_map_v2blt(v, BLTIN_MOVE_RES);
 	IR * x = m_ru->buildCall(v, NULL,
-						gen_mapped_prno(LIR_res(lir), resty),
+						genMappedPrno(LIR_res(lir), resty),
 						resty);
 	CALL_is_readonly(x) = true;
 	IR_has_sideeffect(x) = true;
@@ -1423,7 +1645,7 @@ IR * Dex2IR::genMappedPR(UINT vid, Type const* ty)
 
 //Map Vreg to PR, then return the PR no.
 //vid: Vreg id.
-UINT Dex2IR::gen_mapped_prno(UINT vid, Type const* ty)
+UINT Dex2IR::genMappedPrno(UINT vid, Type const* ty)
 {
 	IR * vx = m_v2pr.get(vid);
 	if (vx == NULL) {
@@ -1523,7 +1745,7 @@ IR * Dex2IR::convertLoadConst(IN LIR * lir)
 
 IR * Dex2IR::convertGoto(IN LIR * lir)
 {
-	LIR * tgt = LIRC_op(m_fu, ((LIRGOTOOp*)lir)->target);
+	LIR * tgt = LIRC_op(m_lircode, ((LIRGOTOOp*)lir)->target);
 	ASSERT0(tgt);
 	List<LabelInfo*> * labs = m_lir2labs.get(tgt);
 	ASSERT0(labs);
@@ -1561,7 +1783,7 @@ IR * Dex2IR::convertCondBr(IN LIR * lir)
 	}
 	IR * det = m_ru->buildBinaryOp(rt, m_tr->b, op0, op1);
 	//Target label
-	LIR * tgt = LIRC_op(m_fu, liridx);
+	LIR * tgt = LIRC_op(m_lircode, liridx);
 	ASSERT0(tgt);
 	List<LabelInfo*> * labs = m_lir2labs.get(tgt);
 	ASSERT0(labs);
@@ -1726,11 +1948,11 @@ IR * Dex2IR::convert(IN LIR * lir)
 
 void Dex2IR::markLabel()
 {
-	for (INT i = 0; i < LIRC_num_of_op(m_fu); i++) {
-		LIR * lir = LIRC_op(m_fu, i);
+	for (INT i = 0; i < LIRC_num_of_op(m_lircode); i++) {
+		LIR * lir = LIRC_op(m_lircode, i);
 		ASSERT0(lir);
 		if (LIR_opcode(lir) == LOP_IF) {
-			LIR * tgt = LIRC_op(m_fu, LIR_op1(lir));
+			LIR * tgt = LIRC_op(m_lircode, LIR_op1(lir));
 			ASSERT0(tgt);
 			List<LabelInfo*> * lst = m_lir2labs.get(tgt);
 			if (lst == NULL) {
@@ -1739,7 +1961,7 @@ void Dex2IR::markLabel()
 				lst->append_tail(m_ru->genIlabel());
 			}
 		} else if (LIR_opcode(lir) == LOP_IFZ) {
-			LIR * tgt = LIRC_op(m_fu, LIR_op0(lir));
+			LIR * tgt = LIRC_op(m_lircode, LIR_op0(lir));
 			ASSERT0(tgt);
 			List<LabelInfo*> * lst = m_lir2labs.get(tgt);
 			if (lst == NULL) {
@@ -1748,7 +1970,7 @@ void Dex2IR::markLabel()
 				lst->append_tail(m_ru->genIlabel());
 			}
 		} else if (LIR_opcode(lir) == LOP_GOTO) {
-			LIR * tgt = LIRC_op(m_fu, ((LIRGOTOOp*)lir)->target);
+			LIR * tgt = LIRC_op(m_lircode, ((LIRGOTOOp*)lir)->target);
 			ASSERT0(tgt);
 			List<LabelInfo*> * lst = m_lir2labs.get(tgt);
 			if (lst == NULL) {
@@ -1765,7 +1987,7 @@ void Dex2IR::markLabel()
 			if (num_of_case > 0) {
 				UINT * pcase_entry = (UINT*)&pdata[4];
 				for (USHORT i = 0; i < num_of_case; i++) {
-					LIR * tgt = LIRC_op(m_fu, pcase_entry[i]);
+					LIR * tgt = LIRC_op(m_lircode, pcase_entry[i]);
 					ASSERT0(tgt);
 					List<LabelInfo*> * lst = m_lir2labs.get(tgt);
 					if (lst == NULL) {
@@ -1785,7 +2007,7 @@ void Dex2IR::markLabel()
 				BYTE * tp = (BYTE*)pdata;
 				UINT * pcase_entry = (UINT*)&tp[4 + num_of_case * 4];
 				for (UINT i = 0; i < num_of_case; i++) {
-					LIR * tgt = LIRC_op(m_fu, pcase_entry[i]);
+					LIR * tgt = LIRC_op(m_lircode, pcase_entry[i]);
 					ASSERT0(tgt);
 					List<LabelInfo*> * lst = m_lir2labs.get(tgt);
 					if (lst == NULL) {
@@ -1810,16 +2032,16 @@ void Dex2IR::markLabel()
 		}
 	}
 
-	if (m_fu->triesSize != 0) {
-		TRY_INFO * head = NULL, * lasti = NULL;
-		for (UINT i = 0; i < m_fu->triesSize; i++) {
-			LIROpcodeTry * each_try = m_fu->trys + i;
-			TRY_INFO * ti = (TRY_INFO*)xmalloc(sizeof(TRY_INFO));
+	if (m_lircode->triesSize != 0) {
+		TryInfo * head = NULL, * lasti = NULL;
+		for (UINT i = 0; i < m_lircode->triesSize; i++) {
+			LIROpcodeTry * each_try = m_lircode->trys + i;
+			TryInfo * ti = (TryInfo*)xmalloc(sizeof(TryInfo));
 			add_next(&head, &lasti, ti);
 
 			INT s = each_try->start_pc;
-			ASSERT0(s >= 0 && s < LIRC_num_of_op(m_fu));
-			LIR * lir = LIRC_op(m_fu, s);
+			ASSERT0(s >= 0 && s < LIRC_num_of_op(m_lircode));
+			LIR * lir = LIRC_op(m_lircode, s);
 			List<LabelInfo*> * lst = m_lir2labs.get(lir);
 			if (lst == NULL) {
 				lst = new List<LabelInfo*>();
@@ -1831,11 +2053,11 @@ void Dex2IR::markLabel()
 			ti->try_start = lab;
 
 			s = each_try->end_pc;
-			ASSERT0(s >= 0 && s <= LIRC_num_of_op(m_fu));
+			ASSERT0(s >= 0 && s <= LIRC_num_of_op(m_lircode));
 			lab = m_ru->genIlabel();
 			LABEL_INFO_is_try_end(lab) = true;
-			if (s < LIRC_num_of_op(m_fu)) {
-				lir = LIRC_op(m_fu, s);
+			if (s < LIRC_num_of_op(m_lircode)) {
+				lir = LIRC_op(m_lircode, s);
 				lst = m_lir2labs.get(lir);
 				if (lst == NULL) {
 					lst = new List<LabelInfo*>();
@@ -1847,14 +2069,14 @@ void Dex2IR::markLabel()
 			}
 			ti->try_end = lab;
 
-			CATCH_INFO * last = NULL;
+			CatchInfo * last = NULL;
 			for (UINT j = 0; j < each_try->catchSize; j++) {
 				LIROpcodeCatch * each_catch = each_try->catches + j;
-				CATCH_INFO * ci = (CATCH_INFO*)xmalloc(sizeof(CATCH_INFO));
+				CatchInfo * ci = (CatchInfo*)xmalloc(sizeof(CatchInfo));
 
-				ASSERT0(each_catch->handler_pc < (UInt32)LIRC_num_of_op(m_fu));
-				LIR * x = LIRC_op(m_fu, each_catch->handler_pc);
-
+				ASSERT0(each_catch->handler_pc < (UInt32)LIRC_num_of_op(m_lircode));
+				LIR * x = LIRC_op(m_lircode, each_catch->handler_pc);
+				ASSERT0(x);
                 //CASE: it is not always true. Apk may be messed up.
                 //ASSERT(LIR_opcode(x) == LOP_MOVE_EXCEPTION,
                 //		 ("LIR at catch start must be move_exception"));
@@ -1936,8 +2158,8 @@ IR * Dex2IR::convert(bool * succ)
 
 	if (dump) { dump_lir2lab(); }
 
-	for (INT i = 0; i < LIRC_num_of_op(m_fu); i++) {
-		LIR * lir = LIRC_op(m_fu, i);
+	for (INT i = 0; i < LIRC_num_of_op(m_lircode); i++) {
+		LIR * lir = LIRC_op(m_lircode, i);
 
 		FILE * t = NULL;
 		if (g_dd) {
@@ -1966,8 +2188,19 @@ IR * Dex2IR::convert(bool * succ)
 			dump_lir(lir, m_df, i);
 			dump_irs(newir, m_dm);
 		}
+
+		DexDbx const* dbx = m_dbxvec.get(i);
+		if (dbx != NULL) {
+			//Record Debug info.
+			for (IR * tmp = newir; tmp != NULL; tmp = IR_next(tmp)) {
+				IR_ai(tmp) = m_ru->newAI();
+				IR_ai(tmp)->set((BaseAttachInfo*)dbx);
+			}
+		}
+
 		add_next(&ir_list, &last, newir);
 	}
+
 	for (LabelInfo * li = m_last_try_end_lab_list.get_head();
 		 li != NULL; li = m_last_try_end_lab_list.get_next()) {
 		add_next(&ir_list, &last, m_ru->buildLabel(li));

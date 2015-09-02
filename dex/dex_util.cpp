@@ -84,7 +84,31 @@ CHAR const* get_dt_name(LIR * ir)
 }
 
 
-CHAR const* get_class_name(DexFile * df, DexMethod const* dm)
+CHAR const* get_class_name(DexFile const* df, UINT cls_type_idx)
+{
+	return dexStringByTypeIdx(df, cls_type_idx);
+}
+
+
+//Get the source file path of the class.
+CHAR const* getClassSourceFilePath(
+		DexFile const* df,
+		DexClassDef const* class_info)
+{
+	return dexStringById(df, class_info->sourceFileIdx);
+}
+
+
+CHAR const* get_class_name(DexFile const* df, DexClassDef const* class_info)
+{
+	ASSERT0(class_info);
+	CHAR const* class_name = dexStringByTypeIdx(df, class_info->classIdx);
+	ASSERT0(class_name);
+	return class_name;
+}
+
+
+CHAR const* get_class_name(DexFile const* df, DexMethod const* dm)
 {
 	ASSERT0(df && dm);
 	DexMethodId const* pMethodId = dexGetMethodId(df, dm->methodIdx);
@@ -92,7 +116,7 @@ CHAR const* get_class_name(DexFile * df, DexMethod const* dm)
 }
 
 
-CHAR const* get_func_name(DexFile * df, DexMethod const* dm)
+CHAR const* get_func_name(DexFile const* df, DexMethod const* dm)
 {
 	ASSERT0(df && dm);
 	DexMethodId const* pMethodId = dexGetMethodId(df, dm->methodIdx);
@@ -957,25 +981,6 @@ CHAR const* get_field_name(DexFile * df, UINT field_id)
 }
 
 
-/*
-cls_type_idx: typeIdx in string-type-table,
-	not the idx in class-def-item table.
-*/
-CHAR const* get_class_name(DexFile * df, UINT cls_type_idx)
-{
-	return dexStringByTypeIdx(df, cls_type_idx);
-}
-
-
-CHAR const* get_class_name(DexFile * df, DexClassDef const* class_info)
-{
-	ASSERT0(class_info);
-	CHAR const* class_name = dexStringByTypeIdx(df, class_info->classIdx);
-	ASSERT0(class_name);
-	return class_name;
-}
-
-
 //Dump all classes declared in DEX file 'df'.
 void dump_all_class_and_field(DexFile * df)
 {
@@ -993,7 +998,8 @@ void dump_all_class_and_field(DexFile * df)
 		//ASSERT(i == class_info->classIdx, ("they might be equal"));
 		//CHAR const* class_name = dexStringByTypeIdx(df, class_info->classIdx);
 		//ASSERT0(class_name);
-		fprintf(g_tfile, "class %s {", get_class_name(df, class_info));
+		fprintf(g_tfile, "source file:%s", getClassSourceFilePath(df, class_info));
+		fprintf(g_tfile, "\nclass %s {", get_class_name(df, class_info));
 
 		//Dump class fields.
 		BYTE const* encoded_data = dexGetClassData(df, class_info);
@@ -1221,34 +1227,28 @@ CHAR const* AocDxMgr::get_class_name_by_declaration_id(UINT cls_def_idx)
 //
 //START DexPassMgr
 //
-class DexPassMgr : public PassMgr {
-public:
-	DexPassMgr(Region * ru) : PassMgr(ru) {}
-	virtual ~DexPassMgr() {}
+Pass * DexPassMgr::allocDCE()
+{
+	IR_DCE * pass = new IR_DCE(m_ru);
+	pass->set_elim_cfs(true);
+	return pass;
+}
 
-	virtual Pass * allocDCE()
-	{
-		IR_DCE * pass = new IR_DCE(m_ru);
-		pass->set_elim_cfs(true);
-		return pass;
-	}
 
-	virtual Pass * allocCopyProp()
-	{
-		Pass * pass = new DEX_CP(m_ru);
-		SimpCTX simp;
-		pass->set_simp_cont(&simp);
-		return pass;
-	}
+Pass * DexPassMgr::allocCopyProp()
+{
+	Pass * pass = new DEX_CP(m_ru);
+	SimpCTX simp;
+	pass->set_simp_cont(&simp);
+	return pass;
+}
 
-	virtual Pass * allocRP()
-	{
-		Pass * pass = new DEX_RP(m_ru, (IR_GVN*)registerPass(PASS_GVN));
-		return pass;
-	}
 
-	virtual void performScalarOpt(OptCTX & oc);
-};
+Pass * DexPassMgr::allocRP()
+{
+	Pass * pass = new DEX_RP(m_ru, (IR_GVN*)registerPass(PASS_GVN));
+	return pass;
+}
 
 
 int xtime = 1;
@@ -1334,6 +1334,8 @@ public:
 		TbaaAttachInfo * ty = (TbaaAttachInfo*)ai->get(AI_TBAA);
 		if (ty == NULL) { return NULL; }
 
+		ASSERT(ty->type, ("Type should not be given if "
+						  "you intend to annotate it as TBAA."));
 		MD const* md = m_type2md.get(ty->type);
 		if (md != NULL) {
 			return md;
@@ -1342,7 +1344,7 @@ public:
 		CHAR buf[64];
 		sprintf(buf, "dummy%d", (UINT)(size_t)ty->type);
 		VAR * dummy = m_var_mgr->registerVar(
-						buf, m_dm->getMCType(0), 1, VAR_GLOBAL);
+						buf, ty->type, 1, VAR_GLOBAL);
 		VAR_is_addr_taken(dummy) = true;
 		VAR_allocable(dummy) = false;
 		m_ru->addToVarTab(dummy);
@@ -1404,21 +1406,15 @@ PassMgr * DexRegion::newPassMgr()
 
 
 //Initialize alias analysis.
-IR_AA * DexRegion::initAliasAnalysis(OptCTX & oc)
+IR_AA * DexRegion::newAliasAnalysis()
 {
-	ASSERT0(REGION_analysis_instrument(this));
-	if (get_aa() == NULL) {
-		DEX_AA * aa = new DEX_AA(this);
+	return new DEX_AA(this);
+}
 
-		REGION_analysis_instrument(this)->m_ir_aa = aa;
 
-		aa->initMayPointToSet();
-
-		aa->set_flow_sensitive(true);
-
-		aa->perform(oc);
-	}
-	return get_aa();
+bool DexRegion::MiddleProcess(OptCTX & oc)
+{
+	return Region::MiddleProcess(oc);
 }
 
 
@@ -1473,7 +1469,7 @@ bool DexRegion::HighProcess(OptCTX & oc)
 
 
 //All global prs must be mapped.
-bool DexRegion::verifyRAresult(RA & ra, Prno2UINT & prno2v)
+bool DexRegion::verifyRAresult(RA & ra, Prno2Vreg & prno2v)
 {
 	GltMgr * gltm = ra.get_gltm();
 	Vector<GLT*> * gltv = gltm->get_gltvec();
@@ -1508,7 +1504,7 @@ bool DexRegion::verifyRAresult(RA & ra, Prno2UINT & prno2v)
 }
 
 
-void DexRegion::updateRAresult(IN RA & ra, OUT Prno2UINT & prno2v)
+void DexRegion::updateRAresult(IN RA & ra, OUT Prno2Vreg & prno2v)
 {
 	prno2v.maxreg = ra.get_maxreg();
 	prno2v.paramnum = ra.get_paramnum();
@@ -1538,11 +1534,9 @@ void DexRegion::updateRAresult(IN RA & ra, OUT Prno2UINT & prno2v)
 }
 
 
-void DexRegion::processSimply(OUT Prno2UINT & prno2v, UINT param_num,
-								UINT vregnum, Dex2IR & d2ir, UINT2PR * v2pr,
-								IN Prno2UINT * pr2v, TypeIndexRep * tr)
+void DexRegion::processSimply()
 {
-	LOG("\t\t Invoke DexRegion::processSimply '%s'", get_ru_name());
+	LOG("DexRegion::processSimply %s", get_ru_name());
 	if (get_ir_list() == NULL) { return ; }
 	OptCTX oc;
 	OC_show_comp_time(oc) = g_show_comp_time;
@@ -1557,6 +1551,7 @@ void DexRegion::processSimply(OUT Prno2UINT & prno2v, UINT param_num,
 
 	IR_CFG * cfg = initCfg(oc);
 	cfg->LoopAnalysis(oc);
+	g_do_ssa = false;
 
 	PassMgr * passmgr = initPassMgr();
 
@@ -1581,36 +1576,44 @@ void DexRegion::processSimply(OUT Prno2UINT & prno2v, UINT param_num,
 
 	#if 1
 	//Do not allocate register.
-	prno2v.clean();
-	prno2v.copy(*d2ir.get_pr2v_map());
+	getPrno2Vreg()->clean();
+	getPrno2Vreg()->copy(*getDex2IR()->getPR2Vreg());
 	return;
 	#else
 	//Allocate register.
-	RA ra(this, tr, param_num, vregnum, v2pr, pr2v, &m_var2pr);
+	RA ra(this,
+		  getTypeIndexRep(),
+		  getParamNum(),
+		  getVregNum(),
+		  getVreg2PR(),
+		  getPrno2Vreg(),
+		  &m_var2pr);
 	LOG("\t\tdo DEX Register Allcation for '%s'", ru_name);
 	ra.perform(oc);
-	updateRAresult(ra, prno2v);
+	updateRAresult(ra, *getPrno2Vreg());
 	#endif
 }
 
 
-void DexRegion::process(OUT Prno2UINT & prno2v, UINT param_num, UINT vregnum,
-						 UINT2PR * v2pr, IN Prno2UINT * pr2v, TypeIndexRep * tr)
+//This function outputs Prno2Vreg after Dex register allocation.
+void DexRegion::process()
 {
 	if (get_ir_list() == NULL) { return; }
 	OptCTX oc;
 	OC_show_comp_time(oc) = g_show_comp_time;
 
 	g_indent = 0;
+	LOG("DexRegion process %s", get_ru_name());
 	note("\n==---- REGION_NAME:%s ----==", get_ru_name());
 	prescan(get_ir_list());
 
 	REGION_is_pr_unique_for_same_number(this) = true;
 
+	g_do_ssa = false;
+	g_do_dex_ra = false;
 	//g_do_ssa = true;
 
 	HighProcess(oc);
-
 	MiddleProcess(oc);
 
 	ASSERT0(get_pass_mgr());
@@ -1634,9 +1637,22 @@ void DexRegion::process(OUT Prno2UINT & prno2v, UINT param_num, UINT vregnum,
 	refineBBlist(bbl, rf);
 	ASSERT0(verifyIRandBB(bbl, this));
 
-	RA ra(this, tr, param_num, vregnum, v2pr, pr2v, &m_var2pr);
-	LOG("\t\tdo DEX Register Allcation for '%s'", get_ru_name());
-	ra.perform(oc);
-	updateRAresult(ra, prno2v);
+	if (g_do_dex_ra) {
+		Prno2Vreg * original_prno2vreg = getDex2IR()->getPR2Vreg();
+		RA ra(this,
+			  getTypeIndexRep(),
+			  getParamNum(),
+			  getOrgVregNum(),
+			  getDex2IR()->getVreg2PR(),
+			  original_prno2vreg,
+			  &m_var2pr);
+		LOG("\t\tdo DEX Register Allcation for '%s'", get_ru_name());
+		ra.perform(oc);
+		updateRAresult(ra, *getPrno2Vreg());
+	} else {
+		//Do not allocate register.
+		getPrno2Vreg()->clean();
+		getPrno2Vreg()->copy(*getDex2IR()->getPR2Vreg());
+	}
 }
 //END DexRegion

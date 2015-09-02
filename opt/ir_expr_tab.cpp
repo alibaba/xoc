@@ -149,7 +149,7 @@ UINT IR_EXPR_TAB::compute_hash_key(IR const* ir)
 {
 	ASSERT0(ir != NULL);
 	UINT hval = IR_type(ir) + (ir->get_offset() + 1) + (UINT)(size_t)IR_dt(ir);
-	if (IR_type(ir) == IR_ID) {
+	if (ir->is_id()) {
 		VAR * var = ID_info(ir);
 		/*
 		SYM * name = VAR_name(id_info);

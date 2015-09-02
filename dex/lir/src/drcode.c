@@ -51,6 +51,21 @@ author: GongKai, JinYue
 #include "xassert.h"
 #include "lircomm.h"
 #include "lir.h"
+#include "ltype.h"
+
+#include "../opt/cominc.h"
+
+#include "dx_mgr.h"
+#include "aoc_dx_mgr.h"
+
+#include "../opt/prdf.h"
+#include "dex.h"
+#include "gra.h"
+
+#include "dex_util.h"
+#include "dex2ir.h"
+#include "ir2dex.h"
+#include "d2d_l2d.h"
 #include "dex_driver.h"
 
 Int32 gMemAlloc = 0;
@@ -134,7 +149,7 @@ Int32 findPos(PositionMap* posMap,UInt32 target)
             low = mid;
     }
 
-    abort();
+    ASSERT0(0);
     return -1;
 }
 
@@ -391,7 +406,7 @@ void genInstruction(
                 memcpy(lir->data,(BYTE*)data,dataSize);
                 break;
             }
-            default: abort();
+            default: ASSERT0(0);
             }
             result = (LIRBaseOp*)lir;
             break;
@@ -446,7 +461,7 @@ END:
             break;
         }default:{
             result = NULL;
-            abort();
+            ASSERT0(0);
         }
         }
 
@@ -471,8 +486,7 @@ END:
                     width = size * 4 + 2;
                     break;
                 }
-                default:
-                    abort();
+                default: ASSERT0(0);
                     width = gDIROpcodeInfo.widths[opcode];
                     break;
             }
@@ -491,12 +505,12 @@ END:
 
 static void genTryCatches(
         const DexFile* pDexFile,
-        const DexCode* pCode,
+        const DexCode* dexCode,
         PositionMap* posMap,
         LIRCode* code)
 {
-    const DexTry* pTries = dexGetTries(pCode);
-    UInt32 triesSize = pCode->triesSize;
+    const DexTry* pTries = dexGetTries(dexCode);
+    UInt32 triesSize = dexCode->triesSize;
     UInt32 i;
 
     LIROpcodeTry* trys = (LIROpcodeTry*)LIRMALLOC(triesSize*sizeof(LIROpcodeTry));
@@ -520,7 +534,7 @@ static void genTryCatches(
         _try->start_pc = newStart;
         _try->end_pc = newEnd;
 
-        dexCatchIteratorInit(&iterator, pCode, pTry->handlerOff);
+        dexCatchIteratorInit(&iterator, dexCode, pTry->handlerOff);
         handlerSize = 0;
         while (true) {
             DexCatchHandler* handler = dexCatchIteratorNext(&iterator);
@@ -534,7 +548,7 @@ static void genTryCatches(
         _try->catches =
             (LIROpcodeCatch*)LIRMALLOC(handlerSize*sizeof(LIROpcodeCatch));
 
-        dexCatchIteratorInit(&iterator, pCode, pTry->handlerOff);
+        dexCatchIteratorInit(&iterator, dexCode, pTry->handlerOff);
         UInt32 idx = 0;
         while (true) {
             DexCatchHandler* handler = dexCatchIteratorNext(&iterator);
@@ -567,11 +581,11 @@ static void genTryCatches(
 //#ifdef __cplusplus
 //}
 //#endif
-//astatic Int32 l2dWithAot(D2Dpool* pool, const DexCode* pCode, LIRCode* code)
+//astatic Int32 l2dWithAot(D2Dpool* pool, const DexCode* dexCode, LIRCode* code)
 //{
 //   Int32 err = 0;
 //    code = anaEntry(code);
-//    lir2dexCode(pool, pCode, code);
+//    lir2dexCode(pool, dexCode, code);
 //    return err;
 //}
 
@@ -581,15 +595,15 @@ bool aotDrGenCode(
         DexMethod* pDexMethod,
         LCodeData* codeData)
 {
-    const DexCode* pCode = dexGetCode(pDexFile, pDexMethod);
-    UInt16* codeStart = (UInt16*)pCode->insns;
-    UInt16* codeEnd = codeStart + pCode->insnsSize;
+    const DexCode* dexCode = dexGetCode(pDexFile, pDexMethod);
+    UInt16* codeStart = (UInt16*)dexCode->insns;
+    UInt16* codeEnd = codeStart + dexCode->insnsSize;
     UInt16* codePtr = codeStart;
 
     /*init mem heap*/
     drLinearInit();
 
-    LIRCode* code = (LIRCode*)LIRMALLOC(sizeof(LIRCode));
+    LIRCode* lircode = (LIRCode*)LIRMALLOC(sizeof(LIRCode));
 
     //const DexMethodId* method = dexGetMethodId(pDexFile, pDexMethod->methodIdx);
      LIRBaseOp** lirList;
@@ -624,38 +638,38 @@ bool aotDrGenCode(
 
     memset(lirList, 0 ,instrCount*sizeof(LIRBaseOp*));
 
-    code->instrCount = instrCount;
-    code->lirList = lirList;
-    code->maxVars = pCode->registersSize;
+    lircode->instrCount = instrCount;
+    lircode->lirList = lirList;
+    lircode->maxVars = dexCode->registersSize;
 
     //gen instruction
     genInstruction(pDexFile, codeStart, codeEnd, lirList, &positionMap);
 
     //ge try catch
-    genTryCatches(pDexFile,pCode,&positionMap,code);
+    genTryCatches(pDexFile, dexCode, &positionMap, lircode);
 
     free(positionMap.posMap);
 
     const DexMethodId* pMethodId;
     pMethodId = dexGetMethodId(pDexFile, pDexMethod->methodIdx);
 
-    code->numArgs = pCode->insSize;
-    code->flags = 0;
+    lircode->numArgs = dexCode->insSize;
+    lircode->flags = 0;
 
     //tmp impl
-    code->strClass = strdup(dexStringByTypeIdx(pDexFile, pMethodId->classIdx));
-    code->strName = strdup(dexStringById(pDexFile, pMethodId->nameIdx));
+    lircode->strClass = strdup(dexStringByTypeIdx(pDexFile, pMethodId->classIdx));
+    lircode->strName = strdup(dexStringById(pDexFile, pMethodId->nameIdx));
 
     const DexProtoId* proto = dexGetProtoId(pDexFile, pMethodId->protoIdx);
     const char* shorty = strdup(dexStringById(pDexFile, proto->shortyIdx));
-    code->shortName = shorty;
+    lircode->shortName = shorty;
 
     if ((ACC_STATIC & pDexMethod->accessFlags))
-        code->flags |= LIR_FLAGS_ISSTATIC;
+        lircode->flags |= LIR_FLAGS_ISSTATIC;
 
     /*analyse the lir to make it better,
      *and transform lir to lex*/
-    lir2lexTransform(code, codeData);
+    lir2lexTransform(lircode, codeData);
 
     /*free heap*/
     drLinearFree();
@@ -663,17 +677,21 @@ bool aotDrGenCode(
 }
 #endif
 
-bool d2rMethod(D2Dpool* pool, DexFile* pDexFile, const DexMethod* pDexMethod)
+bool d2rMethod(
+        D2Dpool* pool,
+        DexFile* pDexFile,
+        const DexMethod* pDexMethod,
+        const DexClassDef* classdef)
 {
-    const DexCode* pCode = dexGetCode(pDexFile, pDexMethod);
-    UInt16* codeStart = (UInt16*)pCode->insns;
-    UInt16* codeEnd = codeStart + pCode->insnsSize;
+    const DexCode* dexCode = dexGetCode(pDexFile, pDexMethod);
+    UInt16* codeStart = (UInt16*)dexCode->insns;
+    UInt16* codeEnd = codeStart + dexCode->insnsSize;
     UInt16* codePtr = codeStart;
 
     drLinearInit();
 
-    LIRCode* code = (LIRCode*)LIRMALLOC(sizeof(LIRCode));
-     LIRBaseOp** lirList;
+    LIRCode* lircode = (LIRCode*)LIRMALLOC(sizeof(LIRCode));
+    LIRBaseOp** lirList;
 
     UInt32 instrCount = 0;
     PositionMap positionMap;
@@ -682,14 +700,24 @@ bool d2rMethod(D2Dpool* pool, DexFile* pDexFile, const DexMethod* pDexMethod)
     positionMap.posMap =
         (UInt32*)malloc((codeEnd - codeStart + 1)*sizeof(UInt32));
     UInt32 dexOffset = 0;
-
+    UInt32 lastValidDexOffset = 0;
+    bool lastInstrIsPseudo = false;
+    OffsetVec offvec;
     while (codePtr < codeEnd) {
         if (!contentIsInsn(codePtr)) {
             break;
         }
 
+        //Record the Dex instruction half-word offset.
+        offvec.set(instrCount, dexOffset);
+
         UInt16 instr = *codePtr;
         if (instr == 0x100 || instr == 0x200) {
+            // If the prev insn is not pseudo, update the lastValidDexOffset.
+            if (!lastInstrIsPseudo) {
+                lastValidDexOffset = dexOffset;
+            }
+            lastInstrIsPseudo = true;
             UInt32 width;
             switch (instr) {
                 case 0x100: {
@@ -705,65 +733,72 @@ bool d2rMethod(D2Dpool* pool, DexFile* pDexFile, const DexMethod* pDexMethod)
                     break;
                 }
                 default:
-                    abort();
+                    ASSERT0(0);
                     break;
             }
             codePtr += width;
             dexOffset += width;
-            continue;
+        } else {
+            // If insn is not pseudo insn, update posMap; otherwise, continue to the next insn.
+            lastInstrIsPseudo = false;
+            DIROpcode opcode = getOpcodeFromCodeUnit(instr);
+            UInt32 width = gDIROpcodeInfo.widths[opcode];
+
+            positionMap.posMap[instrCount] = dexOffset;
+
+            codePtr += width;
+            dexOffset += width;
+            instrCount++;
         }
-        DIROpcode opcode = getOpcodeFromCodeUnit(instr);
-        UInt32 width = gDIROpcodeInfo.widths[opcode];
-
-        positionMap.posMap[instrCount] = dexOffset;
-
-        codePtr += width;
-        dexOffset += width;
-        instrCount++;
     }
-
-    positionMap.posMap[instrCount] = dexOffset;
+    // if the last instr is pseudo, the valid dexoffset is the lastValidDexOffset but not the dexoffset.
+    if (lastInstrIsPseudo) {
+        positionMap.posMap[instrCount] = lastValidDexOffset;
+    } else {
+        positionMap.posMap[instrCount] = dexOffset;
+    }
     positionMap.posNum = instrCount + 1;
 
     lirList = (LIRBaseOp**)LIRMALLOC(instrCount * sizeof(LIRBaseOp*));
     memset(lirList, 0 ,instrCount*sizeof(LIRBaseOp*));
 
-    code->instrCount = instrCount;
-    code->lirList = lirList;
-    code->maxVars = pCode->registersSize;
+    lircode->instrCount = instrCount;
+    lircode->lirList = lirList;
+    lircode->maxVars = dexCode->registersSize;
 
     const DexMethodId* pMethodId;
     pMethodId = dexGetMethodId(pDexFile, pDexMethod->methodIdx);
 
-    code->numArgs = pCode->insSize;
-    code->flags = 0;
+    lircode->numArgs = dexCode->insSize;
+    lircode->flags = 0;
 
     //tmp impl
-    code->strClass = dexStringByTypeIdx(pDexFile, pMethodId->classIdx);
-    code->strName = dexStringById(pDexFile, pMethodId->nameIdx);
+    lircode->strClass = dexStringByTypeIdx(pDexFile, pMethodId->classIdx);
+    lircode->strName = dexStringById(pDexFile, pMethodId->nameIdx);
 
     const DexProtoId* proto = dexGetProtoId(pDexFile, pMethodId->protoIdx);
     const char* shorty = dexStringById(pDexFile, proto->shortyIdx);
-    code->shortName = shorty;
+    lircode->shortName = shorty;
 
     //gen instruction
     genInstruction(pDexFile, codeStart, codeEnd, lirList, &positionMap);
     //ge try catch
-    genTryCatches(pDexFile,pCode,&positionMap,code);
+    genTryCatches(pDexFile, dexCode, &positionMap, lircode);
 
     free(positionMap.posMap);
 
-    if ((ACC_STATIC & pDexMethod->accessFlags))
-        code->flags |= LIR_FLAGS_ISSTATIC;
+    if ((ACC_STATIC & pDexMethod->accessFlags)) {
+        lircode->flags |= LIR_FLAGS_ISSTATIC;
+    }
 
-    compileFunc(pool, code, pDexFile, pDexMethod);
-    lir2dexCode(pool, pCode, code);
+    compileFunc(pool, lircode, pDexFile, pDexMethod, dexCode, classdef, offvec);
+    lir2dexCode(pool, dexCode, lircode);
 
     //Leave it to verify.
-    //lir2dexCode_orig(pool, pCode, code);
+    //lir2dexCode_orig(pool, dexCode, code);
 
     //Obsolete code.
-    //l2dWithAot(pool, pCode, code);
+    //l2dWithAot(pool, dexCode, code);
     drLinearFree();
     return true;
 }

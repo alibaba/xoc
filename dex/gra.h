@@ -328,8 +328,8 @@ protected:
 	IG m_ig;
 	SMemPool * m_pool;
 	PRDF * m_prdf;
-	Prno2UINT * m_pr2v;
-	UINT2PR * m_v2pr;
+	Prno2Vreg * m_pr2v;
+	Vreg2PR * m_v2pr;
 	GltMgr * m_gltm;
 	TypeMgr * m_dm;
 	Region * m_ru;
@@ -679,7 +679,7 @@ protected:
 	TypeMgr * m_dm;
 	BitSetMgr * m_bsm;
 	Vector<FMT> m_ir2fmt;
-	STR2INTRI m_str2intri;
+	Str2BuiltinType m_str2builtin;
 	BitSet * m_usable[FNUM][2]; //1:def, 0:use
 
 	void init_usable();
@@ -715,6 +715,7 @@ public:
 	BitSet * get_16();
 	void comp_st_fmt(IR const* ir);
 	void comp_ist_fmt(IR const* ir);
+	void comp_starray_fmt(IR const* ir);
 	void comp_call_fmt(IR const* ir);
 	void comp_ir_fmt(IR const* ir);
 	void comp_usable_regs(LT * lt, LTMgr * ltm);
@@ -813,8 +814,8 @@ protected:
 	IR_CFG * m_cfg;
 	TypeMgr * m_dm;
 	TypeIndexRep * m_tr;
-	UINT2PR * m_v2pr;
-	Prno2UINT * m_pr2v;
+	Vreg2PR * m_v2pr;
+	Prno2Vreg * m_pr2v;
 	VAR2PR * m_var2pr;
 	UINT m_param_num; //record the number of param.
 	UINT m_param_reg_start;
@@ -879,7 +880,7 @@ protected:
 	bool overlapParam(LT const* l) const;
 public:
 	RA(Region * ru, TypeIndexRep * tr, UINT param_num, UINT vregnum,
-	   UINT2PR * v2pr, Prno2UINT * pr2v, VAR2PR * var2pr) :
+	   Vreg2PR * v2pr, Prno2Vreg * pr2v, VAR2PR * var2pr) :
 		m_prdf(ru), m_gltm(ru, &m_prdf, self()), m_ig(ru, &m_gltm),
 		m_rsc(&m_gltm)
 	{

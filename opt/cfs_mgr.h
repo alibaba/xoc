@@ -168,7 +168,7 @@ public:
 							IN BitSet * cur_region,
 							IN Graph & cur_graph,
 							IN OUT BitSet & visited);
-	AbsNode * construct_abstract_cfs();
+	AbsNode * constructAbstractControlFlowStruct();
 
 	void dump_indent(UINT indent);
 	void dump_abs_tree(AbsNode * an);

@@ -151,10 +151,8 @@ inline static void append_after_smp(SMemPool * marker, SMemPool * tlst)
 }
 
 
-/*
-Hash table must be initialized if one invoked
-smpoolCreatePoolIndex or smpoolMalloc.
-*/
+//Hash table must be initialized if one invoked
+//smpoolCreatePoolIndex or smpoolMalloc.
 void smpoolInitPool()
 {
 	if (g_is_pool_init) {
@@ -167,10 +165,8 @@ void smpoolInitPool()
 
 		//Record pool list into hash.
 		while (mp != NULL) {
-			/*
-			Mainly hash addr of 'mp' into hash
-			table corresponding to 'mpt_idx'.
-			*/
+			//Mainly hash addr of 'mp' into hash
+			//table corresponding to 'mpt_idx'.
 			ASSERT(g_mem_pool_hash_tab->find((OBJTY)MEMPOOL_id(mp)) == NULL,
 					("Repetitive pool idx"));
 			g_mem_pool_hash_tab->append(mp);
@@ -220,10 +216,10 @@ void smpoolFiniPool()
 }
 
 
-/* Create new mem pool, return the pool handle.
-NOTICE:
-Since this type of pool will NOT to be recorded
-in 'hash table of POOLs', pool index always be 0. */
+//Create new mem pool, return the pool handle.
+//NOTICE:
+//Since this type of pool will NOT to be recorded
+//in 'hash table of POOLs', pool index always be 0.
 SMemPool * smpoolCreate(size_t size, MEMPOOLTYPE mpt)
 {
 	SMemPool * mp = NULL;
@@ -306,13 +302,11 @@ INT smpoolDeleteViaPoolIndex(MEMPOOLIDX mpt_idx)
 	if (g_is_pool_hashed && g_is_pool_init) {
 		mp = g_mem_pool_hash_tab->find((OBJTY)(size_t)mpt_idx);
 		if (mp == NULL) {
-			/*
-			Sometimes, mem pool is manipulated by user, but
+			/* Sometimes, mem pool is manipulated by user, but
 			is not due to destructer.
 			Therefore, the same mem pool idx will be free
 			serval times. The message may confuse users.
-			fprintf(stdout, "No such mempool, removing failed.");
-			*/
+			fprintf(stdout, "No such mempool, removing failed."); */
 	  		return ST_NO_SUCH_MEMPOOL_FIND;
 		}
 		//Remove pool from pool table.
@@ -545,10 +539,8 @@ size_t smpoolGetPoolSizeViaIndex(MEMPOOLIDX mpt_idx)
 		return 0;
 	}
 
-	/*
-	Searching free mem block in the mempool
-	which 'mpt_idx' refers to.
-	*/
+	//Searching free mem block in the mempool
+	//which 'mpt_idx' refers to.
 	return smpoolGetPoolSize(mp);
 }
 

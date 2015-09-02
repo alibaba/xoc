@@ -32,6 +32,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 author: GongKai, JinYue
 @*/
 #include "drAlloc.h"
+#include "ltype.h"
 #include "xassert.h"
 
 #define PIG_SIZE (4096)
@@ -66,33 +67,37 @@ bool drLinearInit(void){
     return true;
 }
 
-void* drLinearAlloc(size_t size){
+void* drLinearAlloc(size_t size)
+{
     size = (size + 3) & ~3;
+
 retry:
-    if(size + currentBlock->usedSize <= currentBlock->totalSize){
+    if (size + currentBlock->usedSize <= currentBlock->totalSize) {
         void* ptr;
         ptr = &currentBlock->ptr[currentBlock->usedSize];
         currentBlock->usedSize += size;
         return ptr;
-    }else{
+    } else {
         if (currentBlock->next) {
             currentBlock = currentBlock->next;
             goto retry;
         }
 
-        DRMBlock *newBlock = (DRMBlock *)malloc(DEFAULT_ALLOC_SIZE+10);
+		UInt32 maxsize = MAX(DEFAULT_BLOCK_SIZE, size + 64);
+        DRMBlock * newBlock = (DRMBlock *)malloc(
+                                  maxsize + sizeof(DRMBlock) + 10);
         if (newBlock == NULL) {
-            LOGE("Block allocation failure, total page %d\n",numBlocks*2);
+            LOGE("Block allocation failure, total page %d\n", numBlocks * 2);
             ABORT();
         }
-        newBlock->totalSize = DEFAULT_BLOCK_SIZE;
+        newBlock->totalSize = maxsize;
         newBlock->usedSize = 0;
         newBlock->next = NULL;
         currentBlock->next = newBlock;
         currentBlock = newBlock;
-        *(UInt32*)(currentBlock->ptr+DEFAULT_BLOCK_SIZE) = 0xdeaddaad;
+        *(UInt32*)(currentBlock->ptr + maxsize) = 0xdeaddaad;
         numBlocks++;
-        if (numBlocks > 100){
+        if (numBlocks > 100) {
             LOGI("Total block pages for AOT: %d\n", numBlocks);
         }
         goto retry;
@@ -120,7 +125,7 @@ void drLinearFree(void)
         if(block == NULL)
             break;
         nextBlock = block->next;
-        ASSERT(*(UInt32*)(block->ptr+DEFAULT_BLOCK_SIZE) == 0xdeaddaad);
+        ASSERT0(*(UInt32*)(block->ptr+DEFAULT_BLOCK_SIZE) == 0xdeaddaad);
         free(block);
         block = nextBlock;
     }

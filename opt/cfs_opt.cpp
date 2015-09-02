@@ -113,7 +113,7 @@ bool IR_CFS_OPT::transformToDoWhile(IR ** head, IR * ir)
 		while (t != NULL) {
 			if (IR_type(t) == IR_IF) {
 				if (IF_truebody(t) != NULL &&
-					IR_type(IF_truebody(t)) == IR_GOTO &&
+					IF_truebody(t)->is_goto() &&
 					isSameLabel(LAB_lab(ir), GOTO_lab(IF_truebody(t)))) {
 
 					//start transform...

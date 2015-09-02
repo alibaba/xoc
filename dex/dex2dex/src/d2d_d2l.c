@@ -1,36 +1,3 @@
-/*@
-XOC Release License
-
-Copyright (c) 2013-2014, Alibaba Group, All rights reserved.
-
-    compiler@aliexpress.com
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-    * Neither the name of the Su Zhenyu nor the names of its contributors
-      may be used to endorse or promote products derived from this software
-      without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
-BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
-OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-author: GongKai, JinYue
-@*/
 #include <stdio.h>
 #include <malloc.h>
 #include <stdlib.h>
@@ -42,6 +9,7 @@ author: GongKai, JinYue
 #include "str/cstr.h"
 #include "d2d_l2d.h"
 #include "d2d_d2l.h"
+#include "ltype.h"
 #include "lir.h"
 #include "xassert.h"
 #include "io/cio.h"
@@ -141,29 +109,29 @@ static void copyFields(D2Dpool* pool, const DexClassData* pClassData)
     return;
 }
 
-static void copyAndTransformMethod(D2Dpool* pool, DexFile* pDexFile, const DexMethod* pDexMethod, const DexClassData* pClassData)
+static void copyAndTransformMethod(
+         D2Dpool* pool,
+         DexFile* pDexFile,
+         const DexMethod* pDexMethod,
+         const DexClassData* pClassData,
+         const DexClassDef* pClassDef)
 {
-    UInt32 i;
     UInt32 methodIdx;
 
-    for(i = 0; i < pClassData->header.directMethodsSize; i++)
-    {
+    for (UInt32 i = 0; i < pClassData->header.directMethodsSize; i++) {
         pDexMethod = pClassData->directMethods + i;
 
         if(pDexMethod->codeOff != 0)
-            d2rMethod(pool, pDexFile, pDexMethod);
+            d2rMethod(pool, pDexFile, pDexMethod, pClassDef);
         else
             pool->codeOff = 0;
 
-        ASSERT(pDexMethod->methodIdx < pDexFile->pHeader->methodIdsSize);
+        ASSERT0(pDexMethod->methodIdx < pDexFile->pHeader->methodIdsSize);
 
-        if(0 == i)
-        {
+        if (0 == i) {
             methodIdx = pDexMethod->methodIdx;
             writeUnSignedLeb128ToCbs(pool->classDataCbs, pDexMethod->methodIdx);
-        }
-        else
-        {
+        } else {
             writeUnSignedLeb128ToCbs(pool->classDataCbs, pDexMethod->methodIdx - methodIdx);
             methodIdx = pDexMethod->methodIdx;
         }
@@ -172,34 +140,33 @@ static void copyAndTransformMethod(D2Dpool* pool, DexFile* pDexFile, const DexMe
         writeUnSignedLeb128ToCbs(pool->classDataCbs, pool->codeOff);
     }
 
-    for(i = 0; i < pClassData->header.virtualMethodsSize; i++)
-    {
+    for (UInt32 i = 0; i < pClassData->header.virtualMethodsSize; i++) {
         pDexMethod = pClassData->virtualMethods + i;
 
-        if(pDexMethod->codeOff != 0)
-            d2rMethod(pool, pDexFile, pDexMethod);
-        else
+        if (pDexMethod->codeOff != 0) {
+            d2rMethod(pool, pDexFile, pDexMethod, pClassDef);
+        } else {
             pool->codeOff = 0;
+        }
 
-        if(0 == i)
-        {
+        if (0 == i) {
             methodIdx = pDexMethod->methodIdx;
             writeUnSignedLeb128ToCbs(pool->classDataCbs, pDexMethod->methodIdx);
-        }
-        else
-        {
-            writeUnSignedLeb128ToCbs(pool->classDataCbs, pDexMethod->methodIdx - methodIdx);
+        } else {
+            writeUnSignedLeb128ToCbs(pool->classDataCbs,
+                                     pDexMethod->methodIdx - methodIdx);
             methodIdx = pDexMethod->methodIdx;
         }
 
         writeUnSignedLeb128ToCbs(pool->classDataCbs, pDexMethod->accessFlags);
         writeUnSignedLeb128ToCbs(pool->classDataCbs, pool->codeOff);
     }
-
-    return;
 }
 
-static void convertClassData(DexFile* pDexFile, D2Dpool* pool, const DexClassDef* pDexClassDef)
+static void convertClassData(
+        DexFile* pDexFile,
+        D2Dpool* pool,
+        const DexClassDef* pDexClassDef)
 {
     const BYTE* pEncodedData = NULL;
     const DexClassData* pClassData = NULL;
@@ -215,7 +182,7 @@ static void convertClassData(DexFile* pDexFile, D2Dpool* pool, const DexClassDef
     writeUnSignedLeb128ToCbs(pool->classDataCbs, pClassData->header.virtualMethodsSize);
 
     copyFields(pool, pClassData);
-    copyAndTransformMethod(pool, pDexFile, pDexMethod, pClassData);
+    copyAndTransformMethod(pool, pDexFile, pDexMethod, pClassData, pDexClassDef);
 
     return ;
 }
@@ -262,7 +229,7 @@ static Int32 writeToFile(D2Dpool* pool, int outFd, long* fileLen, bool ifOpt)
         goto END;
     }
 
-    /*write the opt header to the file*/
+    /*write the pass header to the file*/
     if(ifOpt)
     {
         UInt32 optSize = sizeof(DexOptHeader);
@@ -285,7 +252,7 @@ static Int32 writeToFile(D2Dpool* pool, int outFd, long* fileLen, bool ifOpt)
         goto END;
     }
 
-    ASSERT(dataSize == pool->currentSize);
+    ASSERT0(dataSize == pool->currentSize);
     ret = 0;
     *fileLen = dataSize;
 
@@ -300,7 +267,7 @@ static void createHeader(DexFile* pDexFile, D2Dpool* pool)
     memset(signatur, 0, sizeof(BYTE)*20);
     int ENDIAN_CONSTANT = 0x12345678;
 
-    ASSERT(pool->currentSize == 0);
+    ASSERT0(pool->currentSize == 0);
     /*the buff size*/
     pool->currentSize += 0x70;
 
@@ -354,14 +321,14 @@ static void createHeader(DexFile* pDexFile, D2Dpool* pool)
     cbsWrite32(pool->lbs, header->classDefsSize);
     cbsWrite32(pool->lbs, header->classDefsOff);
     pool->classEntryOff = pool->currentSize;
-    ASSERT(header->classDefsOff == pool->classEntryOff);
+    ASSERT0(header->classDefsOff == pool->classEntryOff);
     pool->currentSize += (header->classDefsSize) * (sizeof(DexClassDef));
 
     cbsWrite32(pool->lbs, header->dataSize);
     cbsWrite32(pool->lbs, header->dataOff);
 
     /*to make sure the header's size is right*/
-    ASSERT(0x70 == cbsGetSize(pool->lbs));
+    ASSERT0(0x70 == cbsGetSize(pool->lbs));
 
     return;
 }
@@ -374,31 +341,31 @@ static void copyIdItem(DexFile* pDexFile, D2Dpool* pool)
     /*string id*/
     copySize = pDexFile->pHeader->stringIdsSize * sizeof(DexStringId);
     data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->stringIdsOff);
-    ASSERT(pool->stringIdsOff == (cbsGetSize(pool->lbs)));
+    ASSERT0(pool->stringIdsOff == (cbsGetSize(pool->lbs)));
     cbsWrite(pool->lbs, data, copySize);
 
     //typeId
     copySize = pDexFile->pHeader->typeIdsSize * sizeof(DexTypeId);
     data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->typeIdsOff);
-    ASSERT(pool->typeIdsOff== (cbsGetSize(pool->lbs)));
+    ASSERT0(pool->typeIdsOff== (cbsGetSize(pool->lbs)));
     cbsWrite(pool->lbs, data, copySize);
 
     //protoId
     copySize = pDexFile->pHeader->protoIdsSize * sizeof(DexProtoId);
     data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->protoIdsOff);
-    ASSERT(pool->protoIdOff == (cbsGetSize(pool->lbs)));
+    ASSERT0(pool->protoIdOff == (cbsGetSize(pool->lbs)));
     cbsWrite(pool->lbs, data, copySize);
 
     //fieldId
     copySize = pDexFile->pHeader->fieldIdsSize * sizeof(DexFieldId);
     data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->fieldIdsOff);
-    ASSERT(pool->fieldIdOff == (cbsGetSize(pool->lbs)));
+    ASSERT0(pool->fieldIdOff == (cbsGetSize(pool->lbs)));
     cbsWrite(pool->lbs, data, copySize);
 
     //methodId
     copySize = pDexFile->pHeader->methodIdsSize * sizeof(DexMethodId);
     data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->methodIdsOff);
-    ASSERT(pool->methodIdOff == (cbsGetSize(pool->lbs)));
+    ASSERT0(pool->methodIdOff == (cbsGetSize(pool->lbs)));
     cbsWrite(pool->lbs, data, copySize);
 
     /* TODO we do not record the class entry now, but leave space for it*/
@@ -414,7 +381,7 @@ static void fixAndCopyStringData(DexFile* pDexFile, D2Dpool* pool, UInt32* insid
     UInt32 count = pool->stringDataSize;
     DexStringId* item;
     const char* str;
-    ASSERT(count == pDexFile->pHeader->stringIdsSize);
+    ASSERT0(count == pDexFile->pHeader->stringIdsSize);
 
     //cbsSeek(pool->otherLbs, pool->stringDataOff);
 
@@ -534,7 +501,7 @@ static void copyDexMiscData(DexFile* pDexFile, D2Dpool* pool)
 
             default:
                 printf("unknown map item type %04x\n",item->type);
-                ASSERT(false);
+                ASSERT0(false);
                 return ;
         }
 
@@ -714,16 +681,18 @@ static void fixAnnotationSetRefListItem(DexFile* pDexFile, D2Dpool* pool)
     itemOff = 0;
     count = pool->annotationSetRefListSize;
 
-    for(i = 0; i < count; i++)
-    {
-        pAnnoRefList = (DexAnnotationSetRefList*)(pDexFile->baseAddr + pool->dexAnnotationSetRefListOff + itemOff);
+    for (i = 0; i < count; i++) {
+        pAnnoRefList = (DexAnnotationSetRefList*)(pDexFile->baseAddr +
+			                       pool->dexAnnotationSetRefListOff + itemOff);
 
         itemOff += 4;
 
         for(j = 0; j < pAnnoRefList->size; j++)
         {
-            if(pAnnoRefList->list[j].annotationsOff != 0) {
-                newOffset = pool->annotationSetOff + (pAnnoRefList->list[j].annotationsOff - pool->dexAnnotationSetOff);
+            if (pAnnoRefList->list[j].annotationsOff != 0) {
+                newOffset = pool->annotationSetOff +
+                            (pAnnoRefList->list[j].annotationsOff -
+                             pool->dexAnnotationSetOff);
                 cbsSeek(pool->lbs, pool->annotationSetRefListOff + itemOff);
                 cbsWrite32(pool->lbs, newOffset);
             }
@@ -748,7 +717,8 @@ static void fixAnnotationSetItem(DexFile* pDexFile, D2Dpool* pool)
 
     for(i = 0; i < count; i++)
     {
-        pAnnoSet = (DexAnnotationSetItem*)(pDexFile->baseAddr + pool->dexAnnotationSetOff + itemOff);
+        pAnnoSet = (DexAnnotationSetItem*)(pDexFile->baseAddr +
+                                           pool->dexAnnotationSetOff + itemOff);
         itemOff += 4;
 
         for(j = 0; j < pAnnoSet->size; j++)
@@ -782,7 +752,7 @@ static void copyClassData(D2Dpool* pool)
     UInt32 copySize;
     void* data;
 
-    ASSERT(pool->currentSize == cbsGetSize(pool->lbs));
+    ASSERT0(pool->currentSize == cbsGetSize(pool->lbs));
 
     pool->classDataOffset = pool->currentSize;
     data = cbsGetData(pool->classDataCbs);
@@ -800,14 +770,14 @@ static void processClass(DexFile* pDexFile, D2Dpool* pool)
     UInt32 i;
     UInt32 clsNumber = pDexFile->pHeader->classDefsSize;
 
-    ASSERT(pool->currentSize == cbsGetSize(pool->lbs));
+    ASSERT0(pool->currentSize == cbsGetSize(pool->lbs));
     DexClassDef nDexCd;
     memset(&nDexCd, 0, sizeof(DexClassDef));
 
     pool->codeItemOff = pool->currentSize;
+    UInt32 size = 0;
 
-    for(i = 0; i < clsNumber; i++)
-    {
+    for (i = 0; i < clsNumber; i++) {
         pDexClassDef = dexGetClassDef(pDexFile, i);
 
         if(pDexClassDef->classDataOff == 0)
@@ -820,6 +790,13 @@ static void processClass(DexFile* pDexFile, D2Dpool* pool)
         //printf("%s\n", dexGetClassDescriptor(pDexFile, pDexClassDef));
 
         convertClassData(pDexFile, pool, pDexClassDef);
+        size ++;
+    }
+    pool->updateClassDataSize = 0;
+    if (size == clsNumber)
+    {
+        // if no offset == 0, use clsnumber as class data item's size.
+        pool->updateClassDataSize = size;
     }
 }
 
@@ -833,9 +810,9 @@ static void fixClassDefOffset(DexFile* pDexFile, D2Dpool* pool)
     baseData = cbsGetData(pool->lbs);
     count = pDexFile->pHeader->classDefsSize;
 
-    for(i = 0; i < count; i++)
-    {
-        classDef = (DexClassDef*)(pool->classEntryOff + baseData + i*sizeof(DexClassDef));
+    for (i = 0; i < count; i++) {
+        classDef = (DexClassDef*)(pool->classEntryOff +
+                                  baseData + i * sizeof(DexClassDef));
         cbsSeek(pool->lbs, pool->classEntryOff + i * sizeof(DexClassDef) + 24);
         cbsWrite32(pool->lbs, (pool->classDataOffset + classDef->classDataOff));
     }
@@ -846,7 +823,7 @@ static void fixClassDefOffset(DexFile* pDexFile, D2Dpool* pool)
 static void fixDexHeader(D2Dpool* pool)
 {
     UInt32 fileSize = cbsGetSize(pool->lbs);
-    ASSERT(fileSize == pool->currentSize);
+    ASSERT0(fileSize == pool->currentSize);
 
     cbsSeek(pool->lbs, 32);
     cbsWrite32(pool->lbs, fileSize);
@@ -889,7 +866,7 @@ static void fixAndCopyMapItemOffset(DexFile* pDexFile, D2Dpool* pool) {
 
    /*list the map items and change the item's offset*/
    mapList = (DexMapList*)cbsGetData(pool->mapLbs);
-   ASSERT(mapList->size == dexMapList->size);
+   ASSERT0(mapList->size == dexMapList->size);
 
    item = mapList->list;
    Int32 count = mapList->size;
@@ -899,7 +876,7 @@ static void fixAndCopyMapItemOffset(DexFile* pDexFile, D2Dpool* pool) {
 
    while(count--)
    {
-       ASSERT(item->type == dexMapItem->type);
+       ASSERT0(item->type == dexMapItem->type);
 
        switch(item->type)
        {
@@ -945,13 +922,16 @@ static void fixAndCopyMapItemOffset(DexFile* pDexFile, D2Dpool* pool) {
            case kDexTypeClassDataItem:
                item->offset = pool->classDataOffset;
                // fix size to be identical to class data size writen in WriteCodeItem.
-               item->size = pDexFile->pHeader->classDefsSize;
+               if (pool->updateClassDataSize)
+               {
+                  item->size = pool->updateClassDataSize;
+               }
                break;
            case kDexTypeCodeItem:
                item->offset = pool->codeItemOff;
                break;
            default:
-               ASSERT(false);
+               ASSERT0(false);
                return ;
         }
        itemArray[idx++] = item;
@@ -990,7 +970,7 @@ static void fixOtherItemOffset(D2Dpool* pool, UInt32 otherOffset)
 
 static void copyOtherData(D2Dpool* pool)
 {
-    ASSERT(pool->currentSize == cbsGetSize(pool->lbs));
+    ASSERT0(pool->currentSize == cbsGetSize(pool->lbs));
 
     cbsSeek(pool->lbs, pool->currentSize);
     UInt32 otherOffset = pool->currentSize;
@@ -998,14 +978,14 @@ static void copyOtherData(D2Dpool* pool)
     void * data = cbsGetData(pool->otherLbs);
     UInt32 copySize = cbsGetSize(pool->otherLbs);
 
-    ASSERT(pool->currentSize == cbsGetSize(pool->lbs));
+    ASSERT0(pool->currentSize == cbsGetSize(pool->lbs));
     cbsWrite(pool->lbs, data, copySize);
     pool->currentSize += copySize;
 
-    ASSERT(pool->currentSize == cbsGetSize(pool->lbs));
+    ASSERT0(pool->currentSize == cbsGetSize(pool->lbs));
     fixOtherItemOffset(pool, otherOffset);
 
-    ASSERT(pool->currentSize == cbsGetSize(pool->lbs));
+    ASSERT0(pool->currentSize == cbsGetSize(pool->lbs));
     return;
 }
 
@@ -1022,7 +1002,10 @@ static void setMapItemOffset(D2Dpool* pool)
     return;
 }
 
-static void fixCodeItem(DexFile* pDexFile, D2Dpool* pool, const DexClassDef* pDexClassDef)
+static void fixCodeItem(
+        DexFile* pDexFile,
+        D2Dpool* pool,
+        const DexClassDef* pDexClassDef)
 {
     void* data = cbsGetData(pool->lbs);
 
@@ -1031,19 +1014,20 @@ static void fixCodeItem(DexFile* pDexFile, D2Dpool* pool, const DexClassDef* pDe
     UInt32 prevSize = 0;
     UInt32 i;
 
-    for(i = 0; i < count; i++)
-    {
-        pCode = (DexCode* )((BYTE*)data + pool->codeItemOff + prevSize);
+    for (i = 0; i < count; i++) {
+        pCode = (DexCode*)((BYTE*)data + pool->codeItemOff + prevSize);
 
-        while(((ULong)pCode & 3) != 0)
-        {
-            ASSERT((*(BYTE*)pCode) == 0);
+        while (((ULong)pCode & 3) != 0) {
+            ASSERT0((*(BYTE*)pCode) == 0);
             pCode = (DexCode*)((BYTE*)pCode + 1);
             prevSize++;
         }
 
-        if(pCode->debugInfoOff)
-            pCode->debugInfoOff = pool->debugItemOff + (pCode->debugInfoOff - pool->dexDebugItemOff);
+        if (pCode->debugInfoOff) {
+            pCode->debugInfoOff = pool->debugItemOff +
+                                  (pCode->debugInfoOff -
+                                   pool->dexDebugItemOff);
+        }
 
         prevSize += dexGetDexCodeSize((const DexCode*)pCode);
     }
@@ -1061,16 +1045,17 @@ static void fixClassOffset(DexFile* pDexFile, D2Dpool* pool)
     UInt32 clsNumber = pDexFile->pHeader->classDefsSize;
 
     data = cbsGetData(pool->lbs);
-    for(i = 0; i < clsNumber; i++)
-    {
+    for (i = 0; i < clsNumber; i++) {
         pDexClassDef = dexGetClassDef(pDexFile, i);
 
         /*to fix the class def entry*/
-        dexCd = (DexClassDef*)((BYTE*)data + pool->classEntryOff + i*sizeof(DexClassDef));
+        dexCd = (DexClassDef*)((BYTE*)data +
+                               pool->classEntryOff +
+                               i * sizeof(DexClassDef));
 
         fixDexClassDef(pDexFile, pool, pDexClassDef, &nDexCd);
 
-        if(pDexClassDef->classDataOff == 0)
+        if (pDexClassDef->classDataOff == 0)
             nDexCd.classDataOff = 0;
         else
             nDexCd.classDataOff = dexCd->classDataOff + pool->classDataOffset;
@@ -1083,7 +1068,8 @@ static void fixClassOffset(DexFile* pDexFile, D2Dpool* pool)
 }
 
 
-D2Dpool* doCopyAndFixup(DexFile* pDexFile) {
+D2Dpool* doCopyAndFixup(DexFile* pDexFile)
+{
     UInt32 i;
     UInt32 clsNumber = 0;
     D2Dpool* pool = poolInfoInit();
@@ -1102,6 +1088,8 @@ D2Dpool* doCopyAndFixup(DexFile* pDexFile) {
      * debug info
      * annotation item list
      * encodearray item list*/
+    // annotatais directory item four bytes aligned.
+    aligmentBy4Bytes(pool);
     copyOtherData(pool);
     /*write the class data to file*/
     copyClassData(pool);

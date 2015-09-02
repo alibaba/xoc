@@ -37,9 +37,9 @@ high-level language that provides many conveninet control flow structures, such
 as if, do-while, while-do, do-loop, switch, break, continue, cond-exec, etc.
 The three different forms of XOC IR are all equivalent.
 
-
-
-
+XOC defines an intermediate representation (IR) for programs, using IR Trees, 
+control flow graphs(CFG), and an exception handling model. For any program to be 
+handled by XOC, it needs to be converted to this representation. 
 
 
 Programming Guides

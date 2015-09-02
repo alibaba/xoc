@@ -156,8 +156,7 @@ INT checkKidNumValidLoop(IR const* ir, UINT n, CHAR const* filename, INT line)
 	UINT x = IR_MAX_KID_NUM(ir);
 	ASSERTL(n < x, filename, line,
 			("%d is beyond maximum IR kids num %d", n, x));
-	ASSERT0(IR_type(ir) == IR_WHILE_DO || IR_type(ir) == IR_DO_WHILE ||
-			 IR_type(ir) == IR_DO_LOOP);
+	ASSERT0(ir->is_whiledo() || ir->is_dowhile() || ir->is_doloop());
 	return n;
 }
 
@@ -167,7 +166,7 @@ INT checkKidNumValidCall(IR const* ir, UINT n, CHAR const* filename, INT line)
 	UINT x = IR_MAX_KID_NUM(ir);
 	ASSERTL(n < x, filename, line,
 			("%d is beyond maximum IR kids num %d", n, x));
-	ASSERT0(ir->is_call());
+	ASSERT0(ir->is_calls_stmt());
 	return n;
 }
 
@@ -202,35 +201,35 @@ IR const* checkIRT(IR const* ir, IR_TYPE irt)
 
 IR const* checkIRTBranch(IR const* ir)
 {
-	ASSERT0(IR_type(ir) == IR_TRUEBR || IR_type(ir) == IR_FALSEBR);
+	ASSERT0(ir->is_cond_br());
 	return ir;
 }
 
 
 IR const* checkIRTCall(IR const* ir)
 {
-	ASSERT0(IR_type(ir) == IR_CALL || IR_type(ir) == IR_ICALL);
+	ASSERT0(ir->is_calls_stmt());
 	return ir;
 }
 
 
 IR const* checkIRTArray(IR const* ir)
 {
-	ASSERT0(IR_type(ir) == IR_ARRAY || IR_type(ir) == IR_STARRAY);
+	ASSERT0(ir->is_array() || ir->is_starray());
 	return ir;
 }
 
 
 IR const* checkIRTOnlyCall(IR const* ir)
 {
-	ASSERT0(IR_type(ir) == IR_CALL);
+	ASSERT0(ir->is_call());
 	return ir;
 }
 
 
 IR const* checkIRTOnlyIcall(IR const* ir)
 {
-	ASSERT0(IR_type(ir) == IR_ICALL);
+	ASSERT0(ir->is_icall());
 	return ir;
 }
 
@@ -1087,7 +1086,7 @@ void dump_ir(IN IR const* ir, TypeMgr const* dm, IN CHAR * attr,
 				note("\n");
 			}
 
-			if (IR_type(ir) == IR_CALL) {
+			if (ir->is_call()) {
 				CHAR tt[40];
 				tt[0] = 0;
 				CHAR * name = xstrcat(tt, 40, "%s",
@@ -1105,7 +1104,7 @@ void dump_ir(IN IR const* ir, TypeMgr const* dm, IN CHAR * attr,
 			fprintf(g_tfile, "%s", attr);
 
 			if (dump_kid) {
-				if (IR_type(ir) == IR_ICALL) {
+				if (ir->is_icall()) {
 					g_indent += dn;
 					dump_ir(ICALL_callee(ir), dm, (CHAR*)" callee",
 							dump_kid, dump_src_line, dump_addr);
@@ -1477,8 +1476,7 @@ bool IR::verify(Region const* ru) const
 		}
 
 		//rtype of icall is the type of IR in return-value-list.
-		ASSERT0(IR_type(ICALL_callee(this)) == IR_LD ||
-				 ICALL_callee(this)->is_pr());
+		ASSERT0(ICALL_callee(this)->is_ld() || ICALL_callee(this)->is_pr());
 
 		ASSERT0(IR_next(ICALL_callee(this)) == NULL &&
 				 IR_prev(ICALL_callee(this)) == NULL);

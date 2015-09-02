@@ -56,11 +56,11 @@ static UINT generate_region(RegionMgr * rm)
 										0,
 										VAR_GLOBAL|VAR_FAKE));
 	IR * ir = topru->buildRegion(func_ru);
-	topru->addToIRlist(ir);
+	topru->addToIRList(ir);
 
 	//----------
 	//For simply, only generate a return IR.
-	REGION_ru(ir)->addToIRlist(REGION_ru(ir)->buildReturn(NULL));
+	REGION_ru(ir)->addToIRList(REGION_ru(ir)->buildReturn(NULL));
 	return ST_SUCC;
 }
 

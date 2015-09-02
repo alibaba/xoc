@@ -36,41 +36,93 @@ author: Su Zhenyu
 
 class Dex2IR;
 
+class DexPassMgr : public PassMgr {
+public:
+	DexPassMgr(Region * ru) : PassMgr(ru) {}
+	virtual ~DexPassMgr() {}
+
+	virtual Pass * allocDCE();
+	virtual Pass * allocCopyProp();
+	virtual Pass * allocRP();
+
+	virtual void performScalarOpt(OptCTX & oc);
+};
+
+
 //
 //START DexRegion
 //
 class DexRegion : public Region {
 protected:
 	VAR2PR m_var2pr; //map from var id to prno.
+	Dex2IR * m_dex2ir;
+	Prno2Vreg * m_prno2v;
+	TypeIndexRep * m_type_index_rep;
+	UINT m_paramnum;
+	UINT m_org_vregnum;
+	CHAR const* m_src_path; //record source file path of class.
+	DexFile const* m_dexfile;
+	DexMethod const* m_dexmethod;
 
 protected:
 	bool is_64bit(IR const* ir)
 	{ return get_dm()->get_bytesize(IR_dt(ir))== 8; }
 
 public:
-	DexRegion(REGION_TYPE rt, RegionMgr * rm) : Region(rt, rm) {}
+	DexRegion(REGION_TYPE rt, RegionMgr * rm) : Region(rt, rm)
+	{
+		m_dex2ir = NULL;
+		m_prno2v = NULL;
+		m_type_index_rep = NULL;
+		m_paramnum = 0;
+		m_org_vregnum = 0;
+		m_src_path;
+		m_dexfile = NULL;
+		m_dexmethod = NULL;
+	}
 	virtual ~DexRegion() {}
 
 	IR * gen_and_add_sib(IR * ir, UINT prno);
-
-	IR_AA * initAliasAnalysis(OptCTX & oc);
+	DexPassMgr * getDexPassMgr() { return (DexPassMgr*)get_pass_mgr(); }
 
 	virtual bool HighProcess(OptCTX & oc);
+	virtual bool MiddleProcess(OptCTX & oc);
 
 	virtual PassMgr * newPassMgr();
+	virtual IR_AA * newAliasAnalysis();
 
-	void updateRAresult(RA & ra, Prno2UINT & prno2v);
+	void setDex2IR(Dex2IR * dex2ir) { m_dex2ir = dex2ir; }
+	Dex2IR * getDex2IR() { return m_dex2ir; }
 
-	bool verifyRAresult(RA & ra, Prno2UINT & prno2v);
+	void setPrno2Vreg(Prno2Vreg * p2v) { m_prno2v = p2v; }
+	Prno2Vreg * getPrno2Vreg() { return m_prno2v; }
+
+	void setTypeIndexRep(TypeIndexRep * tr) { m_type_index_rep = tr; }
+	TypeIndexRep * getTypeIndexRep() { return m_type_index_rep; }
+
+	void setParamNum(UINT num) { m_paramnum = num; }
+	UINT getParamNum() const { return m_paramnum; }
+
+	void setOrgVregNum(UINT num) { m_org_vregnum = num; }
+	UINT getOrgVregNum() const { return m_org_vregnum; }
+
+	void setClassSourceFilePath(CHAR const* path) { m_src_path = path; }
+	CHAR const* getClassSourceFilePath() const { return m_src_path; }
+
+	void setDexFile(DexFile const* df) { m_dexfile = df; }
+	DexFile const* getDexFile() const { return m_dexfile; }
+
+	void setDexMethod(DexMethod const* dm) { m_dexmethod = dm; }
+	DexMethod const* getDexMethod() const { return m_dexmethod; }
+
+	void updateRAresult(RA & ra, Prno2Vreg & prno2v);
+
+	bool verifyRAresult(RA & ra, Prno2Vreg & prno2v);
 
 	void process_group_bb(IRBB * bb, List<IR*> & lst);
 	void process_group();
-	void processSimply(OUT Prno2UINT & prno2v, UINT param_num,
-						UINT vregnum, Dex2IR & d2ir, UINT2PR * v2pr,
-						IN Prno2UINT * pr2v, TypeIndexRep * tr);
-	virtual void process(Prno2UINT & prno2v, UINT param_num, UINT vregnum,
-						 UINT2PR * v2pr, Prno2UINT * pr2v, TypeIndexRep * tr);
-	virtual void process() { ASSERT0(0); }
+	void processSimply();
+	virtual void process();
 };
 //END DexRegion
 
@@ -156,10 +208,13 @@ inline bool is_wide(LIR * lir)
 			LIR_dt(lir) == LIR_JDT_long;
 }
 
-CHAR const* get_class_name(DexFile * df, DexMethod const* dm);
-CHAR const* get_class_name(DexFile * df, UINT cls_type_idx);
-CHAR const* get_class_name(DexFile * df, DexClassDef const* class_info);
-CHAR const* get_func_name(DexFile * df, DexMethod const* dm);
+CHAR const* getClassSourceFilePath(
+		DexFile const* df,
+		DexClassDef const* class_info);
+CHAR const* get_class_name(DexFile const* df, DexMethod const* dm);
+CHAR const* get_class_name(DexFile const* df, UINT cls_type_idx);
+CHAR const* get_class_name(DexFile const* df, DexClassDef const* class_info);
+CHAR const* get_func_name(DexFile const* df, DexMethod const* dm);
 CHAR const* get_field_name(DexFile * df, UINT field_id);
 CHAR const* get_field_name(DexFile * df, DexField * finfo);
 CHAR const* get_field_type_name(DexFile * df, UINT field_id);
