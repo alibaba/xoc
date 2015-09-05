@@ -150,7 +150,7 @@ public:
 	}
 
 	virtual CHAR const* get_pass_name() const { return "Copy Propagation"; }
-	PASS_TYPE get_pass_type() const { return PASS_CP; }
+	virtual PASS_TYPE get_pass_type() const { return PASS_CP; }
 
 	void set_prop_kind(UINT kind) { m_prop_kind = kind; }
 

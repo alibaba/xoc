@@ -42,7 +42,8 @@ bool d2rMethod(
         D2Dpool* pool,
         DexFile* pDexFile,
         const DexMethod* pDexMethod,
-        const DexClassDef* classdef);
+        const DexClassDef* classdef,
+        RegionMgr* rumgr);
 void d2rCopyData(D2Dpool* pool, BYTE* endAddr);
 #ifdef __cplusplus
 }

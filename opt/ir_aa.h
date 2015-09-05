@@ -272,7 +272,7 @@ NOTICE:
 Heap is a unique object. That means the whole
 HEAP is modified/referrenced if a LOAD/STORE operates
 MD that describes variable belongs to HEAP. */
-class IR_AA {
+class IR_AA : public Pass {
 protected:
 	IR_CFG * m_cfg;
 	VarMgr * m_var_mgr;
@@ -458,10 +458,8 @@ public:
 	void ElemCleanPointTo(MDSet const& mds, IN MD2MDSet * mx);
 	void ElemCleanExactPointTo(MDSet const& mds, IN MD2MDSet * mx);
 
-	CHAR const* get_pass_name() const { return "Alias Analysis"; }
-	PASS_TYPE get_pass_type() const { return PASS_CDG; }
-	inline IR_CFG * get_cfg() const { return m_cfg; }
-
+	virtual CHAR const* get_pass_name() const { return "Alias Analysis"; }
+	virtual PASS_TYPE get_pass_type() const { return PASS_AA; }
 	inline PtPairSet * getInPtPairSet(IRBB const* bb)
 	{
 		PtPairSet * pps = m_in_pp_set.get(BB_id(bb));
@@ -497,6 +495,7 @@ public:
 
 	MD2MDSet * get_unique_md2mds() { return &m_unique_md2mds; }
 
+	void initAliasAnalysis();
 	bool is_flow_sensitive() const { return m_flow_sensitive; }
 	bool isValidStmtToAA(IR * ir);
 

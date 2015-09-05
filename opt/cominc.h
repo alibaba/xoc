@@ -73,7 +73,7 @@ using namespace xcom;
 #include "ai.h"
 #include "du.h"
 #include "ir.h"
-#include "ir_opt.h"
+#include "pass.h"
 #include "ir_refine.h"
 #include "ir_simp.h"
 #include "ir_bb.h"

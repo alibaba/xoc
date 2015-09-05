@@ -50,9 +50,10 @@ protected:
 	RegionMgr * m_ru_mgr;
 	SMemPool * m_pool;
 	CallGraph * m_callg;
+	Region * m_program;
 	TMap<Region*, InlineInfo*> m_ru2inl;
 
-	void ck_ru(IN Region * ru, OUT bool & need_el, OUT bool & has_ret) const;
+	void checkRegion(IN Region * ru, OUT bool & need_el, OUT bool & has_ret) const;
 
 	void * xmalloc(UINT size)
 	{
@@ -62,7 +63,7 @@ protected:
 		return p;
 	}
 
-	InlineInfo * map_ru2ii(Region * ru, bool alloc)
+	InlineInfo * mapRegion2InlineInfo(Region * ru, bool alloc)
 	{
 		InlineInfo * ii = m_ru2inl.get(ru);
 		if (ii == NULL && alloc) {
@@ -78,10 +79,12 @@ protected:
 			IR * new_irs,
 			LabelInfo * el);
 public:
-	Inliner(RegionMgr * ru_mgr)
+	Inliner(RegionMgr * rumgr, Region * program)
 	{
-		m_ru_mgr = ru_mgr;
-		m_callg = ru_mgr->get_callg();
+		ASSERT0(rumgr && program);
+		m_ru_mgr = rumgr;
+		m_program = program;
+		m_callg = rumgr->get_callg();
 		m_pool = smpoolCreate(16, MEM_COMM);
 	}
 	virtual ~Inliner() { smpoolDelete(m_pool); }

@@ -117,9 +117,9 @@ public:
 			  IN BitSet const& is_bb_effect,
 			  IN Vector<Vector<IR*>*> & all_ir);
 
-	virtual CHAR const* get_pass_name() const { return "Dead Code Eliminiation"; }
-
-	PASS_TYPE get_pass_type() const { return PASS_DCE; }
+	virtual CHAR const* get_pass_name() const
+	{ return "Dead Code Eliminiation"; }
+	virtual PASS_TYPE get_pass_type() const { return PASS_DCE; }
 
 	void set_elim_cfs(bool doit) { m_is_elim_cfs = doit; }
 	void set_use_md_du(bool use_md_du) { m_is_use_md_du = use_md_du; }

@@ -40,10 +40,11 @@ extern "C" {
 
 //Export Functions.
 bool compileFunc(
-		D2Dpool * pool, 
-		LIRCode * fu, 
-		DexFile * df, 
-		DexMethod const* dm, 
+		RegionMgr * rumgr,
+		D2Dpool * pool,
+		LIRCode * fu,
+		DexFile * df,
+		DexMethod const* dm,
 		DexCode const* dexcode,
 		DexClassDef const* dexclassdef,
 		OffsetVec const& offsetvec);

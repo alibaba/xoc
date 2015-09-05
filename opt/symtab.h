@@ -156,6 +156,8 @@ public:
 		return sym;
 	}
 
+	//Add const string into symbol table.
+	//If the string table is not big enough to hold strings, expand it.
 	inline SYM * add(CHAR const* s)
 	{
 		UINT sz = Hash<SYM*, SymbolHashFunc>::get_bucket_size() * 4;

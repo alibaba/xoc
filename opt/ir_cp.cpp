@@ -489,7 +489,7 @@ bool IR_CP::perform(OptCTX & oc)
 	Vector<IR*> usevec;
 
 	for (Vertex * v = lst.get_head(); v != NULL; v = lst.get_next()) {
-		IRBB * bb = m_ru->get_bb(VERTEX_id(v));
+		IRBB * bb = m_cfg->get_bb(VERTEX_id(v));
 		ASSERT0(bb);
 		change |= doProp(bb, usevec);
 	}

@@ -109,7 +109,7 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
 	for (INT i = LI_bb_set(li)->get_first();
 		 i != -1; i = LI_bb_set(li)->get_next(i)) {
 		//if ((UINT)i == headi) { continue; }
-		IRBB * bb = m_ru->get_bb(i);
+		IRBB * bb = m_cfg->get_bb(i);
 		ASSERT0(bb && m_cfg->get_vertex(BB_id(bb)));
 		for (IR * ir = BB_first_ir(bb);
 			 ir != NULL; ir = BB_next_ir(bb)) {
@@ -327,7 +327,7 @@ void IR_IVR::findDIV(IN LI<IRBB> const* li, IN SList<IV*> const& bivlst,
 
 	for (INT i = LI_bb_set(li)->get_first();
 		 i != -1; i = LI_bb_set(li)->get_next(i)) {
-		IRBB * bb = m_ru->get_bb(i);
+		IRBB * bb = m_cfg->get_bb(i);
 		ASSERT0(bb && m_cfg->get_vertex(BB_id(bb)));
 		for (IR * ir = BB_first_ir(bb);
 			 ir != NULL; ir = BB_next_ir(bb)) {

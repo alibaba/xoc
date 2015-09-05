@@ -39,20 +39,14 @@ namespace xoc {
 //
 //START IPA
 //
-/*
-NOTE: IPA should only be performed in top level region,
-since it might incur the memory blow up.
-*/
+//NOTE: IPA should only be performed in top level region,
+//since it might incur the memory blow up.
 bool IPA::perform(OptCTX & oc)
 {
 	UNUSED(oc);
 	ASSERT0(OC_is_callg_valid(oc));
-	Region * top = m_ru_mgr->getTopRegion();
-	if (top == NULL) return false;
-	ASSERT0(REGION_type(top) == RU_PROGRAM);
-	//start do cp_prop
-	//...
-	//
+	ASSERT0(m_program && m_program->is_program());
+
 	return true;
 }
 //END IPA

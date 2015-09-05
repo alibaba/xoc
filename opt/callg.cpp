@@ -185,7 +185,7 @@ CALL_NODE * CallGraph::newCallNode(IR * ir)
 //To guarantee CALL_NODE of function is unique.
 CALL_NODE * CallGraph::newCallNode(Region * ru)
 {
-	ASSERT0(REGION_type(ru) == RU_FUNC);
+	ASSERT0(ru->is_function());
 	SYM * name = VAR_name(ru->get_ru_var());
 	CALL_NODE * cn = m_sym2cn_map.get(name);
 	if (cn != NULL) {
@@ -210,13 +210,13 @@ CALL_NODE * CallGraph::newCallNode(Region * ru)
 //Build call graph.
 void CallGraph::build(Region * top)
 {
-	ASSERT0(REGION_type(top) == RU_PROGRAM);
+	ASSERT0(top->is_program());
 	IR * irs = top->get_ir_list();
 	List<CALL_NODE*> ic;
 	while (irs != NULL) {
 		if (irs->is_region()) {
 			Region * ru = REGION_ru(irs);
-			ASSERT0(ru && REGION_type(ru) == RU_FUNC);
+			ASSERT0(ru && ru->is_function());
 			CALL_NODE * cn = newCallNode(ru);
 			add_node(cn);
 			List<IR const*> * call_list = ru->get_call_list();

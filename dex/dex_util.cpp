@@ -84,6 +84,8 @@ CHAR const* get_dt_name(LIR * ir)
 }
 
 
+//cls_type_idx: typeIdx in string-type-table,
+//	not the idx in class-def-item table.
 CHAR const* get_class_name(DexFile const* df, UINT cls_type_idx)
 {
 	return dexStringByTypeIdx(df, cls_type_idx);
@@ -1085,7 +1087,7 @@ public:
 	/*
 	virtual bool is_promotable(IR const* ir) const
 	{
-		if (IR_type(ir) == IR_ARRAY) {
+		if (ir->is_array()) {
 			IR * sub = ARR_sub_list(ir);
 			ASSERT0(sub);
 			if (cnt_list(sub) == 1) {
@@ -1399,14 +1401,14 @@ public:
 //
 //START DexRegion
 //
-PassMgr * DexRegion::newPassMgr()
+PassMgr * DexRegion::allocPassMgr()
 {
 	return new DexPassMgr(this);
 }
 
 
 //Initialize alias analysis.
-IR_AA * DexRegion::newAliasAnalysis()
+IR_AA * DexRegion::allocAliasAnalysis()
 {
 	return new DEX_AA(this);
 }
@@ -1611,7 +1613,6 @@ void DexRegion::process()
 
 	g_do_ssa = false;
 	g_do_dex_ra = false;
-	//g_do_ssa = true;
 
 	HighProcess(oc);
 	MiddleProcess(oc);

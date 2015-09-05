@@ -39,6 +39,7 @@ namespace xoc {
 class IPA : public Pass {
 protected:
 	RegionMgr * m_ru_mgr;
+	Region * m_program;
 	SMemPool * m_pool;
 
 	void * xmalloc(UINT size)
@@ -49,9 +50,11 @@ protected:
 		return p;
 	}
 public:
-	IPA(RegionMgr * ru_mgr)
+	IPA(RegionMgr * rumgr, Region * program)
 	{
-		m_ru_mgr = ru_mgr;
+		m_ru_mgr = rumgr;
+		m_program = program;
+		ASSERT0(rumgr && program);
 		m_pool = smpoolCreate(16, MEM_COMM);
 	}
 	virtual ~IPA() { smpoolDelete(m_pool); }

@@ -1170,7 +1170,7 @@ void IR_GVN::dump_h1(IR const* k, VN * x)
 void IR_GVN::dump_bb(UINT bbid)
 {
 	if (g_tfile == NULL) { return; }
-	IRBB * bb = m_ru->get_bb(bbid);
+	IRBB * bb = m_cfg->get_bb(bbid);
 	ASSERT0(bb);
 
 	ConstIRIter ii;

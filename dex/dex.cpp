@@ -57,4 +57,3 @@ UINT g_builtin_num = sizeof(g_builtin_info) / sizeof(g_builtin_info[0]);
 
 //Perform Dex register allocation.
 bool g_do_dex_ra = false;
-

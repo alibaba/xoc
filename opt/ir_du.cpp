@@ -306,7 +306,7 @@ IR * IR_DU_MGR::get_ir(UINT irid)
 //Return IR stmt-id set.
 DefDBitSetCore * IR_DU_MGR::get_may_gen_def(UINT bbid)
 {
-	ASSERT0(m_ru->get_bb(bbid));
+	ASSERT0(m_cfg->get_bb(bbid));
 	DefDBitSetCore * set = m_bb_may_gen_def.get(bbid);
 	if (set == NULL) {
 		set = m_misc_bs_mgr->create_dbitsetc();
@@ -319,7 +319,7 @@ DefDBitSetCore * IR_DU_MGR::get_may_gen_def(UINT bbid)
 
 DefDBitSetCore * IR_DU_MGR::get_must_gen_def(UINT bbid)
 {
-	ASSERT0(m_ru->get_bb(bbid));
+	ASSERT0(m_cfg->get_bb(bbid));
 	DefDBitSetCore * set = m_bb_must_gen_def.get(bbid);
 	if (set == NULL) {
 		set = m_misc_bs_mgr->create_dbitsetc();
@@ -332,7 +332,7 @@ DefDBitSetCore * IR_DU_MGR::get_must_gen_def(UINT bbid)
 
 DefDBitSetCore * IR_DU_MGR::get_avail_in_reach_def(UINT bbid)
 {
-	ASSERT0(m_ru->get_bb(bbid));
+	ASSERT0(m_cfg->get_bb(bbid));
 	DefDBitSetCore * set = m_bb_avail_in_reach_def.get(bbid);
 	if (set == NULL) {
 		set = m_misc_bs_mgr->create_dbitsetc();
@@ -345,7 +345,7 @@ DefDBitSetCore * IR_DU_MGR::get_avail_in_reach_def(UINT bbid)
 
 DefDBitSetCore * IR_DU_MGR::get_avail_out_reach_def(UINT bbid)
 {
-	ASSERT0(m_ru->get_bb(bbid));
+	ASSERT0(m_cfg->get_bb(bbid));
 	DefDBitSetCore * set = m_bb_avail_out_reach_def.get(bbid);
 	if (set == NULL) {
 		set = m_misc_bs_mgr->create_dbitsetc();
@@ -358,7 +358,7 @@ DefDBitSetCore * IR_DU_MGR::get_avail_out_reach_def(UINT bbid)
 
 DefDBitSetCore * IR_DU_MGR::get_in_reach_def(UINT bbid)
 {
-	ASSERT0(m_ru->get_bb(bbid));
+	ASSERT0(m_cfg->get_bb(bbid));
 	DefDBitSetCore * set = m_bb_in_reach_def.get(bbid);
 	if (set == NULL) {
 		set = m_misc_bs_mgr->create_dbitsetc();
@@ -371,7 +371,7 @@ DefDBitSetCore * IR_DU_MGR::get_in_reach_def(UINT bbid)
 
 DefDBitSetCore * IR_DU_MGR::get_out_reach_def(UINT bbid)
 {
-	ASSERT0(m_ru->get_bb(bbid));
+	ASSERT0(m_cfg->get_bb(bbid));
 	DefDBitSetCore * set = m_bb_out_reach_def.get(bbid);
 	if (set == NULL) {
 		set = m_misc_bs_mgr->create_dbitsetc();
@@ -384,7 +384,7 @@ DefDBitSetCore * IR_DU_MGR::get_out_reach_def(UINT bbid)
 
 DefDBitSetCore * IR_DU_MGR::get_must_killed_def(UINT bbid)
 {
-	ASSERT0(m_ru->get_bb(bbid));
+	ASSERT0(m_cfg->get_bb(bbid));
 	DefDBitSetCore * set = m_bb_must_killed_def.get(bbid);
 	if (set == NULL) {
 		set = m_misc_bs_mgr->create_dbitsetc();
@@ -397,7 +397,7 @@ DefDBitSetCore * IR_DU_MGR::get_must_killed_def(UINT bbid)
 
 DefDBitSetCore * IR_DU_MGR::get_may_killed_def(UINT bbid)
 {
-	ASSERT0(m_ru->get_bb(bbid));
+	ASSERT0(m_cfg->get_bb(bbid));
 	DefDBitSetCore * set = m_bb_may_killed_def.get(bbid);
 	if (set == NULL) {
 		set = m_misc_bs_mgr->create_dbitsetc();
@@ -411,7 +411,7 @@ DefDBitSetCore * IR_DU_MGR::get_may_killed_def(UINT bbid)
 //Return IR expression-id set.
 DefDBitSetCore * IR_DU_MGR::get_gen_ir_expr(UINT bbid)
 {
-	ASSERT0(m_ru->get_bb(bbid));
+	ASSERT0(m_cfg->get_bb(bbid));
 	DefDBitSetCore * set = m_bb_gen_ir_expr.get(bbid);
 	if (set == NULL) {
 		set = m_misc_bs_mgr->create_dbitsetc();
@@ -425,7 +425,7 @@ DefDBitSetCore * IR_DU_MGR::get_gen_ir_expr(UINT bbid)
 //Return IR expression-id set.
 DefDBitSetCore * IR_DU_MGR::get_killed_ir_expr(UINT bbid)
 {
-	ASSERT0(m_ru->get_bb(bbid));
+	ASSERT0(m_cfg->get_bb(bbid));
 	DefDBitSetCore * set = m_bb_killed_ir_expr.get(bbid);
 	if (set == NULL) {
 		set = m_misc_bs_mgr->create_dbitsetc();
@@ -439,7 +439,7 @@ DefDBitSetCore * IR_DU_MGR::get_killed_ir_expr(UINT bbid)
 //Return livein set for IR expression. Each element in the set is IR id.
 DefDBitSetCore * IR_DU_MGR::get_availin_expr(UINT bbid)
 {
-	ASSERT0(m_ru->get_bb(bbid));
+	ASSERT0(m_cfg->get_bb(bbid));
 	DefDBitSetCore * set = m_bb_availin_ir_expr.get(bbid);
 	if (set == NULL) {
 		set = m_misc_bs_mgr->create_dbitsetc();
@@ -453,7 +453,7 @@ DefDBitSetCore * IR_DU_MGR::get_availin_expr(UINT bbid)
 //Return liveout set for IR expression. Each element in the set is IR id.
 DefDBitSetCore * IR_DU_MGR::get_availout_expr(UINT bbid)
 {
-	ASSERT0(m_ru->get_bb(bbid));
+	ASSERT0(m_cfg->get_bb(bbid));
 	DefDBitSetCore * set = m_bb_availout_ir_expr.get(bbid);
 	if (set == NULL) {
 		set = m_misc_bs_mgr->create_dbitsetc();
@@ -465,7 +465,7 @@ DefDBitSetCore * IR_DU_MGR::get_availout_expr(UINT bbid)
 
 
 //Allocate DUSet for memory reference.
-DUSet * IR_DU_MGR::get_du_alloc(IR * ir)
+DUSet * IR_DU_MGR::getAndAllocDUSet(IR * ir)
 {
 	ASSERT0(ir->isContainMemRef());
 	DU * du = ir->get_du();
@@ -1425,7 +1425,7 @@ void IR_DU_MGR::dump_ir_ref(IN IR * ir, UINT indent)
 
 void IR_DU_MGR::dump_bb_du_chain2(UINT bbid)
 {
-	dump_bb_du_chain2(m_ru->get_bb(bbid));
+	dump_bb_du_chain2(m_cfg->get_bb(bbid));
 }
 
 
@@ -1892,7 +1892,7 @@ void IR_DU_MGR::copyIRTreeDU(IR * to, IR const* from, bool copyDUChain)
 			DUSet const* from_du = from_ir->get_duset_c();
 			if (from_du == NULL || from_du->is_empty()) { continue; }
 
-			DUSet * to_du = get_du_alloc(to_ir);
+			DUSet * to_du = getAndAllocDUSet(to_ir);
 			to_du->copy(*from_du, *m_misc_bs_mgr);
 
 			//Add new du chain between DEF and USE.
@@ -3954,7 +3954,7 @@ void IR_DU_MGR::checkAndBuildChainRecursive(IR * stmt, IR * exp, C<IR*> * ct)
 	default: ASSERT0(0);
 	}
 
-	DUSet * xdu = get_du_alloc(exp);
+	DUSet * xdu = getAndAllocDUSet(exp);
 	if (!m_is_init->is_contain(IR_id(exp))) {
 		m_is_init->bunion(IR_id(exp));
 		xdu->clean(*m_misc_bs_mgr);
@@ -3993,7 +3993,7 @@ void IR_DU_MGR::checkAndBuildChain(IR * stmt, C<IR*> * ct)
 	switch (IR_type(stmt)) {
 	case IR_ST:
 		{
-			DUSet * du = get_du_alloc(stmt);
+			DUSet * du = getAndAllocDUSet(stmt);
 			if (!m_is_init->is_contain(IR_id(stmt))) {
 				m_is_init->bunion(IR_id(stmt));
 				du->clean(*m_misc_bs_mgr);
@@ -4005,7 +4005,7 @@ void IR_DU_MGR::checkAndBuildChain(IR * stmt, C<IR*> * ct)
 	case IR_STPR:
 		{
 			if (isComputePRDU()) {
-				DUSet * du = get_du_alloc(stmt);
+				DUSet * du = getAndAllocDUSet(stmt);
 				if (!m_is_init->is_contain(IR_id(stmt))) {
 					m_is_init->bunion(IR_id(stmt));
 					du->clean(*m_misc_bs_mgr);
@@ -4016,7 +4016,7 @@ void IR_DU_MGR::checkAndBuildChain(IR * stmt, C<IR*> * ct)
 		}
 	case IR_IST:
 		{
-			DUSet * du = get_du_alloc(stmt);
+			DUSet * du = getAndAllocDUSet(stmt);
 			if (!m_is_init->is_contain(IR_id(stmt))) {
 				m_is_init->bunion(IR_id(stmt));
 				du->clean(*m_misc_bs_mgr);
@@ -4027,7 +4027,7 @@ void IR_DU_MGR::checkAndBuildChain(IR * stmt, C<IR*> * ct)
 		}
 	case IR_STARRAY:
 		{
-			DUSet * du = get_du_alloc(stmt);
+			DUSet * du = getAndAllocDUSet(stmt);
 			if (!m_is_init->is_contain(IR_id(stmt))) {
 				m_is_init->bunion(IR_id(stmt));
 				du->clean(*m_misc_bs_mgr);
@@ -4055,7 +4055,7 @@ void IR_DU_MGR::checkAndBuildChain(IR * stmt, C<IR*> * ct)
 	case IR_PHI:
 		{
 			if (isComputePRDU()) {
-				DUSet * du = get_du_alloc(stmt);
+				DUSet * du = getAndAllocDUSet(stmt);
 				if (!m_is_init->is_contain(IR_id(stmt))) {
 					m_is_init->bunion(IR_id(stmt));
 					du->clean(*m_misc_bs_mgr);
@@ -4181,7 +4181,7 @@ void IR_DU_MGR::buildChainForMust(IR const* exp, MD const* expmd, DUSet * expdu)
 			//Build DU chain between exp and stmt.
 			expdu->add(d, *m_misc_bs_mgr);
 
-			DUSet * def_useset = get_du_alloc(stmt);
+			DUSet * def_useset = getAndAllocDUSet(stmt);
 			if (!m_is_init->is_contain(d)) {
 				m_is_init->bunion(d);
 				def_useset->clean(*m_misc_bs_mgr);
@@ -4220,7 +4220,7 @@ void IR_DU_MGR::buildChainForMD(IR const* exp, MD const* expmd, DUSet * expdu)
 		if (build_du) {
 			expdu->add(d, *m_misc_bs_mgr);
 
-			DUSet * def_useset = get_du_alloc(stmt);
+			DUSet * def_useset = getAndAllocDUSet(stmt);
 			if (!m_is_init->is_contain(d)) {
 				m_is_init->bunion(d);
 				def_useset->clean(*m_misc_bs_mgr);
@@ -4287,7 +4287,7 @@ void IR_DU_MGR::buildChainForMDSet(
 			if (build_du) {
 				expdu->add(d, *m_misc_bs_mgr);
 
-				DUSet * def_useset = get_du_alloc(stmt);
+				DUSet * def_useset = getAndAllocDUSet(stmt);
 				if (!m_is_init->is_contain(d)) {
 					m_is_init->bunion(d);
 					def_useset->clean(*m_misc_bs_mgr);

@@ -94,14 +94,7 @@ protected:
 
 	//Use outside pool to alloc memory. The pool will
 	//be freed by caller.
-	void * _ymalloc(UINT size)
-	{
-		void * p = LIRMALLOC(size);
-		ASSERT0(p);
-		memset(p, 0, size);
-		return p;
-	}
-
+	void * _ymalloc(UINT size);
 public:
 	IR2Dex(IN Region * ru, IN DexFile * df)
 	{

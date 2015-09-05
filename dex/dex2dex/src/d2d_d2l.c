@@ -9,16 +9,25 @@
 #include "str/cstr.h"
 #include "d2d_l2d.h"
 #include "d2d_d2l.h"
-#include "ltype.h"
-#include "lir.h"
-#include "xassert.h"
-#include "io/cio.h"
-#include "d2d_comm.h"
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "cominc.h"
+#include "lir.h"
+#include "xassert.h"
+#include "io/cio.h"
+#include "d2d_comm.h"
+#include "dx_mgr.h"
+#include "aoc_dx_mgr.h"
+#include "prdf.h"
+#include "dex.h"
+#include "gra.h"
+#include "dex_util.h"
+#include "dex2ir.h"
+#include "ir2dex.h"
+#include "d2d_l2d.h"
+#include "dex_driver.h"
 
 UInt32 gdb_compute_dataSize(D2Dpool* pool)
 {
@@ -114,17 +123,19 @@ static void copyAndTransformMethod(
          DexFile* pDexFile,
          const DexMethod* pDexMethod,
          const DexClassData* pClassData,
-         const DexClassDef* pClassDef)
+         const DexClassDef* pClassDef,
+         RegionMgr* rumgr)
 {
     UInt32 methodIdx;
 
     for (UInt32 i = 0; i < pClassData->header.directMethodsSize; i++) {
         pDexMethod = pClassData->directMethods + i;
 
-        if(pDexMethod->codeOff != 0)
-            d2rMethod(pool, pDexFile, pDexMethod, pClassDef);
-        else
+        if (pDexMethod->codeOff != 0) {
+            d2rMethod(pool, pDexFile, pDexMethod, pClassDef, rumgr);
+        } else {
             pool->codeOff = 0;
+        }
 
         ASSERT0(pDexMethod->methodIdx < pDexFile->pHeader->methodIdsSize);
 
@@ -132,7 +143,9 @@ static void copyAndTransformMethod(
             methodIdx = pDexMethod->methodIdx;
             writeUnSignedLeb128ToCbs(pool->classDataCbs, pDexMethod->methodIdx);
         } else {
-            writeUnSignedLeb128ToCbs(pool->classDataCbs, pDexMethod->methodIdx - methodIdx);
+            writeUnSignedLeb128ToCbs(
+                    pool->classDataCbs,
+                    pDexMethod->methodIdx - methodIdx);
             methodIdx = pDexMethod->methodIdx;
         }
 
@@ -144,7 +157,7 @@ static void copyAndTransformMethod(
         pDexMethod = pClassData->virtualMethods + i;
 
         if (pDexMethod->codeOff != 0) {
-            d2rMethod(pool, pDexFile, pDexMethod, pClassDef);
+            d2rMethod(pool, pDexFile, pDexMethod, pClassDef, rumgr);
         } else {
             pool->codeOff = 0;
         }
@@ -153,8 +166,9 @@ static void copyAndTransformMethod(
             methodIdx = pDexMethod->methodIdx;
             writeUnSignedLeb128ToCbs(pool->classDataCbs, pDexMethod->methodIdx);
         } else {
-            writeUnSignedLeb128ToCbs(pool->classDataCbs,
-                                     pDexMethod->methodIdx - methodIdx);
+            writeUnSignedLeb128ToCbs(
+                    pool->classDataCbs,
+                    pDexMethod->methodIdx - methodIdx);
             methodIdx = pDexMethod->methodIdx;
         }
 
@@ -166,7 +180,8 @@ static void copyAndTransformMethod(
 static void convertClassData(
         DexFile* pDexFile,
         D2Dpool* pool,
-        const DexClassDef* pDexClassDef)
+        const DexClassDef* pDexClassDef,
+        RegionMgr* rumgr)
 {
     const BYTE* pEncodedData = NULL;
     const DexClassData* pClassData = NULL;
@@ -175,16 +190,32 @@ static void convertClassData(
     pEncodedData = dexGetClassData(pDexFile, pDexClassDef);
     pClassData = dexReadAndVerifyClassData(&pEncodedData, NULL);
 
-    /*write to the static fields size*/
-    writeUnSignedLeb128ToCbs(pool->classDataCbs, pClassData->header.staticFieldsSize);
-    writeUnSignedLeb128ToCbs(pool->classDataCbs, pClassData->header.instanceFieldsSize);
-    writeUnSignedLeb128ToCbs(pool->classDataCbs, pClassData->header.directMethodsSize);
-    writeUnSignedLeb128ToCbs(pool->classDataCbs, pClassData->header.virtualMethodsSize);
+    //write to the static fields size
+    writeUnSignedLeb128ToCbs(
+        pool->classDataCbs,
+        pClassData->header.staticFieldsSize);
+
+    writeUnSignedLeb128ToCbs(
+        pool->classDataCbs,
+        pClassData->header.instanceFieldsSize);
+
+    writeUnSignedLeb128ToCbs(
+        pool->classDataCbs,
+        pClassData->header.directMethodsSize);
+
+    writeUnSignedLeb128ToCbs(
+        pool->classDataCbs,
+        pClassData->header.virtualMethodsSize);
 
     copyFields(pool, pClassData);
-    copyAndTransformMethod(pool, pDexFile, pDexMethod, pClassData, pDexClassDef);
 
-    return ;
+    copyAndTransformMethod(
+        pool,
+        pDexFile,
+        pDexMethod,
+        pClassData,
+        pDexClassDef,
+        rumgr);
 }
 
 static D2Dpool* poolInfoInit()
@@ -767,7 +798,6 @@ static void copyClassData(D2Dpool* pool)
 static void processClass(DexFile* pDexFile, D2Dpool* pool)
 {
     const DexClassDef* pDexClassDef;
-    UInt32 i;
     UInt32 clsNumber = pDexFile->pHeader->classDefsSize;
 
     ASSERT0(pool->currentSize == cbsGetSize(pool->lbs));
@@ -777,10 +807,10 @@ static void processClass(DexFile* pDexFile, D2Dpool* pool)
     pool->codeItemOff = pool->currentSize;
     UInt32 size = 0;
 
-    for (i = 0; i < clsNumber; i++) {
+    for (UInt32 i = 0; i < clsNumber; i++) {
         pDexClassDef = dexGetClassDef(pDexFile, i);
 
-        if(pDexClassDef->classDataOff == 0)
+        if (pDexClassDef->classDataOff == 0)
             continue;
 
         nDexCd.classDataOff = cbsGetSize(pool->classDataCbs);
@@ -789,12 +819,48 @@ static void processClass(DexFile* pDexFile, D2Dpool* pool)
 
         //printf("%s\n", dexGetClassDescriptor(pDexFile, pDexClassDef));
 
-        convertClassData(pDexFile, pool, pDexClassDef);
+        convertClassData(pDexFile, pool, pDexClassDef, NULL);
         size ++;
     }
     pool->updateClassDataSize = 0;
-    if (size == clsNumber)
-    {
+    if (size == clsNumber) {
+        // if no offset == 0, use clsnumber as class data item's size.
+        pool->updateClassDataSize = size;
+    }
+}
+
+static void analyseClass(DexFile* pDexFile, D2Dpool* pool)
+{
+    const DexClassDef* pDexClassDef;
+    UInt32 clsNumber = pDexFile->pHeader->classDefsSize;
+
+    ASSERT0(pool->currentSize == cbsGetSize(pool->lbs));
+    DexClassDef nDexCd;
+    memset(&nDexCd, 0, sizeof(DexClassDef));
+
+    pool->codeItemOff = pool->currentSize;
+    UInt32 size = 0;
+
+	DexRegionMgr * rumgr = new DexRegionMgr();
+	rumgr->initVarMgr();
+    for (UInt32 i = 0; i < clsNumber; i++) {
+        pDexClassDef = dexGetClassDef(pDexFile, i);
+
+        if (pDexClassDef->classDataOff == 0) { continue; }
+
+        nDexCd.classDataOff = cbsGetSize(pool->classDataCbs);
+        cbsSeek(pool->lbs, pool->classEntryOff + i * sizeof(DexClassDef));
+        cbsWrite(pool->lbs, &nDexCd, sizeof(DexClassDef));
+
+        //printf("%s\n", dexGetClassDescriptor(pDexFile, pDexClassDef));
+
+        convertClassData(pDexFile, pool, pDexClassDef, rumgr);
+        size++;
+    }
+	delete rumgr;
+
+    pool->updateClassDataSize = 0;
+    if (size == clsNumber) {
         // if no offset == 0, use clsnumber as class data item's size.
         pool->updateClassDataSize = size;
     }
@@ -1081,7 +1147,8 @@ D2Dpool* doCopyAndFixup(DexFile* pDexFile)
     /*copy the item from the map item*/
     copyDexMiscData(pDexFile, pool);
     /*transform class and write the code item*/
-    processClass(pDexFile, pool);
+    //processClass(pDexFile, pool);
+    analyseClass(pDexFile, pool);
     /*copy the annotatais directory item
      * type list info
      * string data item list

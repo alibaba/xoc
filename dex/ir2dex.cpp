@@ -34,17 +34,28 @@ author: Su Zhenyu
 #include "libdex/DexFile.h"
 #include "libdex/DexClass.h"
 #include "liropcode.h"
-
 #include "drAlloc.h"
 #include "d2d_comm.h"
-#include "../opt/cominc.h"
+
+#include "cominc.h"
 #include "dx_mgr.h"
-#include "../opt/prdf.h"
+#include "prdf.h"
 #include "dex.h"
 #include "gra.h"
 #include "dex_util.h"
 #include "dex2ir.h"
 #include "ir2dex.h"
+
+
+//Use outside pool to alloc memory. The pool will
+//be freed by caller.
+void * IR2Dex::_ymalloc(UINT size)
+{
+	void * p = LIRMALLOC(size);
+	ASSERT0(p);
+	memset(p, 0, size);
+	return p;
+}
 
 
 //AABBBB or AABBBBBBBB

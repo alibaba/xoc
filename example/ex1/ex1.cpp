@@ -38,8 +38,8 @@ List<Region*> g_ru_list;
 static UINT generate_region(RegionMgr * rm)
 {
 	//Generate region for file.
-	Region * topru = rm->newRegion(RU_PROGRAM);
-	rm->registerRegion(topru);
+	Region * topru = rm->allocRegion(RU_PROGRAM);
+	rm->set_region(topru);
 	topru->set_ru_var(rm->get_var_mgr()->registerVar(
 										".file",
 										rm->get_dm()->getMCType(0),
@@ -48,7 +48,7 @@ static UINT generate_region(RegionMgr * rm)
 
 	//-----------
 	//Generate region for func
-	Region * func_ru = rm->newRegion(RU_FUNC);
+	Region * func_ru = rm->allocRegion(RU_FUNC);
 	g_ru_list.append_tail(func_ru);
 	func_ru->set_ru_var(rm->get_var_mgr()->registerVar(
 										".func.name",

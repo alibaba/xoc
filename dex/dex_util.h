@@ -88,8 +88,8 @@ public:
 	virtual bool HighProcess(OptCTX & oc);
 	virtual bool MiddleProcess(OptCTX & oc);
 
-	virtual PassMgr * newPassMgr();
-	virtual IR_AA * newAliasAnalysis();
+	virtual PassMgr * allocPassMgr();
+	virtual IR_AA * allocAliasAnalysis();
 
 	void setDex2IR(Dex2IR * dex2ir) { m_dex2ir = dex2ir; }
 	Dex2IR * getDex2IR() { return m_dex2ir; }
@@ -134,12 +134,8 @@ class DexRegionMgr : public RegionMgr {
 public:
 	DexRegionMgr() : RegionMgr() {}
 	virtual ~DexRegionMgr() {}
-	virtual Region * newRegion(REGION_TYPE rt)
-	{
-		Region * ru = new DexRegion(rt, this);
-		REGION_id(ru) = m_ru_count++;
-		return ru;
-	}
+	virtual Region * allocRegion(REGION_TYPE rt)
+	{ return new DexRegion(rt, this); }
 };
 //END DexRegionMgr
 

@@ -50,18 +50,14 @@ author: GongKai, JinYue
 #include "utils/cbytestream.h"
 #include "xassert.h"
 #include "lircomm.h"
+
+#include "cominc.h"
 #include "lir.h"
-#include "ltype.h"
-
-#include "../opt/cominc.h"
-
 #include "dx_mgr.h"
 #include "aoc_dx_mgr.h"
-
-#include "../opt/prdf.h"
+#include "prdf.h"
 #include "dex.h"
 #include "gra.h"
-
 #include "dex_util.h"
 #include "dex2ir.h"
 #include "ir2dex.h"
@@ -681,7 +677,8 @@ bool d2rMethod(
         D2Dpool* pool,
         DexFile* pDexFile,
         const DexMethod* pDexMethod,
-        const DexClassDef* classdef)
+        const DexClassDef* classdef,
+        RegionMgr* rumgr)
 {
     const DexCode* dexCode = dexGetCode(pDexFile, pDexMethod);
     UInt16* codeStart = (UInt16*)dexCode->insns;
@@ -782,6 +779,7 @@ bool d2rMethod(
 
     //gen instruction
     genInstruction(pDexFile, codeStart, codeEnd, lirList, &positionMap);
+
     //ge try catch
     genTryCatches(pDexFile, dexCode, &positionMap, lircode);
 
@@ -791,7 +789,8 @@ bool d2rMethod(
         lircode->flags |= LIR_FLAGS_ISSTATIC;
     }
 
-    compileFunc(pool, lircode, pDexFile, pDexMethod, dexCode, classdef, offvec);
+    compileFunc(rumgr, pool, lircode, pDexFile,
+                pDexMethod, dexCode, classdef, offvec);
     lir2dexCode(pool, dexCode, lircode);
 
     //Leave it to verify.

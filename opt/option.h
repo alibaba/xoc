@@ -143,6 +143,7 @@ typedef enum _PASS_TYPE {
 	PASS_UNDEF = 0,
 	PASS_CFG,
 	PASS_AA,
+	PASS_DU_MGR,
 	PASS_CP,
 	PASS_CCP,
 	PASS_GCSE,
@@ -184,9 +185,9 @@ extern INT g_opt_level;
 extern bool g_do_gra;
 extern bool g_do_refine;
 extern bool g_do_refine_auto_insert_cvt;
-
 extern bool g_is_hoist_type; //Hoist data type from less than INT to INT.
 extern bool g_do_ipa;
+extern bool g_do_call_graph; //Build call graph.
 extern bool g_show_comp_time;
 extern bool g_do_inline;
 extern UINT g_inline_threshold;

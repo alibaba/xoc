@@ -44,21 +44,14 @@ AnalysisInstrument::AnalysisInstrument(Region * ru) :
 {
 	m_ru = ru;
 	m_ru_mgr = NULL;
-	m_inner_region_lst = NULL;
 	m_call_list = NULL;
-
-	//Do not use '0' as prno.
-	m_pr_count = 1; //counter of IR_PR
-
 	m_ir_list = NULL;
-	m_ir_cfg = NULL;
-	m_ir_aa = NULL;
-	m_ir_du_mgr = NULL;
 	m_pass_mgr = NULL;
 
+	//Counter of IR_PR, and do not use '0' as prno.
+	m_pr_count = 1;
 	m_pool = smpoolCreate(256, MEM_COMM);
 	m_du_pool = smpoolCreate(sizeof(DU) * 4, MEM_CONST_SIZE);
-
 	memset(m_free_tab, 0, sizeof(m_free_tab));
 }
 
@@ -88,11 +81,6 @@ AnalysisInstrument::~AnalysisInstrument()
 	dumpSegMgr(segmgr, g_tfile);
 	#endif
 
-	if (m_ir_cfg != NULL) {
-		delete m_ir_cfg;
-		m_ir_cfg = NULL;
-	}
-
 	if (m_pass_mgr != NULL) {
 		delete m_pass_mgr;
 		m_pass_mgr = NULL;
@@ -104,30 +92,13 @@ AnalysisInstrument::~AnalysisInstrument()
 	for (INT i = 1; i <= l; i++) {
 		IR * ir = m_ir_vector.get(i);
 		ASSERT0(ir);
+		if (ir->is_region()) {
+			m_ru_mgr->deleteRegion(REGION_ru(ir));
+		}
 		if (IR_ai(ir) != NULL) {
 			IR_ai(ir)->destroy_vec();
 		}
 		ir->freeDUset(m_sbs_mgr);
-	}
-
-	if (m_ir_du_mgr != NULL) {
-		delete m_ir_du_mgr;
-		m_ir_du_mgr = NULL;
-	}
-
-	if (m_ir_aa != NULL) {
-		delete m_ir_aa;
-		m_ir_aa = NULL;
-	}
-
-	//Destroy inner regions.
-	if (m_inner_region_lst != NULL) {
-		for (Region * ru = m_inner_region_lst->get_head();
-			 ru != NULL; ru = m_inner_region_lst->get_next()) {
-			delete ru;
-		}
-		//Delete it later.
-		//m_inner_region_lst->clean();
 	}
 
 	destroyVARandMD(m_ru, this);
@@ -141,11 +112,6 @@ AnalysisInstrument::~AnalysisInstrument()
 	m_du_pool = NULL;
 
 	m_ir_list = NULL;
-
-	if (m_inner_region_lst != NULL) {
-	 	delete m_inner_region_lst;
-		m_inner_region_lst = NULL;
-	}
 
 	//Destory CALL list.
 	if (m_call_list != NULL) {
@@ -167,7 +133,7 @@ bool AnalysisInstrument::verify_var(VarMgr * vm, VAR * v)
 	CK_USE(vm);
 	ASSERT0(vm->get_var(VAR_id(v)) != NULL);
 
-	if (REGION_type(m_ru) == RU_FUNC || REGION_type(m_ru) == RU_EH ||
+	if (m_ru->is_function() || m_ru->is_eh() ||
 		REGION_type(m_ru) == RU_SUB) {
 		//If var is global but unallocable, it often be
 		//used as placeholder or auxilary var.
@@ -175,7 +141,7 @@ bool AnalysisInstrument::verify_var(VarMgr * vm, VAR * v)
 		//For these kind of regions, there are only local variable or
 		//unablable global variable is legal.
 		ASSERT0(VAR_is_local(v) || !VAR_allocable(v));
-	} else if (REGION_type(m_ru) == RU_PROGRAM) {
+	} else if (m_ru->is_program()) {
 		//For program region, only global variable is legal.
 		ASSERT0(VAR_is_global(v));
 	} else {
@@ -188,25 +154,6 @@ bool AnalysisInstrument::verify_var(VarMgr * vm, VAR * v)
 UINT AnalysisInstrument::count_mem()
 {
 	UINT count = 0;
-	if (m_ir_cfg != NULL) {
-		count += m_ir_cfg->count_mem();
-	}
-
-	if (m_ir_aa != NULL) {
-		count += m_ir_aa->count_mem();
-	}
-
-	if (m_ir_du_mgr != NULL) {
-		count += m_ir_du_mgr->count_mem();
-	}
-
-	if (m_inner_region_lst != NULL) {
-		for (Region * ru = m_inner_region_lst->get_head();
-			 ru != NULL; ru = m_inner_region_lst->get_next()) {
-			count += ru->count_mem();
-		}
-	}
-
 	if (m_call_list != NULL) {
 		count += m_call_list->count_mem();
 	}
@@ -253,13 +200,13 @@ void Region::init(REGION_TYPE rt, RegionMgr * rm)
 	m_ref_info = NULL;
 	REGION_analysis_instrument(this) = NULL;
 	m_u2.s1b1 = 0;
-	if (m_ru_type == RU_PROGRAM ||
-		m_ru_type == RU_FUNC ||
-		m_ru_type == RU_EH ||
-		m_ru_type == RU_SUB) {
+	if (is_program() ||
+		is_function() ||
+		is_eh() ||
+		is_subregion()) {
 		//All these Region involve ir list.
 		REGION_analysis_instrument(this) = new AnalysisInstrument(this);
-		if (m_ru_type == RU_PROGRAM || m_ru_type == RU_FUNC) {
+		if (is_program() || is_function()) {
 			//All these Region involve ir list.
 			ASSERT0(rm);
 			ANA_INS_ru_mgr(REGION_analysis_instrument(this)) = rm;
@@ -271,10 +218,10 @@ void Region::init(REGION_TYPE rt, RegionMgr * rm)
 
 void Region::destroy()
 {
-	if ((REGION_type(this) == RU_SUB ||
-		REGION_type(this) == RU_FUNC ||
-		REGION_type(this) == RU_EH ||
-		REGION_type(this) == RU_PROGRAM) &&
+	if ((is_subregion() ||
+		 is_function() ||
+		 is_eh() ||
+		 is_program()) &&
 		REGION_analysis_instrument(this) != NULL) {
 		delete REGION_analysis_instrument(this);
 	}
@@ -293,10 +240,10 @@ void Region::destroy()
 UINT Region::count_mem()
 {
 	UINT count = 0;
-	if ((REGION_type(this) == RU_SUB ||
-		REGION_type(this) == RU_FUNC ||
-		REGION_type(this) == RU_EH ||
-		REGION_type(this) == RU_PROGRAM) &&
+	if ((is_subregion() ||
+		 is_function() ||
+		 is_eh() ||
+		 is_program()) &&
 		REGION_analysis_instrument(this) != NULL) {
 		count += REGION_analysis_instrument(this)->count_mem();
 		count += sizeof(*REGION_analysis_instrument(this));
@@ -552,11 +499,19 @@ IR * Region::buildIcall(IR * callee,
 //Build IR_REGION operation.
 IR * Region::buildRegion(Region * ru)
 {
-	ASSERT0(ru);
+	ASSERT0(ru && !ru->is_undef());
 	IR * ir = newIR(IR_REGION);
 	IR_dt(ir) = get_dm()->getVoid();
 	REGION_ru(ir) = ru;
 	REGION_parent(ru) = this;
+
+	#ifdef _DEBUG_
+	if (ru->is_function()) {
+		ASSERT(is_program(),
+			("Only program region can have a function region as subregion."));
+	}
+	#endif
+
 	return ir;
 }
 
@@ -1376,6 +1331,8 @@ IR * Region::buildBinaryOp(IR_TYPE irt, Type const* type,
 C<IRBB*> * Region::splitIRlistIntoBB(IR * irs, BBList * bbl, C<IRBB*> * ctbb)
 {
 	IR_CFG * cfg = get_cfg();
+	ASSERT(cfg, ("CFG is not available"));
+
 	IRBB * newbb = newBB();
 	cfg->add_bb(newbb);
 	ctbb = bbl->insert_after(newbb, ctbb);
@@ -1443,12 +1400,11 @@ where IR list should be splitted into :
 bool Region::reconstructBBlist(OptCTX & oc)
 {
 	START_TIMER("Reconstruct IRBB list");
+	ASSERT(get_cfg(), ("CFG is not available"));
+
 	bool change = false;
-
 	C<IRBB*> * ctbb;
-
 	BBList * bbl = get_bb_list();
-
 	for (bbl->get_head(&ctbb); ctbb != NULL; bbl->get_next(&ctbb)) {
 		IRBB * bb = C_val(ctbb);
 		C<IR*> * ctir;
@@ -1473,7 +1429,6 @@ bool Region::reconstructBBlist(OptCTX & oc)
 				}
 
 				ctbb = splitIRlistIntoBB(restirs, bbl, ctbb);
-
 				break;
 			} else if (bb->is_bb_up_boundary(ir)) {
 				ASSERT0(IR_type(ir) == IR_LABEL);
@@ -1492,7 +1447,6 @@ bool Region::reconstructBBlist(OptCTX & oc)
 				}
 
 				ctbb = splitIRlistIntoBB(restirs, bbl, ctbb);
-
 				break;
 			}
 		}
@@ -1770,9 +1724,7 @@ MD const* Region::genMDforPR(UINT prno, Type const* type)
 Region * Region::get_func_unit()
 {
 	Region * ru = this;
-	while (REGION_type(ru) != RU_FUNC) {
-		ru = REGION_parent(ru);
-	}
+	while (!ru->is_function()) { ru = REGION_parent(ru); }
 	ASSERT(ru != NULL, ("Not in func unit"));
 	return ru;
 }
@@ -1840,14 +1792,14 @@ void Region::freeIRTree(IR * ir)
 
 
 //Allocate PassMgr
-PassMgr * Region::newPassMgr()
+PassMgr * Region::allocPassMgr()
 {
 	return new PassMgr(this);
 }
 
 
 //Allocate AliasAnalysis.
-IR_AA * Region::newAliasAnalysis()
+IR_AA * Region::allocAliasAnalysis()
 {
 	return new IR_AA(this);
 }
@@ -2035,15 +1987,13 @@ IR * Region::dupIR(IR const* src)
 }
 
 
-List<IR const*> * Region::scanCallList()
+void Region::scanCallList(OUT List<IR const*> & call_list)
 {
-	List<IR const*> * cl = get_call_list();
-	ASSERT0(cl);
-	cl->clean();
+	call_list.clean();
 	if (get_ir_list() != NULL) {
 		for (IR const* t = get_ir_list(); t != NULL; t = IR_next(t)) {
 			if (t->is_calls_stmt()) {
-				cl->append_tail(t);
+				call_list.append_tail(t);
 			}
 		}
 	} else {
@@ -2051,11 +2001,10 @@ List<IR const*> * Region::scanCallList()
 			 bb != NULL; bb = get_bb_list()->get_next()) {
 			IR * t = BB_last_ir(bb);
 			if (t != NULL && t->is_calls_stmt()) {
-				cl->append_tail(t);
+				call_list.append_tail(t);
 			}
 		}
 	}
-	return cl;
 }
 
 
@@ -2068,6 +2017,22 @@ void Region::prescan(IR const* ir)
 		switch (IR_type(ir)) {
 		case IR_ST:
 			prescan(ST_rhs(ir));
+			break;
+		case IR_CALL:
+		case IR_ICALL:
+			if (g_do_call_graph) {
+				List<IR const*> * cl = get_call_list();
+				ASSERT0(cl);
+				cl->append_tail(ir);
+			}
+
+			for (UINT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
+				IR * k = ir->get_kid(i);
+				if (k != NULL) {
+					ASSERT0(IR_parent(k) == ir);
+					prescan(k);
+				}
+			}
 			break;
 		case IR_LDA:
 			{
@@ -2313,63 +2278,13 @@ void Region::dump_all_stmt()
 }
 
 
-//Perform DEF/USE analysis.
-IR_DU_MGR * Region::initDuMgr(OptCTX & oc)
-{
-	ASSERT0(REGION_analysis_instrument(this));
-	if (get_du_mgr() == NULL) {
-		ASSERT0(OC_is_aa_valid(oc));
-		ASSERT0(OC_is_cfg_valid(oc));
-
-		REGION_analysis_instrument(this)->m_ir_du_mgr = new IR_DU_MGR(this);
-
-		UINT f = SOL_REACH_DEF|SOL_REF;
-		//f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR|SOL_RU_REF;
-		if (g_do_ivr) {
-			f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR;
-		}
-
-		if (g_do_compute_available_exp) {
-			f |= SOL_AVAIL_EXPR;
-		}
-
-		get_du_mgr()->perform(oc, f);
-
-		get_du_mgr()->computeMDDUChain(oc);
-	}
-	return get_du_mgr();
-}
-
-
-//Initialize alias analysis.
-IR_AA * Region::initAliasAnalysis(OptCTX & oc)
-{
-	ASSERT0(REGION_analysis_instrument(this));
-	if (REGION_analysis_instrument(this)->m_ir_aa != NULL) {
-		return REGION_analysis_instrument(this)->m_ir_aa;
-	}
-
-	ASSERT0(OC_is_cfg_valid(oc));
-
-	REGION_analysis_instrument(this)->m_ir_aa = newAliasAnalysis();
-
-	REGION_analysis_instrument(this)->m_ir_aa->initMayPointToSet();
-
-	REGION_analysis_instrument(this)->m_ir_aa->set_flow_sensitive(true);
-
-	REGION_analysis_instrument(this)->m_ir_aa->perform(oc);
-
-	return REGION_analysis_instrument(this)->m_ir_aa;
-}
-
-
 PassMgr * Region::initPassMgr()
 {
 	if (REGION_analysis_instrument(this)->m_pass_mgr != NULL) {
 		return REGION_analysis_instrument(this)->m_pass_mgr;
 	}
 
-	REGION_analysis_instrument(this)->m_pass_mgr = newPassMgr();
+	REGION_analysis_instrument(this)->m_pass_mgr = allocPassMgr();
 
 	return REGION_analysis_instrument(this)->m_pass_mgr;
 }
@@ -2383,73 +2298,13 @@ void Region::destroyPassMgr()
 }
 
 
-//Build CFG and do early control flow optimization.
-IR_CFG * Region::initCfg(OptCTX & oc)
-{
-	ASSERT0(REGION_analysis_instrument(this));
-	if (get_cfg() == NULL) {
-		UINT n = MAX(8, getNearestPowerOf2(get_bb_list()->get_elem_count()));
-		REGION_analysis_instrument(this)->m_ir_cfg =
-			new IR_CFG(C_SEME, get_bb_list(), this, n, n);
-		IR_CFG * cfg = REGION_analysis_instrument(this)->m_ir_cfg;
-		//cfg->removeEmptyBB();
-		cfg->build(oc);
-		cfg->buildEHEdge();
-
-		//Rebuild cfg may generate redundant empty bb, it
-		//disturb the computation of entry and exit.
-		cfg->removeEmptyBB(oc);
-		cfg->computeEntryAndExit(true, true);
-
-		bool change = true;
-		UINT count = 0;
-		while (change && count < 20) {
-			change = false;
-			if (g_do_cfg_remove_empty_bb &&
-				cfg->removeEmptyBB(oc)) {
-				cfg->computeEntryAndExit(true, true);
-				change = true;
-			}
-
-			if (g_do_cfg_remove_unreach_bb &&
-				cfg->removeUnreachBB()) {
-				cfg->computeEntryAndExit(true, true);
-				change = true;
-			}
-
-			if (g_do_cfg_remove_trampolin_bb &&
-				cfg->removeTrampolinEdge()) {
-				cfg->computeEntryAndExit(true, true);
-				change = true;
-			}
-
-			if (g_do_cfg_remove_unreach_bb &&
-				cfg->removeUnreachBB()) {
-				cfg->computeEntryAndExit(true, true);
-				change = true;
-			}
-
-			if (g_do_cfg_remove_trampolin_bb &&
-				cfg->removeTrampolinBB()) {
-				cfg->computeEntryAndExit(true, true);
-				change = true;
-			}
-			count++;
-		}
-		ASSERT0(!change);
-	}
-	ASSERT0(get_cfg()->verify());
-	return get_cfg();
-}
-
-
 void Region::process()
 {
 	if (get_ir_list() == NULL) { return ; }
 
 	ASSERT0(verifyIRinRegion());
 
-	ASSERT(REGION_type(this) == RU_FUNC ||
+	ASSERT(is_function() ||
 			REGION_type(this) == RU_EH ||
 			REGION_type(this) == RU_SUB,
 			("Are you sure this kind of Region executable?"));
@@ -2470,7 +2325,7 @@ void Region::process()
 
 	MiddleProcess(oc);
 
-	if (REGION_type(this) != RU_FUNC) { return; }
+	if (!is_function()) { return; }
 
 	BBList * bbl = get_bb_list();
 
@@ -2618,7 +2473,7 @@ void Region::dumpVARInRegion(INT indent)
 	m_var->dumpVARDecl(buf, 100);
 
 	//Dump formal parameter list.
-	if (REGION_type(this) == RU_FUNC) {
+	if (is_function()) {
 		g_indent = indent + 1;
 		note("\nFORMAL PARAMETERS:\n");
 		VarTabIter c;
@@ -2664,13 +2519,6 @@ void Region::dumpVARInRegion(INT indent)
 
 	//Dump subregion.
 	fprintf(g_tfile, "\n");
-	if (REGION_analysis_instrument(this)->m_inner_region_lst != NULL &&
-		REGION_analysis_instrument(this)->m_inner_region_lst->get_elem_count() > 0) {
-		for (Region * r = REGION_analysis_instrument(this)->m_inner_region_lst->get_head();
-			 r != NULL; r = REGION_analysis_instrument(this)->m_inner_region_lst->get_next()) {
-			r->dumpVARInRegion(indent + 1);
-		}
-	}
 }
 
 
@@ -2692,13 +2540,15 @@ void Region::checkValidAndRecompute(OptCTX * oc, ...)
 
 	if (num == 0) { return; }
 
-	IR_CFG * cfg = get_cfg();
-	IR_DU_MGR * du = get_du_mgr();
-	IR_AA * aa = get_aa();
 	PassMgr * passmgr = get_pass_mgr();
+	ASSERT(passmgr, ("PassMgr is not enable"));
+
+	IR_CFG * cfg = (IR_CFG*)passmgr->query_opt(PASS_CFG);
+	IR_AA * aa = (IR_AA*)passmgr->query_opt(PASS_AA);
+	IR_DU_MGR * dumgr = (IR_DU_MGR*)passmgr->query_opt(PASS_DU_MGR);
 
 	if (opts.is_contain(PASS_CFG) && !OC_is_cfg_valid(*oc)) {
-		ASSERT0(cfg); //CFG has not been created.
+		ASSERT(cfg, ("CFG is not enable"));
 		//Caution: the validation of cfg should maintained by user.
 		cfg->rebuild(*oc);
 		cfg->removeEmptyBB(*oc);
@@ -2706,18 +2556,19 @@ void Region::checkValidAndRecompute(OptCTX * oc, ...)
 	}
 
 	if (opts.is_contain(PASS_CDG) && !OC_is_aa_valid(*oc)) {
-		ASSERT0(cfg && aa); //cfg is not enable.
+		ASSERT(cfg, ("CFG is not enable"));
+		ASSERT(aa, ("Alias Analysis is not enable"));
 		ASSERT0(OC_is_cfg_valid(*oc));
 		aa->perform(*oc);
 	}
 
 	if (opts.is_contain(PASS_DOM) && !OC_is_dom_valid(*oc)) {
-		ASSERT0(cfg); //cfg is not enable.
+		ASSERT(cfg, ("CFG is not enable"));
 		cfg->computeDomAndIdom(*oc);
 	}
 
 	if (opts.is_contain(PASS_PDOM) && !OC_is_pdom_valid(*oc)) {
-		ASSERT0(cfg); //cfg is not enable.
+		ASSERT(cfg, ("CFG is not enable"));
 		cfg->computePdomAndIpdom(*oc);
 	}
 
@@ -2725,6 +2576,7 @@ void Region::checkValidAndRecompute(OptCTX * oc, ...)
 		ASSERT0(passmgr);
 		CDG * cdg = (CDG*)passmgr->registerPass(PASS_CDG);
 		ASSERT0(cdg); //cdg is not enable.
+		ASSERT(cfg, ("CFG is not enable"));
 		cdg->rebuild(*oc, *cfg);
 	}
 
@@ -2754,24 +2606,24 @@ void Region::checkValidAndRecompute(OptCTX * oc, ...)
 
 	if ((HAVE_FLAG(f, SOL_REF) || opts.is_contain(PASS_AA)) &&
 		!OC_is_aa_valid(*oc)) {
-		ASSERT0(aa); //Default AA is not enable.
+		ASSERT(aa, ("Alias Analysis is not enable"));
 		aa->perform(*oc);
 	}
 
 	if (f != 0) {
-		ASSERT0(du); //Default du manager is not enable.
-		du->perform(*oc, f);
+		ASSERT(dumgr, ("Alias Analysis is not enable"));
+		dumgr->perform(*oc, f);
 		if (HAVE_FLAG(f, SOL_REF)) {
-			ASSERT0(du->verifyMDRef());
+			ASSERT0(dumgr->verifyMDRef());
 		}
 		if (HAVE_FLAG(f, SOL_AVAIL_EXPR)) {
-			ASSERT0(du->verifyLiveinExp());
+			ASSERT0(dumgr->verifyLiveinExp());
 		}
 	}
 
 	if (opts.is_contain(PASS_DU_CHAIN) && !OC_is_du_chain_valid(*oc)) {
-		ASSERT0(du); //Default du manager is not enable.
-		du->computeMDDUChain(*oc);
+		ASSERT(dumgr, ("Alias Analysis is not enable"));
+		dumgr->computeMDDUChain(*oc);
 	}
 
 	if (opts.is_contain(PASS_EXPR_TAB) && !OC_is_expr_tab_valid(*oc)) {
@@ -2782,10 +2634,12 @@ void Region::checkValidAndRecompute(OptCTX * oc, ...)
 	}
 
 	if (opts.is_contain(PASS_LOOP_INFO) && !OC_is_loopinfo_valid(*oc)) {
+		ASSERT(cfg, ("CFG is not enable"));
 		cfg->LoopAnalysis(*oc);
 	}
 
 	if (opts.is_contain(PASS_RPO)) {
+		ASSERT(cfg, ("CFG is not enable"));
 		if (!OC_is_rpo_valid(*oc)) {
 			cfg->compute_rpo(*oc);
 		} else {
@@ -2839,7 +2693,7 @@ bool Region::partitionRegion()
 	VAR_allocable(ruv) = false;
 	addToVarTab(ruv);
 
-	Region * inner_ru = get_region_mgr()->newRegion(RU_SUB);
+	Region * inner_ru = get_region_mgr()->allocRegion(RU_SUB);
 	inner_ru->set_ru_var(ruv);
 	IR * ir_ru = buildRegion(inner_ru);
 	copyDbx(ir, ir_ru, inner_ru);
@@ -2884,9 +2738,6 @@ RegionMgr::~RegionMgr()
 		Region * ru = m_id2ru.get(id);
 		if (ru != NULL) { delete ru; }
 	}
-	m_id2ru.clean();
-	m_ru_count = 0;
-	m_label_count = 1;
 
 	if (m_md_sys != NULL) {
 		delete m_md_sys;
@@ -2965,89 +2816,74 @@ void RegionMgr::registerGlobalMDS()
 }
 
 
-VarMgr * RegionMgr::newVarMgr()
+VarMgr * RegionMgr::allocVarMgr()
 {
 	return new VarMgr(this);
 }
 
 
+Region * RegionMgr::allocRegion(REGION_TYPE rt)
+{
+	return new Region(rt, this);
+}
+
+
 Region * RegionMgr::newRegion(REGION_TYPE rt)
 {
-	Region * ru = new Region(rt, this);
-	REGION_id(ru) = m_ru_count++;
+	Region * ru = allocRegion(rt);
+	UINT free_id = m_free_ru_id.remove_head();
+	if (free_id == 0) {
+		REGION_id(ru) = m_ru_count++;
+	} else {
+		REGION_id(ru) = free_id;
+	}
 	return ru;
 }
 
 
 //Record new region and delete it when RegionMgr destroy.
-void RegionMgr::registerRegion(Region * ru)
+void RegionMgr::set_region(Region * ru)
 {
+	ASSERT(REGION_id(ru) > 0, ("should generate new region via newRegion()"));
 	ASSERT0(m_id2ru.get(REGION_id(ru)) == NULL);
 	m_id2ru.set(REGION_id(ru), ru);
 }
 
 
-Region * RegionMgr::get_region(UINT id)
+void RegionMgr::deleteRegion(Region * ru)
 {
-	return m_id2ru.get(id);
-}
+	ASSERT0(ru);
+	UINT id = REGION_id(ru);
 
-
-void RegionMgr::deleteRegion(UINT id)
-{
-    Region * ru = get_region(id);
-	if (ru == NULL) return;
-	m_id2ru.set(id, NULL);
+	//User may not record the region.
+	//ASSERT(get_region(id), ("Does not belong to current region mgr"));
 	delete ru;
-}
 
-
-void RegionMgr::dump()
-{
-	if (g_tfile == NULL) return;
-	fprintf(g_tfile, "\nDump Region-UNIT\n");
-	Region * ru = getTopRegion();
-	if (ru == NULL) {
-		return;
+	if (id != 0) {
+		m_id2ru.set(id, NULL);
+		m_free_ru_id.append_head(id);
 	}
-	ru->dumpVARInRegion(0);
-	fprintf(g_tfile, "\n");
-	fflush(g_tfile);
-}
-
-
-Region * RegionMgr::getTopRegion()
-{
-	if (m_id2ru.get_last_idx() == -1) {
-		return NULL;
-	}
-	Region * ru = get_region(0);
-	ASSERT(ru != NULL, ("region id must start at 0"));
-	while (REGION_parent(ru) != NULL) {
-		ru = REGION_parent(ru);
-	}
-	return ru;
 }
 
 
 //Process a RU_FUNC region.
-void RegionMgr::processFuncRegion(IN Region * ru)
+void RegionMgr::processFuncRegion(IN Region * func)
 {
-	ASSERT0(REGION_type(ru) == RU_FUNC);
-	if (ru->get_ir_list() == NULL) { return; }
-	ru->process();
+	ASSERT0(func->is_function());
+	if (func->get_ir_list() == NULL) { return; }
+	func->process();
 	tfree();
 }
 
 
-IPA * RegionMgr::newIPA()
+IPA * RegionMgr::allocIPA(Region * program)
 {
-	return new IPA(this);
+	return new IPA(this, program);
 }
 
 
 //Scan call site and build call graph.
-CallGraph * RegionMgr::initCallGraph(Region * top)
+CallGraph * RegionMgr::initCallGraph(Region * top, bool scan_call)
 {
 	ASSERT0(m_callg == NULL);
 	UINT vn = 0, en = 0;
@@ -3056,7 +2892,10 @@ CallGraph * RegionMgr::initCallGraph(Region * top)
 		if (irs->is_region()) {
 			vn++;
 			Region * ru = REGION_ru(irs);
-			List<IR const*> * call_list = ru->scanCallList();
+			List<IR const*> * call_list = ru->get_call_list();
+			if (scan_call) {
+				ru->scanCallList(*call_list);
+			}
 			ASSERT0(call_list);
 			if (call_list->get_elem_count() == 0) {
 				irs = IR_next(irs);
@@ -3070,16 +2909,31 @@ CallGraph * RegionMgr::initCallGraph(Region * top)
 		irs = IR_next(irs);
 	}
 
-	m_callg = new CallGraph(MAX(vn, 1), MAX(en, 1), this);
+	vn = MAX(4, xcom::getNearestPowerOf2(vn));
+	en = MAX(4, xcom::getNearestPowerOf2(en));
+	m_callg = new CallGraph(vn, en, this);
 	m_callg->build(top);
+	m_callg->dump_vcg("callgraph.vcg");
 	return m_callg;
 }
 
 
 //#define MEMLEAKTEST
 #ifdef MEMLEAKTEST
-static void test_ru(Region * ru, RegionMgr * rm)
+static void test_ru(RegionMgr * rm)
 {
+	Region * ru = NULL;
+	Region * program = rm->get_region(1);
+	ASSERT0(program);
+	for (IR * ir = program->get_ir_list(); ir != NULL; ir = IR_next(ir)) {
+		if (ir->is_region()) {
+			ru = REGION_ru(ir);
+			break;
+		}
+	}
+
+	ASSERT0(ru);
+
 	INT i = 0;
 	VAR * v = ru->get_ru_var();
 	Region * x = new Region(RU_FUNC, rm);
@@ -3105,50 +2959,46 @@ static void test_ru(Region * ru, RegionMgr * rm)
 
 //Process top-level region unit.
 //Top level region unit should be program unit.
-void RegionMgr::process()
+void RegionMgr::processProgramRegion(Region * program)
 {
-	Region * top = getTopRegion();
-	if (top == NULL) { return; }
-
+	ASSERT0(program);
 	registerGlobalMDS();
-	ASSERT(REGION_type(top) == RU_PROGRAM, ("TODO: support more operation."));
+	ASSERT(program->is_program(), ("TODO: support more operation."));
 	OptCTX oc;
 	if (g_do_inline) {
-		CallGraph * callg = initCallGraph(top);
+		//Need to scan call-list.
+		CallGraph * callg = initCallGraph(program, true);
 		UNUSED(callg);
 		//callg->dump_vcg(get_dt_mgr(), NULL);
 
 		OC_is_callg_valid(oc) = true;
 
-		Inliner inl(this);
+		Inliner inl(this, program);
 		inl.perform(oc);
 	}
 
 	//Test mem leak.
-	//Region * ru = REGION_ru(top->get_ir_list());
-	//test_ru(ru, this);
-	//return;
+	//test_ru(this);
 
-	IR * irs = top->get_ir_list();
-	while (irs != NULL) {
-		if (irs->is_region()) {
-			Region * ru = REGION_ru(irs);
-			processFuncRegion(ru);
-			if (!g_do_ipa) {
-				ru->destroy();
-				REGION_ru(irs) = NULL;
-			}
+	for (IR * ir = program->get_ir_list(); ir != NULL; ir = IR_next(ir)) {
+		if (ir->is_region()) {
+			processFuncRegion(REGION_ru(ir));
+		} else {
+			ASSERT(0, ("TODO"));
 		}
-		irs = IR_next(irs);
 	}
 
 	if (g_do_ipa) {
 		if (!OC_is_callg_valid(oc)) {
-			initCallGraph(top);
+			//processFuncRegion has scanned and collected call-list.
+			//Thus it does not need to scan call-list here.
+			initCallGraph(program, false);
 			OC_is_callg_valid(oc) = true;
 		}
-		IPA ipa(this);
-		ipa.perform(oc);
+
+		IPA * ipa = allocIPA(program);
+		ipa->perform(oc);
+		delete ipa;
 	}
 }
 //END RegionMgr

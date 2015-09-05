@@ -82,6 +82,9 @@ public:
 	}
 
 	virtual Graph * allocCDG();
+	virtual Pass * allocCFG();
+	virtual Pass * allocAA();
+	virtual Pass * allocDUMgr();
 	virtual Pass * allocCopyProp();
 	virtual Pass * allocGCSE();
 	virtual Pass * allocLCSE();

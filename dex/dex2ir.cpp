@@ -36,10 +36,9 @@ author: Su Zhenyu
 #include "libdex/DexOpcodes.h"
 #include "liropcode.h"
 
-#include "../opt/cominc.h"
-
+#include "cominc.h"
 #include "dx_mgr.h"
-#include "../opt/prdf.h"
+#include "prdf.h"
 #include "dex.h"
 #include "gra.h"
 #include "dex_util.h"
@@ -2104,6 +2103,11 @@ void Dex2IR::markLabel()
 
 				ci->catch_start = lab;
 				ci->kind = each_catch->class_type;
+				CHAR const* catch_descriptor =
+					ci->kind == kDexNoIndex ?
+							"<any>" :
+							dexStringByTypeIdx(m_df, ci->kind);
+
 				add_next(&ti->catch_list, &last, ci);
 				m_has_catch = true;
 			}

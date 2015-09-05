@@ -567,7 +567,7 @@ void IR_SSA_MGR::placePhiForPR(
 
 			visited.bunion(i);
 
-			IRBB * ibb = m_ru->get_bb(i);
+			IRBB * ibb = m_cfg->get_bb(i);
 			ASSERT0(ibb);
 
 			//Redundant phi will be removed during refinePhi().

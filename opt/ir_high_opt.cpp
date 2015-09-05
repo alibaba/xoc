@@ -63,12 +63,11 @@ bool Region::HighProcess(OptCTX & oc)
 	}
 
 	PassMgr * passmgr = initPassMgr();
+	ASSERT0(passmgr);
 
 	if (g_build_cfs) {
-		ASSERT0(passmgr);
 		SIMP_is_record_cfs(&simp) = true;
-		CfsMgr * cfsmgr =
-			(CfsMgr*)passmgr->registerPass(PASS_CFS_MGR);
+		CfsMgr * cfsmgr = (CfsMgr*)passmgr->registerPass(PASS_CFS_MGR);
 		ASSERT0(cfsmgr);
 		SIMP_cfs_mgr(&simp) = cfsmgr;
 	}
@@ -86,8 +85,11 @@ bool Region::HighProcess(OptCTX & oc)
 
 	if (g_do_cfg) {
 		ASSERT0(g_cst_bb_list);
-		IR_CFG * cfg = initCfg(oc);
+		IR_CFG * cfg = (IR_CFG*)passmgr->registerPass(PASS_CFG);
+		ASSERT0(cfg);
+		cfg->initCfg(oc);
 		if (g_do_loop_ana) {
+			ASSERT0(g_do_cfg_dom);
 			cfg->LoopAnalysis(oc);
 		}
 	}
@@ -103,12 +105,30 @@ bool Region::HighProcess(OptCTX & oc)
 
 	if (g_do_aa) {
 		ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc));
-		initAliasAnalysis(oc);
+		IR_AA * aa = (IR_AA*)passmgr->registerPass(PASS_AA);
+		ASSERT0(aa);
+		aa->initAliasAnalysis();
+		aa->perform(oc);
 	}
 
 	if (g_do_du_ana) {
 		ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc) && OC_is_aa_valid(oc));
-		initDuMgr(oc);
+		IR_DU_MGR * dumgr = (IR_DU_MGR*)passmgr->registerPass(PASS_DU_MGR);
+		ASSERT0(dumgr);
+
+		UINT f = SOL_REACH_DEF|SOL_REF;
+		//f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR|SOL_RU_REF;
+
+		if (g_do_ivr) {
+			f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR;
+		}
+
+		if (g_do_compute_available_exp) {
+			f |= SOL_AVAIL_EXPR;
+		}
+
+		dumgr->perform(oc, f);
+		dumgr->computeMDDUChain(oc);
 	}
 
 	if (g_do_expr_tab) {
@@ -120,7 +140,6 @@ bool Region::HighProcess(OptCTX & oc)
 	}
 
 	if (g_do_cdg) {
-		ASSERT0(passmgr);
 		ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc));
 		CDG * cdg = (CDG*)passmgr->registerPass(PASS_CDG);
 		ASSERT0(cdg);

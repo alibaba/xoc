@@ -44,7 +44,7 @@ NOTICE:
    compute dominator, please try best to add vertex with
    topological order.
 */
-class IR_CFG : public CFG<IRBB, IR> {
+class IR_CFG : public Pass, public CFG<IRBB, IR> {
 protected:
 	Vector<IRBB*> m_bb_vec;
 	LAB2BB m_lab2bb;
@@ -189,7 +189,13 @@ public:
 										OUT List<IRBB*> & tgt_bbs);
 	IRBB * findBBbyLabel(LabelInfo * lab);
 	void findTargetBBOfIndirectBranch(IR * ir, OUT List<IRBB*> & tgtlst);
+	void findEHRegion(
+			IRBB const* catch_start,
+			BitSet const& rubbs,
+			OUT BitSet & ehbbs);
 
+	//Allocate and initialize control flow graph.
+	void initCfg(OptCTX & oc);
 	virtual bool if_opt(IRBB * bb);
 	bool is_ru_entry(IRBB * bb) { return BB_is_entry(bb); }
 	bool is_ru_exit(IRBB * bb) { return  BB_is_exit(bb); }
@@ -220,6 +226,8 @@ public:
 	LAB2BB * get_lab2bb_map() { return &m_lab2bb; }
 	IRBB * get_bb(UINT id) const { return m_bb_vec.get(id); }
 	virtual bool goto_opt(IRBB * bb);
+	virtual CHAR const* get_pass_name() const { return "CFG"; }
+	virtual PASS_TYPE get_pass_type() const { return PASS_CFG; }
 
 	//Find natural loop and scan loop body to find call and early exit, etc.
 	void LoopAnalysis(OptCTX & oc);
@@ -273,6 +281,8 @@ public:
 
 	virtual void set_rpo(IRBB * bb, INT order) { BB_rpo(bb) = order; }
 	virtual void unionLabels(IRBB * src, IRBB * tgt);
+
+	virtual bool perform(OptCTX & oc) { UNUSED(oc); return false; }
 
 	/* Perform miscellaneous control flow optimizations.
 	Include remove dead bb which is unreachable, remove empty bb as many

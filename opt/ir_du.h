@@ -70,7 +70,7 @@ namespace xoc {
 	freeDUSetAndMDRefs
 	copyDUSet
 	get_du_c
-	get_du_alloc
+	getAndAllocDUSet
 	freeDU
 	is_du_exist
 	unionUse
@@ -167,7 +167,7 @@ typedef HMap<IR*, DUSet*> IR2DU;
 #define SOL_AVAIL_EXPR				4  //live expr.
 #define SOL_RU_REF					8  //region's def/use mds.
 #define SOL_REF						16 //referrenced mds.
-class IR_DU_MGR {
+class IR_DU_MGR : public Pass {
 	friend class MDId2IRlist;
 	friend class DUSet;
 protected:
@@ -349,8 +349,8 @@ public:
 	void buildDUChain(IR * def, IR * use)
 	{
 		ASSERT0(def && def->is_stmt() && use && use->is_exp());
-		get_du_alloc(def)->add_use(use, *m_misc_bs_mgr);
-		get_du_alloc(use)->add_def(def, *m_misc_bs_mgr);
+		getAndAllocDUSet(def)->add_use(use, *m_misc_bs_mgr);
+		getAndAllocDUSet(use)->add_def(def, *m_misc_bs_mgr);
 	}
 
 	/* Compute the MDSet that might overlap ones which 'ir' defined.
@@ -437,7 +437,7 @@ public:
 			return;
 		}
 
-		DUSet * tgtduinfo = get_du_alloc(tgt);
+		DUSet * tgtduinfo = getAndAllocDUSet(tgt);
 		tgtduinfo->copy(*srcduinfo, *m_misc_bs_mgr);
 	}
 
@@ -454,7 +454,7 @@ public:
 			return;
 		}
 
-		DUSet * tgtduinfo = get_du_alloc(tgt);
+		DUSet * tgtduinfo = getAndAllocDUSet(tgt);
 		tgtduinfo->copy(*srcset, *m_misc_bs_mgr);
 	}
 
@@ -518,7 +518,7 @@ public:
 		DUSet * useset_of_from = from->get_duset();
 		if (useset_of_from == NULL) { return; }
 
-		DUSet * useset_of_to = get_du_alloc(to);
+		DUSet * useset_of_to = getAndAllocDUSet(to);
 		changeDef(IR_id(to), IR_id(from), useset_of_to, useset_of_from, m);
 	}
 
@@ -560,7 +560,7 @@ public:
 		DUSet * defset_of_from = from->get_duset();
 		if (defset_of_from == NULL) { return; }
 
-		DUSet * defset_of_to = get_du_alloc(to);
+		DUSet * defset_of_to = getAndAllocDUSet(to);
 		changeUse(IR_id(to), IR_id(from), defset_of_to, defset_of_from, m);
 	}
 
@@ -578,10 +578,11 @@ public:
 	void dump_bb_du_chain2(IRBB * bb);
 	void dump_du_graph(CHAR const* name = NULL, bool detail = true);
 
-	CHAR const* get_pass_name() const { return "DEF USE info manager"; }
+	virtual CHAR const* get_pass_name() const { return "DU Manager"; }
+	virtual PASS_TYPE get_pass_type() const { return PASS_DU_MGR; }
 
 	//DU chain operation.
-	DUSet * get_du_alloc(IR * ir);
+	DUSet * getAndAllocDUSet(IR * ir);
 
 	//Get set to BB.
 	DefDBitSetCore * get_may_gen_def(UINT bbid);
@@ -693,7 +694,7 @@ public:
 		ASSERT0(stmt && stmt->is_stmt());
 		if (use == NULL) return;
 		ASSERT0(use->is_exp());
-		get_du_alloc(stmt)->add_use(use, *m_misc_bs_mgr);
+		getAndAllocDUSet(stmt)->add_use(use, *m_misc_bs_mgr);
 	}
 
 	/* DU chain operations.
@@ -708,7 +709,7 @@ public:
 			 i >= 0; i = stmtset->get_next((UINT)i, &di)) {
 			IR * d = m_ru->get_ir((UINT)i);
 			ASSERT0(d->is_stmt());
-			get_du_alloc(d)->add_use(exp, *m_misc_bs_mgr);
+			getAndAllocDUSet(d)->add_use(exp, *m_misc_bs_mgr);
 		}
 	}
 
@@ -721,7 +722,7 @@ public:
 	{
 		ASSERT0(stmt->is_stmt());
 		if (set == NULL) { return; }
-		get_du_alloc(stmt)->bunion(*set, *m_misc_bs_mgr);
+		getAndAllocDUSet(stmt)->bunion(*set, *m_misc_bs_mgr);
 	}
 
 	/* DU chain operation.
@@ -733,7 +734,7 @@ public:
 	{
 		ASSERT0(ir->is_exp());
 		if (set == NULL) { return; }
-		get_du_alloc(ir)->bunion(*set, *m_misc_bs_mgr);
+		getAndAllocDUSet(ir)->bunion(*set, *m_misc_bs_mgr);
 	}
 
 	/* DU chain operation.
@@ -745,7 +746,7 @@ public:
 		ASSERT0(ir->is_exp());
 		if (def == NULL) return;
 		ASSERT0(def->is_stmt());
-		get_du_alloc(ir)->add_def(def, *m_misc_bs_mgr);
+		getAndAllocDUSet(ir)->add_def(def, *m_misc_bs_mgr);
 	}
 
 
@@ -761,7 +762,7 @@ public:
 			 i >= 0; i = expset->get_next((UINT)i, &di)) {
 			IR * u = m_ru->get_ir((UINT)i);
 			ASSERT0(u->is_exp());
-			get_du_alloc(u)->add_def(stmt, *m_misc_bs_mgr);
+			getAndAllocDUSet(u)->add_def(stmt, *m_misc_bs_mgr);
 		}
 	}
 
@@ -793,6 +794,11 @@ public:
 	bool verifyMDDUChainForIR(IR const* ir);
 	bool verifyLiveinExp();
 
+	virtual bool perform(OptCTX &)
+	{
+		ASSERT0(0);
+		return false;
+	}
 	bool perform(IN OUT OptCTX & oc,
 				 UINT flag = SOL_AVAIL_REACH_DEF|
 							 SOL_AVAIL_EXPR|

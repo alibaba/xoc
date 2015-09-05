@@ -135,6 +135,9 @@ bool g_do_gcse = false;
 //Perform interprocedual analysis and optimization.
 bool g_do_ipa = false;
 
+//Build Call Graph.
+bool g_do_call_graph = false;
+
 //If true to show compilation time.
 bool g_show_comp_time = false;
 

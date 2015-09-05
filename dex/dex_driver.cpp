@@ -38,15 +38,12 @@ author: Su Zhenyu
 #include "drAlloc.h"
 #include "d2d_comm.h"
 
-#include "../opt/cominc.h"
-
+#include "cominc.h"
 #include "dx_mgr.h"
 #include "aoc_dx_mgr.h"
-
-#include "../opt/prdf.h"
+#include "prdf.h"
 #include "dex.h"
 #include "gra.h"
-
 #include "dex_util.h"
 #include "dex2ir.h"
 #include "ir2dex.h"
@@ -261,7 +258,6 @@ public:
 int dumpPosition(void * cnxt, u4 address, u4 linenum)
 {
 	DbxCtx * dc = (DbxCtx*)cnxt;
-
 	DexDbx * dd = dc->newDexDbx();
 	dd->linenum = linenum;
 	dd->filename = dc->region->getClassSourceFilePath();
@@ -271,10 +267,6 @@ int dumpPosition(void * cnxt, u4 address, u4 linenum)
 		dc->dbxvec[i] = dd;
 	}
 	dc->current_instruction_index = i;
-
-	fprintf(g_tfile, "\naddress:0x%04x, lineno:%d", address, linenum);
-	fflush(g_tfile);
-
 	return 0;
 }
 
@@ -291,13 +283,14 @@ void dumpLocal(
         const char *signature)
 {
 	DbxCtx * dc = (DbxCtx*)cnxt;
-	fprintf(g_tfile, "\nstartAddr:0x%04x, endAddr:0x%04x, name:%s, desc:%s, signature:%s",
-			startAddress,
-			endAddress,
-			name,
-			descriptor,
-			signature);
-	fflush(g_tfile);
+
+	//fprintf(g_tfile, "\nstartAddr:0x%04x, endAddr:0x%04x, name:%s, desc:%s, signature:%s",
+	//			startAddress,
+	//			endAddress,
+	//			name,
+	//			descriptor,
+	//			signature);
+	//fflush(g_tfile);
 }
 
 
@@ -437,51 +430,6 @@ void logd_fu_param(CHAR const* runame, LIRCode * fu)
 bool g_dd = false;
 bool is_compile(CHAR const* runame, LIRCode * fu)
 {
-	//if (strcmp(runame, "Lgr/androiddev/BenchmarkPi/UpdateCheck;::isConnected") == 0) {
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/excp004/excp00409/excp00409;::run") == 0) { //rm aget, not revise try/catch
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/binc061/binc06101/binc06101;::run") == 0) {
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/thrd041/thrd04101/thrd04101;::waitFor") == 0) {
-	//if (strcmp(runame, "Lcom/adwhirl/AdWhirlManager;::parseRationsJson") == 0) { //switch-lir with many labels attacted.
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/lex062/lex06292m2/lex06292m2;::run") == 0)  //invoke be removed!  fix_multi_out()
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/lang/binc061/binc06101/binc06101;::run") == 0)
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/api/java/text/DecimalFormat/serial/InputTests;::serial2002") == 0) { //seem to remove incorrect lir.
-	//if (strcmp(runame, "Lcom/android/membench/MemBench$myAdd;::run") == 0) //how to remove redundant call to access$...
-	//if (strcmp(runame, "Ljavasoft/sqe/tests/api/java/math/BigDecimal/DecTestLine;::interpret") == 0) //aggressive-cp cost too many compile time, it incur recomp_aa. it is necessary to recomp-aa if ild's base changed?
-	//if (strcmp(runame, "Lcom/android/membench/MemBench$benchMark;::run") == 0) //how to remove redundant ild to this$0
-	//if (strcmp(runame, "Lcom/android/membench/MemBench$myAdd;::run") == 0) //how to remove redundant call to access$...
-	//if (strcmp(runame, "Lcom/wiyun/engine/actions/grid/WavesTiles3D;::copy") == 0)
-	//if (strcmp(runame, "La/a/a/g;::a") == 0) //Antutu
-	//if (strcmp(runame, "Lcom/adwhirl/AdWhirlLayout;::onMeasure") == 0) //crashed in gcse.
-	//if (strcmp(runame, "Lcom/android/membench/MemBench$myInit;::run") == 0)
-		//strcmp(runame, "Lcom/android/membench/MemBench$benchMark;::run") == 0)
-	//if (strcmp(runame, "La/a/a/g;::a") == 0) //Check antutu3.4.apk, prdf.compute_global_live	up to 87 times!
-	//if (strcmp(runame, "Lcom/antutu/benchmark/f/h;::c") == 0) //antutu_abenchmark_4.4.1.apk
-	//if (strcmp(runame, "Landroid/support/v4/app/h;::dump") == 0) //antutu_abenchmark_4.4.1.apk  make ir_expr_tab crash
-	//if (strcmp(runame, "Lcom/antutu/benchmark/test3d/i;::b") == 0) //generate redundant cvt.
-	//if (strstr(runame, "Lcom/android/cm3/FloatAtom;::execute") != 0) //gvn+gcse
-	//if (strstr(runame, "Ljava/lang/Object;::<init>") != 0) //gvn+gcse
-	//if (strstr(runame, "Lcom/antutu/benchmark/g/a;::m") != 0)
-	//if (strstr(runame, "Lcom/flurry/android/w;::a") != 0) //PRDF run more than 178 times.
-	//if (strstr(runame, "Lorg/a/a/a;::a") != 0) //antutu, crashed in sstl:3806 line
-	//if (strstr(runame, "Lan;::foo") != 0) //antutu test
-	//if (strstr(runame, "Lan;::pig") != 0) //antutu test
-	//if (strstr(runame, "Landroid/support/v4/app/aa;::onItemClick") != 0) //antutu, failed in allocGroup
-	//if (strstr(runame, "Lcom/antutu/benchmark/view/CircleProgress;::onDraw") != 0) //assignLTG() not set_local()
-	//if (strstr(runame, "Lcom/antutu/benchmark/f/b;::b") != 0) //assert in ir2dex, support f64,u64
-	//if (strstr(runame, "Lcom/xiaomi/network/HostManager;::generateHostStats") != 0)
-	//if (strstr(runame, "Lorg/a/a/h;::a") != 0)
-	//if (strstr(runame, "Lcom/antutu/benchmark/h/eq;::a") != 0) //prdf iter up to 238 times.
-	//if (strstr(runame, "Lorg/cocos2dx/lib/Cocos2dxBitmap;::createTextBitmapShadowStroke") != 0) //prdf iter up to 238 times.
-	//if (strstr(runame, "Lcom/antutu/benchmark/view/CircleProgress;::onDraw") != 0) //antutu, ltg bug.
-	//if (strstr(runame, "Lorg/a/a/h;::a") != 0) //antutu, runtime error
-	//if (strstr(runame, "Lcom/antutu/benchmark/f/v;::b") != 0) //antutu, runtime error
-	//if (strstr(runame, "Lorg/a/a/h;::a") != 0) //antutu, runtime error
-
-	//if (strstr(runame, "Lcom/antutu/benchmark/f/v;::c") != 0)  //hot, small
-	//if (strstr(runame, "Lcom/antutu/benchmark/f/v;::b") != 0) //hot, large
-	//if (strcmp(runame, "Lcom/adwhirl/AdWhirlManager;::fetchConfig") == 0)
-	//if (strcmp(runame, "Lcom/adwhirl/adapters/CustomAdapter;::displayCustom") == 0)
-	//if (strcmp(runame, "Lsoftweg/hw/performance/CPUTest;::runSingle") != 0) { //softweg hot func.
 	xdebug();
 	logd_fu_param(runame, fu);
 	g_dd = 0; //set to 1 to open dex2ir.log ir2dex.log
@@ -500,6 +448,7 @@ static void dump_all_method_name(CHAR const* runame)
 //Optimizer for LIR.
 //Return true if compilation is successful.
 bool compileFunc(
+		IN OUT RegionMgr * rumgr,
 		OUT D2Dpool * fupool,
 		IN LIRCode * lircode,
 		IN DexFile * df,
@@ -521,6 +470,16 @@ bool compileFunc(
 	sprintf(runame, "%s:%s",
 			get_class_name(df, dexm), get_func_name(df, dexm));
 
+	//if (strcmp(runame, "Lcom/uc/browser/core/f/d/h;:b")!=0) { //IR_CFG::removeTrampolin has bug.
+	//if (strcmp(runame, "LExpHandler;:main")!=0) { //IR_CFG::removeTrampolin has bug.
+	//if (strcmp(runame, "Lcom/aliyun/video/aggregation/AggregationManager$FreshThread;:run")!=0) { //Huge method contains 67535 IRs which incur convertIR2LIR drLinearAlloc failed.
+	//if (strcmp(runame, "Lcom/aliyun/video/DramaInfo;:getDramaDetail")!=0) { //The good case for scanCase1()
+	//if (strcmp(runame, "Lcom/android/providers/telephony/MmsSmsProvider;:query")!=0) { //SSA made compilation slowly
+	//if (strcmp(runame, "Lcom/android/providers/telephony/TelephonyProvider$DatabaseHelper;:<init>")!=0) { //Test scanCase1
+	if (strcmp(runame, "Lhwdroid/widget/ActionBar/ActionBarView$UpdateHandler;:setOptionTitleInner")!=0) { //new_mem_pool failed!
+		//return false;
+	}
+
 	g_do_ssa = false;
 
 	#ifdef _VMWARE_DEBUG_
@@ -531,12 +490,14 @@ bool compileFunc(
 
 	ASSERT0(df && dexm);
 
-	//dump_all_class_and_field(df);
-	//dump_all_lir(lircode, df, dexm);
+	dump_all_class_and_field(df);
+	dump_all_lir(lircode, df, dexm);
 
-	DexRegionMgr * rm = new DexRegionMgr();
-
-	rm->initVarMgr();
+	DexRegionMgr * rm = (DexRegionMgr*)rumgr;
+	if (rm == NULL) {
+		rm = new DexRegionMgr();
+		rm->initVarMgr();
+	}
 
 	//Generate Program region.
 	DexRegion * func_ru = (DexRegion*)rm->newRegion(RU_FUNC);
@@ -552,8 +513,10 @@ bool compileFunc(
 	func_ru->setClassSourceFilePath(getClassSourceFilePath(df, dexclassdef));
 	handleRegion(func_ru, df, lircode, fupool, dexm, dexcode, offsetvec);
 
-	delete func_ru;
-	delete rm;
+	if (rumgr == NULL) {
+		rm->deleteRegion(func_ru);
+		delete rm;
+	}
 
 	//Convert to DEX code and store it to code buffer.
 	//convertLIR2Dex(df, dexm, lircode, fupool);

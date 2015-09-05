@@ -50,12 +50,15 @@ bool Inliner::is_call_site(IR * call, Region * ru)
 }
 
 
-/* 'caller': caller's region.
-'caller_call': call site in caller.
-'new_irs': indicate the duplicated IR list in caller. Note that
-	these IR must be allocated in caller's region. */
-IR * Inliner::replaceReturnImpl(Region * caller, IR * caller_call,
-							   IR * new_irs, LabelInfo * el)
+//'caller': caller's region.
+//'caller_call': call site in caller.
+//'new_irs': indicate the duplicated IR list in caller. Note that
+//	these IR must be allocated in caller's region.
+IR * Inliner::replaceReturnImpl(
+		Region * caller,
+		IR * caller_call,
+		IR * new_irs,
+		LabelInfo * el)
 {
 	IR * next = NULL;
 	for (IR * x = new_irs; x != NULL; x = next) {
@@ -81,9 +84,9 @@ IR * Inliner::replaceReturnImpl(Region * caller, IR * caller_call,
 			if (!caller_call->hasReturnValue()) {
 				if (el != NULL) {
 					IR * go = caller->buildGoto(el);
-					insertbefore_one(&new_irs, x, go);
+					xcom::insertbefore_one(&new_irs, x, go);
 				}
-				remove(&new_irs, x);
+				xcom::remove(&new_irs, x);
 				caller->freeIRTree(x);
 			} else {
 				IR * send = RET_exp(x);
@@ -91,18 +94,18 @@ IR * Inliner::replaceReturnImpl(Region * caller, IR * caller_call,
 				IR * mv_lst = NULL;
 				if (send != NULL) {
 					IR * mv = caller->buildStorePR(receive,
-													 IR_dt(caller_call), send);
-					insertbefore_one(&mv_lst, mv_lst, mv);
+												   IR_dt(caller_call), send);
+					xcom::insertbefore_one(&mv_lst, mv_lst, mv);
 				}
 				RET_exp(x) = NULL;
 
 				if (el != NULL) {
 					IR * go = caller->buildGoto(el);
-					add_next(&mv_lst, go);
+					xcom::add_next(&mv_lst, go);
 				}
 
-				insertbefore(&new_irs, x, mv_lst);
-				remove(&new_irs, x);
+				xcom::insertbefore(&new_irs, x, mv_lst);
+				xcom::remove(&new_irs, x);
 				ASSERT0(RET_exp(x) == NULL);
 				caller->freeIRTree(x);
 			}
@@ -115,8 +118,10 @@ IR * Inliner::replaceReturnImpl(Region * caller, IR * caller_call,
 
 
 
-void Inliner::ck_ru(IN Region * ru, OUT bool & need_el,
-					OUT bool & has_ret) const
+void Inliner::checkRegion(
+		IN Region * ru,
+		OUT bool & need_el,
+		OUT bool & has_ret) const
 {
 	need_el = false;
 	has_ret = false;
@@ -172,6 +177,7 @@ void Inliner::ck_ru(IN Region * ru, OUT bool & need_el,
 		case IR_RETURN: has_ret = true; break;
 		default: break;
 		} //end switch
+
 		if (need_el) {
 			break;
 		}
@@ -179,18 +185,23 @@ void Inliner::ck_ru(IN Region * ru, OUT bool & need_el,
 }
 
 
-IR * Inliner::replaceReturn(Region * caller, IR * caller_call,
-							 IR * new_irs, InlineInfo * ii)
+IR * Inliner::replaceReturn(
+		Region * caller,
+		IR * caller_call,
+		IR * new_irs,
+		InlineInfo * ii)
 {
 	LabelInfo * el = NULL;
 	if (INLINFO_need_el(ii)) {
 		el = caller->genIlabel();
 	}
+
 	if (INLINFO_has_ret(ii)) {
 		new_irs = replaceReturnImpl(caller, caller_call, new_irs, el);
 	}
+
 	if (el != NULL) {
-		add_next(&new_irs, caller->buildLabel(el));
+		xcom::add_next(&new_irs, caller->buildLabel(el));
 	}
 	return new_irs;
 }
@@ -210,21 +221,23 @@ bool Inliner::do_inline_c(Region * caller, Region * callee)
 			is_call_site(caller_irs, callee)) {
 			IR * new_irs_in_caller = caller->dupIRTreeList(callee_irs);
 
-			InlineInfo * ii = map_ru2ii(callee, false);
+			InlineInfo * ii = mapRegion2InlineInfo(callee, false);
 			if (ii == NULL) {
 				bool need_el;
 				bool has_ret;
-				ck_ru(callee, need_el, has_ret);
-				ii = map_ru2ii(callee, true);
+				checkRegion(callee, need_el, has_ret);
+				ii = mapRegion2InlineInfo(callee, true);
 				INLINFO_has_ret(ii) = has_ret;
 				INLINFO_need_el(ii) = need_el;
  			}
+
 			new_irs_in_caller = replaceReturn(caller, caller_irs, new_irs_in_caller, ii);
-			insertafter(&caller_irs, new_irs_in_caller);
-			remove(&head, caller_irs);
+			xcom::insertafter(&caller_irs, new_irs_in_caller);
+			xcom::remove(&head, caller_irs);
 			change = true;
 		}
 	}
+
 	caller->set_ir_list(head);
 	return change;
 }
@@ -262,10 +275,8 @@ bool Inliner::perform(OptCTX & oc)
 {
 	UNUSED(oc);
 	ASSERT0(OC_is_callg_valid(oc));
-	Region * top = m_ru_mgr->getTopRegion();
-	if (top == NULL) return false;
-	ASSERT0(REGION_type(top) == RU_PROGRAM);
-	IR * irs = top->get_ir_list();
+	ASSERT0(m_program && m_program->is_program());
+	IR * irs = m_program->get_ir_list();
 	while (irs != NULL) {
 		if (irs->is_region()) {
 			Region * ru = REGION_ru(irs);

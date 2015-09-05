@@ -159,6 +159,70 @@ public:
 		return DGraph::computePdomByRpo(get_vertex(root->id), uni);
 	}
 
+	//Compute all reachable BBs start from 'startbb'.
+	//bbset: record the output result.
+	//Note caller should clean bbset.
+	void computeReachableBBSet(BB * startbb, OUT BitSet & bbset)
+	{
+		ASSERT0(startbb);
+		List<Vertex const*> wl;
+		UINT id = startbb->id;
+		ASSERT0(get_vertex(id));
+		wl.append_tail(get_vertex(id));
+
+		Vertex const* v;
+		while ((v = wl.remove_head()) != NULL) {
+			UINT id = VERTEX_id(v);
+			if (bbset.is_contain(id)) {
+				continue;
+			}
+			bbset.bunion(id);
+
+			EdgeC * el = VERTEX_out_list(v);
+			while (el != NULL) {
+				Vertex const* succv = EDGE_to(EC_edge(el));
+				if (!bbset.is_contain(VERTEX_id(succv))) {
+					wl.append_tail(succv);
+				}
+				el = EC_next(el);
+			}
+		}
+	}
+
+	//Compute all reachable BBs start from 'startbb'.
+	//bbset: record the output result.
+	//Note caller should clean bbset.
+	//This function is different to computeReachableBBSet, it only
+	//collect BBs in main stream control flow, BBs which in
+	//exception handler region are omitted.
+	void computeMainStreamBBSet(BB * startbb, OUT BitSet & bbset)
+	{
+		ASSERT0(startbb);
+		List<Vertex const*> wl;
+		UINT id = startbb->id;
+		ASSERT0(get_vertex(id));
+		wl.append_tail(get_vertex(id));
+
+		Vertex const* v;
+		while ((v = wl.remove_head()) != NULL) {
+			UINT id = VERTEX_id(v);
+			if (bbset.is_contain(id) || get_bb(id)->is_exp_handling()) {
+				continue;
+			}
+			bbset.bunion(id);
+
+			EdgeC * el = VERTEX_out_list(v);
+			while (el != NULL) {
+				Vertex const* succv = EDGE_to(EC_edge(el));
+				UINT sid = VERTEX_id(succv);
+				if (!bbset.is_contain(sid) && !get_bb(sid)->is_exp_handling()) {
+					wl.append_tail(succv);
+				}
+				el = EC_next(el);
+			}
+		}
+	}
+
 	//Compute the entry bb.
 	//Only the function entry and try and catch entry BB can be CFG entry.
 	virtual void computeEntryAndExit(bool comp_entry, bool comp_exit)

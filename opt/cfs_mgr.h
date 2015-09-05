@@ -188,7 +188,7 @@ public:
 	virtual CHAR const* get_pass_name() const
 	{ return "Control Flow Structure MGR"; }
 
-	PASS_TYPE get_pass_type() const { return PASS_CFS_MGR; }
+	virtual PASS_TYPE get_pass_type() const { return PASS_CFS_MGR; }
 };
 
 } //namespace xoc

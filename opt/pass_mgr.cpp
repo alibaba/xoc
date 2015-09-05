@@ -174,6 +174,26 @@ Pass * PassMgr::allocCfsMgr()
 }
 
 
+Pass * PassMgr::allocAA()
+{
+	return new IR_AA(m_ru);
+}
+
+
+Pass * PassMgr::allocDUMgr()
+{
+	return new IR_DU_MGR(m_ru);
+}
+
+
+Pass * PassMgr::allocCFG()
+{
+	BBList * bbl = m_ru->get_bb_list();
+	UINT n = MAX(8, xcom::getNearestPowerOf2(bbl->get_elem_count()));
+	return new IR_CFG(C_SEME, bbl, m_ru, n, n);
+}
+
+
 Graph * PassMgr::registerGraphBasedPass(PASS_TYPE opty)
 {
 	Graph * pass = NULL;
@@ -196,6 +216,15 @@ Pass * PassMgr::registerPass(PASS_TYPE opty)
 	if (pass != NULL) { return pass; }
 
     switch (opty) {
+	case PASS_CFG:
+		pass = allocCFG();
+		break;
+	case PASS_AA:
+		pass = allocAA();
+		break;
+	case PASS_DU_MGR:
+		pass = allocDUMgr();
+		break;
     case PASS_CP:
 		pass = allocCopyProp();
 		break;

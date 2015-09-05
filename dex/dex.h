@@ -300,5 +300,4 @@ public:
 
 //Perform Dex register allocation.
 extern bool g_do_dex_ra;
-
 #endif

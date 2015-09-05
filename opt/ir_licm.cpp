@@ -65,7 +65,7 @@ bool IR_LICM::scanOpnd(IN LI<IRBB> * li,
 			continue;
 		}
 
-		IRBB * bb = m_ru->get_bb(i);
+		IRBB * bb = m_cfg->get_bb(i);
 		ASSERT0(bb && m_cfg->get_vertex(i));
 		for (IR * ir = BB_first_ir(bb);
 			 ir != NULL; ir = BB_next_ir(bb)) {

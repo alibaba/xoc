@@ -726,7 +726,7 @@ bool IR_GCSE::perform(OptCTX & oc)
 		m_exp2pr.clean();
 		MDSet tmp;
 		for (Vertex * v = lst.get_head(); v != NULL; v = lst.get_next()) {
-			IRBB * bb = m_ru->get_bb(VERTEX_id(v));
+			IRBB * bb = m_cfg->get_bb(VERTEX_id(v));
 			ASSERT0(bb);
 			change |= doPropVN(bb, BB_id(entry));
 		}
@@ -735,7 +735,7 @@ bool IR_GCSE::perform(OptCTX & oc)
 		m_vn2exp.clean();
 		m_exp2pr.clean();
 		for (Vertex * v = lst.get_head(); v != NULL; v = lst.get_next()) {
-			IRBB * bb = m_ru->get_bb(VERTEX_id(v));
+			IRBB * bb = m_cfg->get_bb(VERTEX_id(v));
 			ASSERT0(bb);
 			change |= doProp(bb, livexp);
 		}

@@ -216,6 +216,7 @@ void IR_AA::cleanContext(OptCTX & oc)
 //Free MDSet of MDA back to MDSetMgr.
 void IR_AA::clean()
 {
+	m_is_visit.clean();
 	m_in_pp_set.clean();
 	m_out_pp_set.clean();
 
@@ -1186,10 +1187,10 @@ MD const* IR_AA::assignPRMD(
 
 //'mds' : record memory descriptor of 'ir'
 MD const* IR_AA::assignLoadMD(
-			IR * ir,
-			IN OUT MDSet * mds,
-			IN OUT AACTX * ic,
-			IN OUT MD2MDSet * mx)
+		IR * ir,
+		IN OUT MDSet * mds,
+		IN OUT AACTX * ic,
+		IN OUT MD2MDSet * mx)
 {
 	ASSERT0(ir->is_ld());
 	ASSERT0(mds && ic);
@@ -3759,7 +3760,7 @@ void IR_AA::initMayPointToSet()
 			} */
 		}
 
-		if (REGION_type(ru) == RU_FUNC || REGION_type(ru) == RU_PROGRAM) {
+		if (ru->is_function() || ru->is_program()) {
 			break;
 		} else {
 			ASSERT0(REGION_type(ru) == RU_SUB || REGION_type(ru) == RU_EH);
@@ -3790,6 +3791,14 @@ void IR_AA::computeFlowInsensitive()
 }
 
 
+//Initialize alias analysis.
+void IR_AA::initAliasAnalysis()
+{
+	initMayPointToSet();
+	set_flow_sensitive(true);
+}
+
+
 //Calculate point-to set.
 bool IR_AA::perform(IN OUT OptCTX & oc)
 {
@@ -3801,7 +3810,8 @@ bool IR_AA::perform(IN OUT OptCTX & oc)
 
 	//Initialization.
 	m_pt_pair_mgr.init();
-	m_is_visit.clean();
+
+	//Clean data structures used for analysis.
 	clean();
 
 	#ifdef _DEBUG_
@@ -3839,7 +3849,6 @@ bool IR_AA::perform(IN OUT OptCTX & oc)
 		delete [] ptset_arr;
 	}
 
-
 #if 0
 	m_md_sys->dumpAllMD();
 	//dumpMD2MDSetForRegion();
@@ -3853,6 +3862,7 @@ bool IR_AA::perform(IN OUT OptCTX & oc)
 	//Since AA is not always used, we destroy the data
 	//structure to release memory.
 	m_pt_pair_mgr.clobber();
+
 	END_TIMER_AFTER(get_pass_name());
 
 	#ifdef _DEBUG_

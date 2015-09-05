@@ -137,24 +137,118 @@ void IR_CFG::cf_opt()
 }
 
 
-void IR_CFG::findTargetBBOfMulticondBranch(IN IR * ir,
-								OUT List<IRBB*> & tgt_bbs)
+//Do early control flow optimization.
+void IR_CFG::initCfg(OptCTX & oc)
+{
+	//cfg->removeEmptyBB();
+	build(oc);
+	buildEHEdge();
+
+	//Rebuild cfg may generate redundant empty bb, it
+	//disturb the computation of entry and exit.
+	removeEmptyBB(oc);
+	computeEntryAndExit(true, true);
+
+	bool change = true;
+	UINT count = 0;
+	while (change && count < 20) {
+		change = false;
+		if (g_do_cfg_remove_empty_bb &&
+			removeEmptyBB(oc)) {
+			computeEntryAndExit(true, true);
+			change = true;
+		}
+
+		if (g_do_cfg_remove_unreach_bb &&
+			removeUnreachBB()) {
+			computeEntryAndExit(true, true);
+			change = true;
+		}
+
+		if (g_do_cfg_remove_trampolin_bb &&
+			removeTrampolinEdge()) {
+			computeEntryAndExit(true, true);
+			change = true;
+		}
+
+		if (g_do_cfg_remove_unreach_bb &&
+			removeUnreachBB()) {
+			computeEntryAndExit(true, true);
+			change = true;
+		}
+
+		if (g_do_cfg_remove_trampolin_bb &&
+			removeTrampolinBB()) {
+			computeEntryAndExit(true, true);
+			change = true;
+		}
+		count++;
+	}
+	ASSERT0(!change);
+	ASSERT0(verify());
+}
+
+
+void IR_CFG::findTargetBBOfMulticondBranch(
+		IN IR * ir,
+		OUT List<IRBB*> & tgt_bbs)
 {
 	ASSERT0(ir->is_switch());
 	tgt_bbs.clean();
-	if (m_bb_list == NULL) return;
+	if (m_bb_list == NULL) { return; }
+
 	IR * casev_list = SWITCH_case_list(ir);
 	if (SWITCH_deflab(ir) != NULL) {
 		IRBB * tbb = findBBbyLabel(SWITCH_deflab(ir));
 		ASSERT0(tbb);
 		tgt_bbs.append_tail(tbb);
 	}
+
 	if (casev_list != NULL) {
 		for (IR * casev = casev_list;
 			 casev != NULL; casev = IR_next(casev)) {
 			IRBB * tbb = findBBbyLabel(CASE_lab(casev));
 			ASSERT0(tbb);
 			tgt_bbs.append_tail(tbb);
+		}
+	}
+}
+
+
+//This function find BBs which belong to exception handler region.
+//catch_start: start BB of an exception handler region.
+//mainstreambbs: record BBs which can be reached from entry of
+//	region. Note that the BB set only records BBs that in main stream
+//	control flow.
+//ehbbs: record all BB of the exception handler region.
+//Note: this function does not clean ehbbs. Caller is responsible for that.
+void IR_CFG::findEHRegion(
+		IRBB const* catch_start,
+		BitSet const& mainstreambbs,
+		OUT BitSet & ehbbs)
+{
+	ASSERT0(catch_start && catch_start->is_exp_handling());
+	List<Vertex const*> list;
+	Vertex const* bbv = get_vertex(BB_id(catch_start));
+	ASSERT0(bbv);
+	list.append_head(bbv);
+	for (Vertex const* v = list.remove_head();
+		 v != NULL; v = list.remove_head()) {
+		UINT id = VERTEX_id(v);
+		if (mainstreambbs.is_contain(id) || ehbbs.is_contain(id)) {
+			continue;
+		}
+
+		ehbbs.bunion(id);
+
+		EdgeC * el = VERTEX_out_list(v);
+		while (el != NULL) {
+			Vertex const* succ = EDGE_to(EC_edge(el));
+			if (!mainstreambbs.is_contain(VERTEX_id(succ)) &&
+				!ehbbs.is_contain(VERTEX_id(succ))) {
+				list.append_tail(succ);
+			}
+			el = EC_next(el);
 		}
 	}
 }

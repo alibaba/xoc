@@ -93,12 +93,13 @@ protected:
 	MDSystem * m_md_sys;
 	CallGraph * m_callg;
 	UINT m_ru_count;
+	List<UINT> m_free_ru_id;
 	UINT m_label_count;
 	bool m_is_regard_str_as_same_md;
 public:
 	explicit RegionMgr() : m_sym_tab(0)
 	{
-		m_ru_count = 0;
+		m_ru_count = 1;
 		m_tm = NULL;
 		m_label_count = 1;
 		m_var_mgr = NULL;
@@ -113,23 +114,27 @@ public:
 
 	SYM * addToSymbolTab(CHAR const* s) { return m_sym_tab.add(s); }
 
-	//Dump region info. For now, only var table.
-	void dump();
+	//Allocate Region.
+	virtual Region * allocRegion(REGION_TYPE rt);
+
+	//Allocate varMgr.
+	virtual VarMgr * allocVarMgr();
+
+	//Allocate IPA module.
+	IPA * allocIPA(Region * program);
 
 	//Destroy specific region by given id.
-	void deleteRegion(UINT id);
+	void deleteRegion(Region * ru);
 
-	inline BitSetMgr * get_bs_mgr() { return &m_bs_mgr; }
-	virtual Region * get_region(UINT id);
-	inline UINT getNumOfRegion() const { return m_ru_count; }
-	Region * getTopRegion();
-
-	inline VarMgr * get_var_mgr() { return m_var_mgr; }
+	BitSetMgr * get_bs_mgr() { return &m_bs_mgr; }
+	virtual Region * get_region(UINT id) { return m_id2ru.get(id); }
+	UINT getNumOfRegion() const { return m_ru_count; }
+	VarMgr * get_var_mgr() { return m_var_mgr; }
 	MD const* getDedicateStrMD();
-	inline TargMach * get_tm() const { return m_tm; }
-	inline MDSystem * get_md_sys() { return m_md_sys; }
-	inline SymTab * get_sym_tab() { return &m_sym_tab; }
-	inline TypeMgr * get_dm() { return &m_dt_mgr; }
+	TargMach * get_tm() const { return m_tm; }
+	MDSystem * get_md_sys() { return m_md_sys; }
+	SymTab * get_sym_tab() { return &m_sym_tab; }
+	TypeMgr * get_dm() { return &m_dt_mgr; }
 	CallGraph * get_callg() const { return m_callg; }
 
 	void registerGlobalMDS();
@@ -138,36 +143,30 @@ public:
 	//It is the first thing you should do after you declared a RegionMgr.
 	inline void initVarMgr()
 	{
-		m_var_mgr = newVarMgr();
+		m_var_mgr = allocVarMgr();
 		ASSERT0(m_var_mgr);
 		m_md_sys = new MDSystem(m_var_mgr);
 	}
 
 	//Scan call site and build call graph.
-	CallGraph * initCallGraph(Region * top);
+	CallGraph * initCallGraph(Region * top, bool scan_call);
 
-	//Allocate Region.
-	virtual Region * newRegion(REGION_TYPE rt);
-
-	//Allocate varMgr.
-	virtual VarMgr * newVarMgr();
-
-	//Allocate IPA module.
-	IPA * newIPA();
+	Region * newRegion(REGION_TYPE rt);
 
 	//Set Target Machine if any.
-	inline void set_tm(TargMach * tm) { m_tm = tm; }
+	void set_tm(TargMach * tm) { m_tm = tm; }
+
+	//This function will establish a map between region and its id.
+	void set_region(Region * ru);
 
 	//Process region in the form of function type.
-	virtual void processFuncRegion(IN Region * ru);
+	virtual void processFuncRegion(IN Region * func);
 
 	//Process top-level region unit.
 	//Top level region unit should be program unit.
-	virtual void process();
+	virtual void processProgramRegion(IN Region * program);
 
-	//Register a region.
-	//This function will establish a map between region and its id.
-	virtual void registerRegion(Region * ru);
+
 };
 //END RegionMgr
 
@@ -185,16 +184,12 @@ public:
 
 	SMemPool * m_pool;
 	SMemPool * m_du_pool;
-	List<Region*> * m_inner_region_lst; //indicate the inner regions.
 
 	//Indicate a list of IR.
 	IR * m_ir_list;
 
 	List<IR const*> * m_call_list; //record CALL/ICALL in region.
 
-	IR_CFG * m_ir_cfg; //CFG of region.
-	IR_AA * m_ir_aa; //alias analyzer.
-	IR_DU_MGR * m_ir_du_mgr; //DU manager.
 	RegionMgr * m_ru_mgr; //Region manager.
 	PassMgr * m_pass_mgr; //PASS manager.
 
@@ -461,16 +456,6 @@ public:
 	SMemPool * get_pool() { return REGION_analysis_instrument(this)->m_pool; }
 	inline MDSystem * get_md_sys() { return get_region_mgr()->get_md_sys(); }
 	inline TypeMgr * get_dm() const { return get_region_mgr()->get_dm(); }
-
-	inline List<Region*> * get_inner_region_list()
-	{
-		if (REGION_analysis_instrument(this)->m_inner_region_lst == NULL) {
-			REGION_analysis_instrument(this)->m_inner_region_lst =
-									new List<Region*>();
-		}
-		return REGION_analysis_instrument(this)->m_inner_region_lst;
-	}
-
 	inline TargMach * get_tm() const { return RM_targmach(get_region_mgr()); }
 
 	UINT get_pr_count() const
@@ -480,8 +465,7 @@ public:
 
 	inline RegionMgr * get_region_mgr() const
 	{
-		ASSERT0(REGION_type(this) == RU_FUNC ||
-				 REGION_type(this) == RU_PROGRAM);
+		ASSERT0(is_function() || is_program());
 		ASSERT0(REGION_analysis_instrument(this));
 		return ANA_INS_ru_mgr(REGION_analysis_instrument(this));
 	}
@@ -524,25 +508,32 @@ public:
 	Vector<IR*> * get_ir_vec()
 	{ return &REGION_analysis_instrument(this)->m_ir_vector; }
 
-	//Return IRBB pointer via the unique BB_id.
-	IRBB * get_bb(UINT bbid)
-	{ return REGION_analysis_instrument(this)->m_ir_cfg->get_bb(bbid); }
-
-	//Return IR_CFG.
-	IR_CFG * get_cfg() const
-	{ return REGION_analysis_instrument(this)->m_ir_cfg; }
-
 	//Return PassMgr.
 	PassMgr * get_pass_mgr() const
 	{ return REGION_analysis_instrument(this)->m_pass_mgr; }
 
-	//Return alias analysis module.
+	//Return IR_CFG.
+	IR_CFG * get_cfg() const
+	{
+		return get_pass_mgr() != NULL ?
+				(IR_CFG*)get_pass_mgr()->query_opt(PASS_CFG) :
+				NULL;
+	}
+
 	IR_AA * get_aa() const
-	{ return REGION_analysis_instrument(this)->m_ir_aa; }
+	{
+		return get_pass_mgr() != NULL ?
+				(IR_AA*)get_pass_mgr()->query_opt(PASS_AA) :
+				NULL;
+	}
 
 	//Return DU info manager.
 	IR_DU_MGR * get_du_mgr() const
-	{ return REGION_analysis_instrument(this)->m_ir_du_mgr; }
+	{
+		return get_pass_mgr() != NULL ?
+				(IR_DU_MGR*)get_pass_mgr()->query_opt(PASS_DU_MGR) :
+				NULL;
+	}
 
 	CHAR const* get_ru_name() const;
 	Region * get_func_unit();
@@ -579,6 +570,15 @@ public:
 	{
 		if (m_ref_info != NULL) { return &REF_INFO_mayuse(m_ref_info); }
 		return NULL;
+	}
+
+	Region * getTopRegion()
+	{
+		Region * ru = this;
+		while (REGION_parent(ru) != NULL) {
+			ru = REGION_parent(ru);
+		}
+		return ru;
 	}
 
 	//Allocate a internal LabelInfo that is not declared by compiler user.
@@ -667,17 +667,8 @@ public:
 		m_ref_info = (RefInfo*)xmalloc(sizeof(RefInfo));
 	}
 
-	//Allocate and initialize control flow graph.
-	IR_CFG * initCfg(OptCTX & oc);
-
-	//Allocate and initialize alias analysis.
-	virtual IR_AA * initAliasAnalysis(OptCTX & oc);
-
 	//Allocate and initialize pass manager.
 	PassMgr * initPassMgr();
-
-	//Allocate and initialize def-use manager.
-	IR_DU_MGR * initDuMgr(OptCTX & oc);
 
 	//Invert condition for relation operation.
 	virtual void invertCondition(IR ** cond);
@@ -699,6 +690,13 @@ public:
 	bool isRegionName(CHAR const* n) const
 	{ return strcmp(get_ru_name(), n) == 0; }
 
+	bool is_undef() const { return REGION_type(this) == RU_UNDEF; }
+	bool is_function() const { return REGION_type(this) == RU_FUNC; }
+	bool is_blackbox() const { return REGION_type(this) == RU_BLX; }
+	bool is_program() const { return REGION_type(this) == RU_PROGRAM; }
+	bool is_subregion() const { return REGION_type(this) == RU_SUB; }
+	bool is_eh() const { return REGION_type(this) == RU_EH; }
+
 	//Perform middle level IR optimizations which are implemented
 	//accroding to control flow info and data flow info.
 	virtual bool MiddleProcess(OptCTX & oc);
@@ -708,10 +706,10 @@ public:
 	{ return REGION_analysis_instrument(this)->m_prno2var.get(prno); }
 
 	//Allocate PassMgr
-	virtual PassMgr * newPassMgr();
+	virtual PassMgr * allocPassMgr();
 
 	//Allocate AliasAnalysis.
-	virtual IR_AA * newAliasAnalysis();
+	virtual IR_AA * allocAliasAnalysis();
 
 	//Allocate IRBB.
 	IRBB * newBB();
@@ -821,7 +819,7 @@ public:
 	void set_ir_list(IR * irs) { REGION_analysis_instrument(this)->m_ir_list = irs; }
 	void set_blx_data(void * d) { REGION_blx_data(this) = d; }
 	IR * StrengthReduce(IN OUT IR * ir, IN OUT bool & change);
-	List<IR const*> * scanCallList();
+	void scanCallList(OUT List<IR const*> & call_list);
 
 	void lowerIRTreeToLowestHeight(OptCTX & oc);
 

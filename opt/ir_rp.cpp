@@ -2060,7 +2060,7 @@ bool IR_RP::tryPromote(
 
 	for (INT i = LI_bb_set(li)->get_first();
 		 i != -1; i = LI_bb_set(li)->get_next(i)) {
-		IRBB * bb = m_ru->get_bb(i);
+		IRBB * bb = m_cfg->get_bb(i);
 		ASSERT0(bb && m_cfg->get_vertex(BB_id(bb)));
 		if (bb->is_bb_has_return()) {
 			return false;
