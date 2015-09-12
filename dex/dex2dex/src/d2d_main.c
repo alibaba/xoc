@@ -69,37 +69,41 @@ int d2dTest(int argc, const char* argv[])
         return -1;
     }
 
-    const char* dexPath = argv[1];
+    const char* dexpath = argv[1];
 
-    int fd = open(dexPath, O_RDWR);
+    int fd = open(dexpath, O_RDWR);
 
-    if (fd < 0)
-    {
+    if (fd < 0) {
         LOGE("Open error %s\n", strerror(errno));
         return errno;
     }
 
     long fileLen;
-    if(d2dEntry(fd, &fileLen, false) != 0)
-    {
+    if (d2dEntry(fd, &fileLen, false, dexpath) != 0) {
         LOGE("do dex2dex error!\n");
         return errno;
     }
 
     if (fd) {
         close(fd);
-	}
+    }
     return 0;
 }
 
 
 //'dxbuf': Buffer for dex file memory mapped.
-bool d2dEntryBuf(unsigned char ** dxbuf, unsigned int* dxbuflen, unsigned int* cbsHandler)
+bool d2dEntryBuf(
+        unsigned char ** dxbuf,
+        unsigned int* dxbuflen,
+        unsigned int* cbsHandler,
+        char const* dexfilename)
 {
     bool result = false;
     Int32 error = 0;
 
-    DexFile * pDexFile = dexFileParse((const u1*)*dxbuf, *dxbuflen, kDexParseDefault);
+    DexFile * pDexFile = dexFileParse((const u1*)*dxbuf,
+                                      *dxbuflen,
+                                      kDexParseDefault);
     if (NULL == pDexFile) {
         LOGE("LEMUR:pDexFile is null: DEX parse failed for \n");
         goto END;
@@ -109,7 +113,7 @@ bool d2dEntryBuf(unsigned char ** dxbuf, unsigned int* dxbuflen, unsigned int* c
     pDexFile->pClassLookup = dexCreateClassLookup(pDexFile);
 
     //TODO free buffer
-    error = doDex2Dex2(pDexFile, dxbuf, dxbuflen, cbsHandler);
+    error = doDex2Dex2(pDexFile, dxbuf, dxbuflen, cbsHandler, dexfilename);
     if (error != 0) {
         goto END;
     }
@@ -122,13 +126,14 @@ END:
     return result;
 }
 
-void d2dEntryBufFree(unsigned int cbsHandler){
+void d2dEntryBufFree(unsigned int cbsHandler)
+{
     if(cbsHandler != 0) {
         cbsDestroy(cbsHandler);
     }
 }
 
-int d2dEntry(int dexFd, long* fileLen, bool ifOpt)
+int d2dEntry(int dexFd, long* fileLen, bool ifOpt, const char* dexfilename)
 {
     Int32 error = 0;
     DexFile* pDexFile = NULL;
@@ -158,7 +163,7 @@ int d2dEntry(int dexFd, long* fileLen, bool ifOpt)
     }
 
     pDexFile->pClassLookup = dexCreateClassLookup(pDexFile);
-    error = doDex2Dex(pDexFile, dexFd, fileLen, ifOpt);
+    error = doDex2Dex(pDexFile, dexFd, fileLen, ifOpt, dexfilename);
 END:
     if (mapped) {
         sysReleaseShmem(&map);

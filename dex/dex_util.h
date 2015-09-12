@@ -52,21 +52,30 @@ public:
 //
 //START DexRegion
 //
+#define DR_functype(dr)     ((dr)->m_functype)
+#define DR_funcname(dr)     ((dr)->m_funcname)
+#define DR_classname(dr)    ((dr)->m_classname)
 class DexRegion : public Region {
 protected:
-	VAR2PR m_var2pr; //map from var id to prno.
-	Dex2IR * m_dex2ir;
-	Prno2Vreg * m_prno2v;
-	TypeIndexRep * m_type_index_rep;
+    VAR2PR m_var2pr; //map from var id to prno.
+    Dex2IR * m_dex2ir;
+    Prno2Vreg * m_prno2v;
+    TypeIndexRep * m_type_index_rep;
 	UINT m_paramnum;
 	UINT m_org_vregnum;
 	CHAR const* m_src_path; //record source file path of class.
-	DexFile const* m_dexfile;
-	DexMethod const* m_dexmethod;
+    DexFile const* m_dexfile;
+    DexMethod const* m_dexmethod;
 
 protected:
-	bool is_64bit(IR const* ir)
-	{ return get_dm()->get_bytesize(IR_dt(ir))== 8; }
+    bool is_64bit(IR const* ir)
+    { return get_dm()->get_bytesize(IR_dt(ir))== 8; }
+    void HighProcessImpl(OptCTX & oc);
+
+public:
+    CHAR const* m_functype;
+    CHAR const* m_funcname;
+    CHAR const* m_classname;
 
 public:
 	DexRegion(REGION_TYPE rt, RegionMgr * rm) : Region(rt, rm)
@@ -79,6 +88,9 @@ public:
 		m_src_path;
 		m_dexfile = NULL;
 		m_dexmethod = NULL;
+        m_classname = NULL;
+        m_funcname = NULL;
+        m_functype = NULL;
 	}
 	virtual ~DexRegion() {}
 
@@ -127,15 +139,59 @@ public:
 //END DexRegion
 
 
+class DexCallGraph : public CallGraph {
+protected:
+    //Record very unimportant functions that do not
+    //need to add an edge on call graph.
+    TTab<SYM const*> m_unimportant_symtab;
+
+public:
+    DexCallGraph(UINT edge_hash, UINT vex_hash, RegionMgr * rumgr);
+    virtual ~DexCallGraph() {}
+
+    bool is_unimportant(SYM const* sym) const;
+
+    virtual bool shouldAddEdge(IR const* ir) const
+    {
+        ASSERT0(ir->is_calls_stmt());
+        SYM const* name = VAR_name(CALL_idinfo(ir));
+        if (is_unimportant(name)) { return false; }
+
+        CHAR const* q = "Ljava/lang/";
+        CHAR const* p = SYM_name(name);
+        while ((*p++ == *q++) && *q != 0);
+        return *q != 0;
+    }
+};
+
 //
 //START DexRegionMgr
 //
 class DexRegionMgr : public RegionMgr {
+protected:
+    SYM const* m_builtin_sym[BLTIN_LAST];
 public:
-	DexRegionMgr() : RegionMgr() {}
+    DexRegionMgr();
+    COPY_CONSTRUCTOR(DexRegionMgr);
 	virtual ~DexRegionMgr() {}
 	virtual Region * allocRegion(REGION_TYPE rt)
 	{ return new DexRegion(rt, this); }
+    virtual CallGraph * allocCallGraph(UINT edgenum, UINT vexnum)
+    { return new DexCallGraph(edgenum, vexnum, this); }
+
+    Region * getProgramRegion()
+    {
+        //The first region should be program-region.
+        return get_region(1);
+    }
+
+    SYM const* get_sym(BLTIN_TYPE bt) const
+    {
+        ASSERT0(bt > BLTIN_UNDEF && bt < BLTIN_LAST);
+        return m_builtin_sym[bt];
+    }
+
+    virtual void processProgramRegion(Region * program);
 };
 //END DexRegionMgr
 
@@ -204,13 +260,41 @@ inline bool is_wide(LIR * lir)
 			LIR_dt(lir) == LIR_JDT_long;
 }
 
+//and Function Name.
+CHAR * assemblyUniqueName(
+        OUT CHAR buf[],
+        CHAR const* class_name,
+        CHAR const* func_type,
+        CHAR const* func_name);
+
+//Extract the function parameter and return value name
+//from function type string.
+void extractFunctionTypeFromFunctionTypeString(
+        CHAR const* functype,
+        OUT CHAR * param_type,
+        OUT CHAR * return_type);
+
+//Extract the right most sub-string from str.
+CHAR const* extractRightMostString(CHAR const* str, CHAR separator);
+void extractFunctionTypeFromRegionName(
+        CHAR const* runame,
+        OUT CHAR * param_type,
+        OUT CHAR * return_type);
+
+//Note outputbuf should big enough to hold the string.
+void extractSeparateParamterType(
+        CHAR const* param_type_string,
+        OUT List<CHAR*> & params);
+
 CHAR const* getClassSourceFilePath(
-		DexFile const* df,
-		DexClassDef const* class_info);
+        DexFile const* df,
+        DexClassDef const* class_info);
 CHAR const* get_class_name(DexFile const* df, DexMethod const* dm);
 CHAR const* get_class_name(DexFile const* df, UINT cls_type_idx);
 CHAR const* get_class_name(DexFile const* df, DexClassDef const* class_info);
 CHAR const* get_func_name(DexFile const* df, DexMethod const* dm);
+CHAR const* get_func_type(DexFile const* df, DexMethod const* dm);
+CHAR const* get_func_type(DexFile const* df, DexMethodId const* dmid);
 CHAR const* get_field_name(DexFile * df, UINT field_id);
 CHAR const* get_field_name(DexFile * df, DexField * finfo);
 CHAR const* get_field_type_name(DexFile * df, UINT field_id);

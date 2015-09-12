@@ -35,18 +35,18 @@ author: Su Zhenyu
 #define _AOC_DX_MGR_
 
 class AocDxMgr : public DX_MGR {
-	DexFile const* m_df;
+    DexFile const* m_df;
 public:
-	AocDxMgr(DexFile const* df) { m_df = df; }
-	virtual ~AocDxMgr() {}
-	virtual CHAR const* get_string(UINT str_idx);
-	virtual CHAR const* get_type_name(UINT idx);
-	virtual CHAR const* get_field_name(UINT field_idx);
-	virtual CHAR const* get_method_name(UINT method_idx);
-	virtual CHAR const* get_class_name(UINT class_type_idx);
-	virtual CHAR const* get_class_name_by_method_id(UINT method_idx);
-	virtual CHAR const* get_class_name_by_field_id(UINT field_idx);
-	virtual CHAR const* get_class_name_by_declaration_id(UINT cls_def_idx);
+    AocDxMgr(DexFile const* df) { m_df = df; }
+    virtual ~AocDxMgr() {}
+    virtual CHAR const* get_string(UINT str_idx);
+    virtual CHAR const* get_type_name(UINT idx);
+    virtual CHAR const* get_field_name(UINT field_idx);
+    virtual CHAR const* get_method_name(UINT method_idx);
+    virtual CHAR const* get_class_name(UINT class_type_idx);
+    virtual CHAR const* get_class_name_by_method_id(UINT method_idx);
+    virtual CHAR const* get_class_name_by_field_id(UINT field_idx);
+    virtual CHAR const* get_class_name_by_declaration_id(UINT cls_def_idx);
 };
 #endif
 

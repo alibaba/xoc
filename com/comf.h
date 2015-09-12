@@ -39,81 +39,81 @@ namespace xcom {
 
 /* Singler timer, show const string before timer start.
 e.g:
-	START_TIMER("My Pass");
-	Run mypass();
-	END_TIMER(); */
-#define START_TIMER(s)  			\
-	LONG _start_time_count_ = 0;	\
-	if (g_show_comp_time) {			\
-		_start_time_count_ =		\
-			getclockstart();		\
-		printf("\n==-- %s Time:", (s));	\
-	}
-#define END_TIMER()					\
-	if (g_show_comp_time) {			\
-		printf("%fsec", getclockend(_start_time_count_)); \
-	}
+    START_TIMER("My Pass");
+    Run mypass();
+    END_TIMER(); */
+#define START_TIMER(s)              \
+    LONG _start_time_count_ = 0;    \
+    if (g_show_comp_time) {         \
+        _start_time_count_ =        \
+            getclockstart();        \
+        printf("\n==-- %s Time:", (s));    \
+    }
+#define END_TIMER()                 \
+    if (g_show_comp_time) {         \
+        printf("%fsec", getclockend(_start_time_count_)); \
+    }
 
 
 /* Single timer, show const string after timer finish.
 e.g:
-	START_TIMER_AFTER();
-	Run mypass();
-	END_TIMER_AFTER("My Pass"); */
-#define START_TIMER_AFTER() 		\
-	LONG _start_time_count_ = 0;	\
-	if (g_show_comp_time) {			\
-		_start_time_count_ =		\
-				getclockstart();	\
-	}
-#define END_TIMER_AFTER(s)			\
-	if (g_show_comp_time) {			\
-		printf("\n==-- %s Time:%fsec", \
-			   (s), getclockend(_start_time_count_)); \
-	}
+    START_TIMER_AFTER();
+    Run mypass();
+    END_TIMER_AFTER("My Pass"); */
+#define START_TIMER_AFTER()         \
+    LONG _start_time_count_ = 0;    \
+    if (g_show_comp_time) {         \
+        _start_time_count_ =        \
+                getclockstart();    \
+    }
+#define END_TIMER_AFTER(s)          \
+    if (g_show_comp_time) {         \
+        printf("\n==-- %s Time:%fsec", \
+               (s), getclockend(_start_time_count_)); \
+    }
 
 
 /* Single timer, show format string after timer finish.
 e.g:
-	START_TIMER();
-	Run mypass();
-	END_TIMER_FMT(("My Pass Name%s", get_pass_name())); */
-#define START_TIMER_FMT()  			\
-	LONG _start_time_count_ = 0;	\
-	if (g_show_comp_time) {			\
-		_start_time_count_ = getclockstart();	\
-	}
-#define END_TIMER_FMT(s)			\
-	if (g_show_comp_time) {			\
-		printf("\n==-- ");			\
-		printf s;					\
-		printf(" Time:%fsec",	\
-			   getclockend(_start_time_count_)); \
-	}
+    START_TIMER();
+    Run mypass();
+    END_TIMER_FMT(("My Pass Name%s", get_pass_name())); */
+#define START_TIMER_FMT()           \
+    LONG _start_time_count_ = 0;    \
+    if (g_show_comp_time) {         \
+        _start_time_count_ = getclockstart();    \
+    }
+#define END_TIMER_FMT(s)            \
+    if (g_show_comp_time) {         \
+        printf("\n==-- ");          \
+        printf s;                   \
+        printf(" Time:%fsec",       \
+               getclockend(_start_time_count_)); \
+    }
 
 
 /* Define multiple const string timers,
 and show const string before timer start.
 e.g:
-	START_TIMERS("My Pass", local_timer);
-	Run mypass();
-	END_TIMERS(local_timer); */
-#define START_TIMERS(s, _timer_timer_)	\
-	LONG _timer_timer_ = 0; 				\
-	if (g_show_comp_time) {					\
-		_timer_timer_ =						\
-			getclockstart();				\
-		printf("\n==-- %s Time:", (s));		\
-	}
-#define END_TIMERS(_timer_timer_)			\
-	if (g_show_comp_time) {					\
-		printf("%fsec", getclockend(_timer_timer_)); \
-	}
+    START_TIMERS("My Pass", local_timer);
+    Run mypass();
+    END_TIMERS(local_timer); */
+#define START_TIMERS(s, _timer_timer_) \
+    LONG _timer_timer_ = 0;            \
+    if (g_show_comp_time) {            \
+        _timer_timer_ =                \
+            getclockstart();           \
+        printf("\n==-- %s Time:", (s)); \
+    }
+#define END_TIMERS(_timer_timer_)      \
+    if (g_show_comp_time) {            \
+        printf("%fsec", getclockend(_timer_timer_)); \
+    }
 
 //This macro declare copy constructor for class.
-#define COPY_CONSTRUCTOR(class_name)  \
-	class_name(class_name const&);  \
-	class_name const& operator = (class_name const&)
+#define COPY_CONSTRUCTOR(class_name)   \
+    class_name(class_name const&);     \
+    class_name const& operator = (class_name const&)
 
 //Used to avoid warning: unreferenced variable if set
 //-Werror=unused-variable.
@@ -123,9 +123,9 @@ template <typename T> void dummy_use(T const&) {}
 
 
 #ifdef _DEBUG_
-#define CK_USE(a)	ASSERT0(a)
+#define CK_USE(a)    ASSERT0(a)
 #else
-#define CK_USE(a)	UNUSED(a)
+#define CK_USE(a)    UNUSED(a)
 #endif
 
 
@@ -153,28 +153,28 @@ INT gcdm(UINT num, Vector<INT, 8> const& a);
 //Compute the nearest power of 2 that not less than v.
 inline UINT getNearestPowerOf2(UINT v)
 {
-	v--;
-	v |= v >> 1;
-	v |= v >> 2;
-	v |= v >> 4;
-	v |= v >> 8;
-	v |= v >> 16;
-	v++;
-	return v;
+    v--;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v++;
+    return v;
 }
 
 //Compute the nearest power of 2 that not less than v.
 inline ULONGLONG getNearestPowerOf2(ULONGLONG v)
 {
-	v--;
-	v |= v >> 1;
-	v |= v >> 2;
-	v |= v >> 4;
-	v |= v >> 8;
-	v |= v >> 16;
-	v |= v >> 32;
-	v++;
-	return v;
+    v--;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v |= v >> 32;
+    v++;
+    return v;
 }
 
 //Compute the number of 1.
@@ -192,13 +192,13 @@ INT getFirstOneAtRightSide(INT m);
 
 inline UINT hash32bit(UINT n)
 {
-	n = (n+0x7ed55d16) + (n<<12);
-	n = (n^0xc761c23c) ^ (n>>19);
-	n = (n+0x165667b1) + (n<<5);
-	n = (n+0xd3a2646c) ^ (n<<9);
-	n = (n+0xfd7046c5) + (n<<3);
-	n = (n^0xb55a4f09) ^ (n>>16);
-	return n;
+    n = (n+0x7ed55d16) + (n<<12);
+    n = (n^0xc761c23c) ^ (n>>19);
+    n = (n+0x165667b1) + (n<<5);
+    n = (n+0xd3a2646c) ^ (n<<9);
+    n = (n+0xfd7046c5) + (n<<3);
+    n = (n^0xb55a4f09) ^ (n>>16);
+    return n;
 }
 
 bool is_integer(float f);
@@ -222,9 +222,9 @@ CHAR * xstrcat(CHAR * buf, UINT bufl, CHAR const* info, ...);
 UINT xstrlen(CHAR const* p);
 bool xstrcmp(CHAR const* p1, CHAR const* p2, INT n);
 CHAR * xsprintf(IN OUT CHAR * buf,
-				UINT buflen,
-				IN CHAR const* format,
-				...);
+                UINT buflen,
+                IN CHAR const* format,
+                ...);
 LONG xatol(CHAR const* nptr, bool is_oct);
 INT xctoi(CHAR const* cl);
 UCHAR * xltoa(LONG v, OUT UCHAR * buf);
@@ -236,9 +236,9 @@ inline bool xisspace(CHAR c) { return c == ' ' || c == '\t'; }
 inline bool xisdigit(CHAR c) { return c >= '0' && c <= '9'; }
 inline bool xisdigithex(CHAR d)
 {
-	if (xisdigit(d)) return true;
-	else if ((d >= 'a' && d <= 'f') || (d >= 'A' && d <= 'F')) return true;
-	return false;
+    if (xisdigit(d)) return true;
+    else if ((d >= 'a' && d <= 'f') || (d >= 'A' && d <= 'F')) return true;
+    return false;
 }
 inline bool xisalpha(CHAR c)
 { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); }
@@ -248,8 +248,8 @@ LONGLONG xabs(LONGLONG a);
 //Exported Data Structures
 class ASCII {
 public:
-	UCHAR val;
-	CHAR ch;
+    UCHAR val;
+    CHAR ch;
 };
 extern ASCII g_asc1[];
 

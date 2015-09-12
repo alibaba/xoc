@@ -81,6 +81,7 @@ using namespace xcom;
 #include "ir_cfg.h"
 #include "ir_high_opt.h"
 #include "ir_middle_opt.h"
+#include "region_mgr.h"
 #include "region.h"
 #include "ir_du.h"
 #include "ir_aa.h"

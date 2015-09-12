@@ -43,11 +43,11 @@ namespace xoc {
 //since it might incur the memory blow up.
 bool IPA::perform(OptCTX & oc)
 {
-	UNUSED(oc);
-	ASSERT0(OC_is_callg_valid(oc));
-	ASSERT0(m_program && m_program->is_program());
+    UNUSED(oc);
+    ASSERT0(OC_is_callg_valid(oc));
+    ASSERT0(m_program && m_program->is_program());
 
-	return true;
+    return true;
 }
 //END IPA
 

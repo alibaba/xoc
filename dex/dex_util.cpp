@@ -33,12 +33,16 @@ author: Su Zhenyu
 @*/
 #include "libdex/DexFile.h"
 #include "libdex/DexClass.h"
+#include "libdex/DexProto.h"
+
 #include "liropcode.h"
+
+#include "cominc.h"
+#include "comopt.h"
+
 #include "drAlloc.h"
 #include "d2d_comm.h"
 
-#include "../opt/cominc.h"
-#include "../opt/comopt.h"
 #include "dex.h"
 #include "gra.h"
 
@@ -84,6 +88,166 @@ CHAR const* get_dt_name(LIR * ir)
 }
 
 
+//Generate unique name by assembling Class Name, Function Parameter Type,
+//and Function Name.
+CHAR * assemblyUniqueName(
+        OUT CHAR buf[],
+        CHAR const* class_name,
+        CHAR const* func_type,
+        CHAR const* func_name)
+{
+    sprintf(buf, "%s:%s:%s", class_name, func_type, func_name);
+    return buf;
+}
+
+
+//Extract the function parameter and return value name
+//from function type string.
+//Note outputbuf should big enough to hold the string.
+void extractFunctionTypeFromFunctionTypeString(
+        CHAR const* functype,
+        OUT CHAR * param_type,
+        OUT CHAR * return_type)
+{
+    ASSERT0(functype && param_type && return_type);
+
+    UINT l = strlen(functype);
+    ASSERT(l > 0, ("unsupport string pattern"));
+
+    CHAR const* start = functype;
+    CHAR const* end = functype + l - 1;
+
+    //The format of type string is: (Ljava/lang/String;)Ljava/lang/String;
+    CHAR const* p = start;
+    CHAR const* start2 = NULL;
+    CHAR const* end2 = NULL;
+    for (; l > 0; l--, p++) {
+        if (*p == '(') {
+            ASSERT(start2 == NULL, ("unsupport string pattern"));
+            start2 = p;
+        } else if (*p == ')') {
+            end2 = p;
+            UINT s = end2 - start2 - 1;
+            memcpy(param_type, start2 + 1, s);
+            param_type[s] = 0;
+            break;
+        }
+    }
+
+    ASSERT(end2, ("unsupport string pattern"));
+
+    UINT s = end - end2;
+    memcpy(return_type, end2 + 1, s);
+    return_type[s] = 0;
+}
+
+
+//Extract the function parameter and return value name
+//from entirely name format.
+//Note outputbuf should big enough to hold the string.
+void extractFunctionTypeFromRegionName(
+        CHAR const* runame,
+        OUT CHAR * param_type,
+        OUT CHAR * return_type)
+{
+    ASSERT0(runame && param_type && return_type);
+    UINT l = strlen(runame);
+    CHAR const* type = NULL;
+    CHAR const* start = runame + l;
+    CHAR const* end = start;
+    UINT seg = 0;
+
+    for (; l != 0; l--, start--) {
+        if (*start != 0) {
+            end = start;
+            break;
+        }
+    }
+
+    for (; l != 0;) {
+        if (*start != ':') { l--, start--; continue; }
+        if (seg == 1) {
+            start++;
+            break;
+        }
+
+        l--;
+        start--;
+        end = start;
+        seg++;
+    }
+
+    ASSERT(l > 0, ("unsupport string pattern"));
+
+    //The format of type string is: (Ljava/lang/String;)Ljava/lang/String;
+    UINT len = end - start + 1;
+    CHAR const* p = start;
+    CHAR const* start2 = NULL;
+    CHAR const* end2 = NULL;
+    for (; len > 0; len--, p++) {
+        if (*p == '(') {
+            ASSERT(start2 == NULL, ("unsupport string pattern"));
+            start2 = p;
+        } else if (*p == ')') {
+            end2 = p;
+            UINT s = end2 - start2 - 1;
+            memcpy(param_type, start2 + 1, s);
+            param_type[s] = 0;
+            break;
+        }
+    }
+
+    ASSERT(end2, ("unsupport string pattern"));
+
+    UINT s = end - end2;
+    memcpy(return_type, end2 + 1, s);
+    return_type[s] = 0;
+}
+
+
+//Note outputbuf should big enough to hold the string.
+void extractSeparateParamterType(
+        CHAR const* param_type_string,
+        OUT List<CHAR*> & params)
+{
+    //The format of type string is: a;b;c;
+    ASSERT0(param_type_string);
+    UINT len = strlen(param_type_string);
+    CHAR const* start = param_type_string;
+    CHAR const* end = param_type_string;
+
+    //Note outputbuf should big enough to hold the string.
+    CHAR * outputbuf = params.get_head();
+    for (; end != 0 && len != 0; len--, end++) {
+        if (*end != ';') { continue; }
+        ASSERT0(outputbuf);
+        UINT s = end - start;
+        memcpy(outputbuf, start, s);
+        outputbuf[s] = 0;
+        outputbuf = params.get_next();
+        start = end + 1;
+    }
+
+    ASSERT0(len == 0 && *end == 0);
+}
+
+
+//Extract the right most sub-string from str.
+CHAR const* extractRightMostString(CHAR const* str, CHAR separator)
+{
+    UINT l = strlen(str);
+    CHAR const* p = str + l;
+    for (; l != 0; l--, p--) {
+        if (*p == separator) {
+            return p + 1;
+        }
+    }
+
+    //Not found method name.
+    return NULL;
+}
+
+
 //cls_type_idx: typeIdx in string-type-table,
 //	not the idx in class-def-item table.
 CHAR const* get_class_name(DexFile const* df, UINT cls_type_idx)
@@ -123,6 +287,23 @@ CHAR const* get_func_name(DexFile const* df, DexMethod const* dm)
 	ASSERT0(df && dm);
 	DexMethodId const* pMethodId = dexGetMethodId(df, dm->methodIdx);
 	return dexStringById(df, pMethodId->nameIdx);
+}
+
+
+//Return function parameter and return type.
+CHAR const* get_func_type(DexFile const* df, DexMethod const* dm)
+{
+    ASSERT0(df && dm);
+    DexMethodId const* pMethodId = dexGetMethodId(df, dm->methodIdx);
+    return dexCopyDescriptorFromMethodId(df, pMethodId);
+}
+
+
+//Return function parameter and return type.
+CHAR const* get_func_type(DexFile const* df, DexMethodId const* dmid)
+{
+    ASSERT0(df && dmid);
+    return dexCopyDescriptorFromMethodId(df, dmid);
 }
 
 
@@ -1399,6 +1580,43 @@ public:
 
 
 //
+static CHAR const* g_unimportant_func[] = {
+    "Ljava/lang/StringBuilder;:()V:<init>",
+};
+static UINT g_unimportant_func_num =
+    sizeof(g_unimportant_func) / sizeof(g_unimportant_func[0]);
+
+
+DexCallGraph::DexCallGraph(UINT edge_hash, UINT vex_hash, RegionMgr * rumgr) :
+        CallGraph(edge_hash, vex_hash, rumgr)
+{
+    ASSERT0(rumgr);
+    SymTab * symtab = rumgr->get_sym_tab();
+    for (UINT i = 0; i < g_unimportant_func_num; i++) {
+        SYM const* sym = symtab->add(g_unimportant_func[i]);
+        m_unimportant_symtab.append(sym);
+    }
+}
+
+
+bool DexCallGraph::is_unimportant(SYM const* sym) const
+{
+    return m_unimportant_symtab.find(sym);
+}
+DexRegionMgr::DexRegionMgr()
+{
+    for (UINT i = BLTIN_UNDEF + 1; i < (UINT)BLTIN_LAST; i++) {
+        m_builtin_sym[i] = addToSymbolTab(BLTIN_name((BLTIN_TYPE)i));
+    }
+}
+void DexRegionMgr::processProgramRegion(Region * program)
+{
+    ASSERT0(program && program->is_program());
+
+    //Function region has been handled. And call list should be available.
+    CallGraph * callg = initCallGraph(program, false);
+
+}
 //START DexRegion
 //
 PassMgr * DexRegion::allocPassMgr()
@@ -1417,6 +1635,58 @@ IR_AA * DexRegion::allocAliasAnalysis()
 bool DexRegion::MiddleProcess(OptCTX & oc)
 {
 	return Region::MiddleProcess(oc);
+}
+
+
+void DexRegion::HighProcessImpl(OptCTX & oc)
+{
+    PassMgr * passmgr = get_pass_mgr();
+    ASSERT0(passmgr);
+
+    if (g_do_cfg) {
+        ASSERT0(g_cst_bb_list);
+        IR_CFG * cfg = (IR_CFG*)passmgr->registerPass(PASS_CFG);
+        ASSERT0(cfg);
+        cfg->initCfg(oc);
+        if (g_do_loop_ana) {
+            ASSERT0(g_do_cfg_dom);
+            cfg->LoopAnalysis(oc);
+        }
+    }
+
+    if (g_do_ssa) {
+        IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)passmgr->registerPass(PASS_SSA_MGR);
+        ASSERT0(ssamgr);
+        ssamgr->construction(oc);
+    }
+
+    if (g_do_aa) {
+        ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc));
+        IR_AA * aa = (IR_AA*)passmgr->registerPass(PASS_AA);
+        ASSERT0(aa);
+        aa->initAliasAnalysis();
+        aa->perform(oc);
+    }
+
+    if (g_do_du_ana) {
+        ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc) && OC_is_aa_valid(oc));
+        IR_DU_MGR * dumgr = (IR_DU_MGR*)passmgr->registerPass(PASS_DU_MGR);
+        ASSERT0(dumgr);
+
+        UINT f = SOL_REACH_DEF|SOL_REF;
+        //f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR|SOL_RU_REF;
+
+        if (g_do_ivr) {
+            f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR;
+        }
+
+        if (g_do_compute_available_exp) {
+            f |= SOL_AVAIL_EXPR;
+        }
+
+        dumgr->perform(oc, f);
+        dumgr->computeMDDUChain(oc);
+}
 }
 
 
@@ -1446,26 +1716,7 @@ bool DexRegion::HighProcess(OptCTX & oc)
 	//All IRs have been moved to each IRBB.
 	REGION_analysis_instrument(this)->m_ir_list = NULL;
 
-	ASSERT0(g_do_cfg && g_do_aa && g_do_du_ana && g_do_cdg);
-
-	PassMgr * passmgr = initPassMgr();
-
-	IR_CFG * cfg = initCfg(oc);
-	cfg->LoopAnalysis(oc);
-
-	if (g_do_ssa) {
-		IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)passmgr->registerPass(PASS_SSA_MGR);
-		ASSERT0(ssamgr);
-		ssamgr->construction(oc);
-	}
-
-	initAliasAnalysis(oc);
-
-	initDuMgr(oc);
-
-	if (g_opt_level == NO_OPT) {
-		return false;
-	}
+    HighProcessImpl(oc);
 	return true;
 }
 
@@ -1551,49 +1802,22 @@ void DexRegion::processSimply()
 
 	REGION_analysis_instrument(this)->m_ir_list = NULL; //All IRs have been moved to each IRBB.
 
-	IR_CFG * cfg = initCfg(oc);
-	cfg->LoopAnalysis(oc);
-	g_do_ssa = false;
+    PassMgr * passmgr = initPassMgr();
+    ASSERT0(passmgr);
 
-	PassMgr * passmgr = initPassMgr();
-
-	if (g_do_ssa) {
-		//Convert program to ssa form.
-		IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)passmgr->registerPass(PASS_SSA_MGR);
-		ASSERT0(ssamgr);
-		ssamgr->construction(oc);
-	}
-
-	initAliasAnalysis(oc);
-
-	initDuMgr(oc);
-
-	IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)passmgr->query_opt(PASS_SSA_MGR);
-	if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
-		//Destruct ssa form.
-		ssamgr->destructionInBBListOrder();
-	}
+    ASSERT0(g_cst_bb_list);
+    IR_CFG * cfg = (IR_CFG*)passmgr->registerPass(PASS_CFG);
+    ASSERT0(cfg);
+    cfg->initCfg(oc);
+    ASSERT0(g_do_cfg_dom);
+    cfg->LoopAnalysis(oc);
 
 	destroyPassMgr();
 
-	#if 1
-	//Do not allocate register.
-	getPrno2Vreg()->clean();
-	getPrno2Vreg()->copy(*getDex2IR()->getPR2Vreg());
-	return;
-	#else
-	//Allocate register.
-	RA ra(this,
-		  getTypeIndexRep(),
-		  getParamNum(),
-		  getVregNum(),
-		  getVreg2PR(),
-		  getPrno2Vreg(),
-		  &m_var2pr);
-	LOG("\t\tdo DEX Register Allcation for '%s'", ru_name);
-	ra.perform(oc);
-	updateRAresult(ra, *getPrno2Vreg());
-	#endif
+    //Do not allocate register.
+    getPrno2Vreg()->clean();
+    getPrno2Vreg()->copy(*getDex2IR()->getPR2Vreg());
+    return;
 }
 
 
@@ -1606,13 +1830,12 @@ void DexRegion::process()
 
 	g_indent = 0;
 	LOG("DexRegion process %s", get_ru_name());
-	note("\n==---- REGION_NAME:%s ----==", get_ru_name());
+    //note("\n==---- REGION_NAME:%s ----==", get_ru_name());
 	prescan(get_ir_list());
 
 	REGION_is_pr_unique_for_same_number(this) = true;
 
-	g_do_ssa = false;
-	g_do_dex_ra = false;
+    PassMgr * passmgr = initPassMgr();
 
 	HighProcess(oc);
 	MiddleProcess(oc);
@@ -1626,7 +1849,7 @@ void DexRegion::process()
 	//Destroy PassMgr.
 	destroyPassMgr();
 
-	if (REGION_type(this) != RU_FUNC) { return; }
+    if (!is_function()) { return; }
 
 	BBList * bbl = get_bb_list();
 	if (bbl->get_elem_count() == 0) { return; }

@@ -38,41 +38,41 @@ namespace xcom {
 
 #define FRAC_TYPE INT
 class Rational {
-	friend bool operator != (Rational const& a, Rational const& b);
-	friend bool operator == (Rational const& a, Rational const& b);
-	friend bool operator < (Rational const& a, Rational const& b);
-	friend bool operator <= (Rational const& a, Rational const& b);
-	friend bool operator > (Rational const& a, Rational const& b);
-	friend bool operator >= (Rational const& a, Rational const& b);
-	friend Rational operator * (Rational const& a, Rational const& b);
-	friend Rational operator / (Rational const& a, Rational const& b);
-	friend Rational operator + (Rational const& a, Rational const& b);
-	friend Rational operator - (Rational const& a, Rational const& b);
-	friend Rational operator - (Rational const& a);
+    friend bool operator != (Rational const& a, Rational const& b);
+    friend bool operator == (Rational const& a, Rational const& b);
+    friend bool operator < (Rational const& a, Rational const& b);
+    friend bool operator <= (Rational const& a, Rational const& b);
+    friend bool operator > (Rational const& a, Rational const& b);
+    friend bool operator >= (Rational const& a, Rational const& b);
+    friend Rational operator * (Rational const& a, Rational const& b);
+    friend Rational operator / (Rational const& a, Rational const& b);
+    friend Rational operator + (Rational const& a, Rational const& b);
+    friend Rational operator - (Rational const& a, Rational const& b);
+    friend Rational operator - (Rational const& a);
 
-	FRAC_TYPE m_num;
-	FRAC_TYPE m_den;
+    FRAC_TYPE m_num;
+    FRAC_TYPE m_den;
 
-	FRAC_TYPE _gcd(FRAC_TYPE x, FRAC_TYPE y);
+    FRAC_TYPE _gcd(FRAC_TYPE x, FRAC_TYPE y);
 public:
-	Rational();
-	Rational(Rational const& r);
-	Rational(INT num, INT den = 1);
-	Rational & operator = (Rational const& a);
-	inline INT typecast2int() { return m_num / m_den; }
-	inline bool is_int() { return m_den == 1; }
-	void reduce();
-	Rational rabs();
-	FRAC_TYPE num() const {return m_num;}
-	FRAC_TYPE& num() {return m_num;}
-	FRAC_TYPE den() const {return m_den;}
-	FRAC_TYPE& den() {return m_den;}
-	CHAR * format(CHAR * buf);
+    Rational();
+    Rational(Rational const& r);
+    Rational(INT num, INT den = 1);
+    Rational & operator = (Rational const& a);
+    inline INT typecast2int() { return m_num / m_den; }
+    inline bool is_int() { return m_den == 1; }
+    void reduce();
+    Rational rabs();
+    FRAC_TYPE num() const {return m_num;}
+    FRAC_TYPE& num() {return m_num;}
+    FRAC_TYPE den() const {return m_den;}
+    FRAC_TYPE& den() {return m_den;}
+    CHAR * format(CHAR * buf);
 };
 
 
 #ifndef INT_MAX
-#define INT_MAX		0x7fffFFFF
+#define INT_MAX        0x7fffFFFF
 #endif
 
 
@@ -97,9 +97,9 @@ inline Rational operator - (Rational const& a, Rational const& b) { return a + (
 //Minus
 inline Rational operator - (Rational const& a)
 {
-	Rational b = a;
-	b.m_num = -b.m_num;
-	return b;
+    Rational b = a;
+    b.m_num = -b.m_num;
+    return b;
 }
 
 } //namespace xcom

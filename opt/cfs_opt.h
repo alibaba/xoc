@@ -38,31 +38,31 @@ namespace xoc {
 
 class IR_CFS_OPT : public Pass {
 protected:
-	Region * m_ru;
-	TypeMgr * m_dm;
-	bool transformToDoWhile(IR ** head, IR * ir);
-	bool transformIf1(IR ** head, IR * ir);
-	bool transformIf2(IR ** head, IR * ir);
-	bool transformIf3(IR ** head, IR * ir);
-	bool transformIf4(IR ** head, IR * ir);
-	bool transformIf5(IR ** head, IR * ir);
-	bool hoistLoop(IR ** head, IR * ir);
-	bool hoistIf(IR ** head, IR * ir);
+    Region * m_ru;
+    TypeMgr * m_dm;
+    bool transformToDoWhile(IR ** head, IR * ir);
+    bool transformIf1(IR ** head, IR * ir);
+    bool transformIf2(IR ** head, IR * ir);
+    bool transformIf3(IR ** head, IR * ir);
+    bool transformIf4(IR ** head, IR * ir);
+    bool transformIf5(IR ** head, IR * ir);
+    bool hoistLoop(IR ** head, IR * ir);
+    bool hoistIf(IR ** head, IR * ir);
 public:
-	IR_CFS_OPT(Region * ru) { m_ru = ru; m_dm = ru->get_dm(); }
-	~IR_CFS_OPT() {}
+    IR_CFS_OPT(Region * ru) { m_ru = ru; m_dm = ru->get_dm(); }
+    ~IR_CFS_OPT() {}
 
-	void dump();
+    void dump();
 
-	virtual CHAR const* get_pass_name() const { return "IR_CFS_OPT"; }
+    virtual CHAR const* get_pass_name() const { return "IR_CFS_OPT"; }
 
-	bool perform_cfs_optimization(IN OUT IR ** ir_list, IN SimpCTX const& sc);
-	virtual bool perform(OptCTX &)
-	{
-		ASSERT0(0);
-		return false;
-	}
-	virtual bool perform(IN SimpCTX const& simp);
+    bool perform_cfs_optimization(IN OUT IR ** ir_list, IN SimpCTX const& sc);
+    virtual bool perform(OptCTX &)
+    {
+        ASSERT0(0);
+        return false;
+    }
+    virtual bool perform(IN SimpCTX const& simp);
 };
 
 } //namespace xoc

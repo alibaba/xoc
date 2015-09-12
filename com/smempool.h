@@ -48,38 +48,38 @@ author: Su Zhenyu
 
 typedef size_t MEMPOOLIDX;
 typedef enum {
-	MEM_NONE = 0,
-	MEM_COMM,     //can be realloc, free
-	MEM_VOLATILE, //can be realloc , but free is forbidded
-	MEM_CONST_SIZE, //the element in the pool should be in same size.
+    MEM_NONE = 0,
+    MEM_COMM,     //can be realloc, free
+    MEM_VOLATILE, //can be realloc , but free is forbidded
+    MEM_CONST_SIZE, //the element in the pool should be in same size.
 } MEMPOOLTYPE;
 
 
-#define MEMPOOL_type(p)					((p)->pool_type)
-#define MEMPOOL_next(p)					((p)->next)
-#define MEMPOOL_prev(p)					((p)->prev)
-#define MEMPOOL_id(p)					((p)->mpt_id)
-#define MEMPOOL_grow_size(p)			((p)->grow_size)
-#define MEMPOOL_start_pos(p)			((p)->start_pos)
-#define MEMPOOL_pool_size(p)			((p)->mem_pool_size)
-#define MEMPOOL_pool_ptr(p)				((p)->ppool)
+#define MEMPOOL_type(p)                 ((p)->pool_type)
+#define MEMPOOL_next(p)                 ((p)->next)
+#define MEMPOOL_prev(p)                 ((p)->prev)
+#define MEMPOOL_id(p)                   ((p)->mpt_id)
+#define MEMPOOL_grow_size(p)            ((p)->grow_size)
+#define MEMPOOL_start_pos(p)            ((p)->start_pos)
+#define MEMPOOL_pool_size(p)            ((p)->mem_pool_size)
+#define MEMPOOL_pool_ptr(p)             ((p)->ppool)
 #ifdef _DEBUG_
-#define MEMPOOL_chunk_id(p)				((p)->chunk_id)
+#define MEMPOOL_chunk_id(p)             ((p)->chunk_id)
 #endif
 
 typedef struct _MemPool {
-	MEMPOOLTYPE pool_type;
-	struct _MemPool * next;
-	struct _MemPool * prev;
-	MEMPOOLIDX mpt_id; //identification of mem pool
-	size_t start_pos; //represent the alloca postion of mem pool
-	size_t mem_pool_size; //represent mem pool size
-	size_t grow_size;
-	void * ppool; //start address of mem pool
+    MEMPOOLTYPE pool_type;
+    struct _MemPool * next;
+    struct _MemPool * prev;
+    MEMPOOLIDX mpt_id; //identification of mem pool
+    size_t start_pos; //represent the alloca postion of mem pool
+    size_t mem_pool_size; //represent mem pool size
+    size_t grow_size;
+    void * ppool; //start address of mem pool
 
-	#ifdef _DEBUG_
-	ULONG chunk_id;
-	#endif
+    #ifdef _DEBUG_
+    ULONG chunk_id;
+    #endif
 } SMemPool;
 
 
@@ -96,7 +96,7 @@ INT smpoolDelete(SMemPool * handle);
 
 //alloc memory from corresponding mem pool
 void * smpoolMallocViaPoolIndex(size_t size, MEMPOOLIDX mpt_idx,
-								size_t grow_size = 0);
+                                size_t grow_size = 0);
 void * smpoolMalloc(size_t size, SMemPool * handle, size_t grow_size = 0);
 void * smpoolMallocConstSize(size_t elem_size, IN SMemPool * handler);
 

@@ -46,249 +46,274 @@ NOTICE:
 */
 class IR_CFG : public Pass, public CFG<IRBB, IR> {
 protected:
-	Vector<IRBB*> m_bb_vec;
-	LAB2BB m_lab2bb;
-	Region * m_ru;
-	TypeMgr * m_dm;
+    Vector<IRBB*> m_bb_vec;
+    LAB2BB m_lab2bb;
+    Region * m_ru;
+    TypeMgr * m_dm;
 public:
-	IR_CFG(CFG_SHAPE cs, BBList * bbl, Region * ru,
-		   UINT edge_hash_size = 16, UINT vertex_hash_size = 16);
-	COPY_CONSTRUCTOR(IR_CFG);
-	virtual ~IR_CFG() {}
+    IR_CFG(CFG_SHAPE cs, BBList * bbl, Region * ru,
+           UINT edge_hash_size = 16, UINT vertex_hash_size = 16);
+    COPY_CONSTRUCTOR(IR_CFG);
+    virtual ~IR_CFG() {}
 
-	//Add LABEL to bb, and establish map between label and bb.
-	void add_lab(IRBB * src, LabelInfo * li)
-	{
-		src->addLabel(li);
+    //Add LABEL to bb, and establish map between label and bb.
+    void add_lab(IRBB * src, LabelInfo * li)
+    {
+        src->addLabel(li);
 
-		//Set label->bb map.
-		m_lab2bb.setAlways(li, src);
-	}
+        //Set label->bb map.
+        m_lab2bb.setAlways(li, src);
+    }
 
-	/* Add new IRBB into CFG, but the BB list should be modified
-	out of this function.
-	Namely, you should use 'insertBBbetween()' to insert BB into list.
-	And you must consider the right insertion. */
-	inline void add_bb(IRBB * bb)
-	{
-		ASSERT0(bb && m_bb_vec.get(BB_id(bb)) == NULL);
-		ASSERT(BB_id(bb) != 0, ("bb id should start at 1"));
-		m_bb_vec.set(BB_id(bb), bb);
-		addVertex(BB_id(bb));
-	}
+    /* Add new IRBB into CFG, but the BB list should be modified
+    out of this function.
+    Namely, you should use 'insertBBbetween()' to insert BB into list.
+    And you must consider the right insertion. */
+    inline void add_bb(IRBB * bb)
+    {
+        ASSERT0(bb && m_bb_vec.get(BB_id(bb)) == NULL);
+        ASSERT(BB_id(bb) != 0, ("bb id should start at 1"));
+        m_bb_vec.set(BB_id(bb), bb);
+        addVertex(BB_id(bb));
+    }
 
-	//Construct EH edge after cfg built.
-	void buildEHEdgeEx()
-	{
-		ASSERT(m_bb_list, ("bb_list is emt"));
-		C<IRBB*> * ct;
-		for (m_bb_list->get_head(&ct);
-			 ct != m_bb_list->end(); ct = m_bb_list->get_next(ct)) {
-			IRBB const* bb = ct->val();
-			C<IR*> * ct;
-			IR * x = BB_irlist(const_cast<IRBB*>(bb)).get_tail(&ct);
-			if (x != NULL && x->is_may_throw() && x->get_ai() != NULL) {
-				EHLabelAttachInfo const* ehlab =
-					(EHLabelAttachInfo const*)x->get_ai()->get(AI_EH_LABEL);
-				SC<LabelInfo*> * sc;
-				SList<LabelInfo*> const& labs = ehlab->get_labels();
-				for (sc = labs.get_head();
-					 sc != labs.end(); sc = labs.get_next(sc)) {
-					IRBB * tgt = findBBbyLabel(sc->val());
-					ASSERT0(tgt);
-					Edge * e = addEdge(BB_id(bb), BB_id(tgt));
-					EDGE_info(e) = xmalloc(sizeof(EI));
-					EI_is_eh((EI*)EDGE_info(e)) = true;
-					m_has_eh_edge = true;
-				}
-			}
-		}
-	}
+    //Construct EH edge after cfg built.
+    void buildEHEdge()
+    {
+        ASSERT(m_bb_list, ("bb_list is emt"));
+        C<IRBB*> * ct;
+        for (m_bb_list->get_head(&ct);
+             ct != m_bb_list->end(); ct = m_bb_list->get_next(ct)) {
+            IRBB const* bb = ct->val();
+            C<IR*> * ct;
+            IR * x = BB_irlist(const_cast<IRBB*>(bb)).get_tail(&ct);
+            if (x != NULL && x->is_may_throw() && x->get_ai() != NULL) {
+                EHLabelAttachInfo const* ehlab =
+                    (EHLabelAttachInfo const*)x->get_ai()->get(AI_EH_LABEL);
+                SC<LabelInfo*> * sc;
+                SList<LabelInfo*> const& labs = ehlab->get_labels();
+                for (sc = labs.get_head();
+                     sc != labs.end(); sc = labs.get_next(sc)) {
+                    IRBB * tgt = findBBbyLabel(sc->val());
+                    ASSERT0(tgt);
+                    Edge * e = addEdge(BB_id(bb), BB_id(tgt));
+                    EDGE_info(e) = xmalloc(sizeof(EI));
+                    EI_is_eh((EI*)EDGE_info(e)) = true;
+                    m_has_eh_edge = true;
+                }
+            }
+        }
+    }
 
-	//Construct EH edge after cfg built.
-	void buildEHEdge()
-	{
-		ASSERT(m_bb_list, ("bb_list is emt"));
-		List<IRBB*> maythrow;
-		List<IRBB*> ehl;
-		IRBB * entry = NULL;
-		UNUSED(entry);
+    //Construct EH edge after cfg built.
+    //This function use a conservative method, and this method
+    //may generate lots of redundant exception edges.
+    void buildEHEdgeNaive()
+    {
+        ASSERT(m_bb_list, ("bb_list is emt"));
+        List<IRBB*> maythrow;
+        List<IRBB*> ehl;
+        IRBB * entry = NULL;
+        C<IRBB*> * ct;
 
-		C<IRBB*> * ct;
-		for (m_bb_list->get_head(&ct);
-			 ct != m_bb_list->end(); ct = m_bb_list->get_next(ct)) {
-			IRBB * bb = ct->val();
-			if (is_ru_entry(bb)) {
-				ASSERT(entry == NULL, ("multi entries"));
-				entry = bb;
-			}
+        for (m_bb_list->get_head(&ct);
+             ct != m_bb_list->end();
+             ct = m_bb_list->get_next(ct)) {
+            IRBB * bb = ct->val();
+            if (is_ru_entry(bb)) {
+                entry = bb;
+                break;
+            }
+        }
 
-			if (bb->is_exp_handling()) {
-				ehl.append_tail(bb);
-			}
+        ASSERT(entry, ("Region does not have an entry"));
+        BitSet mainstreambbs;
+        computeMainStreamBBSet(entry, mainstreambbs);
 
-			if (bb->mayThrowException()) {
-				maythrow.append_tail(bb);
-			}
-		}
+        BitSet ehbbs; //Record all BB in exception region.
+        for (m_bb_list->get_head(&ct);
+             ct != m_bb_list->end(); ct = m_bb_list->get_next(ct)) {
+            IRBB * bb = ct->val();
 
-		if (ehl.get_elem_count() == 0) { return; }
+            if (bb->is_exp_handling()) {
+                ehl.append_tail(bb);
+                findEHRegion(bb, mainstreambbs, ehbbs);
+            }
 
-		for (ehl.get_head(&ct); ct != ehl.end(); ct = ehl.get_next(ct)) {
-			IRBB * b = ct->val();
-			C<IRBB*> * ct2;
-			for (maythrow.get_head(&ct2);
-				 ct2 != maythrow.end(); ct2 = maythrow.get_next(ct2)) {
-				IRBB * a = ct2->val();
-				Edge * e = addEdge(a->id, b->id);
-				EDGE_info(e) = xmalloc(sizeof(EI));
-				EI_is_eh((EI*)EDGE_info(e)) = true;
-				m_has_eh_edge = true;
-			}
-		}
-	}
+            if (bb->mayThrowException() && !ehbbs.is_contain(BB_id(bb))) {
+                maythrow.append_tail(bb);
+            }
+        }
 
-	virtual void cf_opt();
-	void computeDomAndIdom(IN OUT OptCTX & oc, BitSet const* uni = NULL);
-	void computePdomAndIpdom(IN OUT OptCTX & oc, BitSet const* uni = NULL);
-	virtual void computeEntryAndExit(bool comp_entry, bool comp_exit)
-	{
-		ASSERT0(comp_entry | comp_exit);
-		if (comp_entry) { m_entry_list.clean(); }
-		if (comp_exit) { m_exit_list.clean(); }
+        if (ehl.get_elem_count() == 0) { return; }
 
-		for (IRBB * bb = m_bb_list->get_head();
-			 bb != NULL; bb = m_bb_list->get_next()) {
-			Vertex * vex = get_vertex(bb->id);
-			ASSERT(vex, ("No vertex corresponds to BB%d", bb->id));
-			if (comp_entry) {
-				if (VERTEX_in_list(vex) == NULL &&
-					(is_ru_entry(bb) || bb->is_exp_handling())) {
-					m_entry_list.append_tail(bb);
-				}
-			}
-			if (comp_exit) {
-				if (VERTEX_out_list(vex) == NULL) {
-					m_exit_list.append_tail(bb);
-					BB_is_exit(bb) = true;
-				}
-			}
-		}
-	}
+        if (maythrow.get_elem_count() == 0) {
+            ASSERT(entry, ("multi entries"));
+            maythrow.append_tail(entry);
+        }
 
-	virtual void dump_vcg(CHAR const* name)
-	{ CFG<IRBB, IR>::dump_vcg(name); }
+        for (ehl.get_head(&ct); ct != ehl.end(); ct = ehl.get_next(ct)) {
+            IRBB * b = ct->val();
+            C<IRBB*> * ct2;
+            for (maythrow.get_head(&ct2);
+                 ct2 != maythrow.end(); ct2 = maythrow.get_next(ct2)) {
+                IRBB * a = ct2->val();
+                if (ehbbs.is_contain(BB_id(a))) { continue; }
 
-	void dump_vcg(CHAR const* name = NULL, bool detail = true,
-				  bool dump_eh = true);
-	void dump_dot(CHAR const* name = NULL, bool detail = true);
+                Edge * e = addEdge(a->id, b->id);
+                EDGE_info(e) = xmalloc(sizeof(EI));
+                EI_is_eh((EI*)EDGE_info(e)) = true;
+                m_has_eh_edge = true;
+            }
+        }
+    }
 
-	void erase();
+    virtual void cf_opt();
+    void computeDomAndIdom(IN OUT OptCTX & oc, BitSet const* uni = NULL);
+    void computePdomAndIpdom(IN OUT OptCTX & oc, BitSet const* uni = NULL);
+    virtual void computeEntryAndExit(bool comp_entry, bool comp_exit)
+    {
+        ASSERT0(comp_entry | comp_exit);
+        if (comp_entry) { m_entry_list.clean(); }
+        if (comp_exit) { m_exit_list.clean(); }
 
-	void findTargetBBOfMulticondBranch(IN IR * ir,
-										OUT List<IRBB*> & tgt_bbs);
-	IRBB * findBBbyLabel(LabelInfo * lab);
-	void findTargetBBOfIndirectBranch(IR * ir, OUT List<IRBB*> & tgtlst);
-	void findEHRegion(
-			IRBB const* catch_start,
-			BitSet const& rubbs,
-			OUT BitSet & ehbbs);
+        for (IRBB * bb = m_bb_list->get_head();
+             bb != NULL; bb = m_bb_list->get_next()) {
+            Vertex * vex = get_vertex(bb->id);
+            ASSERT(vex, ("No vertex corresponds to BB%d", bb->id));
+            if (comp_entry) {
+                if (VERTEX_in_list(vex) == NULL &&
+                    (is_ru_entry(bb) || bb->is_exp_handling())) {
+                    m_entry_list.append_tail(bb);
+                }
+            }
+            if (comp_exit) {
+                if (VERTEX_out_list(vex) == NULL) {
+                    m_exit_list.append_tail(bb);
+                    BB_is_exit(bb) = true;
+                }
+            }
+        }
+    }
 
-	//Allocate and initialize control flow graph.
-	void initCfg(OptCTX & oc);
-	virtual bool if_opt(IRBB * bb);
-	bool is_ru_entry(IRBB * bb) { return BB_is_entry(bb); }
-	bool is_ru_exit(IRBB * bb) { return  BB_is_exit(bb); }
-	void insertBBbetween(
-			IN IRBB * from,
-			IN C<IRBB*> * from_ct,
-			IN IRBB * to,
-			IN C<IRBB*> * to_ct,
-			IN IRBB * newbb);
+    virtual void dump_vcg(CHAR const* name)
+    { CFG<IRBB, IR>::dump_vcg(name); }
 
-	//Return the first operation of 'bb'.
-	IR * get_first_xr(IRBB * bb)
-	{
-		ASSERT0(bb && m_bb_vec.get(BB_id(bb)));
-		return BB_first_ir(bb);
-	}
+    void dump_vcg(
+            CHAR const* name = NULL,
+            bool detail = true,
+            bool dump_eh = true);
+    void dump_dot(
+            CHAR const* name = NULL,
+            bool detail = true,
+            bool dump_eh = true);
 
-	//Return the last operation of 'bb'.
-	IR * get_last_xr(IRBB * bb)
-	{
-		ASSERT0(bb && m_bb_vec.get(BB_id(bb)));
-		return BB_last_ir(bb);
-	}
+    void erase();
 
-	Region * get_ru() { return m_ru; }
-	UINT get_bb_num() const { return get_vertex_num(); }
-	BBList * get_bb_list() { return m_bb_list; }
-	LAB2BB * get_lab2bb_map() { return &m_lab2bb; }
-	IRBB * get_bb(UINT id) const { return m_bb_vec.get(id); }
-	virtual bool goto_opt(IRBB * bb);
-	virtual CHAR const* get_pass_name() const { return "CFG"; }
-	virtual PASS_TYPE get_pass_type() const { return PASS_CFG; }
+    void findTargetBBOfMulticondBranch(IN IR * ir,
+                                        OUT List<IRBB*> & tgt_bbs);
+    IRBB * findBBbyLabel(LabelInfo * lab);
+    void findTargetBBOfIndirectBranch(IR * ir, OUT List<IRBB*> & tgtlst);
+    void findEHRegion(
+            IRBB const* catch_start,
+            BitSet const& rubbs,
+            OUT BitSet & ehbbs);
 
-	//Find natural loop and scan loop body to find call and early exit, etc.
-	void LoopAnalysis(OptCTX & oc);
+    //Allocate and initialize control flow graph.
+    void initCfg(OptCTX & oc);
+    virtual bool if_opt(IRBB * bb);
+    bool is_ru_entry(IRBB * bb) { return BB_is_entry(bb); }
+    bool is_ru_exit(IRBB * bb) { return  BB_is_exit(bb); }
+    void insertBBbetween(
+            IN IRBB * from,
+            IN C<IRBB*> * from_ct,
+            IN IRBB * to,
+            IN C<IRBB*> * to_ct,
+            IN IRBB * newbb);
 
-	//Compute which predecessor is pred to bb.
-	//e.g: If pred is the first predecessor, return 0.
-	//pred: BB id of predecessor.
-	UINT WhichPred(IRBB const* pred, IRBB const* bb) const
-	{
-		Vertex * bb_vex = get_vertex(BB_id(bb));
-		ASSERT0(bb_vex);
+    //Return the first operation of 'bb'.
+    IR * get_first_xr(IRBB * bb)
+    {
+        ASSERT0(bb && m_bb_vec.get(BB_id(bb)));
+        return BB_first_ir(bb);
+    }
 
-		UINT n = 0;
-		bool find = false;
-		for (EdgeC * in = VERTEX_in_list(bb_vex);
-			 in != NULL; in = EC_next(in)) {
-			Vertex * local_pred_vex = EDGE_from(EC_edge(in));
-			if (VERTEX_id(local_pred_vex) == BB_id(pred)) {
-				find = true;
-				break;
-			}
-			n++;
-		}
+    //Return the last operation of 'bb'.
+    IR * get_last_xr(IRBB * bb)
+    {
+        ASSERT0(bb && m_bb_vec.get(BB_id(bb)));
+        return BB_last_ir(bb);
+    }
 
-		CK_USE(find); //pred should be a predecessor of bb.
+    Region * get_ru() { return m_ru; }
+    UINT get_bb_num() const { return get_vertex_num(); }
+    BBList * get_bb_list() { return m_bb_list; }
+    LAB2BB * get_lab2bb_map() { return &m_lab2bb; }
+    IRBB * get_bb(UINT id) const { return m_bb_vec.get(id); }
+    virtual bool goto_opt(IRBB * bb);
+    virtual CHAR const* get_pass_name() const { return "CFG"; }
+    virtual PASS_TYPE get_pass_type() const { return PASS_CFG; }
 
-		return n;
-	}
+    //Find natural loop and scan loop body to find call and early exit, etc.
+    void LoopAnalysis(OptCTX & oc);
 
-	virtual void remove_bb(C<IRBB*> * bbct)
-	{
-		ASSERT0(bbct);
-		ASSERT0(m_bb_list->in_list(bbct));
-		m_bb_vec.set(BB_id(C_val(bbct)), NULL);
-		m_bb_list->remove(bbct);
-		removeVertex(BB_id(C_val(bbct)));
-	}
+    //Compute which predecessor is pred to bb.
+    //e.g: If pred is the first predecessor, return 0.
+    //pred: BB id of predecessor.
+    UINT WhichPred(IRBB const* pred, IRBB const* bb) const
+    {
+        Vertex * bb_vex = get_vertex(BB_id(bb));
+        ASSERT0(bb_vex);
 
-	//We only remove 'bb' from CF graph, vector and bb-list.
-	virtual void remove_bb(IRBB * bb)
-	{
-		ASSERT0(bb);
-		m_bb_vec.set(BB_id(bb), NULL);
-		m_bb_list->remove(bb);
-		removeVertex(BB_id(bb));
-	}
-	void remove_xr(IRBB * bb, IR * ir);
-	bool removeTrampolinEdge();
-	bool removeTrampolinBB();
-	bool removeRedundantBranch();
+        UINT n = 0;
+        bool find = false;
+        for (EdgeC * in = VERTEX_in_list(bb_vex);
+             in != NULL; in = EC_next(in)) {
+            Vertex * local_pred_vex = EDGE_from(EC_edge(in));
+            if (VERTEX_id(local_pred_vex) == BB_id(pred)) {
+                find = true;
+                break;
+            }
+            n++;
+        }
 
-	virtual void set_rpo(IRBB * bb, INT order) { BB_rpo(bb) = order; }
-	virtual void unionLabels(IRBB * src, IRBB * tgt);
+        CK_USE(find); //pred should be a predecessor of bb.
 
-	virtual bool perform(OptCTX & oc) { UNUSED(oc); return false; }
+        return n;
+    }
 
-	/* Perform miscellaneous control flow optimizations.
-	Include remove dead bb which is unreachable, remove empty bb as many
-	as possible, simplify and remove the branch like "if (x==x)", remove
-	the trampolin branch. */
-	bool performMiscOpt(OptCTX & oc);
+    virtual void remove_bb(C<IRBB*> * bbct)
+    {
+        ASSERT0(bbct);
+        ASSERT0(m_bb_list->in_list(bbct));
+        m_bb_vec.set(BB_id(C_val(bbct)), NULL);
+        m_bb_list->remove(bbct);
+        removeVertex(BB_id(C_val(bbct)));
+    }
+
+    //We only remove 'bb' from CF graph, vector and bb-list.
+    virtual void remove_bb(IRBB * bb)
+    {
+        ASSERT0(bb);
+        m_bb_vec.set(BB_id(bb), NULL);
+        m_bb_list->remove(bb);
+        removeVertex(BB_id(bb));
+    }
+    void remove_xr(IRBB * bb, IR * ir);
+    bool removeTrampolinEdge();
+    bool removeTrampolinBB();
+    bool removeRedundantBranch();
+
+    virtual void set_rpo(IRBB * bb, INT order) { BB_rpo(bb) = order; }
+    virtual void unionLabels(IRBB * src, IRBB * tgt);
+
+    virtual bool perform(OptCTX & oc) { UNUSED(oc); return false; }
+
+    /* Perform miscellaneous control flow optimizations.
+    Include remove dead bb which is unreachable, remove empty bb as many
+    as possible, simplify and remove the branch like "if (x==x)", remove
+    the trampolin branch. */
+    bool performMiscOpt(OptCTX & oc);
 };
 
 } //namespace xoc

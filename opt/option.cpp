@@ -75,10 +75,10 @@ bool g_do_cfg_remove_unreach_bb = true;
 
 /* Perform cfg optimization: remove redundant trampoline bb.
 e.g:
-	BB1: goto L1
-	BB2, L1: goto L2
+    BB1: goto L1
+    BB2, L1: goto L2
 should be optimized and generate:
-	BB1: goto L2
+    BB1: goto L2
 */
 bool g_do_cfg_remove_trampolin_bb = true;
 

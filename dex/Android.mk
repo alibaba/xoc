@@ -34,6 +34,7 @@ X_INCLUDE_FILES := \
 	-DLOG_TAG=\"DEX2DEX\" \
 	-D_GNU_SOURCE=1\
 	-D_ENABLE_LOG_\
+	-D_VMWARE_DEBUG_\
 	-O3 -DFOR_DEX\
 	-Wno-empty-body\
 	-Wno-write-strings -Wsign-promo -Werror=pointer-to-int-cast -Wparentheses\

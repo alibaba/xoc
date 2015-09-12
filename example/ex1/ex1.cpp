@@ -34,62 +34,55 @@ author: Su Zhenyu
 #include "../opt/cominc.h"
 #include "ex1.h"
 
-List<Region*> g_ru_list;
 static UINT generate_region(RegionMgr * rm)
 {
-	//Generate region for file.
-	Region * topru = rm->allocRegion(RU_PROGRAM);
-	rm->set_region(topru);
-	topru->set_ru_var(rm->get_var_mgr()->registerVar(
-										".file",
-										rm->get_dm()->getMCType(0),
-										0,
-										VAR_GLOBAL|VAR_FAKE));
+    //Generate region for file.
+    Region * topru = rm->newRegion(RU_PROGRAM);
+    rm->set_region(topru);
+    topru->set_ru_var(rm->get_var_mgr()->registerVar(
+                                        ".file",
+                                        rm->get_dm()->getMCType(0),
+                                        0,
+                                        VAR_GLOBAL|VAR_FAKE));
 
-	//-----------
-	//Generate region for func
-	Region * func_ru = rm->allocRegion(RU_FUNC);
-	g_ru_list.append_tail(func_ru);
-	func_ru->set_ru_var(rm->get_var_mgr()->registerVar(
-										".func.name",
-										rm->get_dm()->getMCType(0),
-										0,
-										VAR_GLOBAL|VAR_FAKE));
-	IR * ir = topru->buildRegion(func_ru);
-	topru->addToIRList(ir);
+    //-----------
+    //Generate region for func
+    Region * func_ru = rm->allocRegion(RU_FUNC);
+    func_ru->set_ru_var(rm->get_var_mgr()->registerVar(
+                                        ".func.name",
+                                        rm->get_dm()->getMCType(0),
+                                        0,
+                                        VAR_GLOBAL|VAR_FAKE));
+    IR * ir = topru->buildRegion(func_ru);
+    topru->addToIRList(ir);
 
-	//----------
-	//For simply, only generate a return IR.
-	REGION_ru(ir)->addToIRList(REGION_ru(ir)->buildReturn(NULL));
-	return ST_SUCC;
+    //----------
+    //For simply, only generate a return IR.
+    REGION_ru(ir)->addToIRList(REGION_ru(ir)->buildReturn(NULL));
+    return ST_SUCC;
 }
 
 
 int main(int argc, char * argv[])
 {
-	g_dbg_mgr = new DbxMgr();
-	RegionMgr * rm = new RegionMgr();
-	rm->initVarMgr();
+    g_dbg_mgr = new DbxMgr();
+    RegionMgr * rm = new RegionMgr();
+    rm->initVarMgr();
 
-	printf("\nGenerate region");
+    printf("\nGenerate region");
 
-	//Generate region.
-	generate_region(rm);
+    //Generate region.
+    generate_region(rm);
 
-	printf("\nProcess region");
+    printf("\nProcess region");
 
-	//Compile region.
-	rm->process();
+    //Compile region.
+    rm->processProgramRegion(rm->get_region(1));
 
-	for (Region * ru = g_ru_list.get_head();
-		 ru != NULL; ru = g_ru_list.get_next()) {
-		delete ru;
-	}
-
-	delete rm;
-	delete g_dbg_mgr;
-	g_dbg_mgr = NULL;
-	printf("\nFinish\n");
-	return 0;
+    delete rm;
+    delete g_dbg_mgr;
+    g_dbg_mgr = NULL;
+    printf("\nFinish\n");
+    return 0;
 }
 

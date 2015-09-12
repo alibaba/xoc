@@ -42,52 +42,52 @@ typedef SEGIter * DU_ITER;
 
 class DUSet : public DefSBitSetCore {
 protected:
-	friend class IR_DU_MGR;
+    friend class IR_DU_MGR;
 public:
-	DUSet() {}
-	~DUSet()
-	{
-		//Do not free ref here. They are allocated in mempool,
-		//and the memory is freed when the pool destructed.
-	}
+    DUSet() {}
+    ~DUSet()
+    {
+        //Do not free ref here. They are allocated in mempool,
+        //and the memory is freed when the pool destructed.
+    }
 
-	void add(UINT irid, DefMiscBitSetMgr & m) { bunion(irid, m); }
-	void add_def(IR const* stmt, DefMiscBitSetMgr & m);
-	void add_use(IR const* exp, DefMiscBitSetMgr & m);
+    void add(UINT irid, DefMiscBitSetMgr & m) { bunion(irid, m); }
+    void add_def(IR const* stmt, DefMiscBitSetMgr & m);
+    void add_use(IR const* exp, DefMiscBitSetMgr & m);
 
-	void remove(UINT irid, DefMiscBitSetMgr & m) { diff(irid, m); }
-	void remove_use(IR const* exp, DefMiscBitSetMgr & m);
-	void removeDef(IR const* stmt, DefMiscBitSetMgr & m);
+    void remove(UINT irid, DefMiscBitSetMgr & m) { diff(irid, m); }
+    void remove_use(IR const* exp, DefMiscBitSetMgr & m);
+    void removeDef(IR const* stmt, DefMiscBitSetMgr & m);
 
-	void union_set(DUSet const* set, DefMiscBitSetMgr & m)
-	{
-		if (set == NULL) { return; }
-		bunion(*set, m);
-	}
+    void union_set(DUSet const* set, DefMiscBitSetMgr & m)
+    {
+        if (set == NULL) { return; }
+        bunion(*set, m);
+    }
 
-	inline bool verify_def(IR_DU_MGR * du) const;
-	inline bool verify_use(IR_DU_MGR * du) const;
+    inline bool verify_def(IR_DU_MGR * du) const;
+    inline bool verify_use(IR_DU_MGR * du) const;
 };
 
 
-#define DU_md(du)			((du)->md)
-#define DU_mds(du)			((du)->mds)
-#define DU_duset(du)		((du)->duset)
+#define DU_md(du)            ((du)->md)
+#define DU_mds(du)            ((du)->mds)
+#define DU_duset(du)        ((du)->duset)
 class DU {
 public:
-	MD const* md; //indicate the Must MD reference.
-	MDSet const* mds; //indicate May MDSet reference.
-	DUSet * duset; //indicate Def/Use of stmt/expr set.
+    MD const* md; //indicate the Must MD reference.
+    MDSet const* mds; //indicate May MDSet reference.
+    DUSet * duset; //indicate Def/Use of stmt/expr set.
 
-	inline void clean()
-	{
-		md = NULL;
-		mds = NULL;
-		duset = NULL;
-	}
+    inline void clean()
+    {
+        md = NULL;
+        mds = NULL;
+        duset = NULL;
+    }
 
-	bool has_clean() const
-	{ return md == NULL && mds == NULL && duset == NULL; }
+    bool has_clean() const
+    { return md == NULL && mds == NULL && duset == NULL; }
 };
 
 } //namespace xoc

@@ -42,178 +42,178 @@ namespace xoc {
 3. Set the AttachInfo type and the data structure.
 
 e.g:
-	IR * ir = ...; Given IR.
-	IR_ai(ir) = region->newAI();
-	Dbx * dbx = getDbx();
-	IR_ai(ir)->set(AI_DBX, (BaseAttachInfo*)dbx);
+    IR * ir = ...; Given IR.
+    IR_ai(ir) = region->newAI();
+    Dbx * dbx = getDbx();
+    IR_ai(ir)->set(AI_DBX, (BaseAttachInfo*)dbx);
 
 Note that you do not need to free/delete AI structure.
 They will be freed at destructor of region. */
 
 //Attach Info Type.
 typedef enum _AI_TYPE {
-	AI_UNDEF = 0,
-	AI_DBX, //Debug Info
-	AI_PROF, //Profile Info
-	AI_TBAA, //Type Based AA
-	AI_EH_LABEL, //Record a list of Labels.
-	AI_USER_DEF, //User Defined
-	AI_LAST, //The number of ai type.
+    AI_UNDEF = 0,
+    AI_DBX, //Debug Info
+    AI_PROF, //Profile Info
+    AI_TBAA, //Type Based AA
+    AI_EH_LABEL, //Record a list of Labels.
+    AI_USER_DEF, //User Defined
+    AI_LAST, //The number of ai type.
 } AI_TYPE;
 
 
 class BaseAttachInfo {
 public:
-	AI_TYPE type;
+    AI_TYPE type;
 
-	explicit BaseAttachInfo(AI_TYPE t) { init(t); }
-	COPY_CONSTRUCTOR(BaseAttachInfo);
+    explicit BaseAttachInfo(AI_TYPE t) { init(t); }
+    COPY_CONSTRUCTOR(BaseAttachInfo);
 
-	void init(AI_TYPE t) { type = t; }
+    void init(AI_TYPE t) { type = t; }
 };
 
 
 class AttachInfo {
 public:
-	SimpleVec<BaseAttachInfo*, 1> cont;
+    SimpleVec<BaseAttachInfo*, 1> cont;
 
 public:
-	AttachInfo() { init(); }
-	COPY_CONSTRUCTOR(AttachInfo);
+    AttachInfo() { init(); }
+    COPY_CONSTRUCTOR(AttachInfo);
 
-	void init()
-	{
-		if (cont.is_init()) { return; }
-		cont.init();
-	}
+    void init()
+    {
+        if (cont.is_init()) { return; }
+        cont.init();
+    }
 
-	INT is_init() const { return cont.is_init(); }
+    INT is_init() const { return cont.is_init(); }
 
-	void destroy() { cont.destroy(); }
-	void destroy_vec() { cont.destroy_vec(); }
+    void destroy() { cont.destroy(); }
+    void destroy_vec() { cont.destroy_vec(); }
 
-	void copy(AttachInfo const* ai)
-	{
-		ASSERT0(ai);
-		if (!ai->is_init()) { return; }
-		cont.copy(ai->cont);
-	}
+    void copy(AttachInfo const* ai)
+    {
+        ASSERT0(ai);
+        if (!ai->is_init()) { return; }
+        cont.copy(ai->cont);
+    }
 
-	void clean(AI_TYPE type)
-	{
-		if (!cont.is_init()) { return; }
-		ASSERT0(type > AI_UNDEF && type < AI_LAST);
-		if ((UINT)type < cont.get_capacity()) {
-			cont.set((UINT)type, NULL);
-		}
-	}
+    void clean(AI_TYPE type)
+    {
+        if (!cont.is_init()) { return; }
+        ASSERT0(type > AI_UNDEF && type < AI_LAST);
+        if ((UINT)type < cont.get_capacity()) {
+            cont.set((UINT)type, NULL);
+        }
+    }
 
-	void set(BaseAttachInfo * c)
-	{
-		ASSERT(c, ("Can not set empty AI"));
+    void set(BaseAttachInfo * c)
+    {
+        ASSERT(c, ("Can not set empty AI"));
 
-		INT emptyslot = -1;
-		if (!cont.is_init()) { cont.init(); }
+        INT emptyslot = -1;
+        if (!cont.is_init()) { cont.init(); }
 
-		AI_TYPE type = c->type;
-		ASSERT0(type > AI_UNDEF && type < AI_LAST);
+        AI_TYPE type = c->type;
+        ASSERT0(type > AI_UNDEF && type < AI_LAST);
 
-		UINT i;
-		for (i = 0; i < cont.get_capacity(); i++) {
-			BaseAttachInfo * ac = cont.get(i);
-			if (ac == NULL) {
-				emptyslot = (INT)i;
-			} else if (ac->type != type) {
-				continue;
-			}
+        UINT i;
+        for (i = 0; i < cont.get_capacity(); i++) {
+            BaseAttachInfo * ac = cont.get(i);
+            if (ac == NULL) {
+                emptyslot = (INT)i;
+            } else if (ac->type != type) {
+                continue;
+            }
 
-			//Note c will override the prior AttachInfo that has same type.
-			cont.set(i, c);
-			return;
-		}
+            //Note c will override the prior AttachInfo that has same type.
+            cont.set(i, c);
+            return;
+        }
 
-		if (emptyslot != -1) {
-			cont.set((UINT)emptyslot, c);
-		} else {
-			//AttachInfo buffer will grow bigger.
-			cont.set(i, c);
-		}
-	}
+        if (emptyslot != -1) {
+            cont.set((UINT)emptyslot, c);
+        } else {
+            //AttachInfo buffer will grow bigger.
+            cont.set(i, c);
+        }
+    }
 
-	BaseAttachInfo const* get(AI_TYPE type) const
-	{
-		if (!cont.is_init()) { return NULL; }
-		for (UINT i = 0; i < cont.get_capacity(); i++) {
-			BaseAttachInfo * ac = cont.get(i);
-			if (ac != NULL && ac->type == type) {
-				return ac;
-			}
-		}
-		return NULL;
-	}
+    BaseAttachInfo const* get(AI_TYPE type) const
+    {
+        if (!cont.is_init()) { return NULL; }
+        for (UINT i = 0; i < cont.get_capacity(); i++) {
+            BaseAttachInfo * ac = cont.get(i);
+            if (ac != NULL && ac->type == type) {
+                return ac;
+            }
+        }
+        return NULL;
+    }
 };
 
 
 //Exception Handler Labels.
 class EHLabelAttachInfo : public BaseAttachInfo {
 public:
-	SList<LabelInfo*> labels; //record a list of Labels.
+    SList<LabelInfo*> labels; //record a list of Labels.
 
 public:
-	EHLabelAttachInfo(SMemPool * pool = NULL) : BaseAttachInfo(AI_EH_LABEL)
-	{ init(pool); }
-	COPY_CONSTRUCTOR(EHLabelAttachInfo);
+    EHLabelAttachInfo(SMemPool * pool = NULL) : BaseAttachInfo(AI_EH_LABEL)
+    { init(pool); }
+    COPY_CONSTRUCTOR(EHLabelAttachInfo);
 
-	void init(SMemPool * pool)
-	{
-		BaseAttachInfo::init(AI_EH_LABEL);
-		labels.set_pool(pool);
-	}
+    void init(SMemPool * pool)
+    {
+        BaseAttachInfo::init(AI_EH_LABEL);
+        labels.set_pool(pool);
+    }
 
-	SList<LabelInfo*> const& get_labels() const { return labels; }
+    SList<LabelInfo*> const& get_labels() const { return labels; }
 };
 
 
 class DbxAttachInfo : public BaseAttachInfo {
 public:
-	Dbx dbx; //record debug info.
+    Dbx dbx; //record debug info.
 
-	DbxAttachInfo() : BaseAttachInfo(AI_DBX) { init(); }
-	COPY_CONSTRUCTOR(DbxAttachInfo);
+    DbxAttachInfo() : BaseAttachInfo(AI_DBX) { init(); }
+    COPY_CONSTRUCTOR(DbxAttachInfo);
 
-	void init()
-	{
-		BaseAttachInfo::init(AI_DBX);
-		dbx.clean();
-	}
+    void init()
+    {
+        BaseAttachInfo::init(AI_DBX);
+        dbx.clean();
+    }
 };
 
 
 class ProfileAttachInfo : public BaseAttachInfo {
 public:
-	SYM const* tag;
+    SYM const* tag;
 
-	//truebr freq, falsebr freq.
-	INT * data;
+    //truebr freq, falsebr freq.
+    INT * data;
 
-	ProfileAttachInfo() : BaseAttachInfo(AI_DBX) { init(); }
-	COPY_CONSTRUCTOR(ProfileAttachInfo);
+    ProfileAttachInfo() : BaseAttachInfo(AI_DBX) { init(); }
+    COPY_CONSTRUCTOR(ProfileAttachInfo);
 
-	void init()
-	{
-		BaseAttachInfo::init(AI_PROF);
-		tag = NULL;
-		data = NULL;
-	}
+    void init()
+    {
+        BaseAttachInfo::init(AI_PROF);
+        tag = NULL;
+        data = NULL;
+    }
 };
 
 
 class TbaaAttachInfo : public BaseAttachInfo {
 public:
-	Type const* type;
+    Type const* type;
 
-	TbaaAttachInfo() : BaseAttachInfo(AI_TBAA) { type = NULL; }
-	COPY_CONSTRUCTOR(TbaaAttachInfo);
+    TbaaAttachInfo() : BaseAttachInfo(AI_TBAA) { type = NULL; }
+    COPY_CONSTRUCTOR(TbaaAttachInfo);
 };
 
 } //namespace xoc

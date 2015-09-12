@@ -49,11 +49,16 @@ BuiltInInfo g_builtin_info[] = {
 	{BLTIN_ARRAY_LENGTH,        "#array_length"		},
 	{BLTIN_MONITOR_ENTER,       "#monitor_enter"	},
 	{BLTIN_MONITOR_EXIT,        "#monitor_exit"		},
-	{BLTIN_INSTANCE_OF,         "#instance_of"		},
-	{BLTIN_CMP_BIAS,			"#cmp_bias"			},
+    {BLTIN_INSTANCE_OF,         "#instance_of"        },
+    {BLTIN_CMP_BIAS,            "#cmp_bias"            },
+    {BLTIN_LAST,                ""                    },
 };
 UINT g_builtin_num = sizeof(g_builtin_info) / sizeof(g_builtin_info[0]);
 
 
 //Perform Dex register allocation.
 bool g_do_dex_ra = false;
+bool g_dump_ir2dex = false;
+bool g_dump_dex2ir = false;
+bool g_dump_classdefs = false;
+bool g_dump_lirs = false;

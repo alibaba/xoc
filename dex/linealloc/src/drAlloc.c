@@ -83,7 +83,7 @@ retry:
             goto retry;
         }
 
-		UInt32 maxsize = MAX(DEFAULT_BLOCK_SIZE, size + 64);
+        UInt32 maxsize = MAX(DEFAULT_BLOCK_SIZE, size + 64);
         DRMBlock * newBlock = (DRMBlock *)malloc(
                                   maxsize + sizeof(DRMBlock) + 10);
         if (newBlock == NULL) {

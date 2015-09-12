@@ -41,21 +41,21 @@ class Region;
 //START Dbx
 //
 //Describe debug information.
-#define DBX_lineno(d)			(d)->lineno
+#define DBX_lineno(d)            (d)->lineno
 class Dbx {
 public:
-	UINT lineno;
+    UINT lineno;
 
-	void clean() { lineno = 0; }
-	void copy(Dbx const& dbx) { lineno = dbx.lineno; }
+    void clean() { lineno = 0; }
+    void copy(Dbx const& dbx) { lineno = dbx.lineno; }
 };
 //END Dbx
 
 
 class DbxMgr {
 public:
-	virtual ~DbxMgr() {}
-	virtual void printSrcLine(IR const*) {}
+    virtual ~DbxMgr() {}
+    virtual void printSrcLine(IR const*) {}
 };
 
 extern DbxMgr * g_dbg_mgr;

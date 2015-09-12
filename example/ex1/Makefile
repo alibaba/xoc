@@ -43,6 +43,7 @@ OPT_OBJS +=\
 ../../opt/data_type.o \
 ../../opt/option.o\
 ../../opt/region.o\
+../../opt/region_mgr.o\
 ../../opt/util.o\
 ../../opt/var.o\
 ../../opt/md.o\
@@ -81,13 +82,13 @@ com_objs: $(COM_OBJS)
 opt_objs: $(OPT_OBJS)
 
 clean:
-	@find ../../../ -name "*.o" | xargs rm -f
-	@find ../../../ -name "*.dot" | xargs rm -f
-	@find ../../../ -name "*.exe" | xargs rm -f
-	@find ../../../ -name "*.elf" | xargs rm -f
-	@find ../../../ -name "*.out" | xargs rm -f
-	@find ../../../ -name "*.tmp" | xargs rm -f
-	@find ../../../ -name "*.vcg" | xargs rm -f
-	@find ../../../ -name "*.cxx" | xargs rm -f
-	@find ../../../ -name "*.asm" | xargs rm -f
+	@find -name "*.o" | xargs rm -f
+	@find -name "*.dot" | xargs rm -f
+	@find -name "*.exe" | xargs rm -f
+	@find -name "*.elf" | xargs rm -f
+	@find -name "*.out" | xargs rm -f
+	@find -name "*.tmp" | xargs rm -f
+	@find -name "*.vcg" | xargs rm -f
+	@find -name "*.cxx" | xargs rm -f
+	@find -name "*.asm" | xargs rm -f
 

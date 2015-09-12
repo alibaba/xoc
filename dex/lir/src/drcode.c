@@ -43,6 +43,9 @@ author: GongKai, JinYue
 #include <assert.h>
 #include <stdio.h>
 
+#include "cominc.h"
+#include "comopt.h"
+
 #include "drAlloc.h"
 #include "d2lcode.h"
 #include "d2d_l2d.h"
@@ -51,7 +54,6 @@ author: GongKai, JinYue
 #include "xassert.h"
 #include "lircomm.h"
 
-#include "cominc.h"
 #include "lir.h"
 #include "dx_mgr.h"
 #include "aoc_dx_mgr.h"
@@ -715,7 +717,7 @@ bool d2rMethod(
                 lastValidDexOffset = dexOffset;
             }
             lastInstrIsPseudo = true;
-            UInt32 width;
+            UInt32 width = 0;
             switch (instr) {
                 case 0x100: {
                     UInt16* data = codePtr;

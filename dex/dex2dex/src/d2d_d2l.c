@@ -14,6 +14,7 @@
 #include <fcntl.h>
 
 #include "cominc.h"
+#include "comopt.h"
 #include "lir.h"
 #include "xassert.h"
 #include "io/cio.h"
@@ -714,7 +715,7 @@ static void fixAnnotationSetRefListItem(DexFile* pDexFile, D2Dpool* pool)
 
     for (i = 0; i < count; i++) {
         pAnnoRefList = (DexAnnotationSetRefList*)(pDexFile->baseAddr +
-			                       pool->dexAnnotationSetRefListOff + itemOff);
+                                   pool->dexAnnotationSetRefListOff + itemOff);
 
         itemOff += 4;
 
@@ -841,8 +842,16 @@ static void analyseClass(DexFile* pDexFile, D2Dpool* pool)
     pool->codeItemOff = pool->currentSize;
     UInt32 size = 0;
 
-	DexRegionMgr * rumgr = new DexRegionMgr();
-	rumgr->initVarMgr();
+    g_do_call_graph = true;
+    DexRegionMgr * rumgr = new DexRegionMgr();
+    rumgr->initVarMgr();
+    Region * topru = rumgr->newRegion(RU_PROGRAM);
+    rumgr->set_region(topru);
+    topru->set_ru_var(rumgr->get_var_mgr()->registerVar(
+                     ".dex",
+                     rumgr->get_dm()->getMCType(0),
+                     0,
+                     VAR_GLOBAL|VAR_FAKE));
     for (UInt32 i = 0; i < clsNumber; i++) {
         pDexClassDef = dexGetClassDef(pDexFile, i);
 
@@ -857,7 +866,8 @@ static void analyseClass(DexFile* pDexFile, D2Dpool* pool)
         convertClassData(pDexFile, pool, pDexClassDef, rumgr);
         size++;
     }
-	delete rumgr;
+    rumgr->processProgramRegion(topru);
+    delete rumgr;
 
     pool->updateClassDataSize = 0;
     if (size == clsNumber) {
@@ -940,8 +950,7 @@ static void fixAndCopyMapItemOffset(DexFile* pDexFile, D2Dpool* pool) {
    DexMapItem* itemArray[count];
    Int32 idx = 0;
 
-   while(count--)
-   {
+   while (count--) {
        ASSERT0(item->type == dexMapItem->type);
 
        switch(item->type)
@@ -1008,11 +1017,13 @@ static void fixAndCopyMapItemOffset(DexFile* pDexFile, D2Dpool* pool) {
    //Bug: The Item in the maps shoule be ordered by the offset
    qsort(itemArray, idx, sizeof(DexMapItem*), compareMapItem);
    cbsSeek(pool->lbs, pool->currentSize);
-   /*write map item section to lbs*/
-   /*write mapList size*/
+
+   //write map item section to lbs
+   //write mapList size
    cbsWrite32(pool->lbs, idx);
-   /*write the sorted items*/
-   for (int i = 0; i < idx; i ++) {
+
+   //write the sorted items
+   for (Int32 i = 0; i < idx; i++) {
        DexMapItem* item_ = itemArray[i];
        cbsWrite16(pool->lbs, item_->type);
        cbsWrite16(pool->lbs, item_->unused);
@@ -1063,8 +1074,8 @@ static void setMapItemOffset(D2Dpool* pool)
     pool->mapOff = pool->currentSize;
 
     /* Because we shoule sort the map items after all item's offset
-	have been make sure. So do not copy the map item here but just
-	set the map offset. */
+    have been make sure. So do not copy the map item here but just
+    set the map offset. */
     return;
 }
 
@@ -1134,7 +1145,7 @@ static void fixClassOffset(DexFile* pDexFile, D2Dpool* pool)
 }
 
 
-D2Dpool* doCopyAndFixup(DexFile* pDexFile)
+static D2Dpool* doCopyAndFixup(DexFile* pDexFile, char const* dexfilename)
 {
     UInt32 i;
     UInt32 clsNumber = 0;
@@ -1147,8 +1158,32 @@ D2Dpool* doCopyAndFixup(DexFile* pDexFile)
     /*copy the item from the map item*/
     copyDexMiscData(pDexFile, pool);
     /*transform class and write the code item*/
+
+    #ifdef _VMWARE_DEBUG_
+    if (dexfilename != NULL) {
+        CHAR tmp[100];
+        tmp[0] = 0;
+        CHAR * filename = tmp;
+
+        UINT len = strlen(dexfilename) + 10;
+        if (len >= 100) {
+            filename = (CHAR*)ALLOCA(len);
+            ASSERT0(filename);
+        }
+        sprintf(filename, "%s.log", dexfilename);
+        initdump(filename, true);
+    } else {
+        initdump("dexscan.log", false);
+    }
+    #endif
+
     //processClass(pDexFile, pool);
     analyseClass(pDexFile, pool);
+
+    #ifdef _DEBUG_
+    finidump();
+    #endif
+
     /*copy the annotatais directory item
      * type list info
      * string data item list
@@ -1198,10 +1233,15 @@ D2Dpool* doCopyAndFixup(DexFile* pDexFile)
     class Data item !
     map list!
 */
-Int32 doDex2Dex(DexFile* pDexFile, int outFd, long* fileLen, bool ifOpt)
+Int32 doDex2Dex(
+        DexFile* pDexFile,
+        int outFd,
+        long* fileLen,
+        bool ifOpt,
+        char const* dexfilename)
 {
     UInt32 error = 0;
-    D2Dpool* pool = doCopyAndFixup(pDexFile);
+    D2Dpool* pool = doCopyAndFixup(pDexFile, dexfilename);
     error |= writeToFile(pool, outFd, fileLen, ifOpt);
 
     /* Add to output the file who have been dex2dex
@@ -1216,9 +1256,14 @@ Int32 doDex2Dex(DexFile* pDexFile, int outFd, long* fileLen, bool ifOpt)
     return error;
 }
 
-Int32 doDex2Dex2(DexFile* pDexFile, unsigned char ** dxbuf, unsigned int* dxbuflen, unsigned int* cbsHandler)
+Int32 doDex2Dex2(
+        DexFile* pDexFile,
+        unsigned char ** dxbuf,
+        unsigned int* dxbuflen,
+        unsigned int* cbsHandler,
+        char const* dexfilename)
 {
-    D2Dpool* pool = doCopyAndFixup(pDexFile);
+    D2Dpool* pool = doCopyAndFixup(pDexFile, dexfilename);
 
     *dxbuf = (unsigned char *)cbsGetData(pool->lbs);
     *dxbuflen = cbsGetSize(pool->lbs);

@@ -29,59 +29,42 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-author: GongKai, JinYue
+author: Su Zhenyu
 @*/
-#ifndef _D2D_D2L_H
-#define _D2D_D2L_H
+#ifndef __IR_OPT_H__
+#define __IR_OPT_H__
 
-#define  asUInt32(addr) (*((UInt32*)addr))
-#define GET_NEWOFFSET(offset)\
-    do\
-    {\
-        offset = getNewOffset(pool, (Int32)(offset));\
-        ASSERT0(-1 != (Int32)(offset));\
-    }while(0)
+namespace xoc {
 
-#define GET_NEWOFFSET_CHECK(offset)\
-    do\
-    {\
-        Int32 nAddr;\
-        nAddr = getNewOffset(pool, (Int32)(offset));\
-        ASSERT0(nAddr == (Int32)(offset));\
-    }while(0)
+//Basis Class of pass.
+class Pass {
+protected:
+    SimpCTX * m_simp;
+public:
+    Pass() { m_simp = NULL; }
+    virtual ~Pass() {}
+    COPY_CONSTRUCTOR(Pass);
 
-#define GET_NEWADDR_CHECK(addr)\
-    do\
-    {\
-        BYTE* nAddr;\
-        nAddr = getNewAddr(pool, (BYTE*)(addr));\
-        ASSERT0(nAddr == (BYTE*)(addr));\
-    }while(0)
+    virtual CHAR const* get_pass_name() const
+    {
+        ASSERT(0, ("Optimization Dependent Code"));
+        return NULL;
+    }
 
-#define GET_NEWADDR(addr)\
-    do\
-    {\
-        addr = getNewAddr(pool, (BYTE*)addr);\
-    }while(0)
+    virtual PASS_TYPE get_pass_type() const
+    {
+        ASSERT(0, ("Optimization Dependent Code"));
+        return PASS_UNDEF;
+    }
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-    Int32 doDex2Dex(
-            DexFile* pDexFile,
-            int outFd,
-            long* fileLen,
-            bool ifOpt,
-            char const* dexfilename);
-    Int32 doDex2Dex2(
-            DexFile* pDexFile,
-            unsigned char ** dxbuf,
-            unsigned int* dxbuflen,
-            unsigned int* cbsHandler,
-            char const* dexfilename);
-#ifdef __cplusplus
-}
-#endif
+    void set_simp_cont(SimpCTX * simp) { m_simp = simp; }
 
+    virtual bool perform(OptCTX &)
+    {
+        ASSERT(0, ("Optimization Dependent Code"));
+        return false;
+    }
+};
 
+} //namespace xoc
 #endif

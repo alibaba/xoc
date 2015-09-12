@@ -39,67 +39,67 @@ namespace xcom {
 //Alogrithmic Graph.
 class AGraph : public Graph {
 protected:
-	Matrix<UINT> * m_spath_mat; //record shortest-path.
-	void buildAdjacentMatrix(Matrix<UINT> & adj_mat);
+    Matrix<UINT> * m_spath_mat; //record shortest-path.
+    void buildAdjacentMatrix(Matrix<UINT> & adj_mat);
 public:
-	AGraph(UINT edge_hash_size = 64, UINT vex_hash_size = 64) :
-		Graph(edge_hash_size, vex_hash_size)
-	{
-		m_edge_hash_size = edge_hash_size;
-		m_vex_hash_size = vex_hash_size;
-		m_spath_mat = NULL;
-	}
+    AGraph(UINT edge_hash_size = 64, UINT vex_hash_size = 64) :
+        Graph(edge_hash_size, vex_hash_size)
+    {
+        m_edge_hash_size = edge_hash_size;
+        m_vex_hash_size = vex_hash_size;
+        m_spath_mat = NULL;
+    }
 
-	AGraph(AGraph & g) : Graph(g)
-	{
-		m_edge_hash_size = g.m_edge_hash_size;
-		m_vex_hash_size = g.m_vex_hash_size;
-		clone(g);
-	}
+    AGraph(AGraph & g) : Graph(g)
+    {
+        m_edge_hash_size = g.m_edge_hash_size;
+        m_vex_hash_size = g.m_vex_hash_size;
+        clone(g);
+    }
 
-	virtual ~AGraph()
-	{
-		if (m_spath_mat != NULL) {
-			delete m_spath_mat;//Delete shortest path matrix
-			m_spath_mat = NULL;
-		}
-	}
+    virtual ~AGraph()
+    {
+        if (m_spath_mat != NULL) {
+            delete m_spath_mat;//Delete shortest path matrix
+            m_spath_mat = NULL;
+        }
+    }
 
-	void clone(AGraph & src)
-	{
-		if (src.m_spath_mat != NULL) {
-			if (m_spath_mat == NULL) {
-				m_spath_mat = new Matrix<UINT>(*src.m_spath_mat);
-			} else {
-				m_spath_mat->copy(*src.m_spath_mat);
-			}
-		} else {
-			delete m_spath_mat;
-			m_spath_mat = NULL;
-		}
-	}
+    void clone(AGraph & src)
+    {
+        if (src.m_spath_mat != NULL) {
+            if (m_spath_mat == NULL) {
+                m_spath_mat = new Matrix<UINT>(*src.m_spath_mat);
+            } else {
+                m_spath_mat->copy(*src.m_spath_mat);
+            }
+        } else {
+            delete m_spath_mat;
+            m_spath_mat = NULL;
+        }
+    }
 
-	UINT count_mem() const
-	{
-		UINT count = Graph::count_mem();
-		if (m_spath_mat != NULL) {
-			count += m_spath_mat->count_mem();
-		}
-		return count;
-	}
+    UINT count_mem() const
+    {
+        UINT count = Graph::count_mem();
+        if (m_spath_mat != NULL) {
+            count += m_spath_mat->count_mem();
+        }
+        return count;
+    }
 
-	void ShortestPath(UINT infinite);
+    void ShortestPath(UINT infinite);
 
-	//Erasing graph, include all nodes and edges,
-	//except for mempool, freelist.
-	void erase()
-	{
-		if (m_spath_mat != NULL) {
-			delete m_spath_mat; //Delete shortest path matrix
-			m_spath_mat = NULL;
-		}
-		Graph::erase();
-	}
+    //Erasing graph, include all nodes and edges,
+    //except for mempool, freelist.
+    void erase()
+    {
+        if (m_spath_mat != NULL) {
+            delete m_spath_mat; //Delete shortest path matrix
+            m_spath_mat = NULL;
+        }
+        Graph::erase();
+    }
 };
 
 }

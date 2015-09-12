@@ -44,6 +44,9 @@ author: GongKai, JinYue
 #include <assert.h>
 #include <stdio.h>
 
+#include "cominc.h"
+#include "comopt.h"
+
 #include "drAlloc.h"
 //#include "d2lcode.h"
 #include "d2d_l2d.h"
@@ -55,7 +58,6 @@ author: GongKai, JinYue
 #include "d2d_comm.h"
 #include "d2d_dexlib.h"
 
-#include "cominc.h"
 #include "lir.h"
 #include "xassert.h"
 #include "io/cio.h"

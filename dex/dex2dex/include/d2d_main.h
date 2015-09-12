@@ -38,8 +38,11 @@ author: GongKai, JinYue
 extern "C" {
 #endif
     int d2dTest(int argc, const char* argv[]);
-    int d2dEntry(int dexFd, long* fileLen, bool ifOpt);
-    bool d2dEntryBuf(unsigned char ** dxbuf, unsigned int* dxbuflen, unsigned int* cbsHandler);
+    int d2dEntry(int dexFd, long* fileLen, bool ifOpt, char const* dexfilename);
+    bool d2dEntryBuf(unsigned char ** dxbuf,
+                     unsigned int* dxbuflen,
+                     unsigned int* cbsHandler,
+                     char const* dexfilename);
     void d2dEntryBufFree(unsigned int cbsHandler);
 #ifdef __cplusplus
 }

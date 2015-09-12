@@ -38,29 +38,29 @@ namespace xoc {
 
 class IPA : public Pass {
 protected:
-	RegionMgr * m_ru_mgr;
-	Region * m_program;
-	SMemPool * m_pool;
+    RegionMgr * m_ru_mgr;
+    Region * m_program;
+    SMemPool * m_pool;
 
-	void * xmalloc(UINT size)
-	{
-		void * p = smpoolMalloc(size, m_pool);
-		ASSERT0(p);
-		memset(p, 0, size);
-		return p;
-	}
+    void * xmalloc(UINT size)
+    {
+        void * p = smpoolMalloc(size, m_pool);
+        ASSERT0(p);
+        memset(p, 0, size);
+        return p;
+    }
 public:
-	IPA(RegionMgr * rumgr, Region * program)
-	{
-		m_ru_mgr = rumgr;
-		m_program = program;
-		ASSERT0(rumgr && program);
-		m_pool = smpoolCreate(16, MEM_COMM);
-	}
-	virtual ~IPA() { smpoolDelete(m_pool); }
-	virtual CHAR const* get_pass_name() const { return "IPA"; }
-	virtual PASS_TYPE get_pass_type() const { return PASS_IPA; }
-	virtual bool perform(OptCTX & oc);
+    IPA(RegionMgr * rumgr, Region * program)
+    {
+        m_ru_mgr = rumgr;
+        m_program = program;
+        ASSERT0(rumgr && program);
+        m_pool = smpoolCreate(16, MEM_COMM);
+    }
+    virtual ~IPA() { smpoolDelete(m_pool); }
+    virtual CHAR const* get_pass_name() const { return "IPA"; }
+    virtual PASS_TYPE get_pass_type() const { return PASS_IPA; }
+    virtual bool perform(OptCTX & oc);
 };
 
 } //namespace xoc
