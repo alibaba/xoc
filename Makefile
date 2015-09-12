@@ -82,4 +82,7 @@ clean:
 	@find -name "*.vcg" | xargs rm -f
 	@find -name "*.cxx" | xargs rm -f
 	@find -name "*.asm" | xargs rm -f
+	@find -name "*.swp" | xargs rm -f
+	@find -name "*.swo" | xargs rm -f
+	@find -name "*.LOGLOG" | xargs rm -f
 
