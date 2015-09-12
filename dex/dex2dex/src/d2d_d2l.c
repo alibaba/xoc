@@ -1173,7 +1173,7 @@ static D2Dpool* doCopyAndFixup(DexFile* pDexFile, char const* dexfilename)
         sprintf(filename, "%s.log", dexfilename);
         initdump(filename, true);
     } else {
-        initdump("dexscan.log", false);
+        initdump("a.tmp", false);
     }
     #endif
 

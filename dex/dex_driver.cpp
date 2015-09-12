@@ -481,7 +481,6 @@ bool compileFunc(
     g_do_aa = false;
     g_do_du_ana = false;
     g_do_dex_ra = false;
-    g_do_dexscan = true;
 
     g_opt_level = OPT_LEVEL3;
 
