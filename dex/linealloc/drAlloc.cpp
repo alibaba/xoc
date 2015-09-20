@@ -29,36 +29,33 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-author: Su Zhenyu
+author: GongKai, JinYue
 @*/
-#include "../opt/cominc.h"
-#include "dex.h"
+#include "cominc.h"
+#include "drAlloc.h"
 
-BuiltInInfo g_builtin_info[] = {
-    {BLTIN_UNDEF,                 ""                    },
-    {BLTIN_INVOKE,                 "invoke"            },
-    {BLTIN_NEW,                    "#new"                },
-    {BLTIN_NEW_ARRAY,           "#new_array"        },
-    {BLTIN_MOVE_EXP,            "#move_exception"    },
-    {BLTIN_MOVE_RES,            "#move_result"        },
-    {BLTIN_THROW,               "#throw"            },
-    {BLTIN_CHECK_CAST,          "#check_cast"        },
-    {BLTIN_FILLED_NEW_ARRAY,    "#filled_new_array"    },
-    {BLTIN_FILL_ARRAY_DATA,     "#fill_array_data"    },
-    {BLTIN_CONST_CLASS,         "#const_class"        },
-    {BLTIN_ARRAY_LENGTH,        "#array_length"        },
-    {BLTIN_MONITOR_ENTER,       "#monitor_enter"    },
-    {BLTIN_MONITOR_EXIT,        "#monitor_exit"        },
-    {BLTIN_INSTANCE_OF,         "#instance_of"        },
-    {BLTIN_CMP_BIAS,            "#cmp_bias"            },
-    {BLTIN_LAST,                ""                    },
-};
-UINT g_builtin_num = sizeof(g_builtin_info) / sizeof(g_builtin_info[0]);
+#define PIG_SIZE (4096)
+#define DEFAULT_ALLOC_SIZE (PIG_SIZE*32)
 
+static SMemPool * g_d2d_used_pool = NULL;
 
-//Perform Dex register allocation.
-bool g_do_dex_ra = false;
-bool g_dump_ir2dex = false;
-bool g_dump_dex2ir = false;
-bool g_dump_classdefs = false;
-bool g_dump_lirs = false;
+bool drLinearInit(void){
+    if (g_d2d_used_pool == NULL) {
+        g_d2d_used_pool = smpoolCreate(DEFAULT_ALLOC_SIZE, MEM_COMM);
+    }
+    return true;
+}
+
+void* drLinearAlloc(size_t size)
+{
+    ASSERT0(g_d2d_used_pool);
+    return smpoolMalloc(size, g_d2d_used_pool);
+}
+
+void drLinearFree(void)
+{
+    ASSERT0(g_d2d_used_pool);
+    smpoolDelete(g_d2d_used_pool);
+    g_d2d_used_pool = NULL;
+    return;
+}

@@ -29,36 +29,61 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-author: Su Zhenyu
+author: GongKai, JinYue
 @*/
-#include "../opt/cominc.h"
-#include "dex.h"
+#include <stdio.h>
+#include <malloc.h>
+#include <errno.h>
 
-BuiltInInfo g_builtin_info[] = {
-    {BLTIN_UNDEF,                 ""                    },
-    {BLTIN_INVOKE,                 "invoke"            },
-    {BLTIN_NEW,                    "#new"                },
-    {BLTIN_NEW_ARRAY,           "#new_array"        },
-    {BLTIN_MOVE_EXP,            "#move_exception"    },
-    {BLTIN_MOVE_RES,            "#move_result"        },
-    {BLTIN_THROW,               "#throw"            },
-    {BLTIN_CHECK_CAST,          "#check_cast"        },
-    {BLTIN_FILLED_NEW_ARRAY,    "#filled_new_array"    },
-    {BLTIN_FILL_ARRAY_DATA,     "#fill_array_data"    },
-    {BLTIN_CONST_CLASS,         "#const_class"        },
-    {BLTIN_ARRAY_LENGTH,        "#array_length"        },
-    {BLTIN_MONITOR_ENTER,       "#monitor_enter"    },
-    {BLTIN_MONITOR_EXIT,        "#monitor_exit"        },
-    {BLTIN_INSTANCE_OF,         "#instance_of"        },
-    {BLTIN_CMP_BIAS,            "#cmp_bias"            },
-    {BLTIN_LAST,                ""                    },
-};
-UINT g_builtin_num = sizeof(g_builtin_info) / sizeof(g_builtin_info[0]);
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
+#include "trace/ctrace.h"
+#include "d2d_main.h"
 
-//Perform Dex register allocation.
-bool g_do_dex_ra = false;
-bool g_dump_ir2dex = false;
-bool g_dump_dex2ir = false;
-bool g_dump_classdefs = false;
-bool g_dump_lirs = false;
+#include "cominc.h"
+#include "cmdline.h"
+
+//#define DEBUG_D2D
+#ifdef DEBUG_D2D
+int main(int argcc, char * argvc[])
+{
+    UNUSED(argcc);
+    UNUSED(argvc);
+
+    CHAR * argv[] = {
+        "dexpro",
+        //"test.apk",
+        "-o", "output.dex",
+    };
+    int argc = sizeof(argv)/sizeof(argv[0]);
+#else
+int main(int argc, char const* argv[])
+{
+#endif
+    int locerrno = 0; //0 indicates no error.
+    long filelen;
+    if (!processCommandLine(argc, argv)) {
+        locerrno = -1;
+        goto FIN;
+    }
+
+    if (d2dEntry(g_source_file_handler, g_output_file_handler,
+                 &filelen, false, g_dex_file_path) != 0) {
+        locerrno = errno;
+        LOGE("error: perform dexpro failed.\n");
+    }
+
+FIN:
+    if (g_source_file_handler >= 0) {
+        close(g_source_file_handler);
+    }
+
+    if (g_output_file_handler >= 0) {
+        close(g_output_file_handler);
+    }
+
+    return locerrno; //success.
+}
+

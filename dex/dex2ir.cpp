@@ -578,6 +578,7 @@ IR * Dex2IR::convertSget(IN LIR * lir)
     tbaa->type = mapFieldType2Type(LIR_op0(lir));
     ASSERT0(tbaa->type);
     ai->set(tbaa);
+    ASSERT0(rhs->get_ai() == NULL);
     IR_ai(rhs) = ai;
 
     return m_ru->buildStorePR(PR_no(res), IR_dt(res), rhs);
@@ -659,6 +660,7 @@ IR * Dex2IR::convertAput(IN LIR * lir)
     tbaa->type = m_tr->array;
     ASSERT0(tbaa->type);
     ai->set(tbaa);
+    ASSERT0(base->get_ai() == NULL);
     IR_ai(base) = ai;
 
     IR * c = m_ru->buildStoreArray(base, ofst, ty, ty, 1, &enbuf, src);
@@ -696,6 +698,7 @@ IR * Dex2IR::convertAget(IN LIR * lir)
     tbaa->type = m_tr->array;
     ASSERT0(tbaa->type);
     ai->set(tbaa);
+    ASSERT0(base->get_ai() == NULL);
     IR_ai(base) = ai;
 
     IR * c = m_ru->buildStorePR(PR_no(res), IR_dt(res), array);
@@ -935,10 +938,6 @@ IR * Dex2IR::convertIget(IN LIR * lir)
     IR * c = m_ru->buildStorePR(PR_no(res), IR_dt(res), ild);
 
     IR_may_throw(c) = true;
-    if (m_has_catch) {
-        IR * lab = m_ru->buildLabel(m_ru->genIlabel());
-        add_next(&c, lab);
-    }
 
     AttachInfo * ai = m_ru->newAI();
     TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(sizeof(TbaaAttachInfo));
@@ -946,8 +945,14 @@ IR * Dex2IR::convertIget(IN LIR * lir)
     tbaa->type = m_tr->ptr;
     ASSERT0(tbaa->type);
     ai->set(tbaa);
+    ASSERT0(obj->get_ai() == NULL);
     IR_ai(obj) = ai;
 
+    if (m_has_catch) {
+        IR * lab = m_ru->buildLabel(m_ru->genIlabel());
+        add_next(&c, lab);
+        attachCatchInfo(c);
+    }
     CHAR const* type_name = get_var_type_name(LIR_op1(lir));
     if (is_array_type(type_name)) {
         //The type of result value of ild is pointer to array type.
@@ -957,6 +962,7 @@ IR * Dex2IR::convertIget(IN LIR * lir)
         tbaa->type = m_tr->array;
         ASSERT0(tbaa->type);
         ai->set(tbaa);
+        ASSERT0(ild->get_ai() == NULL);
         IR_ai(ild) = ai;
     } else if (is_obj_type(type_name)) {
         //The type of result value of ild is pointer to object type.
@@ -2038,15 +2044,15 @@ void Dex2IR::markLabel()
     }
 
     if (m_lircode->triesSize != 0) {
-        TryInfo * head = NULL, * lasti = NULL;
+        TryInfo * tihead = NULL, * lasti = NULL;
         for (UINT i = 0; i < m_lircode->triesSize; i++) {
             LIROpcodeTry * each_try = m_lircode->trys + i;
             TryInfo * ti = (TryInfo*)xmalloc(sizeof(TryInfo));
-            add_next(&head, &lasti, ti);
+            add_next(&tihead, &lasti, ti);
 
-            INT s = each_try->start_pc;
-            ASSERT0(s >= 0 && s < LIRC_num_of_op(m_lircode));
-            LIR * lir = LIRC_op(m_lircode, s);
+            INT pos = each_try->start_pc;
+            ASSERT0(pos >= 0 && pos < LIRC_num_of_op(m_lircode));
+            LIR * lir = LIRC_op(m_lircode, pos);
             List<LabelInfo*> * lst = m_lir2labs.get(lir);
             if (lst == NULL) {
                 lst = new List<LabelInfo*>();
@@ -2056,13 +2062,14 @@ void Dex2IR::markLabel()
             LABEL_INFO_is_try_start(lab) = true;
             lst->append_tail(lab);
             ti->try_start = lab;
+            ti->try_start_pos = pos;
 
-            s = each_try->end_pc;
-            ASSERT0(s >= 0 && s <= LIRC_num_of_op(m_lircode));
+            pos = each_try->end_pc;
+            ASSERT0(pos >= 0 && pos <= LIRC_num_of_op(m_lircode));
             lab = m_ru->genIlabel();
             LABEL_INFO_is_try_end(lab) = true;
-            if (s < LIRC_num_of_op(m_lircode)) {
-                lir = LIRC_op(m_lircode, s);
+            if (pos < LIRC_num_of_op(m_lircode)) {
+                lir = LIRC_op(m_lircode, pos);
                 lst = m_lir2labs.get(lir);
                 if (lst == NULL) {
                     lst = new List<LabelInfo*>();
@@ -2073,6 +2080,7 @@ void Dex2IR::markLabel()
                 m_last_try_end_lab_list.append_tail(lab);
             }
             ti->try_end = lab;
+            ti->try_end_pos = pos;
 
             CatchInfo * last = NULL;
             for (UINT j = 0; j < each_try->catchSize; j++) {
@@ -2109,16 +2117,14 @@ void Dex2IR::markLabel()
 
                 ci->catch_start = lab;
                 ci->kind = each_catch->class_type;
-                CHAR const* catch_descriptor =
-                    ci->kind == kDexNoIndex ?
-                            "<any>" :
-                            dexStringByTypeIdx(m_df, ci->kind);
+                ci->kindname = ci->kind == kDexNoIndex ?
+                               "<any>" : dexStringByTypeIdx(m_df, ci->kind);
 
                 add_next(&ti->catch_list, &last, ci);
                 m_has_catch = true;
             }
         }
-        m_ti = head;
+        m_ti = tihead;
     }
 }
 
@@ -2168,6 +2174,14 @@ IR * Dex2IR::convert(bool * succ)
 
     if (dump) { dump_lir2lab(); }
 
+    INT start = -1;
+    INT end = -1;
+    TryInfo * ti = m_ti;
+    m_current_catch_list  = NULL;
+    if (ti != NULL) {
+        start = ti->try_start_pos;
+        end = ti->try_end_pos - 1;
+    }
     for (INT i = 0; i < LIRC_num_of_op(m_lircode); i++) {
         LIR * lir = LIRC_op(m_lircode, i);
 
@@ -2192,6 +2206,21 @@ IR * Dex2IR::convert(bool * succ)
                 add_next(&ir_list, &last, m_ru->buildLabel(l));
             }
         }
+        if (i > end && ti != NULL) {
+            ti = ti->next;
+            if (ti != NULL) {
+                start = ti->try_start_pos;
+                end = ti->try_end_pos - 1;
+            }
+        }
+
+        if (i >= start && i <= end) {
+            m_current_catch_list = ti->catch_list;
+            ASSERT0(m_current_catch_list);
+        } else {
+            m_current_catch_list = NULL;
+        }
+
         IR * newir = convert(lir);
 
         if (dump) {

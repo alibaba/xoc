@@ -142,7 +142,7 @@ void IR_CFG::initCfg(OptCTX & oc)
 {
     //cfg->removeEmptyBB();
     build(oc);
-    buildEHEdgeNaive();
+    buildEHEdge();
 
     //Rebuild cfg may generate redundant empty bb, it
     //disturb the computation of entry and exit.
@@ -186,6 +186,7 @@ void IR_CFG::initCfg(OptCTX & oc)
     }
     ASSERT0(!change);
     ASSERT0(verify());
+    ASSERT(get_entry_list()->get_elem_count() <= 1, ("Must be single entry"));
 }
 
 
@@ -469,13 +470,22 @@ bool IR_CFG::removeTrampolinBB()
             get_preds(preds, bb);
             for (IRBB * pred = preds.get_head();
                  pred != NULL; pred = preds.get_next()) {
+                unionLabels(bb, next);
+
                 if (BB_is_fallthrough(pred) && prev == pred) {
                     removeEdge(pred, bb);
-                    addEdge(BB_id(pred), BB_id(next));
+
+                    //Add normal control flow edge.
+                    Edge * e = addEdge(BB_id(pred), BB_id(next));
+                    EI * ei = (EI*)EDGE_info(e);
+                    if (ei != NULL && EI_is_eh(ei)) {
+                        //If there is already an edge, check if it is an
+                        //exception edge. If it is, change the exception edge
+                        //to be normal control flow edge.
+                        EI_is_eh(ei) = false;
+                    }
                     continue;
                 }
-
-                unionLabels(bb, next);
 
                 //Revise branch target LabelInfo of xr in 'pred'.
                 IR * last_xr_of_pred = get_last_xr(pred);
@@ -486,8 +496,16 @@ bool IR_CFG::removeTrampolinBB()
                 ASSERT0(last_xr_of_pred->get_label() != NULL);
                 last_xr_of_pred->set_label(br->get_label());
                 removeEdge(pred, bb);
-                addEdge(BB_id(pred), BB_id(next));
+                Edge * e = addEdge(BB_id(pred), BB_id(next));
+                EI * ei = (EI*)EDGE_info(e);
+                if (ei != NULL && EI_is_eh(ei)) {
+                    //If there is already an edge, check if it is an
+                    //exception edge. If it is, change the exception edge
+                    //to be normal control flow edge.
+                    EI_is_eh(ei) = false;
+                }
             } //end for each pred of BB.
+
             remove_bb(bb);
             removed = true;
             bb = m_bb_list->get_head(&ct); //reprocessing BB list.
@@ -920,7 +938,6 @@ void IR_CFG::dump_vcg(CHAR const* name, bool detail, bool dump_eh)
         INT scale = 1;
         CHAR const* color = "gold";
         if (BB_is_entry(bb) || BB_is_exit(bb)) {
-
             font = "Times Bold";
             scale = 2;
             color = "cyan";
@@ -1008,7 +1025,10 @@ void IR_CFG::dump_vcg(CHAR const* name, bool detail, bool dump_eh)
                         VERTEX_id(EDGE_from(e)), VERTEX_id(EDGE_to(e)));
             }
         } else {
-            ASSERT(0, ("unsupport EDGE_INFO"));
+            fprintf(h,
+                    "\nedge: { sourcename:\"%d\" targetname:\"%d\" "
+                    " thickness:4 color:darkred }",
+                    VERTEX_id(EDGE_from(e)), VERTEX_id(EDGE_to(e)));
         }
     }
     g_tfile = old;

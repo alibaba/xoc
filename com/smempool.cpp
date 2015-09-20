@@ -91,12 +91,12 @@ void dumpPool(SMemPool * handler, FILE * h)
 
 static SMemPool * new_mem_pool(size_t size, MEMPOOLTYPE mpt)
 {
-    SMemPool * mp = NULL;
     INT size_mp = sizeof(SMemPool);
     if (size_mp % WORD_ALIGN) {
         size_mp = (sizeof(SMemPool) / WORD_ALIGN + 1 ) * WORD_ALIGN;
     }
-    mp = (SMemPool*)malloc(size_mp + size + END_BOUND_BYTE);
+
+    SMemPool * mp = (SMemPool*)malloc(size_mp + size + END_BOUND_BYTE);
     ASSERT(mp, ("create mem pool failed, no enough memory"));
     memset(mp, 0, size_mp);
     memset(((CHAR*)mp) + size_mp + size, BOUNDARY_NUM, END_BOUND_BYTE);
@@ -151,6 +151,10 @@ inline static void append_after_smp(SMemPool * marker, SMemPool * tlst)
 }
 
 
+//This function do some initializations if you want to manipulate pool
+//via pool index.
+//Note if you just create pool and manipulate pool via handler,
+//the initialization is dispensable.
 //Hash table must be initialized if one invoked
 //smpoolCreatePoolIndex or smpoolMalloc.
 void smpoolInitPool()
@@ -185,6 +189,8 @@ void smpoolInitPool()
 }
 
 
+//This function perform finialization works if you invoke the
+//smpoolInitPool().
 void smpoolFiniPool()
 {
     if (g_is_pool_init && g_is_pool_hashed) {

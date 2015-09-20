@@ -73,9 +73,10 @@ public:
 };
 
 
+typedef SimpleVec<BaseAttachInfo*, 1> AICont;
 class AttachInfo {
-public:
-    SimpleVec<BaseAttachInfo*, 1> cont;
+protected:
+    AICont cont;
 
 public:
     AttachInfo() { init(); }
@@ -151,6 +152,23 @@ public:
         }
         return NULL;
     }
+
+    AICont const& read_cont() const { return cont; }
+
+    CHAR const* get_ai_name(AI_TYPE type) const
+    {
+        switch (type) {
+        case AI_UNDEF: return "Undef";
+        case AI_DBX: return "Dbx";
+        case AI_PROF: return "Prof";
+        case AI_TBAA: return "Tbaa";
+        case AI_EH_LABEL: return "EH";
+        case AI_USER_DEF: return "User";
+        case AI_LAST:;
+        default: ASSERT0(0);
+        }
+        return NULL;
+    }
 };
 
 
@@ -164,13 +182,16 @@ public:
     { init(pool); }
     COPY_CONSTRUCTOR(EHLabelAttachInfo);
 
+    //This function must be invoked during construction.
     void init(SMemPool * pool)
     {
         BaseAttachInfo::init(AI_EH_LABEL);
+        labels.init();
         labels.set_pool(pool);
     }
 
-    SList<LabelInfo*> const& get_labels() const { return labels; }
+    SList<LabelInfo*> const& read_labels() const { return labels; }
+    SList<LabelInfo*> & get_labels() { return labels; }
 };
 
 

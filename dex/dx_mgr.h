@@ -405,21 +405,18 @@ Since the low 8-bit in metadata may look like DX_NOP, we
 need to check both the low and whole half-word
 to determine whether it is code or data.
 
-If instruction's low byte is NOP, and high byte is not zero,
+If instruction's low byte is NOP(0x0), and high byte is not zero,
 it is the inline data.
 */
 inline bool is_inline_data(USHORT const* ptr)
 {
     USHORT data = *ptr;
     DX_OPC opcode = (DX_OPC)(data & 0x00ff);
-    USHORT hw = data & 0xff00;
-    //if (!(opcode != DX_NOP || data == 0)) {
-    if (opcode == DX_NOP && hw != 0) {
-        /*
-        There are three kinds of inline data,
-        PACKED_SWITCH_DATA(0x100), SPARSE_SWITCH_DATA(0x200),
-        FILLED_ARRAY_DATA(0x300).
-        */
+    USHORT highbyte = data & 0xff00;
+    if (opcode == DX_NOP && highbyte != 0) {
+        //There are three kinds of inline data,
+        //PACKED_SWITCH_DATA(0x100), SPARSE_SWITCH_DATA(0x200),
+        //FILLED_ARRAY_DATA(0x300).
         return true;
     }
     return false;

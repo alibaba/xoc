@@ -47,64 +47,64 @@ namespace xoc {
 #endif
 
 IRDesc const g_ir_desc[] = {
-    {IR_UNDEF,        "undef",        0x0,    0,    0,                                                0                    },
-    {IR_CONST,        "const",        0x0,    0,    IRT_IS_LEAF,                                    sizeof(CConst)        },
-    {IR_ID,            "id",            0x0,    0,    IRT_IS_LEAF,                                    sizeof(CId)            },
-    {IR_LD,            "ld",            0x0,    0,    IRT_IS_MEM_REF|IRT_IS_MEM_OPND|IRT_IS_LEAF,        sizeof(CLd)            },
-    {IR_ILD,        "ild",            0x1,    1,    IRT_IS_UNA|IRT_IS_MEM_REF|IRT_IS_MEM_OPND,        sizeof(CIld)        },
-    {IR_PR,         "pr",            0x0,    0,    IRT_IS_MEM_REF|IRT_IS_MEM_OPND|IRT_IS_LEAF,     sizeof(CPr)         },
-    {IR_ARRAY,        "array",        0x3,    2,    IRT_IS_MEM_REF|IRT_IS_MEM_OPND,                 sizeof(CArray)        },
-    {IR_ST,            "st",            0x1,    1,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,        sizeof(CSt)            },
-    {IR_STPR,        "stpr",            0x1,    1,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,        sizeof(CStpr)        },
-    {IR_STARRAY,    "starray",        0x7,    3,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,        sizeof(CStArray)    },
-    {IR_IST,        "ist",            0x3,    2,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,        sizeof(CIst)        },
-    {IR_SETELEM,     "setepr",        0x3,    2,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,        sizeof(CSetElem)     },
-    {IR_GETELEM,     "getepr",        0x3,    2,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,        sizeof(CGetElem)     },
-    {IR_CALL,        "call",            0x1,    1,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,        sizeof(CCall)        },
-    {IR_ICALL,        "icall",        0x3,    2,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,        sizeof(CICall)        },
-    {IR_LDA,        "lda",            0x1,    1,    IRT_IS_UNA,                                     sizeof(CLda)        },
-    {IR_ADD,        "add",            0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE|IRT_IS_COMMUTATIVE,    sizeof(CBin)    },
-    {IR_SUB,        "sub",            0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE,                        sizeof(CBin)    },
-    {IR_MUL,        "mul",            0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE|IRT_IS_COMMUTATIVE,    sizeof(CBin)    },
-    {IR_DIV,        "div",            0x3,    2,    IRT_IS_BIN,                                        sizeof(CBin)        },
-    {IR_REM,        "rem",            0x3,    2,    IRT_IS_BIN,                                        sizeof(CBin)        },
-    {IR_MOD,        "mod",            0x3,    2,    IRT_IS_BIN,                                        sizeof(CBin)        },
-    {IR_LAND,        "land",            0x3,    2,    IRT_IS_BIN|IRT_IS_LOGICAL,                        sizeof(CBin)        },
-    {IR_LOR,        "lor",            0x3,    2,    IRT_IS_BIN|IRT_IS_LOGICAL,                        sizeof(CBin)        },
-    {IR_BAND,        "band",            0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE|IRT_IS_COMMUTATIVE,    sizeof(CBin)    },
-    {IR_BOR,        "bor",            0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE,                        sizeof(CBin)    },
-    {IR_XOR,        "xor",            0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE|IRT_IS_COMMUTATIVE,    sizeof(CBin)    },
-    {IR_ASR,        "asr",            0x3,    2,    IRT_IS_BIN,                                     sizeof(CBin)        },
-    {IR_LSR,        "lsr",            0x3,    2,    IRT_IS_BIN,                                     sizeof(CBin)        },
-    {IR_LSL,        "lsl",            0x3,    2,    IRT_IS_BIN,                                     sizeof(CBin)        },
-    {IR_LT,         "lt",            0x3,    2,    IRT_IS_BIN|IRT_IS_RELATION,                     sizeof(CBin)        },
-    {IR_LE,         "le",            0x3,    2,    IRT_IS_BIN|IRT_IS_RELATION,                     sizeof(CBin)        },
-    {IR_GT,         "gt",            0x3,    2,    IRT_IS_BIN|IRT_IS_RELATION,                     sizeof(CBin)        },
-    {IR_GE,         "ge",            0x3,    2,    IRT_IS_BIN|IRT_IS_RELATION,                     sizeof(CBin)        },
-    {IR_EQ,         "eq",            0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE|IRT_IS_COMMUTATIVE|IRT_IS_RELATION,    sizeof(CBin)        },
-    {IR_NE,         "ne",            0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE|IRT_IS_COMMUTATIVE|IRT_IS_RELATION,    sizeof(CBin)        },
-    {IR_BNOT,        "bnot",            0x1,    1,    IRT_IS_UNA,                                        sizeof(CUna)        },
-    {IR_LNOT,        "lnot",            0x1,    1,    IRT_IS_UNA|IRT_IS_LOGICAL,                        sizeof(CUna)        },
-    {IR_NEG,        "neg",            0x1,    1,    IRT_IS_UNA,                                        sizeof(CUna)        },
-    {IR_CVT,        "cvt",            0x1,    1,    IRT_IS_UNA,                                     sizeof(CCvt)        },
-    {IR_GOTO,        "goto",            0x0,    0,    IRT_IS_STMT,                                    sizeof(CGoto)        },
-    {IR_IGOTO,        "igoto",        0x3,    2,    IRT_IS_STMT,                                    sizeof(CIGoto)        },
-    {IR_DO_WHILE,    "do_while",        0x3,    2,    IRT_IS_STMT,                                    sizeof(CDoWhile)    },
-    {IR_WHILE_DO,    "while_do",        0x3,    2,    IRT_IS_STMT,                                    sizeof(CWhileDo)    },
-    {IR_DO_LOOP,    "do_loop",        0xF,    4,    IRT_IS_STMT,                                    sizeof(CDoLoop)    },
-    {IR_IF,            "if",            0x7,    3,    IRT_IS_STMT,                                    sizeof(CIf)            },
-    {IR_LABEL,        "label",        0x0,    0,    IRT_IS_STMT,                                    sizeof(CLab)        },
-    {IR_SWITCH,        "switch",        0x7,    3,    IRT_IS_STMT,                                    sizeof(CSwitch)        },
-    {IR_CASE,        "case",            0x1,    1,    0,                                                sizeof(CCase)        },
-    {IR_TRUEBR,        "truebr",        0x1,    1,    IRT_IS_STMT,                                    sizeof(CTruebr)        },
-    {IR_FALSEBR,    "falsebr",        0x1,    1,    IRT_IS_STMT,                                    sizeof(CFalsebr)    },
-    {IR_RETURN,        "return",        0x1,    1,    IRT_IS_STMT,                                    sizeof(CRet)        },
-    {IR_SELECT,        "select",        0x7,    3,    0,                                                sizeof(CSelect)        },
-    {IR_BREAK,        "break",        0x0,    0,    IRT_IS_STMT,                                    sizeof(CBreak)        },
-    {IR_CONTINUE,    "continue",        0x0,    0,    IRT_IS_STMT,                                    sizeof(CContinue)    },
-    {IR_PHI,        "phi",            0x1,    1,    IRT_IS_STMT|IRT_HAS_RESULT|IRT_IS_MEM_REF,        sizeof(CPhi)        },
-    {IR_REGION,        "region",        0x0,    0,    IRT_IS_STMT,                                    sizeof(CRegion)        },
-    {IR_TYPE_NUM,    "LAST IR Type",    0x0,    0,    0,                                                0                    },
+    {IR_UNDEF,      "undef",     0x0,    0,    0,                                              0                },
+    {IR_CONST,      "const",     0x0,    0,    IRT_IS_LEAF,                                    sizeof(CConst)   },
+    {IR_ID,         "id",        0x0,    0,    IRT_IS_LEAF,                                    sizeof(CId)      },
+    {IR_LD,         "ld",        0x0,    0,    IRT_IS_MEM_REF|IRT_IS_MEM_OPND|IRT_IS_LEAF,     sizeof(CLd)      },
+    {IR_ILD,        "ild",       0x1,    1,    IRT_IS_UNA|IRT_IS_MEM_REF|IRT_IS_MEM_OPND,      sizeof(CIld)     },
+    {IR_PR,         "pr",        0x0,    0,    IRT_IS_MEM_REF|IRT_IS_MEM_OPND|IRT_IS_LEAF,     sizeof(CPr)      },
+    {IR_ARRAY,      "array",     0x3,    2,    IRT_IS_MEM_REF|IRT_IS_MEM_OPND,                 sizeof(CArray)   },
+    {IR_ST,         "st",        0x1,    1,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CSt)      },
+    {IR_STPR,       "stpr",      0x1,    1,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CStpr)    },
+    {IR_STARRAY,    "starray",   0x7,    3,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CStArray) },
+    {IR_IST,        "ist",       0x3,    2,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CIst)     },
+    {IR_SETELEM,    "setepr",    0x3,    2,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CSetElem) },
+    {IR_GETELEM,    "getepr",    0x3,    2,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CGetElem) },
+    {IR_CALL,       "call",      0x1,    1,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CCall)    },
+    {IR_ICALL,      "icall",     0x3,    2,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CICall)   },
+    {IR_LDA,        "lda",       0x1,    1,    IRT_IS_UNA,                                     sizeof(CLda)     },
+    {IR_ADD,        "add",       0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE|IRT_IS_COMMUTATIVE, sizeof(CBin)   },
+    {IR_SUB,        "sub",       0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE,                    sizeof(CBin)   },
+    {IR_MUL,        "mul",       0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE|IRT_IS_COMMUTATIVE, sizeof(CBin)   },
+    {IR_DIV,        "div",       0x3,    2,    IRT_IS_BIN,                                       sizeof(CBin)   },
+    {IR_REM,        "rem",       0x3,    2,    IRT_IS_BIN,                                       sizeof(CBin)   },
+    {IR_MOD,        "mod",       0x3,    2,    IRT_IS_BIN,                                       sizeof(CBin)   },
+    {IR_LAND,       "land",      0x3,    2,    IRT_IS_BIN|IRT_IS_LOGICAL,                        sizeof(CBin)   },
+    {IR_LOR,        "lor",       0x3,    2,    IRT_IS_BIN|IRT_IS_LOGICAL,                        sizeof(CBin)   },
+    {IR_BAND,       "band",      0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE|IRT_IS_COMMUTATIVE, sizeof(CBin)   },
+    {IR_BOR,        "bor",       0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE,                    sizeof(CBin)   },
+    {IR_XOR,        "xor",       0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE|IRT_IS_COMMUTATIVE, sizeof(CBin)   },
+    {IR_ASR,        "asr",       0x3,    2,    IRT_IS_BIN,                                       sizeof(CBin)   },
+    {IR_LSR,        "lsr",       0x3,    2,    IRT_IS_BIN,                                       sizeof(CBin)   },
+    {IR_LSL,        "lsl",       0x3,    2,    IRT_IS_BIN,                                       sizeof(CBin)   },
+    {IR_LT,         "lt",        0x3,    2,    IRT_IS_BIN|IRT_IS_RELATION,                       sizeof(CBin)   },
+    {IR_LE,         "le",        0x3,    2,    IRT_IS_BIN|IRT_IS_RELATION,                       sizeof(CBin)   },
+    {IR_GT,         "gt",        0x3,    2,    IRT_IS_BIN|IRT_IS_RELATION,                       sizeof(CBin)   },
+    {IR_GE,         "ge",        0x3,    2,    IRT_IS_BIN|IRT_IS_RELATION,                       sizeof(CBin)   },
+    {IR_EQ,         "eq",        0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE|IRT_IS_COMMUTATIVE|IRT_IS_RELATION,  sizeof(CBin)        },
+    {IR_NE,         "ne",        0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE|IRT_IS_COMMUTATIVE|IRT_IS_RELATION,  sizeof(CBin)        },
+    {IR_BNOT,       "bnot",      0x1,    1,    IRT_IS_UNA,                                     sizeof(CUna)     },
+    {IR_LNOT,       "lnot",      0x1,    1,    IRT_IS_UNA|IRT_IS_LOGICAL,                      sizeof(CUna)     },
+    {IR_NEG,        "neg",       0x1,    1,    IRT_IS_UNA,                                     sizeof(CUna)     },
+    {IR_CVT,        "cvt",       0x1,    1,    IRT_IS_UNA,                                     sizeof(CCvt)     },
+    {IR_GOTO,       "goto",      0x0,    0,    IRT_IS_STMT,                                    sizeof(CGoto)    },
+    {IR_IGOTO,      "igoto",     0x3,    2,    IRT_IS_STMT,                                    sizeof(CIGoto)   },
+    {IR_DO_WHILE,   "do_while",  0x3,    2,    IRT_IS_STMT,                                    sizeof(CDoWhile) },
+    {IR_WHILE_DO,   "while_do",  0x3,    2,    IRT_IS_STMT,                                    sizeof(CWhileDo) },
+    {IR_DO_LOOP,    "do_loop",   0xF,    4,    IRT_IS_STMT,                                    sizeof(CDoLoop)  },
+    {IR_IF,         "if",        0x7,    3,    IRT_IS_STMT,                                    sizeof(CIf)      },
+    {IR_LABEL,      "label",     0x0,    0,    IRT_IS_STMT,                                    sizeof(CLab)     },
+    {IR_SWITCH,     "switch",    0x7,    3,    IRT_IS_STMT,                                    sizeof(CSwitch)  },
+    {IR_CASE,       "case",      0x1,    1,    0,                                              sizeof(CCase)    },
+    {IR_TRUEBR,     "truebr",    0x1,    1,    IRT_IS_STMT,                                    sizeof(CTruebr)  },
+    {IR_FALSEBR,    "falsebr",   0x1,    1,    IRT_IS_STMT,                                    sizeof(CFalsebr) },
+    {IR_RETURN,     "return",    0x1,    1,    IRT_IS_STMT,                                    sizeof(CRet)     },
+    {IR_SELECT,     "select",    0x7,    3,    0,                                              sizeof(CSelect)  },
+    {IR_BREAK,      "break",     0x0,    0,    IRT_IS_STMT,                                    sizeof(CBreak)   },
+    {IR_CONTINUE,   "continue",  0x0,    0,    IRT_IS_STMT,                                    sizeof(CContinue)},
+    {IR_PHI,        "phi",       0x1,    1,    IRT_IS_STMT|IRT_HAS_RESULT|IRT_IS_MEM_REF,      sizeof(CPhi)     },
+    {IR_REGION,     "region",    0x0,    0,    IRT_IS_STMT,                                    sizeof(CRegion)  },
+    {IR_TYPE_NUM,   "LAST IR Type", 0x0, 0,    0,                                              0                },
 };
 
 
@@ -403,7 +403,6 @@ void dump_irs(IRList & ir_list, TypeMgr const* dm)
 }
 
 
-#ifdef _DEBUG_
 static void ir_dump_lab(IR const* ir)
 {
     LabelInfo * li = ir->get_label();
@@ -417,13 +416,37 @@ static void ir_dump_lab(IR const* ir)
         ASSERT(0, ("unknown label type"));
     }
 }
-#endif
+
+
+static void dump_ai(OUT CHAR * buf, IR const* ir)
+{
+    ASSERT0(ir && buf);
+    AttachInfo const* ai = ir->get_ai();
+    if (ai == NULL) { return; }
+
+    AICont const& cont = ai->read_cont();
+
+    if (!cont.is_init()) { return; }
+
+    strcat(buf, " ai:");
+    CHAR * p = buf + strlen(buf);
+    for (UINT i = 0; i < cont.get_capacity(); i++) {
+        BaseAttachInfo * ac = cont.get(i);
+        if (ac == NULL) { continue; }
+        sprintf(p, "%s,", ai->get_ai_name(ac->type));
+        p = p + strlen(p);
+    }
+}
 
 
 //Dump IR and all of its kids.
 //'attr': miscellaneous string which following 'ir'.
-void dump_ir(IN IR const* ir, TypeMgr const* dm, IN CHAR * attr,
-             bool dump_kid, bool dump_src_line, bool dump_addr)
+void dump_ir(IN IR const* ir,
+             TypeMgr const* dm,
+             IN CHAR * attr,
+             bool dump_kid,
+             bool dump_src_line,
+             bool dump_addr)
 {
     UNUSED(dump_addr);
     UNUSED(dump_src_line);
@@ -432,7 +455,6 @@ void dump_ir(IN IR const* ir, TypeMgr const* dm, IN CHAR * attr,
     UNUSED(dm);
     UNUSED(ir);
 
-    #ifdef _DEBUG_
     ASSERT0(dm);
     UINT dn = 4;
     if (g_tfile == NULL || ir == NULL) { return; }
@@ -464,6 +486,8 @@ void dump_ir(IN IR const* ir, TypeMgr const* dm, IN CHAR * attr,
     if (IR_has_sideeffect(ir)) {
         strcat(p, " sideeffect");
     }
+
+    dump_ai(p, ir);
 
     //Record type info and var decl.
     static CHAR buf[MAX_BUF_LEN];
@@ -1177,7 +1201,6 @@ void dump_ir(IN IR const* ir, TypeMgr const* dm, IN CHAR * attr,
         return ;
     } //end switch
     fflush(g_tfile);
-    #endif
 } //end dump_ir
 
 

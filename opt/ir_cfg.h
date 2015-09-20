@@ -90,10 +90,14 @@ public:
             if (x != NULL && x->is_may_throw() && x->get_ai() != NULL) {
                 EHLabelAttachInfo const* ehlab =
                     (EHLabelAttachInfo const*)x->get_ai()->get(AI_EH_LABEL);
+                if (ehlab == NULL) { continue; }
+
                 SC<LabelInfo*> * sc;
-                SList<LabelInfo*> const& labs = ehlab->get_labels();
+                SList<LabelInfo*> const& labs = ehlab->read_labels();
                 for (sc = labs.get_head();
-                     sc != labs.end(); sc = labs.get_next(sc)) {
+                     sc != labs.end();
+                     sc = labs.get_next(sc)) {
+                    ASSERT0(sc);
                     IRBB * tgt = findBBbyLabel(sc->val());
                     ASSERT0(tgt);
                     Edge * e = addEdge(BB_id(bb), BB_id(tgt));
@@ -171,27 +175,19 @@ public:
     virtual void cf_opt();
     void computeDomAndIdom(IN OUT OptCTX & oc, BitSet const* uni = NULL);
     void computePdomAndIpdom(IN OUT OptCTX & oc, BitSet const* uni = NULL);
+
+    //Record the Exit BB here.
     virtual void computeEntryAndExit(bool comp_entry, bool comp_exit)
     {
-        ASSERT0(comp_entry | comp_exit);
-        if (comp_entry) { m_entry_list.clean(); }
-        if (comp_exit) { m_exit_list.clean(); }
-
-        for (IRBB * bb = m_bb_list->get_head();
-             bb != NULL; bb = m_bb_list->get_next()) {
-            Vertex * vex = get_vertex(bb->id);
-            ASSERT(vex, ("No vertex corresponds to BB%d", bb->id));
-            if (comp_entry) {
-                if (VERTEX_in_list(vex) == NULL &&
-                    (is_ru_entry(bb) || bb->is_exp_handling())) {
-                    m_entry_list.append_tail(bb);
-                }
-            }
-            if (comp_exit) {
-                if (VERTEX_out_list(vex) == NULL) {
-                    m_exit_list.append_tail(bb);
-                    BB_is_exit(bb) = true;
-                }
+        CFG<IRBB, IR>::computeEntryAndExit(comp_entry, comp_exit);
+        if (comp_exit) {
+            C<IRBB*> * ct;
+            for (m_exit_list.get_head(&ct);
+                 ct != m_exit_list.end();
+                 ct = m_exit_list.get_next(ct)) {
+                IRBB * bb = ct->val();
+                ASSERT0(bb);
+                BB_is_exit(bb) = true;
             }
         }
     }

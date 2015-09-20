@@ -42,6 +42,7 @@ OPT_OBJS +=\
       opt/data_type.o \
       opt/option.o\
       opt/region.o\
+      opt/region_mgr.o\
       opt/util.o\
       opt/var.o\
       opt/md.o\

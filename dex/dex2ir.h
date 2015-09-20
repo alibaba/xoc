@@ -43,7 +43,8 @@ public:
     CatchInfo * prev;
     CatchInfo * next;
     LabelInfo * catch_start;
-    UINT kind;
+    UINT kind; //record exception type.
+    CHAR const* kindname; //record exception type name.
 };
 
 
@@ -53,6 +54,8 @@ public:
     TryInfo * next;
     LabelInfo * try_start;
     LabelInfo * try_end;
+    UINT try_start_pos;
+    UINT try_end_pos;
     CatchInfo * catch_list;
 };
 
@@ -84,7 +87,7 @@ typedef TMap<CHAR const*, Type const*, CmpStr> Str2Type;
 //To wit, the class declared in class LIR2IR, that will be better.
 class Dex2IR {
 protected:
-    Region * m_ru;
+    DexRegion * m_ru;
     RegionMgr * m_ru_mgr;
     TypeMgr * m_dm;
     DexFile * m_df;
@@ -99,6 +102,7 @@ protected:
     DbxVec const& m_dbxvec;
     Type const* m_ptr_addend;
     UINT m_ofst_addend;
+    CatchInfo * m_current_catch_list;
 
     //Map from typeIdx of type-table to
     //positionIdx in file-class-def-table.
@@ -127,7 +131,7 @@ public:
            DbxVec const& dbxvec) : m_dbxvec(dbxvec)
     {
         ASSERT0(ru && df && fu);
-        m_ru = ru;
+        m_ru = (DexRegion*)ru;
         m_ru_mgr = ru->get_region_mgr();
         m_dm = ru->get_dm();
         m_vm = ru->get_var_mgr();
@@ -141,6 +145,7 @@ public:
         m_ofst_addend = m_dm->get_dtype_bytesize(D_I64);
         m_pr2v.maxreg = fu->maxVars - 1;
         m_pr2v.paramnum = fu->numArgs;
+        m_current_catch_list = NULL;
     }
 
     ~Dex2IR()

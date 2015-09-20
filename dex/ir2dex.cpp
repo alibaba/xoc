@@ -50,7 +50,7 @@ author: Su Zhenyu
 
 //Use outside pool to alloc memory. The pool will
 //be freed by caller.
-void * IR2Dex::_ymalloc(UINT size)
+void * IR2Dex::ymalloc(UINT size)
 {
     void * p = LIRMALLOC(size);
     ASSERT0(p);
@@ -67,7 +67,7 @@ LIR * IR2Dex::buildConstString(IN IR ** ir)
     UINT vx = get_vreg(STPR_no(tir));
     VAR * v = ID_info(LDA_base(STPR_rhs(tir)));
     CHAR const* n = SYM_name(VAR_name(v));
-    LIRABOp * lir = (LIRABOp*)_ymalloc(sizeof(LIRABOp));
+    LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_CONST_STRING;
     LIR_dt(lir) = LIR_JDT_unknown; //see dir2lir.c
     lir->vA = vx;
@@ -85,7 +85,7 @@ LIR * IR2Dex::buildSput(IN IR ** ir)
     #ifdef _DEBUG_
     CHAR const* n = SYM_name(VAR_name(ST_idinfo(tir)));
     #endif
-    LIRABOp * lir = (LIRABOp*)_ymalloc(sizeof(LIRABOp));
+    LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_SPUT;
     LIR_dt(lir) = get_lir_ty(TY_dtype(tir->get_type()));
     lir->vA = get_vreg(ST_rhs(tir));
@@ -105,7 +105,7 @@ LIR * IR2Dex::buildSgetBasicTypeVar(IN IR ** ir)
     VAR * v = LD_idinfo(STPR_rhs(tir));
     CHAR const* n = SYM_name(VAR_name(v));
     UINT field_id = m_var2ofst->mget(v);
-    LIRABOp * lir = (LIRABOp*)_ymalloc(sizeof(LIRABOp));
+    LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_SGET;
     LIR_dt(lir) = get_lir_ty(TY_dtype(tir->get_type()));
     lir->vA = vx;
@@ -125,7 +125,7 @@ LIR * IR2Dex::buildSgetObj(IN IR ** ir)
     VAR * v = ID_info(LDA_base(STPR_rhs(tir)));
     CHAR const* n = SYM_name(VAR_name(v));
     UINT field_id = m_var2ofst->mget(v);
-    LIRABOp * lir = (LIRABOp*)_ymalloc(sizeof(LIRABOp));
+    LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_SGET;
     LIR_dt(lir) = LIR_JDT_object;
     lir->vA = vx;
@@ -147,7 +147,7 @@ LIR * IR2Dex::buildMove(IN IR ** ir)
         *ir = IR_next(*ir);
         return NULL;
     }
-    LIRABOp * lir = (LIRABOp*)_ymalloc(sizeof(LIRABOp));
+    LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_MOVE;
     lir->vA = tgt;
     lir->vB = src;
@@ -176,7 +176,7 @@ LIR * IR2Dex::buildCvt(IN IR ** ir)
     IR * rhs = STPR_rhs(tir);
     UINT vx = get_vreg(STPR_no(tir));
     UINT vy = get_vreg(CVT_exp(rhs));
-    LIRABOp * lir = (LIRABOp*)_ymalloc(sizeof(LIRABOp));
+    LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_CONVERT;
     lir->vA = vx;
     lir->vB = vy;
@@ -236,7 +236,7 @@ LIR * IR2Dex::buildCvt(IN IR ** ir)
 LIR * IR2Dex::buildMoveResult(IN IR ** ir)
 {
     ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_MOVE_RES));
-    LIRAOp * lir = (LIRAOp*)_ymalloc(sizeof(LIRAOp));
+    LIRAOp * lir = (LIRAOp*)ymalloc(sizeof(LIRAOp));
     lir->opcode = LOP_MOVE_RESULT;
 
     ASSERT0((*ir)->hasReturnValue());
@@ -264,7 +264,7 @@ LIR * IR2Dex::buildMoveResult(IN IR ** ir)
 LIR * IR2Dex::buildThrow(IN IR ** ir)
 {
     ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_THROW));
-    LIRAOp * lir = (LIRAOp*)_ymalloc(sizeof(LIRAOp));
+    LIRAOp * lir = (LIRAOp*)ymalloc(sizeof(LIRAOp));
     lir->opcode = LOP_THROW;
     LIR_dt(lir) = LIR_JDT_unknown;
     IR * p = CALL_param_list(*ir);
@@ -280,7 +280,7 @@ LIR * IR2Dex::buildThrow(IN IR ** ir)
 LIR * IR2Dex::buildMonitorExit(IN IR ** ir)
 {
     ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_MONITOR_EXIT));
-    LIRAOp * lir = (LIRAOp*)_ymalloc(sizeof(LIRAOp));
+    LIRAOp * lir = (LIRAOp*)ymalloc(sizeof(LIRAOp));
     lir->opcode = LOP_MONITOR_EXIT;
     LIR_dt(lir) = LIR_JDT_unknown;
     IR * p = CALL_param_list(*ir);
@@ -297,7 +297,7 @@ LIR * IR2Dex::buildMonitorExit(IN IR ** ir)
 LIR * IR2Dex::buildMonitorEnter(IN IR ** ir)
 {
     ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_MONITOR_ENTER));
-    LIRAOp * lir = (LIRAOp*)_ymalloc(sizeof(LIRAOp));
+    LIRAOp * lir = (LIRAOp*)ymalloc(sizeof(LIRAOp));
     lir->opcode = LOP_MONITOR_ENTER;
     LIR_dt(lir) = LIR_JDT_unknown;
     IR * p = CALL_param_list(*ir);
@@ -314,7 +314,7 @@ LIR * IR2Dex::buildMonitorEnter(IN IR ** ir)
 LIR * IR2Dex::buildMoveException(IN IR ** ir)
 {
     ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_MOVE_EXP));
-    LIRAOp * lir = (LIRAOp*)_ymalloc(sizeof(LIRAOp));
+    LIRAOp * lir = (LIRAOp*)ymalloc(sizeof(LIRAOp));
     lir->opcode = LOP_MOVE_EXCEPTION;
 
     ASSERT0((*ir)->hasReturnValue());
@@ -344,7 +344,7 @@ LIR * IR2Dex::buildMoveException(IN IR ** ir)
 LIR * IR2Dex::buildArrayLength(IN IR ** ir)
 {
     ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_ARRAY_LENGTH));
-    LIRABOp * lir = (LIRABOp*)_ymalloc(sizeof(LIRABOp));
+    LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_ARRAY_LENGTH; //see genInstruction()
     LIR_dt(lir) = LIR_JDT_unknown; //see genInstruction()
     IR * tir = *ir;
@@ -366,7 +366,7 @@ LIR * IR2Dex::buildArrayLength(IN IR ** ir)
 LIR * IR2Dex::buildCheckCast(IN IR ** ir)
 {
     ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_CHECK_CAST));
-    LIRABOp * lir = (LIRABOp*)_ymalloc(sizeof(LIRABOp));
+    LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_CHECK_CAST;
     IR * tir = *ir;
     IR * p = CALL_param_list(tir);
@@ -395,7 +395,7 @@ LIR * IR2Dex::buildConst(IN IR ** ir)
     ASSERT0(tir->is_stpr());
     ASSERT0(IR_type(STPR_rhs(tir)) == IR_CONST);
     UINT vx = get_vreg(STPR_no(tir));
-    LIRConstOp * lir = (LIRConstOp*)_ymalloc(sizeof(LIRConstOp));
+    LIRConstOp * lir = (LIRConstOp*)ymalloc(sizeof(LIRConstOp));
     lir->opcode = LOP_CONST;
     lir->vA = vx;
     lir->vB = CONST_int_val(STPR_rhs(tir));
@@ -493,7 +493,7 @@ LIR * IR2Dex::buildIget(IN IR ** ir)
     field_id /= m_d2ir->get_ofst_addend();
     ASSERT0(IR_type(objptr) == IR_PR);
     UINT vy = get_vreg(objptr);
-    LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
+    LIRABCOp * lir = (LIRABCOp*)ymalloc(sizeof(LIRABCOp));
     lir->opcode = LOP_IGET;
     lir->vA = vx; //result reg
     lir->vB = vy; //base_ptr
@@ -514,7 +514,7 @@ LIR * IR2Dex::buildArray(IN IR ** ir)
     IR * base = ARR_base(STPR_rhs(tir));
     IR * ofst = ARR_sub_list(STPR_rhs(tir));
     ASSERT0(base->is_pr() && ofst->is_pr());
-    LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
+    LIRABCOp * lir = (LIRABCOp*)ymalloc(sizeof(LIRABCOp));
     lir->opcode = LOP_AGET;
     LIR_dt(lir) = get_lir_ty(TY_dtype(tir->get_type()));
     lir->vA = get_vreg(STPR_no(tir));
@@ -554,7 +554,7 @@ LIR * IR2Dex::buildBinRegLit(IN IR ** ir)
     default: ASSERT0(0);
     }
 
-    LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
+    LIRABCOp * lir = (LIRABCOp*)ymalloc(sizeof(LIRABCOp));
     lir->opcode = lty;
     lir->vA = vA;
     lir->vB = vB;
@@ -610,12 +610,12 @@ LIR * IR2Dex::buildBinRegReg(IN IR ** ir)
 
     LIR * lir;
     if (is_assign_equ) {
-        lir = (LIR*)_ymalloc(sizeof(LIRABOp));
+        lir = (LIR*)ymalloc(sizeof(LIRABOp));
         lir->opcode = lty;
         ((LIRABOp*)lir)->vA = vA;
         ((LIRABOp*)lir)->vB = vC;
     } else {
-        lir = (LIR*)_ymalloc(sizeof(LIRABCOp));
+        lir = (LIR*)ymalloc(sizeof(LIRABCOp));
         lir->opcode = lty;
         ((LIRABCOp*)lir)->vA = vA;
         ((LIRABCOp*)lir)->vB = vB;
@@ -661,7 +661,7 @@ LIR * IR2Dex::buildUniOp(IN IR ** ir)
         ASSERT0(0);
     }
 
-    LIR * lir = (LIR*)_ymalloc(sizeof(LIRABOp));
+    LIR * lir = (LIR*)ymalloc(sizeof(LIRABOp));
     lir->opcode = lty;
     ((LIRABOp*)lir)->vA = get_vreg(STPR_no(tir));
     ((LIRABOp*)lir)->vB = get_vreg(op0);
@@ -750,7 +750,7 @@ LIR * IR2Dex::convertStoreArray(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
     IR * tir = *ir;
     ASSERT0(tir->is_starray());
-    LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
+    LIRABCOp * lir = (LIRABCOp*)ymalloc(sizeof(LIRABCOp));
     IR * rhs = STARR_rhs(tir);
     IR * lhs = ARR_base(tir);
     ASSERT0(rhs->is_pr());
@@ -779,7 +779,7 @@ LIR * IR2Dex::convertIstore(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
     IR * tir = *ir;
     ASSERT0(tir->is_ist());
-    LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
+    LIRABCOp * lir = (LIRABCOp*)ymalloc(sizeof(LIRABCOp));
     IR * rhs = IST_rhs(tir);
     IR * lhs = IST_base(tir);
     ASSERT0(rhs->is_pr());
@@ -800,7 +800,7 @@ LIR * IR2Dex::convertIstore(IN OUT IR ** ir, IN IR2DexCtx * cont)
 LIR * IR2Dex::buildInvoke(IN IR ** ir)
 {
     IR * tir = *ir;
-    LIRInvokeOp * lir = (LIRInvokeOp*)_ymalloc(sizeof(LIRInvokeOp));
+    LIRInvokeOp * lir = (LIRInvokeOp*)ymalloc(sizeof(LIRInvokeOp));
     lir->opcode = LOP_INVOKE;
 
     IR * p = CALL_param_list(tir);
@@ -847,7 +847,7 @@ LIR * IR2Dex::buildInvoke(IN IR ** ir)
         t = IR_next(t);
     }
     if (i > 0) {
-        lir->args = (USHORT*)_ymalloc(i * sizeof(USHORT));
+        lir->args = (USHORT*)ymalloc(i * sizeof(USHORT));
     }
     lir->argc = i;
     INT j = 0;
@@ -872,7 +872,7 @@ LIR * IR2Dex::buildInvoke(IN IR ** ir)
 LIR * IR2Dex::buildNewInstance(IN IR ** ir)
 {
     ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_NEW));
-    LIRABOp * lir = (LIRABOp*)_ymalloc(sizeof(LIRABOp));
+    LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_NEW_INSTANCE;
     IR * tir = *ir;
     //class-id
@@ -901,7 +901,7 @@ NOTE: it is very different with filled-new-array.
 LIR * IR2Dex::buildFillArrayData(IN IR ** ir)
 {
     ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_FILL_ARRAY_DATA));
-    LIRSwitchOp * lir = (LIRSwitchOp*)_ymalloc(sizeof(LIRSwitchOp));
+    LIRSwitchOp * lir = (LIRSwitchOp*)ymalloc(sizeof(LIRSwitchOp));
     lir->opcode = LOP_FILL_ARRAY_DATA;
     IR * tir = *ir;
     IR * p = CALL_param_list(tir);
@@ -942,7 +942,7 @@ filled-new-array instruction.
 LIR * IR2Dex::buildFilledNewArray(IN IR ** ir)
 {
     ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_FILLED_NEW_ARRAY));
-    LIRInvokeOp * lir = (LIRInvokeOp*)_ymalloc(sizeof(LIRInvokeOp));
+    LIRInvokeOp * lir = (LIRInvokeOp*)ymalloc(sizeof(LIRInvokeOp));
     lir->opcode = LOP_FILLED_NEW_ARRAY;
     IR * tir = *ir;
     IR * p = CALL_param_list(tir);
@@ -966,7 +966,7 @@ LIR * IR2Dex::buildFilledNewArray(IN IR ** ir)
         i++;
     }
     lir->argc = i;
-    lir->args = (UInt16*)_ymalloc(sizeof(UInt16) * i);
+    lir->args = (UInt16*)ymalloc(sizeof(UInt16) * i);
     i = 0;
     while (p != NULL) {
         lir->args[i] = get_vreg(p);
@@ -988,7 +988,7 @@ LIR * IR2Dex::buildConstClass(IN IR ** ir)
 {
     ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_CONST_CLASS));
     IR * tir = *ir;
-    LIRABOp * lir = (LIRABOp*)_ymalloc(sizeof(LIRABOp));
+    LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_CONST_CLASS;
     LIR_dt(lir) = LIR_JDT_unknown;
 
@@ -1013,7 +1013,7 @@ LIR * IR2Dex::buildNewArray(IN IR ** ir)
 {
     ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_NEW_ARRAY));
     IR * tir = *ir;
-    LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
+    LIRABCOp * lir = (LIRABCOp*)ymalloc(sizeof(LIRABCOp));
     lir->opcode = LOP_NEW_ARRAY;
     LIR_dt(lir) = LIR_JDT_unknown; //see dir2lir.c
 
@@ -1048,7 +1048,7 @@ LIR * IR2Dex::buildInstanceOf(IN IR ** ir)
 {
     ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_INSTANCE_OF));
     IR * tir = *ir;
-    LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
+    LIRABCOp * lir = (LIRABCOp*)ymalloc(sizeof(LIRABCOp));
     lir->opcode = LOP_INSTANCE_OF;
     LIR_dt(lir) = LIR_JDT_unknown;
 
@@ -1086,7 +1086,7 @@ LIR * IR2Dex::buildCmpBias(IN IR ** ir)
 {
     ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_CMP_BIAS));
     IR * tir = *ir;
-    LIRABCOp * lir = (LIRABCOp*)_ymalloc(sizeof(LIRABCOp));
+    LIRABCOp * lir = (LIRABCOp*)ymalloc(sizeof(LIRABCOp));
 
     //cmp-kind
     IR * p = CALL_param_list(tir);
@@ -1184,7 +1184,7 @@ LIR * IR2Dex::convertIcall(IN OUT IR ** ir, IN IR2DexCtx * cont)
 //return vAA
 LIR * IR2Dex::convertReturn(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
-    LIRAOp * lir = (LIRAOp*)_ymalloc(sizeof(LIRAOp));
+    LIRAOp * lir = (LIRAOp*)ymalloc(sizeof(LIRAOp));
     lir->opcode = LOP_RETURN;
 
     IR * retval = RET_exp(*ir);
@@ -1215,7 +1215,7 @@ LIR * IR2Dex::convertReturn(IN OUT IR ** ir, IN IR2DexCtx * cont)
 //AABBBBBBBB
 LIR * IR2Dex::convertGoto(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
-    LIRGOTOOp * lir = (LIRGOTOOp*)_ymalloc(sizeof(LIRGOTOOp));
+    LIRGOTOOp * lir = (LIRGOTOOp*)ymalloc(sizeof(LIRGOTOOp));
     lir->opcode = LOP_GOTO;
     lir->target = 0xFFFFffff; //backfill after all LIR generated.
 
@@ -1236,13 +1236,13 @@ LIR * IR2Dex::convertBranch(bool is_truebr, IN OUT IR ** ir,
     IR * det = BR_det(*ir);
     if (IR_type(BIN_opnd1(det)) == IR_CONST &&
         CONST_int_val(BIN_opnd1(det)) == 0) {
-        lir = (LIR*)_ymalloc(sizeof(LIRABOp));
+        lir = (LIR*)ymalloc(sizeof(LIRABOp));
         LIR_opcode(lir) = LOP_IFZ;
         LIR_res(lir) = get_vreg(BIN_opnd0(det));
         LIR_op0(lir) = (UInt32)0xFFFFffff; //target.
     } else {
         ASSERT0(IR_type(BIN_opnd1(det)) == IR_PR);
-        lir = (LIR*)_ymalloc(sizeof(LIRABCOp));
+        lir = (LIR*)ymalloc(sizeof(LIRABCOp));
         LIR_opcode(lir) = LOP_IF;
         LIR_res(lir) = get_vreg(BIN_opnd0(det));
         LIR_op0(lir) = get_vreg(BIN_opnd1(det));
@@ -1283,7 +1283,7 @@ LIR * IR2Dex::convertBranch(bool is_truebr, IN OUT IR ** ir,
 //AABBBBBBBB
 LIR * IR2Dex::convertSwitch(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
-    LIRSwitchOp * lir = (LIRSwitchOp*)_ymalloc(sizeof(LIRSwitchOp));
+    LIRSwitchOp * lir = (LIRSwitchOp*)ymalloc(sizeof(LIRSwitchOp));
     IR * vexp = SWITCH_vexp(*ir);
     ASSERT0(IR_type(vexp) == IR_PR);
     lir->value = get_vreg(vexp);
@@ -1316,22 +1316,24 @@ LIR * IR2Dex::convertSwitch(IN OUT IR ** ir, IN IR2DexCtx * cont)
         }
 
         if (is_packed) {
-            lir->data = (USHORT*)_ymalloc((1+1+2)*sizeof(USHORT) +
+            lir->data = (USHORT*)ymalloc((1+1+2)*sizeof(USHORT) +
                                            num_of_case*sizeof(UINT));
             LIR_switch_kind(lir) = 0x100;
             LIR_case_num(lir) = num_of_case;
             LIR_packed_switch_base_value(lir) = base_val;
             UINT * pcase_entry = LIR_packed_switch_case_entry(lir);
+            ASSERT(sizeof(UINT) == 4, ("case entry is 32bit"));
             for (UINT i = 0; i < num_of_case; i++) {
-                pcase_entry[i] = 0xFFFFffff; //case entry is 32bit.
+                pcase_entry[i] = (UINT)0xffffFFFF; //case entry is 32bit.
             }
         } else {
-            lir->data = (USHORT*)_ymalloc((1+1)*sizeof(USHORT) +
-                                           num_of_case*sizeof(UINT)*2);
+            lir->data = (USHORT*)ymalloc((1+1)*sizeof(USHORT) +
+                                          num_of_case*sizeof(UINT)*2);
             LIR_switch_kind(lir) = 0x200;
             LIR_case_num(lir) = num_of_case;
             //((BYTE*)data)[4..4+num_of_case*4-1]: the case-value buffer.
             UINT * pcase_value = LIR_sparse_switch_case_value(lir);
+            ASSERT(sizeof(UINT) == 4, ("case value is 32bit"));
             IR * x = case_list;
             for (UINT i = 0; i < num_of_case; i++) {
                 pcase_value[i] = CONST_int_val(CASE_vexp(x));
@@ -1342,7 +1344,7 @@ LIR * IR2Dex::convertSwitch(IN OUT IR ** ir, IN IR2DexCtx * cont)
             //    the position of the index table is at current instruction.
             UINT * pcase_entry = LIR_sparse_switch_case_entry(lir);
             for (UINT i = 0; i < num_of_case; i++) {
-                pcase_entry[i] = 0xFFFFffff; //case entry is 32bit.
+                pcase_entry[i] = (UINT)0xFFFFffff; //case entry is 32bit.
             }
         }
     }

@@ -29,36 +29,22 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-author: Su Zhenyu
+author: GongKai, JinYue
 @*/
-#include "../opt/cominc.h"
-#include "dex.h"
+#ifndef _D2D_DEXLIB_H
+#define _D2D_DEXLIB_H
 
-BuiltInInfo g_builtin_info[] = {
-    {BLTIN_UNDEF,                 ""                    },
-    {BLTIN_INVOKE,                 "invoke"            },
-    {BLTIN_NEW,                    "#new"                },
-    {BLTIN_NEW_ARRAY,           "#new_array"        },
-    {BLTIN_MOVE_EXP,            "#move_exception"    },
-    {BLTIN_MOVE_RES,            "#move_result"        },
-    {BLTIN_THROW,               "#throw"            },
-    {BLTIN_CHECK_CAST,          "#check_cast"        },
-    {BLTIN_FILLED_NEW_ARRAY,    "#filled_new_array"    },
-    {BLTIN_FILL_ARRAY_DATA,     "#fill_array_data"    },
-    {BLTIN_CONST_CLASS,         "#const_class"        },
-    {BLTIN_ARRAY_LENGTH,        "#array_length"        },
-    {BLTIN_MONITOR_ENTER,       "#monitor_enter"    },
-    {BLTIN_MONITOR_EXIT,        "#monitor_exit"        },
-    {BLTIN_INSTANCE_OF,         "#instance_of"        },
-    {BLTIN_CMP_BIAS,            "#cmp_bias"            },
-    {BLTIN_LAST,                ""                    },
-};
-UINT g_builtin_num = sizeof(g_builtin_info) / sizeof(g_builtin_info[0]);
+#define MIN_INT  ((Int32)1<<(sizeof(Int32)*8 - 1))
 
+#include "std/cstd.h"
 
-//Perform Dex register allocation.
-bool g_do_dex_ra = false;
-bool g_dump_ir2dex = false;
-bool g_dump_dex2ir = false;
-bool g_dump_classdefs = false;
-bool g_dump_lirs = false;
+#ifdef __cplusplus
+extern "C" {
+#endif
+    int signedLeb128Size(Int32 value);
+    void writeSignedLeb128(Int8* ptr,  Int32 value);
+#ifdef __cplusplus
+}
+#endif
+
+#endif

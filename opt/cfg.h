@@ -237,18 +237,17 @@ public:
             BB * bb = ct->val();
             ASSERT0(bb);
 
-            Vertex * vex = get_vertex(bb->id);
-            ASSERT(vex, ("No vertex corresponds to BB%d", bb->id));
-            if (comp_entry) {
-                if (VERTEX_in_list(vex) == NULL &&
-                    (is_ru_entry(bb) || bb->is_exp_handling())) {
-                    m_entry_list.append_tail(bb);
-                }
+            ASSERT(get_vertex(bb->id),
+                   ("No vertex corresponds to BB%d", bb->id));
+
+            if (comp_entry && is_ru_entry(bb)) {
+                m_entry_list.append_tail(bb);
             }
-            if (comp_exit) {
-                if (VERTEX_out_list(vex) == NULL) {
-                    m_exit_list.append_tail(bb);
-                }
+
+            if (comp_exit &&
+                (is_ru_exit(bb) ||
+                 VERTEX_out_list(get_vertex(bb->id)) == NULL)) {
+                m_exit_list.append_tail(bb);
             }
         }
     }
@@ -1116,22 +1115,11 @@ bool CFG<BB, XR>::removeUnreachBB()
 
     ASSERT(m_entry_list.get_elem_count() > 0,
             ("call computeEntryAndExit first"));
+    ASSERT(m_entry_list.get_elem_count() == 1, ("Only support SEME"));
 
-    if (m_entry_list.get_elem_count() == 1) {
-        BB * entry = m_entry_list.get_head();
-        ASSERT(entry != NULL, ("need entry bb"));
-        if (!visited.is_contain(entry->id)) {
-            _remove_unreach_bb(entry->id, visited);
-        }
-    } else { //multiple entries
-        C<BB*> * ct;
-        for (m_entry_list.get_head(&ct);
-             ct != m_entry_list.end(); ct = m_entry_list.get_next(ct)) {
-            BB * bb = ct->val();
-            if (!visited.is_contain(bb->id)) {
-                _remove_unreach_bb(bb->id, visited);
-            }
-        }
+    BB * entry = m_entry_list.get_head();
+    if (!visited.is_contain(entry->id)) {
+        _remove_unreach_bb(entry->id, visited);
     }
 
     C<BB*> * next_ct;
@@ -1140,8 +1128,10 @@ bool CFG<BB, XR>::removeUnreachBB()
         BB * bb = ct->val();
         next_ct = m_bb_list->get_next(ct);
         if (!visited.is_contain(bb->id)) {
-            ASSERT(!bb->is_exp_handling(),
-                ("For conservative purpose, exception handler should be reserved."));
+            //EH may be redundant and can be removed.
+            //ASSERT(!bb->is_exp_handling(),
+            // ("For conservative purpose, exception handler should be reserved."));
+
             bb->removeSuccessorPhiOpnd(this);
             remove_bb(ct);
             removed = true;

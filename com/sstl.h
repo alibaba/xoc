@@ -486,6 +486,8 @@ public:
 };
 //END FreeList
 
+
+
 /* Dual Linked List.
 NOTICE:
     The following operations are the key points which you should
@@ -1709,16 +1711,17 @@ public:
 /* Single List
 
 NOTICE:
-    The following 3 operations are the key points which you should
-    attention to:
-    1.    If you REMOVE one element, its container will be collect by FREE-List.
-        So if you need a new container, please check the FREE-List first,
-        accordingly, you should first invoke 'get_free_list' which get free
-        containers out from 'm_free_list'.
-      2.    If you want to invoke APPEND, please call 'newXXX' first to
-        allocate a new container memory space, record your elements into
-        the container, then APPEND it at list.
-        newXXX such as:
+    The following operations are the key points which you should attention to:
+
+    1. If you REMOVE one element, its container will be collect by FREE-List.
+       So if you need a new container, please check the FREE-List first,
+       accordingly, you should first invoke 'get_free_list' which get free
+       containers out from 'm_free_list'.
+
+    2. If you want to invoke APPEND, please call 'newXXX' first to
+       allocate a new container memory space, record your elements into
+       the container, then APPEND it at list.
+       newXXX such as:
             T * newXXX(INT type)
             {
                 T * t = get_free_T();
@@ -1726,11 +1729,14 @@ NOTICE:
                 T_type(c) = type;
                 return t;
             }
-    3.  The single linked list is different with dual linked list.
-        the dual linked list does not use mempool to hold the container.
-        Compared to dual linked list, single linked list allocate containers
-        in a const size pool.
-    4.  Compare the iterator with end() to determine if meeting the end of list.
+
+    3. The single linked list is different with dual linked list.
+       the dual linked list does not use mempool to hold the container.
+       Compared to dual linked list, single linked list allocate containers
+       in a const size pool.
+       Invoke init() to do initialization if you allocate SList by malloc().
+
+    4. Compare the iterator with end() to determine if meeting the end of list.
 */
 template <class T> class SList : public SListCore<T> {
 protected:

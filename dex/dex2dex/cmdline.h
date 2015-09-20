@@ -31,34 +31,13 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 author: Su Zhenyu
 @*/
-#include "../opt/cominc.h"
-#include "dex.h"
+#ifndef _CMD_LINE_
+#define _CMD_LINE_
 
-BuiltInInfo g_builtin_info[] = {
-    {BLTIN_UNDEF,                 ""                    },
-    {BLTIN_INVOKE,                 "invoke"            },
-    {BLTIN_NEW,                    "#new"                },
-    {BLTIN_NEW_ARRAY,           "#new_array"        },
-    {BLTIN_MOVE_EXP,            "#move_exception"    },
-    {BLTIN_MOVE_RES,            "#move_result"        },
-    {BLTIN_THROW,               "#throw"            },
-    {BLTIN_CHECK_CAST,          "#check_cast"        },
-    {BLTIN_FILLED_NEW_ARRAY,    "#filled_new_array"    },
-    {BLTIN_FILL_ARRAY_DATA,     "#fill_array_data"    },
-    {BLTIN_CONST_CLASS,         "#const_class"        },
-    {BLTIN_ARRAY_LENGTH,        "#array_length"        },
-    {BLTIN_MONITOR_ENTER,       "#monitor_enter"    },
-    {BLTIN_MONITOR_EXIT,        "#monitor_exit"        },
-    {BLTIN_INSTANCE_OF,         "#instance_of"        },
-    {BLTIN_CMP_BIAS,            "#cmp_bias"            },
-    {BLTIN_LAST,                ""                    },
-};
-UINT g_builtin_num = sizeof(g_builtin_info) / sizeof(g_builtin_info[0]);
+bool processCommandLine(UINT argc, CHAR const* argv[]);
 
+extern CHAR const* g_dex_file_path;
+extern INT g_output_file_handler;
+extern INT g_source_file_handler;
 
-//Perform Dex register allocation.
-bool g_do_dex_ra = false;
-bool g_dump_ir2dex = false;
-bool g_dump_dex2ir = false;
-bool g_dump_classdefs = false;
-bool g_dump_lirs = false;
+#endif

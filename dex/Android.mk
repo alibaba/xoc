@@ -20,18 +20,17 @@ X_INCLUDE_FILES := \
     $(LLVM_ROOT_PATH)/include \
     ${LOCAL_PATH}/clibs/basic/include \
     ${LOCAL_PATH}/clibs/basic/arch/common \
-    ${LOCAL_PATH}/dex2dex/include \
+    ${LOCAL_PATH}/dex2dex \
     ${LOCAL_PATH}/include \
-    ${LOCAL_PATH}/lir/include \
-    ${LOCAL_PATH}/linealloc/include \
-    ${LOCAL_PATH}/analyse/include \
+    ${LOCAL_PATH}/lir \
+    ${LOCAL_PATH}/linealloc \
     ${LOCAL_PATH}/../com \
     ${LOCAL_PATH}/../opt \
     ${LOCAL_PATH} \
     dalvik
 
 #X_LOCAL_CFLAGS := \
-	-DLOG_TAG=\"DEX2DEX\" \
+	-DLOG_TAG=\"dexpro\" \
 	-D_GNU_SOURCE=1\
 	-D_ENABLE_LOG_\
 	-D_VMWARE_DEBUG_\
@@ -43,7 +42,7 @@ X_INCLUDE_FILES := \
 	-Wstrict-overflow -Wstrict-aliasing=3 -finline-limit=10000000 -Wswitch
 
 X_LOCAL_CFLAGS := \
-	-DLOG_TAG=\"DEX2DEX\" \
+	-DLOG_TAG=\"dexpro\" \
 	-D_GNU_SOURCE=1\
 	-D_VMWARE_DEBUG_\
 	-D_ENABLE_LOG_\
@@ -69,11 +68,9 @@ include $(RELATIVE_AOC)/xoc/dex/config.mk
 
 X_SRC_FILES:= \
     *.cpp\
-    dex2dex/src/cpp/*.cpp\
-    linealloc/src/cpp/*.cpp\
-    lir/src/cpp/*.cpp\
-    analyse/src/*.cpp\
-    analyse/src/*.c\
+    dex2dex/*.cpp\
+    linealloc/*.cpp\
+    lir/*.cpp\
     ../opt/*.cpp\
     ../com/*.cpp
 
@@ -102,14 +99,12 @@ include $(CLEAR_VARS)
 include $(RELATIVE_AOC)/xoc/dex/config.mk
 
 X_SRC_FILES:= \
-    dex2dex/src/cpp/*.cpp\
-    linealloc/src/cpp/*.cpp\
-    lir/src/cpp/*.cpp\
+    dex2dex/*.cpp\
+    linealloc/*.cpp\
+    lir/*.cpp\
     ../opt/*.cpp\
     ../com/*.cpp\
-    *.cpp\
-    analyse/src/*.cpp\
-    analyse/src/*.c
+    *.cpp
 
 LOCAL_CFLAGS += $(X_LOCAL_CFLAGS)
 
@@ -135,17 +130,7 @@ include $(CLEAR_VARS)
 #must include vmkid/config.mk after CLEAR_VARS
 include $(RELATIVE_AOC)/xoc/dex/config.mk
 
-X_SRC_FILES:= \
-    dex2dex/src/cpp/*.cpp\
-    linealloc/src/cpp/*.cpp\
-    lir/src/cpp/*.cpp\
-    analyse/src/*.cpp\
-    analyse/src/*.c\
-    *.cpp\
-    ../com/*.cpp\
-    ../opt/*.cpp
-
-X_SRC_FILES:= dex2dex/src/test/main.cpp
+X_SRC_FILES:= dex2dex/main.cpp
 
 LOCAL_C_INCLUDES := $(X_INCLUDE_FILES)
 LOCAL_SRC_FILES := $(foreach F, $(X_SRC_FILES), $(addprefix $(dir $(F)),$(notdir $(wildcard $(LOCAL_PATH)/$(F)))))
@@ -158,6 +143,6 @@ LOCAL_STATIC_LIBRARIES := libdex libz liblog libcutils
 LOCAL_SHARED_LIBRARIES := libaoc_clibs libaoc_xoc
 
 LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := aoc_hdex2dex
+LOCAL_MODULE := dexpro
 
 include $(BUILD_HOST_EXECUTABLE)
