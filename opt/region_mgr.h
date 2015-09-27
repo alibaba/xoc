@@ -34,8 +34,6 @@ author: Su Zhenyu
 #ifndef __REGION_MGR_H__
 #define __REGION_MGR_H__
 
-class TargMach;
-
 namespace xoc {
 
 typedef enum {
@@ -71,8 +69,6 @@ class IPA;
 //
 //Region Manager is the top level manager.
 #define RM_label_count(r)        ((r)->m_label_count)
-#define RM_targmach(r)           ((r)->m_tm)
-#define RM_var_mgr(r)            ((r)->m_var_mgr)
 class RegionMgr {
 friend class Region;
 protected:
@@ -80,7 +76,6 @@ protected:
     BitSetMgr m_bs_mgr;
     SymTab m_sym_tab;
     TypeMgr m_dt_mgr;
-    TargMach * m_tm;
     VarMgr * m_var_mgr;
     MD const* m_str_md;
     MDSystem * m_md_sys;
@@ -89,17 +84,18 @@ protected:
     List<UINT> m_free_ru_id;
     UINT m_label_count;
     bool m_is_regard_str_as_same_md;
+    TargInfo * m_targinfo;
 public:
     explicit RegionMgr() : m_sym_tab(0)
     {
         m_ru_count = 1;
-        m_tm = NULL;
         m_label_count = 1;
         m_var_mgr = NULL;
         m_md_sys = NULL;
         m_is_regard_str_as_same_md = true;
         m_str_md = NULL;
         m_callg = NULL;
+        m_targinfo = NULL;
         m_sym_tab.init(64);
     }
     COPY_CONSTRUCTOR(RegionMgr);
@@ -127,11 +123,12 @@ public:
     UINT getNumOfRegion() const { return m_ru_count; }
     VarMgr * get_var_mgr() { return m_var_mgr; }
     MD const* getDedicateStrMD();
-    TargMach * get_tm() const { return m_tm; }
     MDSystem * get_md_sys() { return m_md_sys; }
     SymTab * get_sym_tab() { return &m_sym_tab; }
     TypeMgr * get_dm() { return &m_dt_mgr; }
     CallGraph * get_callg() const { return m_callg; }
+    VarMgr * get_var_mgr() const { return m_var_mgr; }
+    TargInfo * get_targ_info() const { return m_targinfo; }
 
     void registerGlobalMDS();
 
@@ -149,11 +146,9 @@ public:
 
     Region * newRegion(REGION_TYPE rt);
 
-    //Set Target Machine if any.
-    void set_tm(TargMach * tm) { m_tm = tm; }
-
     //This function will establish a map between region and its id.
     void set_region(Region * ru);
+    void set_targ_info(TargInfo * ti) { m_targinfo = ti; }
 
     //Process region in the form of function type.
     virtual void processFuncRegion(IN Region * func);

@@ -71,7 +71,7 @@ public:
         if (res != NULL) { *res = ir; }
 
         IR * rhs = ST_rhs(ir);
-        if ((UINT)IR_type(rhs) != (UINT)irt) return false;
+        if ((UINT)IR_code(rhs) != (UINT)irt) return false;
 
         if (!BIN_opnd0(rhs)->is_pr()) return false;
         if (op0 != NULL) { *op0 = BIN_opnd0(rhs); }
@@ -86,7 +86,7 @@ public:
         if (!ir->is_stpr()) return false;
         if (res != NULL) { *res = ir; }
 
-        switch (IR_type(ST_rhs(ir))) {
+        switch (ST_rhs(ir)->get_code()) {
         case IR_ADD:
         case IR_SUB:
         case IR_MUL:
@@ -121,7 +121,7 @@ public:
     {
         if (!ir->is_stpr()) { return false; }
         if (res != NULL) { *res = ir; }
-        if ((UINT)IR_type(ST_rhs(ir)) != (UINT)irt) return false;
+        if ((UINT)IR_code(ST_rhs(ir)) != (UINT)irt) return false;
         if (!UNA_opnd0(ST_rhs(ir))->is_pr()) return false;
         if (op0 != NULL) { *op0 = UNA_opnd0(ST_rhs(ir)); }
         return true;
@@ -131,7 +131,7 @@ public:
     {
         if (!ir->is_stpr()) return false;
         IR * rhs = ST_rhs(ir);
-        switch (IR_type(rhs)) {
+        switch (IR_code(rhs)) {
         case IR_BNOT:
         case IR_LNOT:
         case IR_NEG:
@@ -308,7 +308,7 @@ void RSC::comp_st_fmt(IR const* ir)
     IR const* stv = ir->get_rhs();
     comp_ir_fmt(stv);
     if (ir->is_stpr()) {
-        switch (IR_type(stv)) {
+        switch (IR_code(stv)) {
         case IR_CONST:
             //A, +B, load const
             m_ir2fmt.set(IR_id(ir), FABcv);
@@ -322,7 +322,7 @@ void RSC::comp_st_fmt(IR const* ir)
             m_ir2fmt.set(IR_id(ir), FABCCCCv);
             return;
         case IR_LDA:
-            ASSERT0(IR_type(LDA_base(stv)) == IR_ID);
+            ASSERT0(IR_code(LDA_base(stv)) == IR_ID);
             ASSERT0(LDA_base(stv)->is_str());
             //AABBBB
             m_ir2fmt.set(IR_id(ir), FAABBBBv);
@@ -342,7 +342,7 @@ void RSC::comp_st_fmt(IR const* ir)
             {
                 IR * op1 = BIN_opnd1(stv);
                 ASSERT0(BIN_opnd0(stv)->is_pr());
-                if (IR_type(op1) == IR_CONST) {
+                if (IR_code(op1) == IR_CONST) {
                     ASSERT0(op1->is_int(m_dm));
                     if (!is_s8((INT)CONST_int_val(op1))) {
                         //vA, vB, CCCC+
@@ -395,7 +395,7 @@ void RSC::comp_st_fmt(IR const* ir)
         }
     } else {
         ASSERT0(ir->is_st());
-        switch (IR_type(stv)) {
+        switch (IR_code(stv)) {
         case IR_PR:
             //AABBBB, sput
             m_ir2fmt.set(IR_id(ir), FAABBBB);
@@ -445,7 +445,7 @@ void RSC::comp_ist_fmt(IR const* ir)
 void RSC::comp_call_fmt(IR const* ir)
 {
     ASSERT0(ir->is_calls_stmt());
-    if (IR_type(ir) == IR_ICALL) {
+    if (IR_code(ir) == IR_ICALL) {
         comp_ir_fmt(ICALL_callee(ir));
     }
     if (ir->is_call() && CALL_is_intrinsic(ir)) {
@@ -476,11 +476,11 @@ void RSC::comp_call_fmt(IR const* ir)
             {
             //first parameter is invoke-kind.
             IR * p = CALL_param_list(ir);
-            ASSERT0(IR_type(p) == IR_CONST);
+            ASSERT0(IR_code(p) == IR_CONST);
 
             //second one is class-id.
             p = IR_next(p);
-            ASSERT0(IR_type(p) == IR_CONST);
+            ASSERT0(IR_code(p) == IR_CONST);
 
             p = IR_next(p);
             for (; p != NULL; p = IR_next(p)) {
@@ -512,7 +512,7 @@ void RSC::comp_call_fmt(IR const* ir)
         case BLTIN_CMP_BIAS:
             {
                 IR const* p = CALL_param_list(ir);
-                ASSERT0(p && IR_type(p) == IR_CONST);
+                ASSERT0(p && IR_code(p) == IR_CONST);
                 p = IR_next(p);
                 ASSERT0(p && p->is_pr() && IR_next(p) && IR_next(p)->is_pr());
                 m_ir2fmt.set(IR_id(ir), FAABBCC);
@@ -523,10 +523,10 @@ void RSC::comp_call_fmt(IR const* ir)
     }
 
     IR const* p = CALL_param_list(ir);
-    ASSERT0(p && IR_type(p) == IR_CONST);
+    ASSERT0(p && IR_code(p) == IR_CONST);
     INVOKE_KIND ik = (INVOKE_KIND)CONST_int_val(p);
     p = IR_next(p);
-    ASSERT0(p && IR_type(p) == IR_CONST);
+    ASSERT0(p && IR_code(p) == IR_CONST);
     p = IR_next(p);
     switch (ik) {
     case INVOKE_UNDEF:
@@ -558,7 +558,7 @@ void RSC::comp_call_fmt(IR const* ir)
 
 void RSC::comp_ir_fmt(IR const* ir)
 {
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_CONST:
     case IR_ID:
     case IR_LD:
@@ -639,7 +639,7 @@ void RSC::comp_ir_fmt(IR const* ir)
             IR * det = BR_det(ir);
             comp_ir_fmt(BR_det(ir));
             ASSERT0(det->is_relation());
-            if (IR_type(BIN_opnd1(det)) == IR_CONST) {
+            if (IR_code(BIN_opnd1(det)) == IR_CONST) {
                 //AABBBB
                 ASSERT0(BIN_opnd0(det)->is_pr());
                 m_ir2fmt.set(IR_id(ir), FAABBBBv);
@@ -2204,7 +2204,7 @@ void LTMgr::processResult(IN IR * ir, INT pos, IN OUT BitSet & lived_lt,
         ASSERT0(lt);
         LT_range(lt)->bunion(pos);
     }
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ST: break;
     case IR_STPR:
         if (group_part) {
@@ -2298,7 +2298,7 @@ void LTMgr::processUse(IN IR * ir, ConstIRIter & cii, INT pos,
 bool LTMgr::has_pair_res(IR * ir)
 {
     ASSERT0(ir->is_stmt());
-    switch(IR_type(ir)) {
+    switch(IR_code(ir)) {
     case IR_STPR:
     case IR_CALL:
     case IR_ICALL:
@@ -2589,7 +2589,7 @@ void LTMgr::revise_special_lt(List<LT*> * lts)
 void LTMgr::renameUse(IR * ir, LT * l, IR ** newpr)
 {
     LTG * gr = LT_ltg(l);
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_STARRAY:
         ASSERT0(((CArray*)ir)->get_dimn() == 1);
         renameUse(STARR_rhs(ir), l, newpr);
@@ -2752,7 +2752,7 @@ void LTMgr::renameLT(LT * l, IR ** newpr)
         IR * ir = m_pos2ir.get(i);
         ASSERT0(ir);
         if (l->is_def(i)) {
-            switch (IR_type(ir)) {
+            switch (IR_code(ir)) {
             case IR_STPR:
                 {
                     UINT prno = ir->get_prno();
@@ -3784,7 +3784,7 @@ void BBRA::selectReasonableSplitPos(OUT INT & pos1, OUT INT & pos2,
             if (lt->is_def(p2)) {
                 IR * ir = m_ltm->get_ir(p2);
                 ASSERT0(ir);
-                if (IR_type(ir) == IR_SELECT) {
+                if (IR_code(ir) == IR_SELECT) {
                     /* CASE: 20020402-3.c:blockvector_for_pc_sect():BB10
                         gsr275(a3) lived in and lived out.
                         first pos:0

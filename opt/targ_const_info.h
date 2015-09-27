@@ -40,8 +40,8 @@ author: Su Zhenyu
 #include "../pac/pac_const_info.h"
 #elif defined(FOR_DEX)
 #include "../dex/dex_const_info.h"
-#elif defined(FOR_V8)
-#include "../v8/v8_const_info.h"
+#elif defined(FOR_JS)
+#include "../js/js_const_info.h"
 #endif
 
 #endif

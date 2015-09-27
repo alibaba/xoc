@@ -97,7 +97,8 @@ MD const* RegionMgr::getDedicateStrMD()
 void RegionMgr::registerGlobalMDS()
 {
     //Only top region can do initialize MD for global variable.
-    ID2VAR * varvec = RM_var_mgr(this)->get_var_vec();
+    ASSERT0(m_var_mgr);
+    ID2VAR * varvec = m_var_mgr->get_var_vec();
     for (INT i = 0; i <= varvec->get_last_idx(); i++) {
         VAR * v = varvec->get(i);
         if (v == NULL) { continue; }

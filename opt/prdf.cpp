@@ -130,7 +130,7 @@ void PRDF::computeLocal(IRBB * bb, List<IR const*> & lst)
     use->clean(m_sbs_mgr);
     for (IR * x = BB_last_ir(bb); x != NULL; x = BB_prev_ir(bb)) {
         ASSERT0(x->is_stmt());
-        switch (IR_type(x)) {
+        switch (IR_code(x)) {
         case IR_ST:
             lst.clean();
             processOpnd(ST_rhs(x), lst, use, gen);
@@ -193,7 +193,7 @@ void PRDF::computeLocal(IRBB * bb, List<IR const*> & lst)
             lst.clean();
             processOpnd(CALL_param_list(x), lst, use, gen);
 
-            if (IR_type(x) == IR_ICALL && ICALL_callee(x)->is_pr()) {
+            if (IR_code(x) == IR_ICALL && ICALL_callee(x)->is_pr()) {
                 use->bunion(PR_no(ICALL_callee(x)), m_sbs_mgr);
                 processMay(ICALL_callee(x), gen, use, false);
             }

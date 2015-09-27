@@ -140,7 +140,7 @@ bool IR_LICM::markExpAndStmt(IR * ir, TTab<IR*> & invariant_exp)
 {
     bool change = false;
     IR * e;
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ST:
         e = ST_rhs(ir);
         if (!e->is_const_exp() && !e->is_pr()) {
@@ -281,7 +281,7 @@ bool IR_LICM::scanResult(OUT TTab<IR*> & invariant_stmt)
     bool change = false;
     for (IR * stmt = m_analysable_stmt_list.remove_head(); stmt != NULL;
          stmt = m_analysable_stmt_list.remove_head()) {
-        switch (IR_type(stmt)) {
+        switch (IR_code(stmt)) {
         case IR_ST:
         case IR_STPR:
             {
@@ -318,7 +318,7 @@ bool IR_LICM::scanResult(OUT TTab<IR*> & invariant_stmt)
 
 void IR_LICM::updateMD2Num(IR * ir)
 {
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ST:
     case IR_STPR:
         {

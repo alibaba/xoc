@@ -58,7 +58,7 @@ IR * IR_LCSE::hoist_cse(IN IRBB * bb, IN IR * ir_pos, IN ExpRep * ie)
     C<IR*> * pos_holder = NULL;
     bool f = BB_irlist(bb).find(ir_pos, &pos_holder);
     CK_USE(f);
-    switch (IR_type(ir_pos)) {
+    switch (IR_code(ir_pos)) {
     case IR_ST:
     case IR_IST:
         {
@@ -446,7 +446,7 @@ bool IR_LCSE::processUse(IN IRBB * bb, IN IR * ir,
                           IN OUT Vector<IR*> & map_expr2avail_pr)
 {
     bool change = false;
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ST:
     case IR_IST:
         change |= processRhsOfStore(bb, ir, avail_ir_expr, map_expr2avail_pos,
@@ -565,7 +565,7 @@ bool IR_LCSE::processDef(IN IRBB * bb, IN IR * ir,
                           IN MDSet & tmp)
 {
     bool change = false;
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ST:
     case IR_IST:
     case IR_CALL:

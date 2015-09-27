@@ -117,21 +117,15 @@ void finidump()
 
 void initdump(CHAR const* f, bool is_del)
 {
-    if (is_del && f != NULL) {
+    if (f == NULL) { return; }
+    if (is_del) {
         unlink(f);
     }
-    if (f != NULL) {
-        if (is_del) {
-            unlink(f);
-        }
-        g_tfile = fopen(f, "a+");
-        if (g_tfile == NULL) {
-            ASSERT(0, ("can not open %s, errno:%d, errstring is %s",
-                        f, errno, strerror(errno)));
-            return;
-        }
-    } else {
-        //g_tfile = stdout;
+    g_tfile = fopen(f, "a+");
+    if (g_tfile == NULL) {
+        fprintf(stdout,
+                "can not open dump file %s, errno:%d, errstring is %s",
+                f, errno, strerror(errno));
     }
 }
 

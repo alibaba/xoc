@@ -830,7 +830,7 @@ void IR_DU_MGR::computeExpression(IR * ir, OUT MDSet * ret_mds, UINT flag)
 {
     if (ir == NULL) { return; }
     ASSERT0(ir->is_exp());
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_CONST: break;
     case IR_ID:
         if (HAVE_FLAG(flag, COMP_EXP_RECOMPUTE)) {
@@ -1480,7 +1480,7 @@ void IR_DU_MGR::dump_bb_du_chain2(IRBB * bb)
             k != NULL; k = iterNext(ii)) {
             if (!k->is_memory_ref() &&
                 !k->has_result() &&
-                IR_type(k) != IR_REGION) {
+                IR_code(k) != IR_REGION) {
                 continue;
             }
 
@@ -1869,7 +1869,7 @@ void IR_DU_MGR::copyIRTreeDU(IR * to, IR const* from, bool copyDUChain)
          to_ir = iterNext(m_iter2),
          from_ir = iterNextC(m_citer)) {
         ASSERT0(to_ir->is_ir_equal(from_ir, true));
-        if (!to_ir->is_memory_ref() && IR_type(to_ir) != IR_ID) {
+        if (!to_ir->is_memory_ref() && IR_code(to_ir) != IR_ID) {
             //Copy MD for IR_ID also, some pass need it, e.g. GVN.
             continue;
         }
@@ -2353,7 +2353,7 @@ e.g: a = b + *p;
     if p->w,u, the MustUse is {a,b,p} */
 void IR_DU_MGR::collect_must_use(IN IR const* ir, OUT MDSet & mustuse)
 {
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ST:
         computeExpression(ST_rhs(ir), &mustuse, COMP_EXP_COLLECT_MUST_USE);
         return;
@@ -2600,7 +2600,7 @@ void IR_DU_MGR::collectMayUseRecursive(
         bool computePR)
 {
     if (ir == NULL) { return; }
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_CONST:  return;
     case IR_ID:
     case IR_LD:
@@ -2858,7 +2858,7 @@ void IR_DU_MGR::computeBBMustDef(
         DefDBitSetCore * mustgen_stmt,
         ConstMDIter & mditer)
 {
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_CALL:
     case IR_ICALL:
     case IR_PHI:
@@ -3003,7 +3003,7 @@ void IR_DU_MGR::computeMDRef()
              irct != BB_irlist(bb).end();
              irct = BB_irlist(bb).get_next(irct)) {
             IR * ir = irct->val();
-            switch (IR_type(ir)) {
+            switch (IR_code(ir)) {
             case IR_ST:
                 inferStore(ir);
                 break;
@@ -3165,7 +3165,7 @@ void IR_DU_MGR::computeKillSet(
 bool IR_DU_MGR::canBeLiveExprCand(IR const* ir) const
 {
     ASSERT0(ir);
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ADD:
     case IR_SUB:
     case IR_MUL:
@@ -3211,7 +3211,7 @@ void IR_DU_MGR::computeGenForBB(
          ct != BB_irlist(bb).end(); ct = BB_irlist(bb).get_next(ct)) {
         IR const* ir = ct->val();
         ASSERT0(ir->is_stmt());
-        switch (IR_type(ir)) {
+        switch (IR_code(ir)) {
         case IR_ST:
             if (canBeLiveExprCand(ST_rhs(ir))) {
                 //Compute the generated expressions set.
@@ -3740,7 +3740,7 @@ UINT IR_DU_MGR::checkIsLocalKillingDef(
 {
     ASSERT0(stmt->get_bb() == exp->get_stmt()->get_bb());
 
-    if (IR_type(exp) != IR_ILD || IR_type(stmt) != IR_IST) { return CK_UNKNOWN; }
+    if (IR_code(exp) != IR_ILD || IR_code(stmt) != IR_IST) { return CK_UNKNOWN; }
 
     IR const* t = ILD_base(exp);
 
@@ -3754,7 +3754,7 @@ UINT IR_DU_MGR::checkIsLocalKillingDef(
 
     if (!t2->is_pr() && !t2->is_ld()) { return CK_UNKNOWN; }
 
-    if (IR_type(t) != IR_type(t2)) { return CK_UNKNOWN; }
+    if (IR_code(t) != IR_code(t2)) { return CK_UNKNOWN; }
 
     IRBB * curbb = stmt->get_bb();
 
@@ -3893,7 +3893,7 @@ bool IR_DU_MGR::buildLocalDUChain(
 void IR_DU_MGR::checkAndBuildChainRecursive(IR * stmt, IR * exp, C<IR*> * ct)
 {
     ASSERT0(exp && exp->is_exp());
-    switch (IR_type(exp)) {
+    switch (IR_code(exp)) {
     case IR_LD:
         break;
     case IR_PR:
@@ -3990,7 +3990,7 @@ void IR_DU_MGR::checkAndBuildChainRecursive(IR * stmt, IR * exp, C<IR*> * ct)
 void IR_DU_MGR::checkAndBuildChain(IR * stmt, C<IR*> * ct)
 {
     ASSERT0(stmt->is_stmt());
-    switch (IR_type(stmt)) {
+    switch (IR_code(stmt)) {
     case IR_ST:
         {
             DUSet * du = getAndAllocDUSet(stmt);
@@ -4100,7 +4100,7 @@ UINT IR_DU_MGR::checkIsNonLocalKillingDef(IR const* stmt, IR const* exp)
     ASSERT0(m_oc);
     if (!OC_is_live_expr_valid(*m_oc)) { return CK_UNKNOWN; }
 
-    if (IR_type(exp) != IR_ILD || IR_type(stmt) != IR_IST) { return CK_UNKNOWN; }
+    if (IR_code(exp) != IR_ILD || IR_code(stmt) != IR_IST) { return CK_UNKNOWN; }
 
     IR const* t = ILD_base(exp);
     while (t->is_cvt()) { t = CVT_exp(t); }
@@ -4110,7 +4110,7 @@ UINT IR_DU_MGR::checkIsNonLocalKillingDef(IR const* stmt, IR const* exp)
     while (t2->is_cvt()) { t2 = CVT_exp(t2); }
     if (!t2->is_pr() && !t2->is_ld()) { return CK_UNKNOWN; }
 
-    if (IR_type(t) != IR_type(t2)) { return CK_UNKNOWN; }
+    if (IR_code(t) != IR_code(t2)) { return CK_UNKNOWN; }
 
     /* Note, t could not be modified in the path between stmt and exp.
     e.g:
@@ -4327,7 +4327,7 @@ void IR_DU_MGR::updateRegion(IR * ir)
 
 void IR_DU_MGR::updateDef(IR * ir)
 {
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_REGION:
         updateRegion(ir);
         return;
@@ -4646,7 +4646,7 @@ bool IR_DU_MGR::verifyMDRef()
             m_citer.clean();
             for (IR const* t = iterInitC(ir, m_citer);
                  t != NULL; t = iterNextC(m_citer)) {
-                switch (IR_type(t)) {
+                switch (IR_code(t)) {
                 case IR_ID:
                     //We do not need MD or MDSET information of IR_ID.
                     //ASSERT0(get_exact_ref(t));

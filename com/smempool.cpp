@@ -38,7 +38,7 @@ author: Su Zhenyu
 
 #define msg
 #define MAGIC_NUM         0xFC
-#define BOUNDARY_NUM     0xAA
+#define BOUNDARY_NUM      0xAA
 #define END_BOUND_BYTE     4
 
 using namespace xcom;

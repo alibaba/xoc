@@ -53,7 +53,7 @@ int main(int argcc, char * argvc[])
     UNUSED(argvc);
 
     CHAR * argv[] = {
-        "dexpro",
+        "d2d.exe",
         //"test.apk",
         "-o", "output.dex",
     };
@@ -83,6 +83,8 @@ FIN:
     if (g_output_file_handler >= 0) {
         close(g_output_file_handler);
     }
+
+    finidump();
 
     return locerrno; //success.
 }

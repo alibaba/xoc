@@ -148,7 +148,7 @@ void IR_EXPR_TAB::set_map_ir2ir_expr(IR const* ir, ExpRep * ie)
 UINT IR_EXPR_TAB::compute_hash_key(IR const* ir)
 {
     ASSERT0(ir != NULL);
-    UINT hval = IR_type(ir) + (ir->get_offset() + 1) + (UINT)(size_t)IR_dt(ir);
+    UINT hval = IR_code(ir) + (ir->get_offset() + 1) + (UINT)(size_t)IR_dt(ir);
     if (ir->is_id()) {
         VAR * var = ID_info(ir);
         /*
@@ -272,7 +272,7 @@ IR * IR_EXPR_TAB::remove_occ(IR * occ)
 void IR_EXPR_TAB::remove_occs(IR * ir)
 {
     ASSERT0(ir->is_stmt());
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ST:
         {
             IR * stv = ST_rhs(ir);
@@ -416,7 +416,7 @@ ExpRep * IR_EXPR_TAB::encode_expr(IN IR * ir)
     if (ir == NULL) return NULL;
 
     ASSERT0(ir->is_exp());
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ID:
     case IR_LD:
     case IR_LDA:
@@ -473,7 +473,7 @@ void IR_EXPR_TAB::encode_bb(IRBB * bb)
     for (IR * ir = BB_irlist(bb).get_head(&ct);
          ir != NULL; ir = BB_irlist(bb).get_next(&ct)) {
         ASSERT0(ir->is_stmt());
-        switch (IR_type(ir)) {
+        switch (IR_code(ir)) {
         case IR_ST:
             {
                 ExpRep * ie = encode_expr(ST_rhs(ir));

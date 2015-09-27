@@ -54,17 +54,17 @@ public:
     {
         ASSERT0(bucket_size != 0 && isPowerOf2(bucket_size));
         UINT hval = 0;
-        switch (IR_type(t)) {
+        switch (IR_code(t)) {
         case IR_LD:
-            hval = IR_type(t) + (t->get_offset() + 1) + (UINT)(size_t)IR_dt(t);
+            hval = IR_code(t) + (t->get_offset() + 1) + (UINT)(size_t)IR_dt(t);
             break;
         case IR_ILD:
             m_iter.clean();
             for (IR const* x = iterInitC(t, m_iter);
                  x != NULL; x = iterNextC(m_iter)) {
-                UINT v = IR_type(x) + (x->get_offset() + 1) +
+                UINT v = IR_code(x) + (x->get_offset() + 1) +
                         (UINT)(size_t)IR_dt(x);
-                if (IR_type(x) == IR_ID) {
+                if (IR_code(x) == IR_ID) {
                     v += ((UINT)(size_t)ID_info(x)) * 5;
                 }
                 hval += v;
@@ -78,9 +78,9 @@ public:
             m_iter.clean();
             for (IR const* x = iterInitC(IST_base(t), m_iter);
                  x != NULL; x = iterNextC(m_iter)) {
-                UINT v = IR_type(x) + (x->get_offset() + 1) +
+                UINT v = IR_code(x) + (x->get_offset() + 1) +
                         (UINT)(size_t)IR_dt(x);
-                if (IR_type(x) == IR_ID) {
+                if (IR_code(x) == IR_ID) {
                     v += ((UINT)(size_t)ID_info(x)) * 5;
                 }
                 hval += v;
@@ -92,9 +92,9 @@ public:
             m_iter.clean();
             for (IR const* x = iterInitC(t, m_iter);
                  x != NULL; x = iterNextC(m_iter)) {
-                UINT v = IR_type(x) + (x->get_offset() + 1) +
+                UINT v = IR_code(x) + (x->get_offset() + 1) +
                         (UINT)(size_t)IR_dt(x);
-                if (IR_type(x) == IR_ID) {
+                if (IR_code(x) == IR_ID) {
                     v += ((UINT)(size_t)ID_info(x)) * 5;
                 }
                 hval += v;
@@ -964,7 +964,7 @@ bool IR_RP::scanResult(IN IR * ir,
                      OUT List<IR*> & exact_occ_list,
                      OUT TTab<IR*> & inexact_access)
 {
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ST:
         return handleGeneralRef(ir, li, exact_access, exact_occ_list,
                                 inexact_access);
@@ -1115,7 +1115,7 @@ void IR_RP::handleRestore2Mem(
         }
 
         IR * stmt = NULL;
-        switch (IR_type(delegate)) {
+        switch (IR_code(delegate)) {
         case IR_ARRAY:
         case IR_STARRAY:
             {
@@ -1367,8 +1367,8 @@ bool IR_RP::is_may_throw(IR * ir, IRIter & iter)
             return true;
         }
 
-        if (IR_type(k) == IR_DIV || IR_type(k) == IR_REM ||
-            IR_type(k) == IR_MOD) {
+        if (IR_code(k) == IR_DIV || IR_code(k) == IR_REM ||
+            IR_code(k) == IR_MOD) {
             return true;
         }
     }
@@ -1528,7 +1528,7 @@ void IR_RP::handleAccessInBody(
         ASSERT0(stmt);
     }
 
-    switch (IR_type(ref)) {
+    switch (IR_code(ref)) {
     case IR_STARRAY:
         {
             bool has_use = false;
@@ -1991,7 +1991,7 @@ UINT IR_RP::analyzeArrayStatus(IR const* ref1, IR const* ref2)
     if (base1->is_lda() && base2->is_lda()) {
         IR const* b1 = LDA_base(base1);
         IR const* b2 = LDA_base(base2);
-        if (IR_type(b1) == IR_ID && IR_type(b2) == IR_ID) {
+        if (IR_code(b1) == IR_ID && IR_code(b2) == IR_ID) {
             if (ID_info(b1) == ID_info(b2)) { return RP_SAME_ARRAY; }
             return RP_DIFFERENT_ARRAY;
         }

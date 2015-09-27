@@ -276,7 +276,7 @@ IR * Region::refineIstore(IR * ir, bool & change, RefineCTX & rc)
         ASSERT(IR_next(rhs) == NULL && IR_prev(rhs) == NULL,
                 ("expression cannot be linked to chain"));
         //Convert IST(LHS, LDA(ILD(var))) => IST(LHS, var)
-        ASSERT0(IR_type(ILD_base(LDA_base(rhs))) != IR_ID);
+        ASSERT0(IR_code(ILD_base(LDA_base(rhs))) != IR_ID);
         IR * rm = rhs;
         if (ir->is_st()) {
             ST_rhs(ir) = ILD_base(LDA_base(rhs));
@@ -705,7 +705,7 @@ IR * Region::refineNeg(IR * ir, bool & change)
     bool lchange = false;
     ir = foldConst(ir, lchange);
     change |= lchange;
-    if (!lchange && IR_type(UNA_opnd0(ir)) == IR_NEG) {
+    if (!lchange && IR_code(UNA_opnd0(ir)) == IR_NEG) {
         //-(-x) => x
         IR * tmp = UNA_opnd0(UNA_opnd0(ir));
         UNA_opnd0(UNA_opnd0(ir)) = NULL;
@@ -730,7 +730,7 @@ IR * Region::refineNot(IR * ir, bool & change, RefineCTX & rc)
     if (ir->is_lnot()) {
         IR * op0 = UNA_opnd0(ir);
         bool lchange = false;
-        switch (IR_type(op0)) {
+        switch (IR_code(op0)) {
         case IR_LT:
         case IR_LE:
         case IR_GT:
@@ -781,7 +781,7 @@ IR * Region::refineDiv(IR * ir, bool & change, RefineCTX & rc)
         }
         if ((isPowerOf2(abs((INT)(fp_imm))) || isPowerOf5(fp_imm))) {
             //X/n => X*(1.0/n)
-            IR_type(ir) = IR_MUL;
+            IR_code(ir) = IR_MUL;
             CONST_fp_val(op1) = ((HOST_FP)1.0) / fp_imm;
             change = true;
             return ir;
@@ -792,9 +792,9 @@ IR * Region::refineDiv(IR * ir, bool & change, RefineCTX & rc)
                RC_refine_div_const(rc)) {
         //X/2 => X>>1, arith shift right.
         if (op0->is_sint(dm)) {
-            IR_type(ir) = IR_ASR;
+            IR_code(ir) = IR_ASR;
         } else if (op0->is_uint(dm)) {
-            IR_type(ir) = IR_LSR;
+            IR_code(ir) = IR_LSR;
         } else {
             ASSERT0(0);
         }
@@ -912,7 +912,7 @@ IR * Region::refineMul(IR * ir, bool & change, RefineCTX & rc)
          (op1->is_int(get_dm()) && CONST_int_val(op1) == 2))) {
         //mul X,2.0 => add.fp X,X
         //mul X,2 => add.int X,X
-        IR_type(ir) = IR_ADD;
+        IR_code(ir) = IR_ADD;
         freeIRTree(BIN_opnd1(ir));
         BIN_opnd1(ir) = dupIRTree(BIN_opnd0(ir));
         if (get_du_mgr() != NULL) {
@@ -945,7 +945,7 @@ IR * Region::refineMul(IR * ir, bool & change, RefineCTX & rc)
                    RC_refine_mul_const(rc)) {
             //mul X,4 => lsl X,2, logical shift left.
             CONST_int_val(op1) = getPowerOf2(CONST_int_val(op1));
-            IR_type(ir) = IR_LSL;
+            IR_code(ir) = IR_LSL;
             change = true;
             return ir; //No need for updating DU.
         }
@@ -1146,8 +1146,8 @@ IR * Region::reassociation(IR * ir, bool & change)
 {
     IR * op0 = BIN_opnd0(ir);
     IR * op1 = BIN_opnd1(ir);
-    IR_TYPE opt1 = (IR_TYPE)IR_type(ir);
-    IR_TYPE opt2 = (IR_TYPE)IR_type(op0);
+    IR_TYPE opt1 = ir->get_code();
+    IR_TYPE opt2 = op0->get_code();
 
     //If n1,n2 is int const. OP1((OP2 X,n1), n2) => OP2(X, OP1(n1,n2))
     //where OP1, OP2 must be identical precedence.
@@ -1161,8 +1161,8 @@ IR * Region::reassociation(IR * ir, bool & change)
         ::getArithPrecedence(opt1) == ::getArithPrecedence(opt2)) {
 
         HOST_INT v = calcIntVal(opt1,
-                                    CONST_int_val(BIN_opnd1(op0)),
-                                    CONST_int_val(op1));
+                                CONST_int_val(BIN_opnd1(op0)),
+                                CONST_int_val(op1));
         DATA_TYPE dt =
             ir->is_ptr() ?
                 dm->getPointerSizeDtype():
@@ -1198,7 +1198,7 @@ IR * Region::refineBinaryOp(IR * ir, bool & change, RefineCTX & rc)
             return ir;
         }
     }
-    switch (IR_get_type(ir)) {
+    switch (ir->get_code()) {
     case IR_ADD:
     case IR_MUL:
     case IR_XOR:
@@ -1262,7 +1262,7 @@ IR * Region::refineBinaryOp(IR * ir, bool & change, RefineCTX & rc)
             IR * tmp = BIN_opnd0(ir);
             BIN_opnd0(ir) = BIN_opnd1(ir);
             BIN_opnd1(ir) = tmp;
-            IR_type(ir) = IR_GT;
+            IR_code(ir) = IR_GT;
         }
         break;
     case IR_LE:
@@ -1270,7 +1270,7 @@ IR * Region::refineBinaryOp(IR * ir, bool & change, RefineCTX & rc)
             IR * tmp = BIN_opnd0(ir);
             BIN_opnd0(ir) = BIN_opnd1(ir);
             BIN_opnd1(ir) = tmp;
-            IR_type(ir) = IR_GE;
+            IR_code(ir) = IR_GE;
         }
         break;
     case IR_GT:
@@ -1278,7 +1278,7 @@ IR * Region::refineBinaryOp(IR * ir, bool & change, RefineCTX & rc)
             IR * tmp = BIN_opnd0(ir);
             BIN_opnd0(ir) = BIN_opnd1(ir);
             BIN_opnd1(ir) = tmp;
-            IR_type(ir) = IR_LT;
+            IR_code(ir) = IR_LT;
         }
         break;
     case IR_GE:
@@ -1286,7 +1286,7 @@ IR * Region::refineBinaryOp(IR * ir, bool & change, RefineCTX & rc)
             IR * tmp = BIN_opnd0(ir);
             BIN_opnd0(ir) = BIN_opnd1(ir);
             BIN_opnd1(ir) = tmp;
-            IR_type(ir) = IR_LE;
+            IR_code(ir) = IR_LE;
         }
         break;
     default:
@@ -1377,8 +1377,8 @@ IR * Region::refineArray(IR * ir, bool & change, RefineCTX & rc)
 IR * Region::refineBranch(IR * ir)
 {
     if (ir->is_falsebr() && BR_det(ir)->is_ne()) {
-        IR_type(ir) = IR_TRUEBR;
-        IR_type(BR_det(ir)) = IR_EQ;
+        IR_code(ir) = IR_TRUEBR;
+        IR_code(BR_det(ir)) = IR_EQ;
     }
     return ir;
 }
@@ -1503,7 +1503,7 @@ IR * Region::refineIR(IR * ir, bool & change, RefineCTX & rc)
     if (!g_do_refine) return ir;
     if (ir == NULL) return NULL;
     bool tmpc = false;
-    switch (IR_get_type(ir)) {
+    switch (ir->get_code()) {
     case IR_CONST:
     case IR_ID:
         break;
@@ -1800,7 +1800,7 @@ void Region::insertCvtForBinaryOp(IR * ir, bool & change)
 //Insert CVT if need.
 IR * Region::insertCvt(IR * parent, IR * kid, bool & change)
 {
-    switch (IR_get_type(parent)) {
+    switch (parent->get_code()) {
     case IR_CONST:
     case IR_PR:
     case IR_ID:
@@ -2023,7 +2023,7 @@ IR * Region::foldConstIntBinary(IR * ir, bool & change)
     ASSERT(tylen <= 8, ("TODO"));
     IR * oldir = ir;
     bool lchange = false;
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ADD:
     case IR_SUB:
     case IR_MUL:
@@ -2047,7 +2047,7 @@ IR * Region::foldConstIntBinary(IR * ir, bool & change)
         {
             IR * x = NULL;
             if (ir->is_bool()) {
-                x = buildImmInt(calcIntVal(IR_get_type(ir), v0, v1),
+                x = buildImmInt(calcIntVal(ir->get_code(), v0, v1),
                                 get_dm()->getSimplexTypeEx(D_U32));
             } else if (ir->is_fp(get_dm())) {
                 //The result type of binary operation is
@@ -2057,12 +2057,12 @@ IR * Region::foldConstIntBinary(IR * ir, bool & change)
 
                 x = buildCvt(
                         buildImmInt(
-                            calcIntVal((IR_TYPE)IR_type(ir), v0, v1), ty),
+                            calcIntVal(ir->get_code(), v0, v1), ty),
                         IR_dt(ir));
             } else {
                 ASSERT0(ir->is_int(get_dm()));
                 x = buildImmInt(
-                        calcIntVal((IR_TYPE)IR_type(ir), v0, v1), IR_dt(ir));
+                        calcIntVal(ir->get_code(), v0, v1), IR_dt(ir));
             }
             copyDbx(x, ir, this);
             ir = x;
@@ -2171,7 +2171,7 @@ IR * Region::foldConstFloatBinary(IR * ir, bool & change)
     ASSERT(tylen <= 8, ("TODO"));
     IR * oldir = ir;
     bool lchange = false;
-    switch (IR_get_type(ir)) {
+    switch (ir->get_code()) {
     case IR_ADD:
     case IR_SUB:
     case IR_MUL:
@@ -2182,7 +2182,7 @@ IR * Region::foldConstFloatBinary(IR * ir, bool & change)
     case IR_GE:
     case IR_EQ:
     case IR_NE:
-        ir = buildImmFp(calcFloatVal(IR_get_type(ir), v0, v1),
+        ir = buildImmFp(calcFloatVal(ir->get_code(), v0, v1),
                           IR_dt(ir));
         copyDbx(ir, oldir, this);
         lchange = true;
@@ -2217,7 +2217,7 @@ IR * Region::foldConst(IR * ir, bool & change)
     }
 
     TypeMgr * dm = get_dm();
-    switch (IR_get_type(ir)) {
+    switch (ir->get_code()) {
     case IR_ADD:
     case IR_SUB:
     case IR_MUL:
@@ -2276,7 +2276,7 @@ IR * Region::foldConst(IR * ir, bool & change)
     }
 
     //Logical expression equvialence substitution.
-    switch (IR_get_type(ir)) {
+    switch (ir->get_code()) {
     case IR_LT:
         {
             //LT(UNSIGNED, 0) always be false.
@@ -2428,7 +2428,7 @@ IR * Region::StrengthReduce(IN OUT IR * ir, IN OUT bool & change)
 //User must invoke 'setParentPointer' to maintain the validation of IR tree.
 void Region::invertCondition(IR ** cond)
 {
-    switch (IR_get_type(*cond)) {
+    switch ((*cond)->get_code()) {
     case IR_LAND:
     case IR_LOR:
         {
@@ -2444,22 +2444,22 @@ void Region::invertCondition(IR ** cond)
             break;
         }
     case IR_LT:
-        IR_type(*cond) = IR_GE;
+        IR_code(*cond) = IR_GE;
         break;
     case IR_LE:
-        IR_type(*cond) = IR_GT;
+        IR_code(*cond) = IR_GT;
         break;
     case IR_GT:
-        IR_type(*cond) = IR_LE;
+        IR_code(*cond) = IR_LE;
         break;
     case IR_GE:
-        IR_type(*cond) = IR_LT;
+        IR_code(*cond) = IR_LT;
         break;
     case IR_EQ:
-        IR_type(*cond) = IR_NE;
+        IR_code(*cond) = IR_NE;
         break;
     case IR_NE:
-        IR_type(*cond) = IR_EQ;
+        IR_code(*cond) = IR_EQ;
         break;
     default:
         ASSERT(0, ("TODO"));

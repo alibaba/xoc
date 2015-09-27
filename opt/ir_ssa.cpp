@@ -270,7 +270,7 @@ void SSAGraph::dump(IN CHAR const* name, bool detail)
         lst.clean();
         for (IR const* opnd = iterInitC(def, lst);
              opnd != NULL; opnd = iterNextC(lst)) {
-             if (!def->is_rhs(opnd) || IR_type(opnd) != IR_PR) {
+             if (!def->is_rhs(opnd) || IR_code(opnd) != IR_PR) {
                  continue;
              }
              VP * use_vp = (VP*)PR_ssainfo(opnd);
@@ -422,10 +422,10 @@ void IR_SSA_MGR::dump()
             for (IR const* opnd = iterInitC(ir, lst);
                 opnd != NULL;
                 opnd = iterNextC(lst)) {
-                if (ir->is_rhs(opnd) && IR_type(opnd) == IR_PR) {
+                if (ir->is_rhs(opnd) && IR_code(opnd) == IR_PR) {
                     opnd_lst.append_tail(opnd);
                 }
-                if (IR_type(opnd) == IR_PR) {
+                if (IR_code(opnd) == IR_PR) {
                     find = true;
                 }
             }
@@ -707,7 +707,7 @@ void IR_SSA_MGR::rename_bb(IN IRBB * bb)
 {
      for (IR * ir = BB_first_ir(bb);
          ir != NULL; ir = BB_next_ir(bb)) {
-        if (IR_type(ir) != IR_PHI) {
+        if (IR_code(ir) != IR_PHI) {
             //Rename opnd, not include phi.
             //Walk through rhs expression IR tree to rename IR_PR's VP.
             m_iter.clean();
@@ -831,7 +831,7 @@ void IR_SSA_MGR::handleBBRename(
             C<IR*> * ct;
             for (IR * ir = BB_irlist(succ).get_head(&ct);
                  ir != NULL; ir = BB_irlist(succ).get_next(&ct)) {
-                if (IR_type(ir) != IR_PHI) {
+                if (IR_code(ir) != IR_PHI) {
                     break;
                 }
 
@@ -978,7 +978,7 @@ void IR_SSA_MGR::destructBBSSAInfo(IRBB * bb, IN OUT bool & insert_stmt_after_ca
     for (; ct != BB_irlist(bb).end(); ct = next_ct) {
         next_ct = BB_irlist(bb).get_next(next_ct);
         IR * ir = C_val(ct);
-        if (IR_type(ir) != IR_PHI) {
+        if (IR_code(ir) != IR_PHI) {
             if (insert_stmt_after_call) {
                 continue;
             } else {
@@ -1600,7 +1600,7 @@ static IR * replace_res_pr(
     ASSERT0(newprno > 0);
 
     //Replace stmt PR and DATA_TYPE info.
-    switch (IR_type(stmt)) {
+    switch (IR_code(stmt)) {
     case IR_STPR:
         ASSERT0(STPR_no(stmt) == oldprno);
         STPR_no(stmt) = newprno;

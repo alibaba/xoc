@@ -197,7 +197,7 @@ void IR_CP::replaceExp(IR * exp, IR const* cand_expr,
 
 bool IR_CP::is_copy(IR * ir) const
 {
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ST:
     case IR_STPR:
     case IR_IST:
@@ -280,7 +280,7 @@ bool IR_CP::is_available(IR const* def_ir, IR const* occ, IR * use_ir)
 //CVT with simply cvt-exp is copy-propagate candidate.
 bool IR_CP::is_simp_cvt(IR const* ir) const
 {
-    if (IR_type(ir) != IR_CVT) return false;
+    if (IR_code(ir) != IR_CVT) return false;
 
     for (;;) {
         if (ir->is_cvt()) {
@@ -298,7 +298,7 @@ bool IR_CP::is_simp_cvt(IR const* ir) const
 //Get the value expression that to be propagated.
 inline static IR * get_propagated_value(IR * stmt)
 {
-    switch (IR_type(stmt)) {
+    switch (IR_code(stmt)) {
     case IR_ST: return ST_rhs(stmt);
     case IR_STPR: return STPR_rhs(stmt);
     case IR_IST: return IST_rhs(stmt);

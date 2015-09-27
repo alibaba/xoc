@@ -67,7 +67,7 @@ void IR_GCSE::elimCseAtStore(IR * use, IR * use_stmt, IR * gen)
     ASSERT0(use_stmt->is_st() || use_stmt->is_stpr() || use_stmt->is_ist());
     #ifdef DEBUG_GCSE
     ASSERT0(++g_num_of_elim);
-    ASSERT0(g_elim_irt.append_tail(IR_type(use)));
+    ASSERT0(g_elim_irt.append_tail(IR_code(use)));
     #endif
     ASSERT0(use->is_exp() && gen->is_exp());
     ASSERT0(use_stmt->get_rhs() == use);
@@ -116,7 +116,7 @@ void IR_GCSE::elimCseAtBranch(IR * use, IR * use_stmt, IN IR * gen)
 {
     #ifdef DEBUG_GCSE
     ASSERT0(++g_num_of_elim);
-    ASSERT0(g_elim_irt.append_tail(IR_type(use)));
+    ASSERT0(g_elim_irt.append_tail(IR_code(use)));
     #endif
     ASSERT0(use->is_exp() && gen->is_exp());
 
@@ -175,7 +175,7 @@ void IR_GCSE::elimCseAtCall(IR * use, IR * use_stmt, IR * gen)
 {
     #ifdef DEBUG_GCSE
     ASSERT0(++g_num_of_elim);
-    ASSERT0(g_elim_irt.append_tail(IR_type(use)));
+    ASSERT0(g_elim_irt.append_tail(IR_code(use)));
     #endif
     ASSERT0(use->is_exp() && gen->is_exp() && use_stmt->is_stmt());
 
@@ -292,7 +292,8 @@ void IR_GCSE::prcessCseGen(IN IR * gen, IR * gen_stmt, bool & change)
 
 bool IR_GCSE::isCseCandidate(IR * ir)
 {
-    switch (IR_type(ir)) {
+    ASSERT0(ir);
+    switch (IR_code(ir)) {
     case IR_ADD:
     case IR_SUB:
     case IR_MUL:
@@ -332,7 +333,7 @@ bool IR_GCSE::elim(IR * use, IR * use_stmt, IR * gen, IR * gen_stmt)
          ...=a+b <--use CSE */
     bool change = false;
     prcessCseGen(gen, gen_stmt, change);
-    switch (IR_type(use_stmt)) {
+    switch (IR_code(use_stmt)) {
     case IR_ST:
     case IR_STPR:
     case IR_IST:
@@ -447,8 +448,8 @@ bool IR_GCSE::shouldBeCse(IR * det)
 {
     ASSERT0(det->is_judge());
     //If the det if simply enough, cse is dispensable.
-    if (IR_type(IR_parent(det)) != IR_TRUEBR &&
-        IR_type(IR_parent(det)) != IR_FALSEBR) {
+    if (IR_code(IR_parent(det)) != IR_TRUEBR &&
+        IR_code(IR_parent(det)) != IR_FALSEBR) {
         return true;
     }
     if (!det->is_relation()) {
@@ -458,10 +459,10 @@ bool IR_GCSE::shouldBeCse(IR * det)
 
     IR const* op0 = BIN_opnd0(det);
     IR const* op1 = BIN_opnd1(det);
-    if (IR_type(op0) != IR_PR && IR_type(op0) != IR_CONST) {
+    if (IR_code(op0) != IR_PR && IR_code(op0) != IR_CONST) {
         return true;
     }
-    if (IR_type(op1) != IR_PR && IR_type(op1) != IR_CONST) {
+    if (IR_code(op1) != IR_PR && IR_code(op1) != IR_CONST) {
         return true;
     }
     return false;
@@ -475,7 +476,7 @@ bool IR_GCSE::doPropVN(IRBB * bb, UINT entry_id)
     C<IR*> * ct;
     for (IR * ir = BB_irlist(bb).get_head(&ct);
          ir != NULL; ir = BB_irlist(bb).get_next(&ct)) {
-        switch (IR_type(ir)) {
+        switch (IR_code(ir)) {
         case IR_ST:
         case IR_STPR:
         case IR_IST:
@@ -507,12 +508,15 @@ bool IR_GCSE::doPropVN(IRBB * bb, UINT entry_id)
         case IR_TRUEBR:
         case IR_FALSEBR:
             //Find cse and replace it with properly pr.
+            ASSERT0(BR_det(ir));
             if (isCseCandidate(BR_det(ir)) && shouldBeCse(BR_det(ir))) {
                 handleCandidate(BR_det(ir), bb, entry_id, change);
             }
             break;
         case IR_RETURN:
-            if (isCseCandidate(RET_exp(ir)) && shouldBeCse(RET_exp(ir))) {
+            if (RET_exp(ir) != NULL &&
+                isCseCandidate(RET_exp(ir)) &&
+                shouldBeCse(RET_exp(ir))) {
                 handleCandidate(RET_exp(ir), bb, entry_id, change);
             }
             break;
@@ -540,7 +544,7 @@ bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
     MDSet tmp;
     for (IR * ir = BB_irlist(bb).get_head(&ct);
          ir != NULL; ir = BB_irlist(bb).get_next(&ct)) {
-        switch (IR_type(ir)) {
+        switch (IR_code(ir)) {
         case IR_ST:
             //Find cse and replace it with properly pr.
             if (isCseCandidate(ST_rhs(ir))) {
@@ -610,7 +614,9 @@ bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
             }
             break;
         case IR_RETURN:
-            if (isCseCandidate(RET_exp(ir)) && shouldBeCse(RET_exp(ir))) {
+            if (RET_exp(ir) != NULL &&
+                isCseCandidate(RET_exp(ir)) &&
+                shouldBeCse(RET_exp(ir))) {
                 if (prcessCse(RET_exp(ir), livexp)) {
                     //Has found cse and replaced cse with pr.
                     change = true;
@@ -624,7 +630,7 @@ bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
         }
 
         //Remove may-killed live-expr.
-        switch (IR_type(ir)) {
+        switch (IR_code(ir)) {
         case IR_ST:
         case IR_STPR:
         case IR_IST:
@@ -675,7 +681,7 @@ bool IR_GCSE::perform(OptCTX & oc)
     START_TIMER_AFTER();
     if (m_gvn != NULL) {
         m_ru->checkValidAndRecompute(&oc, PASS_DOM, PASS_PDOM,
-                                        PASS_DU_REF, PASS_DU_CHAIN, PASS_UNDEF);
+                                     PASS_DU_REF, PASS_DU_CHAIN, PASS_UNDEF);
         if (!m_gvn->is_valid()) {
             m_gvn->reperform(oc);
             m_gvn->dump();
@@ -683,7 +689,7 @@ bool IR_GCSE::perform(OptCTX & oc)
         m_expr_tab = NULL;
     } else {
         m_ru->checkValidAndRecompute(&oc, PASS_DOM, PASS_PDOM, PASS_EXPR_TAB,
-                                        PASS_DU_REF, PASS_DU_CHAIN, PASS_UNDEF);
+                                     PASS_DU_REF, PASS_DU_CHAIN, PASS_UNDEF);
         m_expr_tab =
             (IR_EXPR_TAB*)m_ru->get_pass_mgr()->registerPass(PASS_EXPR_TAB);
     }

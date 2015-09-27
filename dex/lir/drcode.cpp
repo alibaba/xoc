@@ -684,6 +684,28 @@ bool aotDrGenCode(
 }
 #endif
 
+//Only used on debug mode and single thread, because the tricky usage
+//might lead to string allocated in this function overrided by other thread.
+CHAR const* debugAssemblyName(DexFile const* df, DexMethod const* dexm)
+{
+    CHAR tmp[256];
+    CHAR * name = NULL;
+    CHAR const* classname = get_class_name(df, dexm);
+    CHAR const* funcname = get_func_name(df, dexm);
+    CHAR const* functype = get_func_type(df, dexm);
+    UINT len = strlen(classname) + strlen(funcname) + strlen(functype) + 10;
+
+    if (len < 256) { name = tmp; }
+    else {
+        name = (CHAR*)ALLOCA(len);
+        ASSERT0(name);
+    }
+
+    //Function string is consist of these.
+    assemblyUniqueName(name, classname, functype, funcname);
+    return name;
+}
+
 bool checkMethodName(DexFile const* df, DexMethod const* dexm)
 {
     CHAR tmp[256];
@@ -722,6 +744,9 @@ bool d2rMethod(
 
     //Only for debug.
     //if (checkMethodName(pDexFile, pDexMethod)) { return true; }
+    #ifdef _DEBUG_
+    CHAR const* namestr = debugAssemblyName(pDexFile, pDexMethod);
+    #endif
 
     drLinearInit();
 
@@ -784,7 +809,8 @@ bool d2rMethod(
             UInt32 width = gDIROpcodeInfo.widths[opcode];
 
             positionMap.posMap[instrCount] = dexOffset;
-            ASSERT0(instrCount < insnum);
+            ASSERT(instrCount < insnum,
+                   ("instrCount overflowed, may be the DEX file is encrypted"));
 
             codePtr += width;
             dexOffset += width;

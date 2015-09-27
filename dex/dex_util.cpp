@@ -1634,18 +1634,19 @@ bool DexCallGraph::is_unimportant(SYM const* sym) const
 {
     return m_unimportant_symtab.find(sym);
 }
-DexRegionMgr::DexRegionMgr()
-{
-    for (UINT i = BLTIN_UNDEF + 1; i < (UINT)BLTIN_LAST; i++) {
-        m_builtin_sym[i] = addToSymbolTab(BLTIN_name((BLTIN_TYPE)i));
-    }
-}
+//END DexCallGraph
+
+
+//
+//START DexRegionMgr
+//
 void DexRegionMgr::processProgramRegion(Region * program)
 {
     ASSERT0(program && program->is_program());
 
     //Function region has been handled. And call list should be available.
     CallGraph * callg = initCallGraph(program, false);
+    //callg->dump_vcg();
 }
 //START DexRegion
 //
@@ -1871,7 +1872,7 @@ void DexRegion::process()
     MiddleProcess(oc);
 
     ASSERT0(get_pass_mgr());
-    IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)get_pass_mgr()->query_opt(PASS_SSA_MGR);
+    IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)passmgr->query_opt(PASS_SSA_MGR);
     if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
         ssamgr->destructionInBBListOrder();
     }

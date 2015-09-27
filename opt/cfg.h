@@ -1236,7 +1236,7 @@ void CFG<BB, XR>::build(OptCTX & oc)
         }
 
         //Check bb boundary
-        if (last->is_calls_stmt()) {
+        if (last->is_call()) {
             //Add fall-through edge
             //The last bb may not be terminated by 'return' stmt.
             if (next != NULL && !next->is_unreachable()) {

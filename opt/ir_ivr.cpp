@@ -41,7 +41,7 @@ namespace xoc {
 //
 bool IR_IVR::computeInitVal(IR const* ir, IV * iv)
 {
-    if (IR_type(ir) != IR_ST && IR_type(ir) != IR_IST) {
+    if (IR_code(ir) != IR_ST && IR_code(ir) != IR_IST) {
         return false;
     }
 
@@ -113,8 +113,8 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
         ASSERT0(bb && m_cfg->get_vertex(BB_id(bb)));
         for (IR * ir = BB_first_ir(bb);
              ir != NULL; ir = BB_next_ir(bb)) {
-            if (IR_type(ir) != IR_ST && IR_type(ir) != IR_IST &&
-                IR_type(ir) != IR_CALL && IR_type(ir) != IR_ICALL) {
+            if (IR_code(ir) != IR_ST && IR_code(ir) != IR_IST &&
+                IR_code(ir) != IR_CALL && IR_code(ir) != IR_ICALL) {
                 continue;
             }
             MD const* exact_md = m_du->get_must_def(ir);
@@ -207,7 +207,7 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
         IV_iv_occ(x) = op0;
         IV_iv_def(x) = def;
         IV_step(x) = CONST_int_val(op1);
-        if (IR_type(stv) == IR_ADD) {
+        if (IR_code(stv) == IR_ADD) {
             IV_is_inc(x) = true;
         } else {
             IV_is_inc(x) = false;
@@ -248,7 +248,7 @@ bool IR_IVR::is_loop_invariant(LI<IRBB> const* li, IR const* ir)
 bool IR_IVR::scanExp(IR const* ir, LI<IRBB> const* li, BitSet const& ivmds)
 {
     ASSERT0(ir->is_exp());
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_CONST:
     case IR_LDA:
         return true;
@@ -331,7 +331,7 @@ void IR_IVR::findDIV(IN LI<IRBB> const* li, IN SList<IV*> const& bivlst,
         ASSERT0(bb && m_cfg->get_vertex(BB_id(bb)));
         for (IR * ir = BB_first_ir(bb);
              ir != NULL; ir = BB_next_ir(bb)) {
-            switch (IR_type(ir)) {
+            switch (IR_code(ir)) {
             case IR_ST:
             case IR_STPR:
             case IR_IST:

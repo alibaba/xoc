@@ -286,7 +286,7 @@ NOTICE:
     High level control flow or similar statements are unacceptable here. */
 bool IR_AA::isValidStmtToAA(IR * ir)
 {
-    switch(IR_type(ir)) {
+    switch(IR_code(ir)) {
     case IR_ST: //store
     case IR_STPR:
     case IR_STARRAY:
@@ -932,7 +932,7 @@ bool IR_AA::evaluateFromLda(IR const* ir)
     ASSERT0(defstmt->is_stpr());
 
     IR const* rhs = STPR_rhs(defstmt);
-    switch (IR_type(rhs)) {
+    switch (IR_code(rhs)) {
     case IR_LDA: return true;
     case IR_PR: return evaluateFromLda(rhs);
     case IR_CVT: return evaluateFromLda(CVT_exp(rhs));
@@ -941,7 +941,7 @@ bool IR_AA::evaluateFromLda(IR const* ir)
 
     IR const* r = rhs;
     for (;;) {
-        switch (IR_type(r)) {
+        switch (IR_code(r)) {
         case IR_ADD:
             {
                 //Check the opnd0 if current expresion is : op0 + imm(0)
@@ -2432,7 +2432,7 @@ void IR_AA::inferExpression(
             IN OUT AACTX * ic,
             IN OUT MD2MDSet * mx)
 {
-    switch (IR_type(expr)) {
+    switch (IR_code(expr)) {
     case IR_ID:
         assignIdMD(expr, &mds, ic);
         return;
@@ -2886,7 +2886,7 @@ void IR_AA::dumpIRPointTo(IN IR * ir, bool dump_kid, IN MD2MDSet * mx)
         dump_ir(ir, m_dm, NULL, false, false);
     }
 
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ID:
     case IR_LD:
     case IR_PR:
@@ -2957,7 +2957,7 @@ void IR_AA::dumpIRPointToForBB(IRBB * bb, bool dump_kid)
 
         ASSERT0(isValidStmtToAA(ir));
 
-        switch (IR_type(ir)) {
+        switch (IR_code(ir)) {
         case IR_ST:
             fprintf(g_tfile, "LHS:");
             dumpIRPointTo(ir, false, mx);
@@ -3304,7 +3304,7 @@ void IR_AA::computeStmt(IRBB const* bb, IN OUT MD2MDSet * mx)
     for (IR * ir = BB_irlist(readonly_bb).get_head(&ct);
          ir != NULL; ir = BB_irlist(readonly_bb).get_next(&ct)) {
         ASSERT0(isValidStmtToAA(ir));
-        switch (IR_type(ir)) {
+        switch (IR_code(ir)) {
         case IR_ST:
             processStore(ir, mx);
             break;
@@ -3376,7 +3376,7 @@ void IR_AA::computeStmt(IRBB const* bb, IN OUT MD2MDSet * mx)
 
 bool IR_AA::verifyIR(IR * ir)
 {
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ID:
     case IR_LD:
     case IR_PR:

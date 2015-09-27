@@ -211,12 +211,12 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
                     PR1 (r:I32:4) id:14 */
             //The first is inoke-flag.
             IR * p = CALL_param_list(ir);
-            ASSERT0(IR_type(p) == IR_CONST);
+            ASSERT0(IR_code(p) == IR_CONST);
             UINT invoke_flags = CONST_int_val(p);
             p = IR_next(p);
 
             //The second is method-id.
-            ASSERT0(p && IR_type(p) == IR_CONST);
+            ASSERT0(p && IR_code(p) == IR_CONST);
             UINT method_id = CONST_int_val(p);
         }
         break;
@@ -228,7 +228,7 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
                     INTCONST r:U32:4 (1 0x1) id:2
                 PR, retv0 */
             ASSERT0(CALL_param_list(ir) &&
-                     IR_type(CALL_param_list(ir)) == IR_CONST);
+                     IR_code(CALL_param_list(ir)) == IR_CONST);
             ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
             ASSERT0(ir->hasReturnValue());
         }
@@ -251,7 +251,7 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
             p = IR_next(p);
 
             //The second is array element type id.
-            ASSERT0(p && IR_type(p) == IR_CONST);
+            ASSERT0(p && IR_code(p) == IR_CONST);
             UINT elem_type_id = CONST_int_val(p);
             ASSERT0(IR_next(p) == NULL);
         }
@@ -288,7 +288,7 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
             p = IR_next(p);
 
             //The second is class type id.
-            ASSERT0(p && IR_type(p) == IR_CONST);
+            ASSERT0(p && IR_code(p) == IR_CONST);
             UINT type_id = CONST_int_val(p);
             ASSERT0(IR_next(p) == NULL);
         }
@@ -310,11 +310,11 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
             IR * p = CALL_param_list(ir);
 
             //The first record invoke flag.
-            ASSERT0(IR_type(p) == IR_CONST);
+            ASSERT0(IR_code(p) == IR_CONST);
             p = IR_next(p);
 
             //The second record class type id.
-            ASSERT0(p && IR_type(p) == IR_CONST);
+            ASSERT0(p && IR_code(p) == IR_CONST);
             p = IR_next(p);
             while (p != NULL) {
                 ASSERT0(p->is_pr());
@@ -339,7 +339,7 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
             p = IR_next(p);
 
             //The second record binary data.
-            ASSERT0(p && IR_type(p) == IR_CONST);
+            ASSERT0(p && IR_code(p) == IR_CONST);
             ASSERT0(IR_next(p) == NULL);
         }
         break;
@@ -355,7 +355,7 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
             */
             ASSERT0(ir->hasReturnValue());
             ASSERT0(CALL_param_list(ir) &&
-                     IR_type(CALL_param_list(ir)) == IR_CONST);
+                     IR_code(CALL_param_list(ir)) == IR_CONST);
             ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
         }
         break;
@@ -393,7 +393,7 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
             p = IR_next(p);
 
             //The second is type-id.
-            ASSERT0(IR_type(p) == IR_CONST);
+            ASSERT0(IR_code(p) == IR_CONST);
             ASSERT0(IR_next(p) == NULL);
 
             //The first is result reg..
@@ -573,7 +573,8 @@ IR * Dex2IR::convertSget(IN LIR * lir)
     rhs = m_ru->buildLoad(v);
     AttachInfo * ai = m_ru->newAI();
 
-    TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(sizeof(TbaaAttachInfo));
+    TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
+                    sizeof(TbaaAttachInfo), m_ru->get_pool());
     tbaa->init(AI_TBAA);
     tbaa->type = mapFieldType2Type(LIR_op0(lir));
     ASSERT0(tbaa->type);
@@ -655,7 +656,8 @@ IR * Dex2IR::convertAput(IN LIR * lir)
 
     //base type info.
     AttachInfo * ai = m_ru->newAI();
-    TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(sizeof(TbaaAttachInfo));
+    TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
+                    sizeof(TbaaAttachInfo), m_ru->get_pool());
     tbaa->init(AI_TBAA);
     tbaa->type = m_tr->array;
     ASSERT0(tbaa->type);
@@ -668,6 +670,7 @@ IR * Dex2IR::convertAput(IN LIR * lir)
     if (m_has_catch) {
         IR * lab = m_ru->buildLabel(m_ru->genIlabel());
         add_next(&c, lab);
+        attachCatchInfo(c);
     }
     return c;
 }
@@ -693,7 +696,8 @@ IR * Dex2IR::convertAget(IN LIR * lir)
 
     //base type info.
     AttachInfo * ai = m_ru->newAI();
-    TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(sizeof(TbaaAttachInfo));
+    TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
+                    sizeof(TbaaAttachInfo), m_ru->get_pool());
     tbaa->init(AI_TBAA);
     tbaa->type = m_tr->array;
     ASSERT0(tbaa->type);
@@ -706,6 +710,7 @@ IR * Dex2IR::convertAget(IN LIR * lir)
     if (m_has_catch) {
         IR * lab = m_ru->buildLabel(m_ru->genIlabel());
         add_next(&c, lab);
+        attachCatchInfo(c);
     }
     return c;
 }
@@ -754,6 +759,7 @@ IR * Dex2IR::convertIput(IN LIR * lir)
     if (m_has_catch) {
         IR * lab = m_ru->buildLabel(m_ru->genIlabel());
         add_next(&c, lab);
+        attachCatchInfo(c);
     }
     return c;
 }
@@ -940,7 +946,8 @@ IR * Dex2IR::convertIget(IN LIR * lir)
     IR_may_throw(c) = true;
 
     AttachInfo * ai = m_ru->newAI();
-    TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(sizeof(TbaaAttachInfo));
+    TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
+                    sizeof(TbaaAttachInfo), m_ru->get_pool());
     tbaa->init(AI_TBAA);
     tbaa->type = m_tr->ptr;
     ASSERT0(tbaa->type);
@@ -953,11 +960,13 @@ IR * Dex2IR::convertIget(IN LIR * lir)
         add_next(&c, lab);
         attachCatchInfo(c);
     }
+
     CHAR const* type_name = get_var_type_name(LIR_op1(lir));
     if (is_array_type(type_name)) {
         //The type of result value of ild is pointer to array type.
         AttachInfo * ai = m_ru->newAI();
-        TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(sizeof(TbaaAttachInfo));
+        TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
+                    sizeof(TbaaAttachInfo), m_ru->get_pool());
         tbaa->init(AI_TBAA);
         tbaa->type = m_tr->array;
         ASSERT0(tbaa->type);
@@ -967,11 +976,13 @@ IR * Dex2IR::convertIget(IN LIR * lir)
     } else if (is_obj_type(type_name)) {
         //The type of result value of ild is pointer to object type.
         AttachInfo * ai = m_ru->newAI();
-        TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(sizeof(TbaaAttachInfo));
+        TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
+                    sizeof(TbaaAttachInfo), m_ru->get_pool());
         tbaa->init(AI_TBAA);
         tbaa->type = m_tr->ptr;
         ASSERT0(tbaa->type);
         ai->set(tbaa);
+        ASSERT0(ild->get_ai() == NULL);
         IR_ai(ild) = ai;
     }
 
@@ -1014,6 +1025,7 @@ IR * Dex2IR::convertBinaryOpAssign(IN LIR * lir)
         if (m_has_catch) {
             IR * lab = m_ru->buildLabel(m_ru->genIlabel());
             add_next(&c, lab);
+            attachCatchInfo(c);
         }
     }
     return c;
@@ -1052,6 +1064,7 @@ IR * Dex2IR::convertBinaryOp(IN LIR * lir)
         if (m_has_catch) {
             IR * lab = m_ru->buildLabel(m_ru->genIlabel());
             add_next(&c, lab);
+            attachCatchInfo(c);
         }
     }
     return c;
@@ -1094,6 +1107,7 @@ IR * Dex2IR::convertBinaryOpLit(IN LIR * lir)
         if (m_has_catch) {
             IR * lab = m_ru->buildLabel(m_ru->genIlabel());
             add_next(&c, lab);
+            attachCatchInfo(c);
         }
     }
     return c;
@@ -1243,6 +1257,7 @@ IR * Dex2IR::convertInvoke(IN LIR * lir)
     IR_may_throw(c) = true;
     CALL_is_readonly(c) = VAR_is_readonly(v);
     IR_has_sideeffect(c) = true;
+    attachCatchInfo(c);
     return c;
 }
 
@@ -1266,12 +1281,13 @@ IR * Dex2IR::convertNewInstance(IN LIR * lir)
     //return_value = new(CLASS-NAME)
     IR * class_type_id = m_ru->buildImmInt(LIR_op0(lir), m_tr->u32);
     IR * c = m_ru->buildCall(v, class_type_id,
-                              genMappedPrno(LIR_res(lir), ty), ty);
+                             genMappedPrno(LIR_res(lir), ty), ty);
     IR_may_throw(c) = true;
     CALL_is_alloc_heap(c) = true;
     CALL_is_readonly(c) = true;
     CALL_is_intrinsic(c) = true;
     IR_has_sideeffect(c) = true;
+    attachCatchInfo(c);
     return c;
 }
 
@@ -1302,6 +1318,7 @@ IR * Dex2IR::convertNewArray(IN LIR * lir)
     CALL_is_readonly(c) = true;
     CALL_is_intrinsic(c) = true;
     IR_has_sideeffect(c) = true;
+    attachCatchInfo(c);
     return c;
 }
 
@@ -1319,7 +1336,43 @@ IR * Dex2IR::convertArrayLength(IN LIR * lir)
     CALL_is_readonly(c) = true;
     CALL_is_intrinsic(c) = true;
     IR_has_sideeffect(c) = false;
+    attachCatchInfo(c);
     return c;
+}
+
+
+void Dex2IR::attachCatchInfo(IR * ir, AttachInfo * ai)
+{
+    if (m_current_catch_list != NULL) {
+        ASSERT0(ai);
+        EHLabelAttachInfo * ehai = (EHLabelAttachInfo*)xmalloc(
+                    sizeof(EHLabelAttachInfo), m_ru->get_pool());
+        ehai->init(m_ru->get_sc_pool());
+        ai->set(ehai);
+        for (CatchInfo * ci = m_current_catch_list;
+             ci != NULL; ci = ci->next) {
+            ehai->get_labels().append_head(ci->catch_start);
+        }
+    }
+}
+
+
+void Dex2IR::attachCatchInfo(IR * ir)
+{
+    if (m_current_catch_list != NULL) {
+        AttachInfo * ai = m_ru->newAI();
+        ASSERT0(ir->get_ai() == NULL);
+        IR_ai(ir) = ai;
+
+        EHLabelAttachInfo * ehai = (EHLabelAttachInfo*)xmalloc(
+                    sizeof(EHLabelAttachInfo), m_ru->get_pool());
+        ehai->init(m_ru->get_sc_pool());
+        ai->set(ehai);
+        for (CatchInfo * ci = m_current_catch_list;
+             ci != NULL; ci = ci->next) {
+            ehai->get_labels().append_head(ci->catch_start);
+        }
+    }
 }
 
 
@@ -1334,6 +1387,7 @@ IR * Dex2IR::convertMonitorExit(IN LIR * lir)
     CALL_is_intrinsic(c) = true;
     IR_has_sideeffect(c) = true;
     CALL_is_readonly(c) = true;
+    attachCatchInfo(c);
     return c;
 }
 
@@ -1349,6 +1403,7 @@ IR * Dex2IR::convertMonitorEnter(IN LIR * lir)
     CALL_is_intrinsic(c) = true;
     IR_has_sideeffect(c) = true;
     CALL_is_readonly(c) = true;
+    attachCatchInfo(c);
     return c;
 }
 
@@ -1428,6 +1483,7 @@ IR * Dex2IR::convertFillArrayData(IN LIR * lir)
     CALL_is_intrinsic(call) = true;
     IR_has_sideeffect(call) = true;
     CALL_is_readonly(call) = true;
+    attachCatchInfo(call);
     return call;
 }
 
@@ -1490,6 +1546,7 @@ IR * Dex2IR::convertInstanceOf(IN LIR * lir)
     CALL_is_readonly(c) = true;
     CALL_is_intrinsic(c) = true;
     IR_has_sideeffect(c) = false;
+    attachCatchInfo(c);
     return c;
 }
 
@@ -1508,6 +1565,7 @@ IR * Dex2IR::convertCheckCast(IN LIR * lir)
     //It throw a ClassCastException if the reference in the given register
     //cannot be cast to the indicated.
     IR_has_sideeffect(c) = true;
+    attachCatchInfo(c);
     return c;
 }
 
@@ -1544,6 +1602,7 @@ IR * Dex2IR::convertFilledNewArray(IN LIR * lir)
     CALL_is_intrinsic(c) = true;
     CALL_is_readonly(c) = true;
     IR_has_sideeffect(c) = true;
+    attachCatchInfo(c);
     return c;
 }
 
@@ -1559,6 +1618,7 @@ IR * Dex2IR::convertThrow(IN LIR * lir)
     CALL_is_intrinsic(c) = true;
     IR_has_sideeffect(c) = true;
     IR_is_termiate(c) = true;
+    attachCatchInfo(c);
     return c;
 }
 
@@ -1575,6 +1635,7 @@ IR * Dex2IR::convertConstClass(IN LIR * lir)
     CALL_is_readonly(c) = true;
     CALL_is_intrinsic(c) = true;
     IR_has_sideeffect(c) = false;
+    attachCatchInfo(c);
     return c;
 }
 
@@ -2232,8 +2293,12 @@ IR * Dex2IR::convert(bool * succ)
         if (dbx != NULL) {
             //Record Debug info.
             for (IR * tmp = newir; tmp != NULL; tmp = IR_next(tmp)) {
-                IR_ai(tmp) = m_ru->newAI();
-                IR_ai(tmp)->set((BaseAttachInfo*)dbx);
+                AttachInfo * ai = IR_ai(tmp);
+                if (ai == NULL) {
+                    ai = m_ru->newAI();
+                    IR_ai(tmp) = ai;
+                }
+                ai->set((BaseAttachInfo*)dbx);
             }
         }
 

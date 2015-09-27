@@ -112,6 +112,19 @@ protected:
     bool m_has_catch; //Set to true if region has catch block.
     List<LabelInfo*> m_last_try_end_lab_list;
 
+    void attachCatchInfo(IR * ir);
+    void attachCatchInfo(IR * ir, AttachInfo * ai);
+
+    void * xmalloc(UINT size, SMemPool * pool)
+    {
+        ASSERT(size > 0, ("xmalloc: size less zero!"));
+        ASSERT(pool, ("need pool!!"));
+        void * p = smpoolMalloc(size, pool);
+        ASSERT0(p);
+        memset(p, 0, size);
+        return p;
+    }
+
     void * xmalloc(INT size)
     {
         ASSERT(size > 0, ("xmalloc: size less zero!"));

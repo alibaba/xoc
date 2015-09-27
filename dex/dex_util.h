@@ -172,11 +172,16 @@ public:
 //
 class DexRegionMgr : public RegionMgr {
 protected:
-    SYM const* m_builtin_sym[BLTIN_LAST];
+    SMemPool * m_pool;
+
+
 public:
-    DexRegionMgr();
+    DexRegionMgr()
+    { m_pool = smpoolCreate(128, MEM_COMM); }
+
     COPY_CONSTRUCTOR(DexRegionMgr);
-    virtual ~DexRegionMgr() {}
+    virtual ~DexRegionMgr() { smpoolDelete(m_pool); }
+
     virtual Region * allocRegion(REGION_TYPE rt)
     { return new DexRegion(rt, this); }
     virtual CallGraph * allocCallGraph(UINT edgenum, UINT vexnum)
@@ -187,11 +192,16 @@ public:
         //The first region should be program-region.
         return get_region(1);
     }
+    SMemPool * get_pool() { return m_pool; }
 
-    SYM const* get_sym(BLTIN_TYPE bt) const
+    DexRegionMgr * self() { return this; }
+
+    void * xmalloc(UINT size)
     {
-        ASSERT0(bt > BLTIN_UNDEF && bt < BLTIN_LAST);
-        return m_builtin_sym[bt];
+        void * p = smpoolMalloc(size, m_pool);
+        ASSERT0(p);
+        memset(p, 0, size);
+        return p;
     }
 
     virtual void processProgramRegion(Region * program);

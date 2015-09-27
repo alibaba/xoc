@@ -34,6 +34,7 @@ author: Su Zhenyu
 #ifndef __TARG_HOOK_H__
 #define __TARG_HOOK_H__
 
+#include "targ_info.h"
 
 #ifdef FOR_X86
 #include "x86/x86.h"
@@ -43,6 +44,7 @@ author: Su Zhenyu
 #include "../pac/pac_util.h"
 #include "../pac/pacir2or.h"
 #include "../pac/pacasmprinter.h"
+#include "../pac/pac_cg.h"
 #include "../pac/pactargmach.h"
 
 #elif defined(FOR_ARM)
@@ -52,8 +54,8 @@ author: Su Zhenyu
 #include "../dex/dex_const_info.h"
 #include "../dex/dex_util.h"
 
-#elif defined(FOR_V8)
-#include "../v8/v8_const_info.h"
+#elif defined(FOR_JS)
+#include "../js/js_const_info.h"
 
 #endif
 

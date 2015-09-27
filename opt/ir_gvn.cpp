@@ -773,7 +773,7 @@ VN * IR_GVN::computeScalar(IR const* exp, bool & change)
         return computeScalarByAnonDomDef(exp, domdef, change);
     }
 
-    switch (IR_type(exp)) {
+    switch (IR_code(exp)) {
     case IR_LD:
         if (domdef->is_stpr() || (LD_idinfo(exp) != ST_idinfo(domdef))) {
             return NULL;
@@ -802,7 +802,7 @@ VN * IR_GVN::computeScalar(IR const* exp, bool & change)
 VN * IR_GVN::computeVN(IR const* exp, bool & change)
 {
     ASSERT0(exp);
-    switch (IR_type(exp)) {
+    switch (IR_code(exp)) {
     case IR_ADD:
     case IR_SUB:
     case IR_MUL:
@@ -833,7 +833,7 @@ VN * IR_GVN::computeVN(IR const* exp, bool & change)
                 }
                 return NULL;
             }
-            VN * x = registerBinVN((IR_TYPE)IR_type(exp), vn1, vn2);
+            VN * x = registerBinVN(exp->get_code(), vn1, vn2);
             if (m_ir2vn.get(IR_id(exp)) != x) {
                 m_ir2vn.set(IR_id(exp), x);
                 change = true;
@@ -853,7 +853,7 @@ VN * IR_GVN::computeVN(IR const* exp, bool & change)
                 }
                 return NULL;
             }
-            x = registerUnaVN((IR_TYPE)IR_type(exp), x);
+            x = registerUnaVN(exp->get_code(), x);
             if (m_ir2vn.get(IR_id(exp)) != x) {
                 m_ir2vn.set(IR_id(exp), x);
                 change = true;
@@ -871,7 +871,7 @@ VN * IR_GVN::computeVN(IR const* exp, bool & change)
                 }
                 return NULL;
             }
-            x = registerUnaVN((IR_TYPE)IR_type(exp), x);
+            x = registerUnaVN(exp->get_code(), x);
             if (m_ir2vn.get(IR_id(exp)) != x) {
                 m_ir2vn.set(IR_id(exp), x);
                 change = true;
@@ -883,7 +883,7 @@ VN * IR_GVN::computeVN(IR const* exp, bool & change)
         {
             IR const* ldabase = LDA_base(exp);
             VN * basevn;
-            if (IR_type(ldabase) == IR_ID) {
+            if (IR_code(ldabase) == IR_ID) {
                 MD const* emd = ldabase->get_exact_ref();
                 if (emd == NULL) {
                     //e.g: p = &"blabla", regard MD of "blabla" as inexact.
@@ -1013,7 +1013,7 @@ void IR_GVN::processBB(IRBB * bb, bool & change)
         IR * ir = ct->val();
         ASSERT0(ir);
 
-        switch (IR_type(ir)) {
+        switch (IR_code(ir)) {
         case IR_ST:
             {
                 VN * x = computeVN(ST_rhs(ir), change);
@@ -1154,7 +1154,7 @@ void IR_GVN::dump_bb_labs(List<LabelInfo*> & lst)
 
 void IR_GVN::dump_h1(IR const* k, VN * x)
 {
-    fprintf(g_tfile, "\n\t%s", IRTNAME(IR_type(k)));
+    fprintf(g_tfile, "\n\t%s", IRTNAME(IR_code(k)));
     if (k->is_pr()) {
         fprintf(g_tfile, "%d", PR_no(k));
     }
@@ -1188,7 +1188,7 @@ void IR_GVN::dump_bb(UINT bbid)
 
         fprintf(g_tfile, " <- {");
 
-        switch (IR_type(ir)) {
+        switch (IR_code(ir)) {
         case IR_ST:
             ii.clean();
             for (IR const* k = iterInitC(ST_rhs(ir), ii);
@@ -1335,7 +1335,7 @@ bool IR_GVN::calcCondMustVal(IN IR const* ir,
     VN const* v2 = m_ir2vn.get(IR_id(BIN_opnd1(ir)));
     if (v1 == NULL || v2 == NULL) { return false; }
 
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_LAND:
     case IR_LOR:
         if (VN_type(v1) == VN_INT && VN_type(v2) == VN_INT) {

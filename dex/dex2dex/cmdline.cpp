@@ -52,9 +52,11 @@ static void usage()
             "\ndexpro Version %s"
             "\nUsage: dexpro [options] your.dex"
             "\nOptions: "
-            "\n  -o <file>       output dex file path"
+            "\n  -o <file>       refer to output dex file path"
+            "\n  -dump <file>    refer to dump file path"
             "\n", g_version);
 }
+
 
 static bool is_dex_source_file(CHAR const* fn)
 {
@@ -68,6 +70,20 @@ static bool is_dex_source_file(CHAR const* fn)
         return true;
     }
     return false;
+}
+
+
+static bool process_dump(UINT argc, CHAR const* argv[], IN OUT UINT & i)
+{
+    CHAR const* dumpfile = NULL;
+    if (i + 1 < argc && argv[i + 1] != NULL) {
+        dumpfile = argv[i + 1];
+    }
+    i += 2;
+    if (dumpfile == NULL) { return false; }
+
+    initdump(dumpfile, false);
+    return true;
 }
 
 
@@ -100,6 +116,11 @@ bool processCommandLine(UINT argc, CHAR const* argv[])
             CHAR const* cmdstr = &argv[i][1];
             if (strcmp(cmdstr, "o") == 0) {
                 if (!process_o(argc, argv, i)) {
+                    usage();
+                    return false;
+                }
+            } else if (strcmp(cmdstr, "dump") == 0) {
+                if (!process_dump(argc, argv, i)) {
                     usage();
                     return false;
                 }

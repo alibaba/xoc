@@ -480,7 +480,7 @@ IR * Region::buildIcall(IR * callee,
     ASSERT0(type);
     ASSERT0(callee);
     IR * ir = newIR(IR_ICALL);
-    ASSERT0(IR_type(callee) != IR_ID);
+    ASSERT0(IR_code(callee) != IR_ID);
     CALL_param_list(ir) = param_list;
     CALL_prno(ir) = result_prno;
     ICALL_callee(ir) = callee;
@@ -531,7 +531,7 @@ IR * Region::buildIgoto(IR * vexp, IR * case_list)
 
     IR * c = case_list;
     while (c != NULL) {
-        ASSERT0(IR_type(c) == IR_CASE);
+        ASSERT0(IR_code(c) == IR_CASE);
         IR_parent(c) = ir;
         c = IR_next(c);
     }
@@ -900,13 +900,13 @@ IR * Region::buildCase(IR * casev_exp, LabelInfo * jump_lab)
 'step': record the stmt that update iv. */
 IR * Region::buildDoLoop(IR * det, IR * init, IR * step, IR * loop_body)
 {
-    ASSERT0(det && (IR_type(det) == IR_LT ||
-                     IR_type(det) == IR_LE ||
-                     IR_type(det) == IR_GT ||
-                     IR_type(det) == IR_GE));
+    ASSERT0(det && (IR_code(det) == IR_LT ||
+                     IR_code(det) == IR_LE ||
+                     IR_code(det) == IR_GT ||
+                     IR_code(det) == IR_GE));
     ASSERT0(init->is_st() || init->is_stpr());
     ASSERT0(step->is_st() || step->is_stpr());
-    ASSERT0(IR_type(step->get_rhs()) == IR_ADD);
+    ASSERT0(IR_code(step->get_rhs()) == IR_ADD);
 
     IR * ir = newIR(IR_DO_LOOP);
     IR_dt(ir) = get_dm()->getVoid();
@@ -1032,7 +1032,7 @@ IR * Region::buildSwitch(IR * vexp, IR * case_list, IR * body,
 
     IR * c = case_list;
     while (c != NULL) {
-        ASSERT0(IR_type(c) == IR_CASE);
+        ASSERT0(IR_code(c) == IR_CASE);
         IR_parent(c) = ir;
         c = IR_next(c);
     }
@@ -1345,7 +1345,7 @@ C<IRBB*> * Region::splitIRlistIntoBB(IR * irs, BBList * bbl, C<IRBB*> * ctbb)
             cfg->add_bb(newbb);
             ctbb = bbl->insert_after(newbb, ctbb);
         } else if (newbb->is_bb_up_boundary(ir)) {
-            ASSERT0(IR_type(ir) == IR_LABEL);
+            ASSERT0(IR_code(ir) == IR_LABEL);
 
             newbb = newBB();
             cfg->add_bb(newbb);
@@ -1430,7 +1430,7 @@ bool Region::reconstructBBlist(OptCTX & oc)
                 ctbb = splitIRlistIntoBB(restirs, bbl, ctbb);
                 break;
             } else if (bb->is_bb_up_boundary(ir)) {
-                ASSERT0(IR_type(ir) == IR_LABEL);
+                ASSERT0(IR_code(ir) == IR_LABEL);
 
                 change = true;
                 BB_is_fallthrough(bb) = true;
@@ -1516,7 +1516,7 @@ void Region::constructIRBBlist()
 
         if (cur_bb->is_bb_down_boundary(cur_ir)) {
             BB_irlist(cur_bb).append_tail(cur_ir);
-            switch (IR_type(cur_ir)) {
+            switch (IR_code(cur_ir)) {
             case IR_CALL:
             case IR_ICALL: //indirective call
             case IR_TRUEBR:
@@ -1542,7 +1542,7 @@ void Region::constructIRBBlist()
             //Generate new BB.
             get_bb_list()->append_tail(cur_bb);
             cur_bb = newBB();
-        } else if (IR_type(cur_ir) == IR_LABEL) {
+        } else if (IR_code(cur_ir) == IR_LABEL) {
             BB_is_fallthrough(cur_bb) = true;
             get_bb_list()->append_tail(cur_bb);
 
@@ -1554,7 +1554,7 @@ void Region::constructIRBBlist()
             for (;;) {
                 cur_bb->addLabel(LAB_lab(cur_ir));
                 freeIR(cur_ir);
-                if (pointer != NULL && IR_type(pointer) == IR_LABEL) {
+                if (pointer != NULL && IR_code(pointer) == IR_LABEL) {
                     cur_ir = pointer;
                     pointer = IR_next(pointer);
                     IR_next(cur_ir) = IR_prev(cur_ir) = NULL;
@@ -1878,7 +1878,7 @@ IR * Region::newIR(IR_TYPE irt)
         REGION_analysis_instrument(this)->m_has_been_freed_irs.diff(IR_id(ir));
         #endif
     }
-    IR_type(ir) = irt;
+    IR_code(ir) = irt;
     return ir;
 }
 
@@ -1962,7 +1962,7 @@ IR * Region::dupIRTree(IR const* ir)
 IR * Region::dupIR(IR const* src)
 {
     if (src == NULL) { return NULL; }
-    IR_TYPE irt = IR_get_type(src);
+    IR_TYPE irt = src->get_code();
     IR * res = newIR(irt);
     ASSERT(res != NULL && src != NULL, ("res/src is NULL"));
 
@@ -2013,7 +2013,7 @@ void Region::scanCallList(OUT List<IR const*> & call_list)
 void Region::prescan(IR const* ir)
 {
     for (; ir != NULL; ir = IR_next(ir)) {
-        switch (IR_type(ir)) {
+        switch (IR_code(ir)) {
         case IR_ST:
             prescan(ST_rhs(ir));
             break;
@@ -2232,7 +2232,7 @@ void Region::dump_all_ir()
         IR * ir = get_ir_vec()->get(i);
         ASSERT0(ir);
         Type const* d = NULL;
-        if (IR_type(ir) != IR_UNDEF) {
+        if (IR_code(ir) != IR_UNDEF) {
             d = IR_dt(ir);
             ASSERT0(d);
             if (d == NULL) {
@@ -2656,7 +2656,7 @@ bool Region::partitionRegion()
     IR * start_pos = NULL;
     IR * end_pos = NULL;
     while (ir != NULL) {
-        if (IR_type(ir) == IR_LABEL) {
+        if (IR_code(ir) == IR_LABEL) {
             LabelInfo * li = LAB_lab(ir);
             if (LABEL_INFO_type(li) == L_CLABEL &&
                 strcmp(SYM_name(LABEL_INFO_name(li)), "REGION_START") == 0) {
@@ -2669,7 +2669,7 @@ bool Region::partitionRegion()
     if (ir == NULL) return false;
     ir = IR_next(ir);
     while (ir != NULL) {
-        if (IR_type(ir) == IR_LABEL) {
+        if (IR_code(ir) == IR_LABEL) {
             LabelInfo * li = LAB_lab(ir);
             if (LABEL_INFO_type(li) == L_CLABEL &&
                 strcmp(SYM_name(LABEL_INFO_name(li)), "REGION_END") == 0) {

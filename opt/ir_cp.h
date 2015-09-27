@@ -117,7 +117,7 @@ public:
         case CP_PROP_CONST:
             return ir->is_lda() || ir->is_const_exp();
         case CP_PROP_SIMPLEX:
-            switch (IR_type(ir)) {
+            switch (IR_code(ir)) {
             case IR_LDA:
             case IR_ID:
             case IR_CONST:
@@ -128,7 +128,7 @@ public:
             }
             UNREACH();
         case CP_PROP_UNARY_AND_SIMPLEX:
-            switch (IR_type(ir)) {
+            switch (IR_code(ir)) {
             case IR_LD:
             case IR_LDA:
             case IR_ID:

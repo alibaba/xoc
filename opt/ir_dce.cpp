@@ -176,7 +176,7 @@ void IR_DCE::mark_effect_ir(IN OUT EFFECT_STMT & is_stmt_effect,
          bb != NULL; bb = bbl->get_next(&ct)) {
         for (IR const* ir = BB_first_ir(bb);
              ir != NULL; ir = BB_next_ir(bb)) {
-            switch (IR_type(ir)) {
+            switch (IR_code(ir)) {
             case IR_RETURN:
                 /* Do NOT set exit-bb to be effect.
                 That will generate redundant control-flow dependence.
@@ -218,7 +218,7 @@ void IR_DCE::mark_effect_ir(IN OUT EFFECT_STMT & is_stmt_effect,
                         work_list.append_tail(ir);
                     }
                 }
-            } //end switch IR_type
+            } //end switch IR_code
         } //end for each IR
     } //end for each IRBB
 }

@@ -187,14 +187,14 @@ INT checkKidNumIRtype(IR const* ir, UINT n, IR_TYPE irty,
     UINT x = IR_MAX_KID_NUM(ir);
     ASSERTL(n < x, filename, line,
             ("%d is beyond maximum IR kids num %d", n, x));
-    ASSERT0(IR_type(ir) == irty);
+    ASSERT0(IR_code(ir) == irty);
     return n;
 }
 
 
 IR const* checkIRT(IR const* ir, IR_TYPE irt)
 {
-    ASSERT(IR_type(ir) == irt, ("current ir is not '%s'", IRTNAME(irt)));
+    ASSERT(IR_code(ir) == irt, ("current ir is not '%s'", IRTNAME(irt)));
     return ir;
 }
 
@@ -319,12 +319,12 @@ bool verifyIRandBB(BBList * bblst, Region const* ru)
             ASSERT0(IR_parent(ir) == NULL);
             ASSERT0(ir->get_bb() == bb);
 
-            if (IR_type(ir) != IR_PHI) {
+            if (IR_code(ir) != IR_PHI) {
                 should_not_phi = true;
             }
 
             if (should_not_phi) {
-                ASSERT0(IR_type(ir) != IR_PHI);
+                ASSERT0(IR_code(ir) != IR_PHI);
             }
 
             verify_irs(ir, &irh, ru);
@@ -504,7 +504,7 @@ void dump_ir(IN IR const* ir,
     }
 
     TypeMgr * xdm = const_cast<TypeMgr*>(dm);
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_ST:
         {
             CHAR tt[40];
@@ -1339,7 +1339,7 @@ bool IR::verify(Region const* ru) const
         }
     }
 
-    switch (IR_type(this)) {
+    switch (IR_code(this)) {
     case IR_UNDEF: ASSERT(0, ("should not be undef")); break;
     case IR_CONST:
         ASSERT0(d);
@@ -1479,7 +1479,7 @@ bool IR::verify(Region const* ru) const
     case IR_LDA:
         ASSERT0(d);
         ASSERT0(TY_dtype(d) != D_UNDEF);
-        ASSERT0(IR_type(LDA_base(this)) == IR_ID ||
+        ASSERT0(IR_code(LDA_base(this)) == IR_ID ||
                  LDA_base(this)->is_str() ||
                  LDA_base(this)->is_lab());
 
@@ -1747,7 +1747,7 @@ bool IR::verifyKids() const
         if (k != NULL) {
             ASSERT0(IR_parent(k) == this);
         }
-        if (!HAVE_FLAG(IRDES_kid_map(g_ir_desc[IR_type(this)]), kidbit)) {
+        if (!HAVE_FLAG(IRDES_kid_map(g_ir_desc[IR_code(this)]), kidbit)) {
             ASSERT(k == NULL,
                     ("IR_%s does not have No.%d kid", IRNAME(this), i));
         } else {
@@ -1755,7 +1755,7 @@ bool IR::verifyKids() const
             /* CASE: Kind of node permit some of their kid to be NULL.
             For now include IR_IF, IR_RETURN, IR_DO_LOOP, etc. */
             if (k == NULL) {
-                switch (IR_type(this)) {
+                switch (IR_code(this)) {
                 case IR_IF:
                 case IR_DO_LOOP:
                 case IR_WHILE_DO:
@@ -1856,9 +1856,9 @@ bool IR::is_ir_equal(IR const* src, bool is_cmp_kid) const
     ASSERT0(src != NULL);
 
     //Compare opcode.
-    if (IR_type(this) != IR_type(src)) { return false; }
+    if (IR_code(this) != IR_code(src)) { return false; }
 
-    switch (IR_type(src)) {
+    switch (IR_code(src)) {
     case IR_CONST: //Constant value: include integer, float, string.
         if (CONST_int_val(this) != CONST_int_val(src)) return false;
         break;
@@ -2054,7 +2054,7 @@ IR * IR::getOpndPR(UINT prno, IRIter & ii)
 IR * IR::getOpndPR(UINT prno)
 {
     IR * pr = NULL;
-    switch (IR_type(this)) {
+    switch (IR_code(this)) {
     case IR_CONST:
     case IR_ID:
     case IR_LD:
@@ -2094,7 +2094,7 @@ IR * IR::getOpndPR(UINT prno)
         if ((pr = CALL_param_list(this)->getOpndPRList(prno)) != NULL) {
             return pr;
         }
-        if (IR_type(this) == IR_ICALL) {
+        if (IR_code(this) == IR_ICALL) {
             return ICALL_callee(this)->getOpndPR(prno);
         }
         return NULL;
@@ -2212,7 +2212,7 @@ IR * IR::getOpndPR(UINT prno)
 //The stmt must write to PR as a result.
 IR * IR::getResultPR(UINT prno)
 {
-    switch (IR_type(this)) {
+    switch (IR_code(this)) {
     case IR_STPR:
         if (STPR_no(this) == prno) { return this; }
         return NULL;
@@ -2323,7 +2323,7 @@ void IR::invertLand(Region * ru)
     //a&&b => !a || !b
     IR * newop0 = ru->buildLogicalNot(BIN_opnd0(this));
     IR * newop1 = ru->buildLogicalNot(BIN_opnd1(this));
-    IR_type(this) = IR_LOR;
+    IR_code(this) = IR_LOR;
 
     BIN_opnd0(this) = newop0;
     BIN_opnd1(this) = newop1;
@@ -2338,7 +2338,7 @@ void IR::invertLor(Region * ru)
     //a||b => !a && !b
     IR * newop0 = ru->buildLogicalNot(BIN_opnd0(this));
     IR * newop1 = ru->buildLogicalNot(BIN_opnd1(this));
-    IR_type(this) = IR_LAND;
+    IR_code(this) = IR_LAND;
 
     BIN_opnd0(this) = newop0;
     BIN_opnd1(this) = newop1;

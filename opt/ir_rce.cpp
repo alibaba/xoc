@@ -64,7 +64,7 @@ IR * IR_RCE::calcCondMustVal(IN IR * ir, OUT bool & must_true,
     must_true = false;
     must_false = false;
     ASSERT0(ir->is_judge());
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_LT:
     case IR_LE:
     case IR_GT:
@@ -233,7 +233,7 @@ bool IR_RCE::performSimplyRCE(IN OUT bool & cfg_mod)
             IR * ir = C_val(ct);
             ir_list->get_next(&next_ct);
             IR * newIR = ir;
-            switch (IR_type(ir)) {
+            switch (IR_code(ir)) {
             case IR_TRUEBR:
             case IR_FALSEBR:
                 newIR = processBranch(ir, cfg_mod);

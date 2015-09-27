@@ -40,7 +40,7 @@ bool Region::is_lowest_heigh_exp(IR const* ir) const
 {
     ASSERT0(ir->is_exp());
     if (ir->is_leaf()) return true;
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_LAND: //logical and &&
     case IR_LOR: //logical or ||
     case IR_LNOT: //logical not
@@ -100,7 +100,7 @@ bool Region::is_lowest_heigh(IR const* ir) const
 {
     ASSERT0(ir);
     ASSERT0(ir->is_stmt());
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_CALL:
     case IR_ICALL:
         for (IR * p = CALL_param_list(ir); p != NULL; p = IR_next(p)) {
@@ -842,9 +842,9 @@ IR * Region::simplifyLogicalDet(IR * ir, SimpCTX * ctx)
         return ret_list;
     } else if (BR_det(ir)->is_lnot()) {
         if (ir->is_truebr()) {
-            IR_type(ir) = IR_FALSEBR;
+            IR_code(ir) = IR_FALSEBR;
         } else {
-            IR_type(ir) = IR_TRUEBR;
+            IR_code(ir) = IR_TRUEBR;
         }
         BR_det(ir) = UNA_opnd0(BR_det(ir));
         if (!BR_det(ir)->is_judge()) {
@@ -873,7 +873,7 @@ IR * Region::simplifyKids(IR * ir, SimpCTX * ctx)
         if (SIMP_to_lowest_heigh(ctx) &&
             !IR_parent(ir)->is_stmt() &&
             !new_kid->is_leaf() &&
-            IR_type(ir) != IR_SELECT) { //select's det must be judge.
+            IR_code(ir) != IR_SELECT) { //select's det must be judge.
 
             IR * pr = buildPR(IR_dt(new_kid));
             allocRefForPR(pr);
@@ -996,7 +996,7 @@ IR * Region::simplifySwitch(IR * ir, SimpCTX * ctx)
 
     IR * vexp_stmt = NULL;
     IR * swt_val = SWITCH_vexp(ir);
-    if (IR_type(swt_val) != IR_PR) {
+    if (IR_code(swt_val) != IR_PR) {
         IR * pr = buildPR(IR_dt(swt_val));
         allocRefForPR(pr);
         vexp_stmt = buildStorePR(PR_no(pr), IR_dt(pr), swt_val);
@@ -1189,7 +1189,7 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCTX * ctx)
                         dm->getPointerType(ir->get_dtype_size(dm)),
                         newbase,
                         ofst_exp);
-    if (SIMP_to_pr_mode(ctx) && IR_type(array_addr) != IR_PR) {
+    if (SIMP_to_pr_mode(ctx) && IR_code(array_addr) != IR_PR) {
         SimpCTX ttcont(*ctx);
         SIMP_ret_array_val(&ttcont) = true;
         array_addr->setParentPointer(true);
@@ -1259,7 +1259,7 @@ IR * Region::simplifyExpression(IR * ir, SimpCTX * ctx)
 
     //ir can not in list, or it may incur illegal result.
     ASSERT0(IR_next(ir) == NULL && IR_prev(ir) == NULL);
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_CONST:
         if (ir->is_str()) {
             SIMP_changed(ctx) = true;
@@ -1383,7 +1383,7 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCTX * ctx)
     if (ir == NULL) return NULL;
     ASSERT0(ir->is_judge());
     ASSERT0(IR_prev(ir) == NULL && IR_next(ir) == NULL);
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_LAND: //logical and &&
     case IR_LOR: //logical or ||
         {
@@ -1434,7 +1434,7 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCTX * ctx)
                 IR * newir = simplifyLogicalNot(ir, &tcont);
                 ASSERT0(newir->is_exp());
                 IR * lst = SIMP_ir_stmt_list(&tcont);
-                ASSERT(IR_type(newir) == IR_PR,
+                ASSERT(IR_code(newir) == IR_PR,
                         ("For now, newir will "
                         "fairly be IR_PR. But it is not "
                         "certain in the future."));
@@ -1586,14 +1586,14 @@ IR * Region::simplifyArray(IR * ir, SimpCTX * ctx)
         return array_addr;
     }
 
-    if (IR_type(array_addr) == IR_ID) {
+    if (IR_code(array_addr) == IR_ID) {
         IR * ld = buildLoad(ID_info(array_addr), IR_dt(array_addr));
         freeIRTree(array_addr);
         return ld;
     }
 
     if (SIMP_to_pr_mode(ctx)) {
-        if (IR_type(array_addr) != IR_PR) {
+        if (IR_code(array_addr) != IR_PR) {
             IR * pr = buildPR(IR_dt(array_addr));
             allocRefForPR(pr);
             IR * st = buildStorePR(PR_no(pr), IR_dt(pr), array_addr);
@@ -1883,7 +1883,7 @@ IR * Region::simplifyStmt(IR * ir, SimpCTX * ctx)
             ("ir should be remove out of list"));
     IR * ret_list = NULL;
     ASSERT(ir->is_stmt(), ("expect statement node"));
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_CALL:
     case IR_ICALL: //indirective call
         ret_list = simplifyCall(ir, ctx);
@@ -1939,10 +1939,10 @@ IR * Region::simplifyStmt(IR * ir, SimpCTX * ctx)
             ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
             SIMP_ret_array_val(&tcont) = true;
             if ((SIMP_logical_or_and(ctx) &&
-                 (IR_type(BR_det(ir)) == IR_LOR ||
-                  IR_type(BR_det(ir)) == IR_LAND)) ||
+                 (IR_code(BR_det(ir)) == IR_LOR ||
+                  IR_code(BR_det(ir)) == IR_LAND)) ||
                 (SIMP_logical_not(ctx) &&
-                 IR_type(BR_det(ir)) == IR_LNOT)) {
+                 IR_code(BR_det(ir)) == IR_LNOT)) {
 
                 ret_list = simplifyLogicalDet(ir, &tcont);
                 ret_list = simplifyStmtList(ret_list, &tcont);

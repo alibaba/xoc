@@ -103,7 +103,7 @@ void copyDbx(IR * tgt, IR const* src, Region * ru)
 }
 
 
-Dbx * get_dbx(IR * ir)
+Dbx * get_dbx(IR const* ir)
 {
     if (IR_ai(ir) == NULL) { return NULL; }
     DbxAttachInfo * da = (DbxAttachInfo*)IR_ai(ir)->get(AI_DBX);

@@ -298,11 +298,11 @@ public:
     TypeIndexRep() { memset(this, 0, sizeof(TypeIndexRep)); }
 };
 
-
 //Perform Dex register allocation.
 extern bool g_do_dex_ra;
 
-
+//Set true to collect debug info.
+extern bool g_collect_debuginfo;
 extern bool g_dump_ir2dex;
 extern bool g_dump_dex2ir;
 extern bool g_dump_classdefs;

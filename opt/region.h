@@ -34,8 +34,6 @@ author: Su Zhenyu
 #ifndef __REGION_H__
 #define __REGION_H__
 
-class TargMach;
-
 namespace xoc {
 class IPA;
 class CfsMgr;
@@ -340,13 +338,14 @@ public:
         #ifdef CONST_IRT_SZ
         return IR_irt_size(ir);
         #else
-        return IRTSIZE(IR_type(ir));
+        return IRTSIZE(IR_code(ir));
         #endif
     }
     SMemPool * get_pool() { return REGION_analysis_instrument(this)->m_pool; }
     MDSystem * get_md_sys() { return get_region_mgr()->get_md_sys(); }
     TypeMgr * get_dm() const { return get_region_mgr()->get_dm(); }
-    TargMach * get_tm() const { return RM_targmach(get_region_mgr()); }
+    TargInfo * get_targ_info() const
+    { return get_region_mgr()->get_targ_info(); }
 
     UINT get_pr_count() const
     { return REGION_analysis_instrument(this)->m_pr_count; }
@@ -363,7 +362,7 @@ public:
     IR * get_ir_list() const
     { return REGION_analysis_instrument(this)->m_ir_list; }
 
-    VarMgr * get_var_mgr() const { return RM_var_mgr(get_region_mgr()); }
+    VarMgr * get_var_mgr() const { return get_region_mgr()->get_var_mgr(); }
 
     VarTab * get_var_tab()
     { return &REGION_analysis_instrument(this)->m_ru_var_tab; }

@@ -63,7 +63,7 @@ IR * Inliner::replaceReturnImpl(
     IR * next = NULL;
     for (IR * x = new_irs; x != NULL; x = next) {
         next = IR_next(x);
-        switch (IR_type(x)) {
+        switch (IR_code(x)) {
         case IR_DO_WHILE:
         case IR_WHILE_DO:
         case IR_DO_LOOP: //loop with init , boundary , and step info
@@ -129,7 +129,7 @@ void Inliner::checkRegion(
     IR const* irs = ru->get_ir_list();
     if (irs == NULL) { return; }
     for (IR const* x = irs; x != NULL; x = IR_next(x)) {
-        switch (IR_type(x)) {
+        switch (IR_code(x)) {
         case IR_DO_WHILE:
         case IR_WHILE_DO:
         case IR_DO_LOOP:

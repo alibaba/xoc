@@ -37,19 +37,17 @@ author: Su Zhenyu
 namespace xoc {
 
 class Region;
-//
-//START Dbx
-//
+
 //Describe debug information.
 #define DBX_lineno(d)            (d)->lineno
 class Dbx {
 public:
     UINT lineno;
 
+public:
     void clean() { lineno = 0; }
     void copy(Dbx const& dbx) { lineno = dbx.lineno; }
 };
-//END Dbx
 
 
 class DbxMgr {
@@ -64,7 +62,7 @@ extern DbxMgr * g_dbg_mgr;
 void copyDbx(IR * tgt, IR const* src, Region * ru);
 void set_lineno(IR * ir, UINT lineno, Region * ru);
 UINT get_lineno(IR const* ir);
-Dbx * get_dbx(IR * ir);
+Dbx * get_dbx(IR const* ir);
 
 } //namespace xoc
 #endif

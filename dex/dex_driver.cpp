@@ -67,7 +67,7 @@ static void add_ret(IR * irs, Region * ru)
 
 
 //Upate try-catch info if any.
-static void updateLIRCode(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
+static void updateLIRCodeOrg(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
 {
     TryInfo * ti = d2ir.getTryInfo();
     Label2UINT * lab2idx = ir2d.get_lab2idx();
@@ -117,6 +117,110 @@ static void updateLIRCode(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
         }
         ASSERT0(i == lircode->triesSize);
     }
+}
+
+
+//Update try-catch info if any.
+static void updateLIRCode(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
+{
+    TryInfo * ti = d2ir.getTryInfo();
+    if (ti == NULL) { return; }
+
+    Label2UINT * lab2idx = ir2d.get_lab2idx();
+    Vector<TryInfo*> tivec;
+
+    //Check if catch blocks has removed, delete the tryinfo.
+    UINT vecidx = 0;
+    for (UINT i = 0; ti != NULL; ti = ti->next, i++) {
+        //Check if try-block is not exist.
+        bool find_start_lab = false;
+        bool find_end_lab = false;
+        lab2idx->get(ti->try_start, &find_start_lab);
+        lab2idx->get(ti->try_end, &find_end_lab);
+        if (!find_start_lab || !find_end_lab) {
+            ASSERT(!(find_start_lab ^ find_end_lab), ("either both or not"));
+            continue; //current try-block has been removed, just neglect it.
+        }
+
+        ASSERT(!(find_start_lab ^ find_end_lab), ("both exist or not"));
+
+        //Check if catch-block is not exist.
+        UINT j = 0;
+        LIROpcodeTry * each_try = &lircode->trys[i];
+
+        bool at_least_one_catch_block = false;
+        for (CatchInfo * ci = ti->catch_list;
+             ci != NULL; ci = ci->next, j++) {
+            ASSERT0(each_try->catches);
+            ASSERT0(j < each_try->catchSize);
+            LIROpcodeCatch * each_catch = &each_try->catches[j];
+
+            bool find;
+            UINT idx = lab2idx->get(ci->catch_start, &find);
+            if (find) {
+                at_least_one_catch_block = true;
+                break;
+            }
+        }
+
+        //The try-block is available for generating.
+        if (at_least_one_catch_block) {
+            tivec.set(vecidx, ti);
+            vecidx++;
+        }
+    }
+
+    //Regenerate try-block and catch-block informations.
+    ASSERT0(lircode->trys);
+    INT i = 0;
+    for (; i <= tivec.get_last_idx(); i++) {
+        TryInfo * ti = tivec[i];
+        ASSERT0(ti);
+
+        bool find;
+        UINT idx = lab2idx->get(ti->try_start, &find);
+        ASSERT0(find);
+        LIROpcodeTry * each_try = &lircode->trys[i];
+        each_try->start_pc = idx;
+
+        idx = lab2idx->get(ti->try_end, &find);
+        ASSERT0(find);
+
+        //The means of value of try_end position is not
+        //same as try start position.
+        //e.g:
+        //    0th: iget
+        //    1th: add
+        //    2th: move
+        //    iget and add belong to try block, and move is not.
+        //    try-start is 0th, try-end is 2th.
+        //    So the last try-end position (if has) without lir
+        //    corresponding to.
+        each_try->end_pc = idx;
+        //ASSERT0(each_try->end_pc > each_try->start_pc);
+
+        ASSERT(each_try->catches, ("miss catch-block field"));
+
+        //Generate catch-block info.
+        UINT j = 0;
+        for (CatchInfo * ci = ti->catch_list; ci != NULL; ci = ci->next) {
+            LIROpcodeCatch * each_catch = &each_try->catches[j];
+
+            UINT idx = lab2idx->get(ci->catch_start, &find);
+            if (find) {
+                each_catch->handler_pc = idx;
+                each_catch->class_type = ci->kind;
+                j++;
+            }
+        }
+
+        if (ti->catch_list != NULL) {
+            ASSERT0(j > 0);
+            each_try->catchSize = j;
+        }
+    }
+
+    lircode->triesSize = i;
 }
 
 
@@ -235,10 +339,11 @@ public:
            UINT n) :
         region(ru),
         offsetvec(off),
+        current_instruction_index(0),
         dbxvec(dv),
         pool(p),
-        lircode_num(n),
-        current_instruction_index(0) { ASSERT0(ru); }
+        lircode_num(n)
+    { ASSERT0(ru); }
 
     DexDbx * newDexDbx()
     {
@@ -331,9 +436,18 @@ static void handleRegion(
         OffsetVec const& offsetvec)
 {
     DbxVec dbxvec(LIRC_num_of_op(lircode));
-    SMemPool * dbxpool = smpoolCreate(sizeof(DexDbx), MEM_CONST_SIZE);
-    parseDebugInfo(func_ru, df, dexcode, dexm, lircode,
-                   offsetvec, dbxpool, dbxvec);
+
+    SMemPool * dbxpool = NULL; //record the all DexDbx data.
+    if (g_collect_debuginfo) {
+        if (g_do_ipa) {
+            dbxpool = ((DexRegionMgr*)func_ru->get_region_mgr())->get_pool();
+        } else {
+            dbxpool = smpoolCreate(sizeof(DexDbx), MEM_COMM);
+        }
+
+        parseDebugInfo(func_ru, df, dexcode, dexm, lircode,
+                       offsetvec, dbxpool, dbxvec);
+    }
 
     TypeIndexRep tr;
     TypeMgr * dm = func_ru->get_dm();
@@ -383,9 +497,11 @@ static void handleRegion(
     #endif
 
     convertIR2LIR(func_ru, df, lircode);
-
 FIN:
-    smpoolDelete(dbxpool);
+    if (dbxpool != NULL && !g_do_ipa) {
+        smpoolDelete(dbxpool); //delete the pool local used.
+    }
+    return;
 }
 
 
@@ -473,14 +589,10 @@ bool compileFunc(
     assemblyUniqueName(runame, classname, functype, funcname);
 
 
-    g_do_ssa = false;
     g_dump_ir2dex = false;
     g_dump_dex2ir = false;
     g_dump_classdefs = false;
     g_dump_lirs = false;
-    g_do_aa = false;
-    g_do_du_ana = false;
-    g_do_dex_ra = false;
 
     g_opt_level = OPT_LEVEL3;
 
@@ -494,14 +606,26 @@ bool compileFunc(
         dump_all_lir(lircode, df, dexm);
     }
 
-    DexRegionMgr * rm = (DexRegionMgr*)rumgr;
-    if (rm == NULL) {
+    DexRegionMgr * rm = NULL;
+    if (g_do_ipa) {
+        ASSERT0(rumgr);
+        rm = (DexRegionMgr*)rumgr;
+    } else {
+        ASSERT0(rumgr == NULL);
         rm = new DexRegionMgr();
         rm->initVarMgr();
     }
 
     //Generate Program region.
     DexRegion * func_ru = (DexRegion*)rm->newRegion(RU_FUNC);
+
+    if (g_do_ipa) {
+        ASSERT0(rumgr);
+        //Allocate string buffer for region name used in ipa.
+        CHAR * globalbuf = (CHAR*)((DexRegionMgr*)rumgr)->xmalloc(len);
+        strcpy(globalbuf, runame);
+        runame = globalbuf;
+    }
 
     func_ru->setDexFile(df);
     func_ru->setDexMethod(dexm);
@@ -517,14 +641,15 @@ bool compileFunc(
     DR_functype(func_ru) = functype;
     handleRegion(func_ru, df, lircode, fupool, dexm, dexcode, offsetvec);
 
-    if (rumgr == NULL) {
-        rm->deleteRegion(func_ru);
-        delete rm;
-    } else {
+    if (g_do_ipa) {
         Region * program = ((DexRegionMgr*)rumgr)->getProgramRegion();
         ASSERT0(program);
         REGION_parent(func_ru) = program;
         program->addToIRList(program->buildRegion(func_ru));
+    } else {
+        ASSERT0(rumgr == NULL);
+        rm->deleteRegion(func_ru);
+        delete rm;
     }
 
     //Convert to DEX code and store it to code buffer.

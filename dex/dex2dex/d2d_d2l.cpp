@@ -366,35 +366,50 @@ static void copyIdItem(DexFile* pDexFile, D2Dpool* pool)
 
     /*string id*/
     copySize = pDexFile->pHeader->stringIdsSize * sizeof(DexStringId);
-    data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->stringIdsOff);
-    ASSERT0(pool->stringIdsOff == (cbsGetSize(pool->lbs)));
-    cbsWrite(pool->lbs, data, copySize);
+    // If id size is zero, do not copy and asset.
+    if (copySize > 0) {
+        data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->stringIdsOff);
+        ASSERT0(pool->stringIdsOff == (cbsGetSize(pool->lbs)));
+        cbsWrite(pool->lbs, data, copySize);
+    }
 
     //typeId
     copySize = pDexFile->pHeader->typeIdsSize * sizeof(DexTypeId);
-    data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->typeIdsOff);
-    ASSERT0(pool->typeIdsOff== (cbsGetSize(pool->lbs)));
-    cbsWrite(pool->lbs, data, copySize);
+    // If id size is zero, do not copy and asset.
+    if (copySize > 0) {
+        data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->typeIdsOff);
+        ASSERT0(pool->typeIdsOff== (cbsGetSize(pool->lbs)));
+        cbsWrite(pool->lbs, data, copySize);
+    }
 
     //protoId
     copySize = pDexFile->pHeader->protoIdsSize * sizeof(DexProtoId);
-    data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->protoIdsOff);
-    ASSERT0(pool->protoIdOff == (cbsGetSize(pool->lbs)));
-    cbsWrite(pool->lbs, data, copySize);
+    // If id size is zero, do not copy and asset.
+    if (copySize > 0) {
+        data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->protoIdsOff);
+        ASSERT0(pool->protoIdOff == (cbsGetSize(pool->lbs)));
+        cbsWrite(pool->lbs, data, copySize);
+    }
 
     //fieldId
     copySize = pDexFile->pHeader->fieldIdsSize * sizeof(DexFieldId);
-    data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->fieldIdsOff);
-    ASSERT0(pool->fieldIdOff == (cbsGetSize(pool->lbs)));
-    cbsWrite(pool->lbs, data, copySize);
+    // If id size is zero, do not copy and asset.
+    if (copySize > 0) {
+        data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->fieldIdsOff);
+        ASSERT0(pool->fieldIdOff == (cbsGetSize(pool->lbs)));
+        cbsWrite(pool->lbs, data, copySize);
+    }
 
     //methodId
     copySize = pDexFile->pHeader->methodIdsSize * sizeof(DexMethodId);
-    data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->methodIdsOff);
-    ASSERT0(pool->methodIdOff == (cbsGetSize(pool->lbs)));
-    cbsWrite(pool->lbs, data, copySize);
+    // If id size is zero, do not copy and asset.
+    if (copySize > 0) {
+        data = (void*)(pDexFile->baseAddr + pDexFile->pHeader->methodIdsOff);
+        ASSERT0(pool->methodIdOff == (cbsGetSize(pool->lbs)));
+        cbsWrite(pool->lbs, data, copySize);
+    }
 
-    /* TODO we do not record the class entry now, but leave space for it*/
+    //TODO we do not record the class entry now, but leave space for it.
     cbsSeek(pool->lbs, pool->currentSize);
 
     pool->dataOff = pool->currentSize;
@@ -773,50 +788,22 @@ static void processClass(DexFile* pDexFile, D2Dpool* pool)
     pool->codeItemOff = pool->currentSize;
     UInt32 size = 0;
 
-    for (UInt32 i = 0; i < clsNumber; i++) {
-        pDexClassDef = dexGetClassDef(pDexFile, i);
-
-        if (pDexClassDef->classDataOff == 0)
-            continue;
-
-        nDexCd.classDataOff = cbsGetSize(pool->classDataCbs);
-        cbsSeek(pool->lbs, pool->classEntryOff + i * sizeof(DexClassDef));
-        cbsWrite(pool->lbs, &nDexCd, sizeof(DexClassDef));
-
-        //printf("%s\n", dexGetClassDescriptor(pDexFile, pDexClassDef));
-
-        convertClassData(pDexFile, pool, pDexClassDef, NULL);
-        size ++;
+    DexRegionMgr * rumgr = NULL;
+    Region * topru = NULL;
+    if (g_do_ipa) {
+          g_do_call_graph = true;
+          g_collect_debuginfo = true;
+          rumgr = new DexRegionMgr();
+          rumgr->initVarMgr();
+          topru = rumgr->newRegion(RU_PROGRAM);
+          rumgr->set_region(topru);
+          topru->set_ru_var(rumgr->get_var_mgr()->registerVar(
+                           ".dex",
+                           rumgr->get_dm()->getMCType(0),
+                           0,
+                           VAR_GLOBAL|VAR_FAKE));
     }
-    pool->updateClassDataSize = 0;
-    if (size == clsNumber) {
-        // if no offset == 0, use clsnumber as class data item's size.
-        pool->updateClassDataSize = size;
-    }
-}
 
-static void analyseClass(DexFile* pDexFile, D2Dpool* pool)
-{
-    const DexClassDef* pDexClassDef;
-    UInt32 clsNumber = pDexFile->pHeader->classDefsSize;
-
-    ASSERT0(pool->currentSize == cbsGetSize(pool->lbs));
-    DexClassDef nDexCd;
-    memset(&nDexCd, 0, sizeof(DexClassDef));
-
-    pool->codeItemOff = pool->currentSize;
-    UInt32 size = 0;
-
-    g_do_call_graph = true;
-    DexRegionMgr * rumgr = new DexRegionMgr();
-    rumgr->initVarMgr();
-    Region * topru = rumgr->newRegion(RU_PROGRAM);
-    rumgr->set_region(topru);
-    topru->set_ru_var(rumgr->get_var_mgr()->registerVar(
-                     ".dex",
-                     rumgr->get_dm()->getMCType(0),
-                     0,
-                     VAR_GLOBAL|VAR_FAKE));
     for (UInt32 i = 0; i < clsNumber; i++) {
         pDexClassDef = dexGetClassDef(pDexFile, i);
 
@@ -831,8 +818,11 @@ static void analyseClass(DexFile* pDexFile, D2Dpool* pool)
         convertClassData(pDexFile, pool, pDexClassDef, rumgr);
         size++;
     }
-    rumgr->processProgramRegion(topru);
-    delete rumgr;
+
+    if (g_do_ipa) {
+        rumgr->processProgramRegion(topru);
+        delete rumgr;
+    }
 
     pool->updateClassDataSize = 0;
     if (size == clsNumber) {
@@ -1120,31 +1110,10 @@ static D2Dpool* doCopyAndFixup(DexFile* pDexFile, char const* dexfilename)
     //copy the item from the map item.
     copyDexMiscData(pDexFile, pool);
 
+    g_do_dex_ra = false;
+
     //transform class and write the code item.
-    #ifdef _VMWARE_DEBUG_
-    if (dexfilename != NULL) {
-        CHAR tmp[100];
-        tmp[0] = 0;
-        CHAR * filename = tmp;
-
-        UINT len = strlen(dexfilename) + 10;
-        if (len >= 100) {
-            filename = (CHAR*)ALLOCA(len);
-            ASSERT0(filename);
-        }
-        sprintf(filename, "%s.log", dexfilename);
-        initdump(filename, true);
-    } else {
-        initdump("dexpro.dump", false);
-    }
-    #endif
-
-    //processClass(pDexFile, pool);
-    analyseClass(pDexFile, pool);
-
-    #ifdef _DEBUG_
-    finidump();
-    #endif
+    processClass(pDexFile, pool);
 
     //copy the annotatais directory item
     //type list info

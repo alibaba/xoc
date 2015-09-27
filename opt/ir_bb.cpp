@@ -54,7 +54,7 @@ UINT IRBB::count_mem() const
 bool IRBB::is_bb_down_boundary(IR * ir)
 {
     ASSERT(ir->isStmtInBB() || ir->is_lab(), ("illegal stmt in bb"));
-    switch (IR_type(ir)) {
+    switch (IR_code(ir)) {
     case IR_CALL:
     case IR_ICALL: //indirective call
         return ((CCall*)ir)->isMustBBbound();
@@ -158,7 +158,7 @@ void IRBB::verify()
          ir != NULL; ir = BB_irlist(this).get_next(&ct)) {
         ASSERT0(IR_next(ir) == NULL && IR_prev(ir) == NULL);
         ASSERT0(ir->get_bb() == this);
-        switch (IR_type(ir)) {
+        switch (IR_code(ir)) {
         case IR_ST:
         case IR_STPR:
         case IR_STARRAY:

@@ -260,7 +260,7 @@ void IR_CFG::findTargetBBOfIndirectBranch(IR * ir, OUT List<IRBB*> & tgtlst)
 {
     ASSERT0(ir->is_indirect_br());
     for (IR * c = IGOTO_case_list(ir); c != NULL; c = IR_next(c)) {
-        ASSERT0(IR_type(c) == IR_CASE);
+        ASSERT0(IR_code(c) == IR_CASE);
         IRBB * bb = m_lab2bb.get(CASE_lab(c));
         ASSERT0(bb); //no bb is correspond to lab.
         tgtlst.append_tail(bb);
@@ -738,7 +738,8 @@ bool IR_CFG::removeRedundantBranch()
 
 void IR_CFG::dump_dot(CHAR const* name, bool detail, bool dump_eh)
 {
-    if (g_tfile == NULL) { return; }
+    //Note this function does not use g_tfile as output.
+    //So it is dispensable to check g_tfile.
     if (name == NULL) {
         name = "graph_cfg.dot";
     }
@@ -859,10 +860,11 @@ void IR_CFG::dump_dot(CHAR const* name, bool detail, bool dump_eh)
 
 void IR_CFG::dump_vcg(CHAR const* name, bool detail, bool dump_eh)
 {
-    if (g_tfile == NULL) { return; }
     if (name == NULL) {
         name = "graph_cfg.vcg";
     }
+    //Note this function does not use g_tfile as output.
+    //So it is dispensable to check g_tfile.
     unlink(name);
     FILE * h = fopen(name, "a+");
     ASSERT(h != NULL, ("%s create failed!!!",name));
