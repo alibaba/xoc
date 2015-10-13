@@ -49,7 +49,7 @@ protected:
     bool hoistLoop(IR ** head, IR * ir);
     bool hoistIf(IR ** head, IR * ir);
 public:
-    IR_CFS_OPT(Region * ru) { m_ru = ru; m_dm = ru->get_dm(); }
+    IR_CFS_OPT(Region * ru) { m_ru = ru; m_dm = ru->get_type_mgr(); }
     ~IR_CFS_OPT() {}
 
     void dump();

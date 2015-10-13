@@ -143,7 +143,7 @@ Type const* TypeMgr::hoistDtypeForBinop(IR const* opnd0, IR const* opnd1)
 
 
 //Hoist DATA_TYPE up to upper bound of given bit length.
-DATA_TYPE TypeMgr::hoistDtype(IN UINT data_size, OUT UINT * hoisted_data_size)
+DATA_TYPE TypeMgr::hoistDtype(UINT data_size, OUT UINT * hoisted_data_size)
 {
     DATA_TYPE dt = D_UNDEF;
     if (data_size > get_dtype_bitsize(D_I128)) {

@@ -164,7 +164,7 @@ public:
         copy(&md);
     }
 
-    inline void copy(IN MD const* md)
+    inline void copy(MD const* md)
     {
         ASSERT0(md && this != md);
         MD_base(this) = MD_base(md);
@@ -964,7 +964,7 @@ public:
     void dumpAllMD();
     void destroy();
 
-    TypeMgr * get_dm() const { return m_dm; }
+    TypeMgr * get_type_mgr() const { return m_dm; }
 
     //Get registered MD.
     //NOTICE: DO NOT free the return value, because it is the registered one.

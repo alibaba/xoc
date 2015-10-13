@@ -52,6 +52,9 @@ author: Su Zhenyu
     //A number of bytes padding added after data member.
     #pragma warning(disable: 4820)
 
+    //Nonstandard extension used : zero-sized array in template SRDescGroup
+    #pragma warning(disable: 4200)
+
     #include "malloc.h"
     #define ALLOCA    _alloca //windows version
     #define SNPRINTF _snprintf //windows version

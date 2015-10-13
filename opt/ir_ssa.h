@@ -184,7 +184,7 @@ public:
         ASSERT0(ru);
         m_ru = ru;
 
-        m_dm = ru->get_dm();
+        m_dm = ru->get_type_mgr();
         ASSERT0(m_dm);
 
         ASSERT0(ru->getMiscBitSetMgr());

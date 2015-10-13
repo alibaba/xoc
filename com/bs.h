@@ -120,6 +120,7 @@ public:
     BitSet * get_subset_in_range(UINT low, UINT high, OUT BitSet & subset);
     INT get_next(UINT elem) const;
     UINT get_byte_size() const { return m_size; }
+    BYTE const* get_byte_vec() const { return m_ptr; }
 
     bool has_elem_in_range(UINT low, UINT high) const;
 
@@ -134,6 +135,45 @@ public:
     bool is_empty() const;
 
     void rev(UINT last_bit_pos);
+};
+
+
+//Read Only BitSet.
+class ROBitSet : public BitSet {
+public:
+    ROBitSet(BYTE const* vec, UINT veclen) : BitSet(0) { init(vec, veclen); }
+    COPY_CONSTRUCTOR(ROBitSet);
+    ~ROBitSet() {}
+
+    void init(BYTE const* vec, UINT veclen)
+    {
+        m_size = veclen;
+        m_ptr = const_cast<BYTE*>(vec);
+    }
+
+    UINT count_mem() const { return get_byte_size(); }
+
+    void dump(CHAR const* name = NULL, bool is_del = false,
+              UINT flag = BS_DUMP_BITSET | BS_DUMP_POS,
+              INT last_pos = -1) const
+    { BitSet::dump(name, is_del, flag, last_pos); }
+
+    void dump(FILE * h, UINT flag, INT last_pos) const
+    { BitSet::dump(h, flag, last_pos); }
+
+    void dump(FILE * h) const { BitSet::dump(h); }
+
+    //The followed interfaces are prohibited to use.
+    void rev(UINT last_bit_pos);
+    void intersect(BitSet const& bs);
+    void diff(UINT elem);
+    void diff(BitSet const& bs);
+    void copy(BitSet const& src);
+    void clean();
+    void complement(IN BitSet const& univers);
+    void alloc(UINT size);
+    void bunion(BitSet const& bs);
+    void bunion(UINT elem);
 };
 
 

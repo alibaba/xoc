@@ -49,11 +49,13 @@ class Inliner {
 protected:
     RegionMgr * m_ru_mgr;
     SMemPool * m_pool;
-    CallGraph * m_callg;
+    CallGraph * m_call_graph;
     Region * m_program;
     TMap<Region*, InlineInfo*> m_ru2inl;
 
-    void checkRegion(IN Region * ru, OUT bool & need_el, OUT bool & has_ret) const;
+    void checkRegion(IN Region * ru,
+                     OUT bool & need_el,
+                     OUT bool & has_ret) const;
 
     void * xmalloc(UINT size)
     {
@@ -84,7 +86,7 @@ public:
         ASSERT0(rumgr && program);
         m_ru_mgr = rumgr;
         m_program = program;
-        m_callg = rumgr->get_callg();
+        m_call_graph = rumgr->get_call_graph();
         m_pool = smpoolCreate(16, MEM_COMM);
     }
     virtual ~Inliner() { smpoolDelete(m_pool); }

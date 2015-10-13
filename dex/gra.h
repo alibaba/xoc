@@ -689,7 +689,7 @@ public:
         ASSERT0(gltm);
         m_gltm = gltm;
         m_ru = gltm->get_ru();
-        m_dm = m_ru->get_dm();
+        m_dm = m_ru->get_type_mgr();
         m_bsm = gltm->get_bs_mgr();
         m_4 = NULL;
         m_8 = NULL;
@@ -887,7 +887,7 @@ public:
         ASSERT0(ru && tr);
         m_ru = ru;
         m_cfg = ru->get_cfg();
-        m_dm = ru->get_dm();
+        m_dm = ru->get_type_mgr();
         m_tr = tr;
         m_param_num = param_num;
         m_vregnum = vregnum;

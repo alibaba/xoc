@@ -319,12 +319,12 @@ bool verifyIRandBB(BBList * bblst, Region const* ru)
             ASSERT0(IR_parent(ir) == NULL);
             ASSERT0(ir->get_bb() == bb);
 
-            if (IR_code(ir) != IR_PHI) {
+            if (!ir->is_phi()) {
                 should_not_phi = true;
             }
 
             if (should_not_phi) {
-                ASSERT0(IR_code(ir) != IR_PHI);
+                ASSERT0(!ir->is_phi());
             }
 
             verify_irs(ir, &irh, ru);
@@ -405,13 +405,11 @@ void dump_irs(IRList & ir_list, TypeMgr const* dm)
 
 static void ir_dump_lab(IR const* ir)
 {
-    LabelInfo * li = ir->get_label();
+    LabelInfo const* li = ir->get_label();
     if (LABEL_INFO_type(li) == L_ILABEL) {
-        fprintf(g_tfile, "ilabel(" ILABEL_STR_FORMAT ")",
-                         ILABEL_CONT(li));
+        fprintf(g_tfile, "ilabel(" ILABEL_STR_FORMAT ")", ILABEL_CONT(li));
     } else if (LABEL_INFO_type(li) == L_CLABEL) {
-        fprintf(g_tfile, "clabel(" CLABEL_STR_FORMAT ")",
-                         CLABEL_CONT(li));
+        fprintf(g_tfile, "clabel(" CLABEL_STR_FORMAT ")", CLABEL_CONT(li));
     } else {
         ASSERT(0, ("unknown label type"));
     }
@@ -441,7 +439,7 @@ static void dump_ai(OUT CHAR * buf, IR const* ir)
 
 //Dump IR and all of its kids.
 //'attr': miscellaneous string which following 'ir'.
-void dump_ir(IN IR const* ir,
+void dump_ir(IR const* ir,
              TypeMgr const* dm,
              IN CHAR * attr,
              bool dump_kid,
@@ -537,7 +535,7 @@ void dump_ir(IN IR const* ir,
         }
         break;
     case IR_STPR:
-        note("\nst:%s $pr%d", xdm->dump_type(d, buf), STPR_no(ir));
+        note("\nstpr:%s $pr%d", xdm->dump_type(d, buf), STPR_no(ir));
         PADDR(ir);
         fprintf(g_tfile, "%s", attr);
 
@@ -901,7 +899,7 @@ void dump_ir(IN IR const* ir,
         break;
     case IR_LABEL:
         {
-            LabelInfo * li = LAB_lab(ir);
+            LabelInfo const* li = LAB_lab(ir);
             if (LABEL_INFO_type(li) == L_ILABEL) {
                 note("\nilabel(" ILABEL_STR_FORMAT ")",
                      ILABEL_CONT(LAB_lab(ir)));
@@ -911,25 +909,33 @@ void dump_ir(IN IR const* ir,
             } else if (LABEL_INFO_type(li) == L_PRAGMA) {
                 note("\npragms(%s)", SYM_name(LABEL_INFO_pragma(LAB_lab(ir))));
             } else { ASSERT0(0); }
+
             PADDR(ir);
+
             if (LABEL_INFO_b1(li) != 0) {
                 fprintf(g_tfile, "(");
             }
+
             if (LABEL_INFO_is_try_start(li)) {
                 fprintf(g_tfile, "try_start ");
             }
+
             if (LABEL_INFO_is_try_end(li)) {
                 fprintf(g_tfile, "try_end ");
             }
+
             if (LABEL_INFO_is_catch_start(li)) {
                 fprintf(g_tfile, "catch_start ");
             }
+
             if (LABEL_INFO_is_used(li)) {
                 fprintf(g_tfile, "used ");
             }
+
             if (LABEL_INFO_b1(li) != 0) {
                 fprintf(g_tfile, ")");
             }
+
             fprintf(g_tfile, "%s", attr);
         }
         break;
@@ -1304,7 +1310,7 @@ bool IR::verify(Region const* ru) const
 {
     verifyKids();
 
-    TypeMgr const* dm = ru->get_dm();
+    TypeMgr const* dm = ru->get_type_mgr();
     ASSERT0(dm);
 
     Type const* d = IR_dt(this);
@@ -1479,14 +1485,13 @@ bool IR::verify(Region const* ru) const
     case IR_LDA:
         ASSERT0(d);
         ASSERT0(TY_dtype(d) != D_UNDEF);
-        ASSERT0(IR_code(LDA_base(this)) == IR_ID ||
-                 LDA_base(this)->is_str() ||
-                 LDA_base(this)->is_lab());
+        ASSERT0(LDA_base(this)->is_id() ||
+                LDA_base(this)->is_str() ||
+                LDA_base(this)->is_lab());
 
         ASSERT0(d->is_pointer());
-
         ASSERT0(IR_next(LDA_base(this)) == NULL &&
-                 IR_prev(LDA_base(this)) == NULL);
+                IR_prev(LDA_base(this)) == NULL);
         break;
     case IR_CALL:
         ASSERT0(CALL_idinfo(this));
@@ -2094,7 +2099,7 @@ IR * IR::getOpndPR(UINT prno)
         if ((pr = CALL_param_list(this)->getOpndPRList(prno)) != NULL) {
             return pr;
         }
-        if (IR_code(this) == IR_ICALL) {
+        if (is_icall()) {
             return ICALL_callee(this)->getOpndPR(prno);
         }
         return NULL;

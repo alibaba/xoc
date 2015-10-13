@@ -41,7 +41,7 @@ VarMgr::VarMgr(RegionMgr * rm)
     m_var_count = 1; //for enjoying bitset util
     m_str_count = 1;
     m_ru_mgr = rm;
-    m_dm = rm->get_dm();
+    m_dm = rm->get_type_mgr();
 }
 
 
@@ -59,7 +59,7 @@ VAR::VAR()
 }
 
 
-void VAR::dump(FILE * h, TypeMgr * dm)
+void VAR::dump(FILE * h, TypeMgr const* dm)
 {
     CHAR buf[MAX_BUF_LEN];
     buf[0] = 0;
@@ -72,7 +72,7 @@ void VAR::dump(FILE * h, TypeMgr * dm)
 }
 
 
-CHAR * VAR::dump(CHAR * buf, TypeMgr * dm)
+CHAR * VAR::dump(CHAR * buf, TypeMgr const* dm)
 {
     CHAR * tb = buf;
     CHAR * name = SYM_name(VAR_name(this));
@@ -277,7 +277,7 @@ VAR * VarMgr::registerStringVar(CHAR const* var_name, SYM * s, UINT align)
 
     CHAR buf[64];
     if (var_name == NULL) {
-        sprintf(buf, ".rodata_%zu", m_str_count++);
+        sprintf(buf, ".rodata_%lu", (ULONG)m_str_count++);
         VAR_name(v) = m_ru_mgr->addToSymbolTab(buf);
     } else {
         VAR_name(v) = m_ru_mgr->addToSymbolTab(var_name);

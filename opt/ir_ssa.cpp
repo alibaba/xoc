@@ -236,7 +236,7 @@ void SSAGraph::dump(IN CHAR const* name, bool detail)
     old = g_tfile;
     g_tfile = h;
     List<IR const*> lst;
-    TypeMgr * dm = m_ru->get_dm();
+    TypeMgr * dm = m_ru->get_type_mgr();
     INT c;
     for (Vertex * v = m_vertices.get_first(c);
          v != NULL; v = m_vertices.get_next(c)) {
@@ -270,11 +270,11 @@ void SSAGraph::dump(IN CHAR const* name, bool detail)
         lst.clean();
         for (IR const* opnd = iterInitC(def, lst);
              opnd != NULL; opnd = iterNextC(lst)) {
-             if (!def->is_rhs(opnd) || IR_code(opnd) != IR_PR) {
+             if (!def->is_rhs(opnd) || !opnd->is_pr()) {
                  continue;
              }
              VP * use_vp = (VP*)PR_ssainfo(opnd);
-             fprintf(h, "P%dV%d, ", VP_prno(use_vp), VP_ver(use_vp));
+             fprintf(h, "pr%dv%d, ", VP_prno(use_vp), VP_ver(use_vp));
         }
         if (detail) {
             //TODO: implement dump_ir_buf();
@@ -422,10 +422,10 @@ void IR_SSA_MGR::dump()
             for (IR const* opnd = iterInitC(ir, lst);
                 opnd != NULL;
                 opnd = iterNextC(lst)) {
-                if (ir->is_rhs(opnd) && IR_code(opnd) == IR_PR) {
+                if (ir->is_rhs(opnd) && opnd->is_pr()) {
                     opnd_lst.append_tail(opnd);
                 }
-                if (IR_code(opnd) == IR_PR) {
+                if (opnd->is_pr()) {
                     find = true;
                 }
             }
@@ -707,7 +707,7 @@ void IR_SSA_MGR::rename_bb(IN IRBB * bb)
 {
      for (IR * ir = BB_first_ir(bb);
          ir != NULL; ir = BB_next_ir(bb)) {
-        if (IR_code(ir) != IR_PHI) {
+        if (!ir->is_phi()) {
             //Rename opnd, not include phi.
             //Walk through rhs expression IR tree to rename IR_PR's VP.
             m_iter.clean();
@@ -831,7 +831,7 @@ void IR_SSA_MGR::handleBBRename(
             C<IR*> * ct;
             for (IR * ir = BB_irlist(succ).get_head(&ct);
                  ir != NULL; ir = BB_irlist(succ).get_next(&ct)) {
-                if (IR_code(ir) != IR_PHI) {
+                if (!ir->is_phi()) {
                     break;
                 }
 
@@ -978,7 +978,7 @@ void IR_SSA_MGR::destructBBSSAInfo(IRBB * bb, IN OUT bool & insert_stmt_after_ca
     for (; ct != BB_irlist(bb).end(); ct = next_ct) {
         next_ct = BB_irlist(bb).get_next(next_ct);
         IR * ir = C_val(ct);
-        if (IR_code(ir) != IR_PHI) {
+        if (!ir->is_phi()) {
             if (insert_stmt_after_call) {
                 continue;
             } else {

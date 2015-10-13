@@ -211,12 +211,12 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
                     PR1 (r:I32:4) id:14 */
             //The first is inoke-flag.
             IR * p = CALL_param_list(ir);
-            ASSERT0(IR_code(p) == IR_CONST);
+            ASSERT0(p->is_const());
             UINT invoke_flags = CONST_int_val(p);
             p = IR_next(p);
 
             //The second is method-id.
-            ASSERT0(p && IR_code(p) == IR_CONST);
+            ASSERT0(p && p->is_const());
             UINT method_id = CONST_int_val(p);
         }
         break;
@@ -227,8 +227,7 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
                 PARAM param0 id:3
                     INTCONST r:U32:4 (1 0x1) id:2
                 PR, retv0 */
-            ASSERT0(CALL_param_list(ir) &&
-                     IR_code(CALL_param_list(ir)) == IR_CONST);
+            ASSERT0(CALL_param_list(ir) && CALL_param_list(ir)->is_const());
             ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
             ASSERT0(ir->hasReturnValue());
         }
@@ -251,7 +250,7 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
             p = IR_next(p);
 
             //The second is array element type id.
-            ASSERT0(p && IR_code(p) == IR_CONST);
+            ASSERT0(p && p->is_const());
             UINT elem_type_id = CONST_int_val(p);
             ASSERT0(IR_next(p) == NULL);
         }
@@ -288,7 +287,7 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
             p = IR_next(p);
 
             //The second is class type id.
-            ASSERT0(p && IR_code(p) == IR_CONST);
+            ASSERT0(p && p->is_const());
             UINT type_id = CONST_int_val(p);
             ASSERT0(IR_next(p) == NULL);
         }
@@ -310,11 +309,11 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
             IR * p = CALL_param_list(ir);
 
             //The first record invoke flag.
-            ASSERT0(IR_code(p) == IR_CONST);
+            ASSERT0(p->is_const());
             p = IR_next(p);
 
             //The second record class type id.
-            ASSERT0(p && IR_code(p) == IR_CONST);
+            ASSERT0(p && p->is_const());
             p = IR_next(p);
             while (p != NULL) {
                 ASSERT0(p->is_pr());
@@ -339,7 +338,7 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
             p = IR_next(p);
 
             //The second record binary data.
-            ASSERT0(p && IR_code(p) == IR_CONST);
+            ASSERT0(p && p->is_const());
             ASSERT0(IR_next(p) == NULL);
         }
         break;
@@ -354,8 +353,7 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
                     INTCONST r:I32:4 (2 0x2) id:92
             */
             ASSERT0(ir->hasReturnValue());
-            ASSERT0(CALL_param_list(ir) &&
-                     IR_code(CALL_param_list(ir)) == IR_CONST);
+            ASSERT0(CALL_param_list(ir) && CALL_param_list(ir)->is_const());
             ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
         }
         break;
@@ -393,7 +391,7 @@ bool Dex2IR::is_builtin(IR const* ir, BLTIN_TYPE bt)
             p = IR_next(p);
 
             //The second is type-id.
-            ASSERT0(IR_code(p) == IR_CONST);
+            ASSERT0(p->is_const());
             ASSERT0(IR_next(p) == NULL);
 
             //The first is result reg..
@@ -2243,6 +2241,7 @@ IR * Dex2IR::convert(bool * succ)
         start = ti->try_start_pos;
         end = ti->try_end_pos - 1;
     }
+
     for (INT i = 0; i < LIRC_num_of_op(m_lircode); i++) {
         LIR * lir = LIRC_op(m_lircode, i);
 
@@ -2267,6 +2266,7 @@ IR * Dex2IR::convert(bool * succ)
                 add_next(&ir_list, &last, m_ru->buildLabel(l));
             }
         }
+
         if (i > end && ti != NULL) {
             ti = ti->next;
             if (ti != NULL) {

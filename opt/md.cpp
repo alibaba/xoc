@@ -297,7 +297,7 @@ void MDSet::dump(MDSystem * ms, bool detail) const
         SEGIter * iter;
         for (INT i = get_first(&iter); i != -1; i = get_next(i, &iter)) {
             MD const* md = ms->get_md(i);
-            md->dump(ms->get_dm());
+            md->dump(ms->get_type_mgr());
         }
     }
     fflush(g_tfile);
@@ -469,7 +469,7 @@ void MD2MDSet::dump(Region * ru)
         ASSERT0(md);
 
         buf[0] = 0;
-        fprintf(g_tfile, "\n\t%s", md->dump(buf, MAX_BUF_LEN, ru->get_dm()));
+        fprintf(g_tfile, "\n\t%s", md->dump(buf, MAX_BUF_LEN, ru->get_type_mgr()));
 
         //Dumps MDSet related to 'md'.
 
@@ -482,7 +482,7 @@ void MD2MDSet::dump(Region * ru)
             ASSERT0(mmd);
             buf[0] = 0;
             fprintf(g_tfile, "\t\t\t%s\n",
-                    mmd->dump(buf, MAX_BUF_LEN, ru->get_dm()));
+                    mmd->dump(buf, MAX_BUF_LEN, ru->get_type_mgr()));
         }
     }
 
@@ -499,7 +499,7 @@ void MD2MDSet::dump(Region * ru)
 
         buf[0] = 0;
 
-        fprintf(g_tfile, "\n\t%s", v->dump(buf, ru->get_dm()));
+        fprintf(g_tfile, "\n\t%s", v->dump(buf, ru->get_type_mgr()));
 
         if (mdtab && mdtab->get_elem_count() > 0) {
             mdv.clean();
@@ -510,7 +510,7 @@ void MD2MDSet::dump(Region * ru)
                 MD const* md = mdv.get(i);
                 buf[0] = 0;
                 fprintf(g_tfile, "\n\t\t%s",
-                        md->dump(buf, MAX_BUF_LEN, ru->get_dm()));
+                        md->dump(buf, MAX_BUF_LEN, ru->get_type_mgr()));
             }
         } //end if
     } //end for
@@ -616,7 +616,7 @@ void MDSystem::initGlobalMemMD(VarMgr * vm)
 
     m_global_mem = vm->registerVar(
                         (CHAR*)".global_mem",
-                        get_dm()->getMCType(0),
+                        get_type_mgr()->getMCType(0),
                         1, VAR_GLOBAL|VAR_FAKE);
     VAR_allocable(m_global_mem) = false;
 
@@ -640,7 +640,7 @@ void MDSystem::initAllMemMD(VarMgr * vm)
 
     m_all_mem = vm->registerVar(
                     (CHAR*)".all_mem",
-                    get_dm()->getMCType(0),
+                    get_type_mgr()->getMCType(0),
                     1,
                     VAR_GLOBAL|VAR_FAKE);
     VAR_allocable(m_all_mem) = false;
@@ -667,7 +667,7 @@ void MDSystem::init(VarMgr * vm)
     m_free_md_list.set_pool(m_sc_mdptr_pool);
     m_free_mdid_list.set_pool(m_sc_mdid_pool);
     m_md_count = 1;
-    m_dm = vm->get_dm();
+    m_dm = vm->get_type_mgr();
     ASSERT0(m_dm);
     initAllMemMD(vm);
     initGlobalMemMD(vm);
@@ -879,7 +879,7 @@ void MDSystem::dumpAllMD()
         MD * md = m_id2md_map.get(i);
         if (md == NULL) { continue; }
         ASSERT0(MD_id(md) == (UINT)i);
-        md->dump(get_dm());
+        md->dump(get_type_mgr());
         fflush(g_tfile);
     }
 }

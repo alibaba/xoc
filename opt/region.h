@@ -236,28 +236,34 @@ public:
 
     IR * buildContinue();
     IR * buildBreak();
-    IR * buildCase(IR * casev_exp, LabelInfo * case_br_lab);
+    IR * buildCase(IR * casev_exp, LabelInfo const* case_br_lab);
     IR * buildDoLoop(IR * det, IR * init, IR * step, IR * loop_body);
     IR * buildDoWhile(IR * det, IR * loop_body);
     IR * buildWhileDo(IR * det, IR * loop_body);
     IR * buildIf(IR * det, IR * true_body, IR * false_body);
-    IR * buildSwitch(IR * vexp, IR * case_list, IR * body,
-                     LabelInfo * default_lab);
+    IR * buildSwitch(
+            IR * vexp,
+            IR * case_list,
+            IR * body,
+            LabelInfo const* default_lab);
     IR * buildPRdedicated(UINT prno, Type const* type);
     IR * buildPR(Type const* type);
     UINT buildPrno(Type const* type);
-    IR * buildBranch(bool is_true_br, IR * det, LabelInfo * lab);
+    IR * buildBranch(bool is_true_br, IR * det, LabelInfo const* lab);
     IR * buildId(IN VAR * var_info);
     IR * buildIlabel();
-    IR * buildLabel(LabelInfo * li);
+    IR * buildLabel(LabelInfo const* li);
     IR * buildCvt(IR * exp, Type const* tgt_ty);
-    IR * buildGoto(LabelInfo * li);
+    IR * buildGoto(LabelInfo const* li);
     IR * buildIgoto(IR * vexp, IR * case_list);
     IR * buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild);
     IR * buildCmp(IR_TYPE irt, IR * lchild, IR * rchild);
     IR * buildJudge(IR * exp);
-    IR * buildBinaryOpSimp(IR_TYPE irt, Type const* type,
-                           IR * lchild, IR * rchild);
+    IR * buildBinaryOpSimp(
+            IR_TYPE irt,
+            Type const* type,
+            IR * lchild,
+            IR * rchild);
     IR * buildBinaryOp(IR_TYPE irt, Type const* type,
                        IN IR * lchild, IN IR * rchild);
     IR * buildUnaryOp(IR_TYPE irt, Type const* type, IN IR * opnd);
@@ -297,11 +303,16 @@ public:
     IR * buildSelect(IR * det, IR * true_exp, IR * false_exp, Type const* type);
     IR * buildPhi(UINT prno, Type const* type, UINT num_opnd);
     IR * buildRegion(Region * ru);
-    IR * buildIcall(IR * callee, IR * param_list,
-                    UINT result_prno = 0, Type const* type = NULL);
-    IR * buildCall(VAR * callee, IR * param_list,
-                   UINT result_prno = 0, Type const* type = NULL);
-
+    IR * buildIcall(
+            IR * callee,
+            IR * param_list,
+            UINT result_prno = 0,
+            Type const* type = NULL);
+    IR * buildCall(
+            VAR * callee,
+            IR * param_list,
+            UINT result_prno = 0,
+            Type const* type = NULL);
     IR * constructIRlist(bool clean_ir_list);
     void constructIRBBlist();
     HOST_INT calcIntVal(IR_TYPE ty, HOST_INT v0, HOST_INT v1);
@@ -343,7 +354,7 @@ public:
     }
     SMemPool * get_pool() { return REGION_analysis_instrument(this)->m_pool; }
     MDSystem * get_md_sys() { return get_region_mgr()->get_md_sys(); }
-    TypeMgr * get_dm() const { return get_region_mgr()->get_dm(); }
+    TypeMgr * get_type_mgr() const { return get_region_mgr()->get_type_mgr(); }
     TargInfo * get_targ_info() const
     { return get_region_mgr()->get_targ_info(); }
 
@@ -405,23 +416,20 @@ public:
     IR_CFG * get_cfg() const
     {
         return get_pass_mgr() != NULL ?
-                (IR_CFG*)get_pass_mgr()->query_opt(PASS_CFG) :
-                NULL;
+                   (IR_CFG*)get_pass_mgr()->query_opt(PASS_CFG) : NULL;
     }
 
     IR_AA * get_aa() const
     {
         return get_pass_mgr() != NULL ?
-                (IR_AA*)get_pass_mgr()->query_opt(PASS_AA) :
-                NULL;
+                (IR_AA*)get_pass_mgr()->query_opt(PASS_AA) : NULL;
     }
 
     //Return DU info manager.
     IR_DU_MGR * get_du_mgr() const
     {
         return get_pass_mgr() != NULL ?
-                (IR_DU_MGR*)get_pass_mgr()->query_opt(PASS_DU_MGR) :
-                NULL;
+                (IR_DU_MGR*)get_pass_mgr()->query_opt(PASS_DU_MGR) : NULL;
     }
 
     CHAR const* get_ru_name() const;
@@ -432,7 +440,8 @@ public:
     inline List<IR const*> * get_call_list()
     {
         if (REGION_analysis_instrument(this)->m_call_list == NULL) {
-            REGION_analysis_instrument(this)->m_call_list = new List<IR const*>();
+            REGION_analysis_instrument(this)->m_call_list =
+                                        new List<IR const*>();
         }
         return REGION_analysis_instrument(this)->m_call_list;
     }
@@ -507,7 +516,7 @@ public:
         if (type->is_void()) {
             MD_ty(&md) = MD_UNBOUND;
         } else {
-            MD_size(&md) = get_dm()->get_bytesize(type);
+            MD_size(&md) = get_type_mgr()->get_bytesize(type);
             MD_ty(&md) = MD_EXACT;
         }
 
@@ -540,7 +549,7 @@ public:
     //Return the tyid for array index, the default is unsigned 32bit.
     inline Type const* getTargetMachineArrayIndexType()
     {
-        return get_dm()->getSimplexTypeEx(get_dm()->
+        return get_type_mgr()->getSimplexTypeEx(get_type_mgr()->
                     get_uint_dtype(WORD_LENGTH_OF_TARGET_MACHINE));
     }
 
@@ -568,10 +577,10 @@ public:
      IR * insertCvt(IR * parent, IR * kid, bool & change);
     void insertCvtForBinaryOp(IR * ir, bool & change);
 
-    /* Return true if the tree height is not great than 2.
-    e.g: tree a + b is lowest height , but a + b + c is not.
-    Note that if ARRAY or ILD still not be lowered at the moment, regarding
-    it as a whole node. e.g: a[1][2] + b is the lowest height. */
+    //Return true if the tree height is not great than 2.
+    //e.g: tree a + b is lowest height , but a + b + c is not.
+    //Note that if ARRAY or ILD still not be lowered at the moment, regarding
+    //it as a whole node. e.g: a[1][2] + b is the lowest height.
     bool is_lowest_heigh(IR const* ir) const;
     bool is_lowest_heigh_exp(IR const* ir) const;
 
@@ -685,11 +694,11 @@ public:
     void simplifyBB(IRBB * bb, SimpCTX * cont);
     void simplifyBBlist(BBList * bbl, SimpCTX * cont);
     IR * simplifyLogicalNot(IN IR * ir, SimpCTX * cont);
-    IR * simplifyLogicalOrAtFalsebr(IN IR * ir, IN LabelInfo * tgt_label);
-    IR * simplifyLogicalOrAtTruebr(IN IR * ir, IN LabelInfo * tgt_label);
+    IR * simplifyLogicalOrAtFalsebr(IN IR * ir, LabelInfo const* tgt_label);
+    IR * simplifyLogicalOrAtTruebr(IN IR * ir, LabelInfo const* tgt_label);
     IR * simplifyLogicalOr(IN IR * ir, SimpCTX * cont);
-    IR * simplifyLogicalAndAtTruebr(IN IR * ir, IN LabelInfo * tgt_label);
-    IR * simplifyLogicalAndAtFalsebr(IN IR * ir, IN LabelInfo * tgt_label);
+    IR * simplifyLogicalAndAtTruebr(IN IR * ir, LabelInfo const* tgt_label);
+    IR * simplifyLogicalAndAtFalsebr(IN IR * ir, LabelInfo const* tgt_label);
     IR * simplifyLogicalAnd(IN IR * ir, SimpCTX * cont);
     IR * simplifyLogicalDet(IR * ir, SimpCTX * cont);
     IR * simplifyLda(IR * ir, SimpCTX * cont);

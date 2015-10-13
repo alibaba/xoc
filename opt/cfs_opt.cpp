@@ -111,7 +111,7 @@ bool IR_CFS_OPT::transformToDoWhile(IR ** head, IR * ir)
     if (ir->is_lab()) {
         IR * t = ir;
         while (t != NULL) {
-            if (IR_code(t) == IR_IF) {
+            if (t->is_if()) {
                 if (IF_truebody(t) != NULL &&
                     IF_truebody(t)->is_goto() &&
                     isSameLabel(LAB_lab(ir), GOTO_lab(IF_truebody(t)))) {
@@ -181,7 +181,7 @@ bool IR_CFS_OPT::transformIf1(IR ** head, IR * ir)
 {
     ASSERT(head && *head, ("invalid parameter"));
 
-    if (ir == NULL || IR_code(ir) != IR_IF) { return false; }
+    if (ir == NULL || !ir->is_if()) { return false; }
 
     //Check true part.
     IR * t = IF_truebody(ir);
@@ -281,7 +281,7 @@ is replaced by
 bool IR_CFS_OPT::transformIf2(IR ** head, IR * ir)
 {
     ASSERT(head && *head, ("invalid parameter"));
-    if (ir == NULL || IR_code(ir) != IR_IF) { return false; }
+    if (ir == NULL || !ir->is_if()) { return false; }
 
     //Check true part
     if (!IF_truebody(ir)) {
@@ -311,10 +311,10 @@ bool IR_CFS_OPT::transformIf2(IR ** head, IR * ir)
 bool IR_CFS_OPT::transformIf3(IR ** head, IR * ir)
 {
     ASSERT(head && *head, ("invalid parameter"));
-    if (ir == NULL || IR_code(ir) != IR_IF) { return false; }
+    if (ir == NULL || !ir->is_if()) { return false; }
 
     IR * det = IF_det(ir);
-    if (IR_code(det) == IR_GT) {
+    if (det->is_gt()) {
         IR * opnd0 = BIN_opnd0(det);
         IR * opnd1 = BIN_opnd1(det);
 
@@ -352,7 +352,7 @@ bool IR_CFS_OPT::transformIf3(IR ** head, IR * ir)
             m_ru->freeIRTree(ir);
             return true;
         }
-    } else if (IR_code(det) == IR_LT) {
+    } else if (det->is_lt()) {
         IR * opnd0 = BIN_opnd0(det);
         IR * opnd1 = BIN_opnd1(det);
         if (opnd0->is_ld() &&

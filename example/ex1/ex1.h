@@ -36,22 +36,22 @@ author: Su Zhenyu
 
 class CVAR : public VAR {
 public:
-	virtual CHAR * dumpVARDecl(OUT CHAR * buf) { return NULL; }
+    virtual CHAR * dumpVARDecl(OUT CHAR * buf) { return NULL; }
 };
 
 
 class CVarMgr : public VarMgr {
 public:
-	CVarMgr(RegionMgr * mgr) : VarMgr(mgr) {}
-	virtual ~CVarMgr() {}
-	virtual VAR * newVar() { return new CVAR(); }
+    CVarMgr(RegionMgr * mgr) : VarMgr(mgr) {}
+    virtual ~CVarMgr() {}
+    virtual VAR * newVar() { return new CVAR(); }
 };
 
 
 class CDdxMgr : public DbxMgr {
 public:
-	//Append src file line into dump file.
-	//Only print statement line.
-	virtual void printSrcLine(IR const* ir) { return; }
+    //Append src file line into dump file.
+    //Only print statement line.
+    virtual void printSrcLine(IR const* ir) { return; }
 };
 #endif

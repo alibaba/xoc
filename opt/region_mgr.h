@@ -75,11 +75,11 @@ protected:
     Vector<Region*> m_id2ru;
     BitSetMgr m_bs_mgr;
     SymTab m_sym_tab;
-    TypeMgr m_dt_mgr;
+    TypeMgr m_type_mgr;
     VarMgr * m_var_mgr;
     MD const* m_str_md;
     MDSystem * m_md_sys;
-    CallGraph * m_callg;
+    CallGraph * m_call_graph;
     UINT m_ru_count;
     List<UINT> m_free_ru_id;
     UINT m_label_count;
@@ -94,7 +94,7 @@ public:
         m_md_sys = NULL;
         m_is_regard_str_as_same_md = true;
         m_str_md = NULL;
-        m_callg = NULL;
+        m_call_graph = NULL;
         m_targinfo = NULL;
         m_sym_tab.init(64);
     }
@@ -125,8 +125,8 @@ public:
     MD const* getDedicateStrMD();
     MDSystem * get_md_sys() { return m_md_sys; }
     SymTab * get_sym_tab() { return &m_sym_tab; }
-    TypeMgr * get_dm() { return &m_dt_mgr; }
-    CallGraph * get_callg() const { return m_callg; }
+    TypeMgr * get_type_mgr() { return &m_type_mgr; }
+    CallGraph * get_call_graph() const { return m_call_graph; }
     VarMgr * get_var_mgr() const { return m_var_mgr; }
     TargInfo * get_targ_info() const { return m_targinfo; }
 

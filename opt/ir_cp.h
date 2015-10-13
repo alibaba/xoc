@@ -105,7 +105,7 @@ public:
         m_du = ru->get_du_mgr();
         m_cfg = ru->get_cfg();
         m_md_set_mgr = ru->get_mds_mgr();
-        m_dm = ru->get_dm();
+        m_dm = ru->get_type_mgr();
         m_prop_kind = CP_PROP_UNARY_AND_SIMPLEX;
     }
     virtual ~IR_CP() {}

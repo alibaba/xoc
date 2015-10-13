@@ -44,6 +44,7 @@ author: GongKai, JinYue
 
 #include "cominc.h"
 #include "cmdline.h"
+#include "dex.h"
 
 //#define DEBUG_D2D
 #ifdef DEBUG_D2D
@@ -67,6 +68,10 @@ int main(int argc, char const* argv[])
     if (!processCommandLine(argc, argv)) {
         locerrno = -1;
         goto FIN;
+    }
+
+    if (g_tfile != NULL && g_dump_dex_file_path) {
+        fprintf(g_tfile, "\n==---- %s ----==\n", g_dex_file_path);
     }
 
     if (d2dEntry(g_source_file_handler, g_output_file_handler,

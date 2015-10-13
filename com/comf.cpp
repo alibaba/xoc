@@ -296,7 +296,7 @@ INT gcdm(UINT num, ...)
 }
 
 
-static INT _exgcd(IN INT a, IN INT b, OUT INT & x, OUT INT & y)
+static INT _exgcd(INT a, INT b, OUT INT & x, OUT INT & y)
 {
     if (b == 0) {
         x = 1;
@@ -313,7 +313,7 @@ static INT _exgcd(IN INT a, IN INT b, OUT INT & x, OUT INT & y)
 
 //Extended Euclid Method.
 //    ax + by = ay' + b(x' -floor(a/b)*y') = gcd(a,b) = gcd(b, a%b)
-INT exgcd(IN INT a, IN INT b, OUT INT & x, OUT INT & y)
+INT exgcd(INT a, INT b, OUT INT & x, OUT INT & y)
 {
     INT gcd = _exgcd(a, b, x, y);
     if (gcd < 0) {

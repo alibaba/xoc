@@ -228,7 +228,7 @@ static void do_opt(IR * ir_list, DexRegion * func_ru)
 {
     if (ir_list == NULL) { return; }
 
-    //dump_irs(ir_list, func_ru->get_dm());
+    //dump_irs(ir_list, func_ru->get_type_mgr());
 
     bool change;
 
@@ -319,6 +319,7 @@ static void convertIR2LIR(
         lircode->lirList[i++] = l;
     }
     updateLIRCode(lircode, *func_ru->getDex2IR(), ir2dex);
+    //updateLIRCodeOrg(lircode, *func_ru->getDex2IR(), ir2dex);
 }
 
 
@@ -450,7 +451,7 @@ static void handleRegion(
     }
 
     TypeIndexRep tr;
-    TypeMgr * dm = func_ru->get_dm();
+    TypeMgr * dm = func_ru->get_type_mgr();
     tr.i8 = dm->getSimplexType(D_I8);
     tr.u8 = dm->getSimplexType(D_U8);
     tr.i16 = dm->getSimplexType(D_I16);
@@ -484,7 +485,7 @@ static void handleRegion(
         //goto FIN;
     }
 
-    //dump_irs(ir_list, func_ru->get_dm());
+    //dump_irs(ir_list, func_ru->get_type_mgr());
     func_ru->setPrno2Vreg(&prno2v);
 
     #if 1
@@ -631,7 +632,7 @@ bool compileFunc(
     func_ru->setDexMethod(dexm);
     func_ru->set_ru_var(rm->get_var_mgr()->registerVar(
                         runame,
-                        rm->get_dm()->getMCType(0),
+                        rm->get_type_mgr()->getMCType(0),
                         0, VAR_GLOBAL|VAR_FAKE));
     func_ru->setParamNum(lircode->numArgs);
     func_ru->setOrgVregNum(lircode->maxVars);

@@ -280,7 +280,7 @@ bool IR_CP::is_available(IR const* def_ir, IR const* occ, IR * use_ir)
 //CVT with simply cvt-exp is copy-propagate candidate.
 bool IR_CP::is_simp_cvt(IR const* ir) const
 {
-    if (IR_code(ir) != IR_CVT) return false;
+    if (!ir->is_cvt()) return false;
 
     for (;;) {
         if (ir->is_cvt()) {

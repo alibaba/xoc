@@ -101,7 +101,7 @@ public:
         ASSERT0(ru && df);
         m_ru = ru;
         m_df = df;
-        m_dm = ru->get_dm();
+        m_dm = ru->get_type_mgr();
         m_tr = ((DexRegion*)ru)->getTypeIndexRep();
         m_d2ir = ((DexRegion*)ru)->getDex2IR();
         m_prno2v = ((DexRegion*)ru)->getPrno2Vreg();

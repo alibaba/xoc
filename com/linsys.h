@@ -106,7 +106,7 @@ public:
     bool reduce(IN OUT RMat & m, UINT rhs_idx, bool is_intersect);
     void ConvexHullUnionAndIntersect(OUT RMat & res,
                                      IN List<RMat*> & chulls,
-                                     IN UINT rhs_idx,
+                                     UINT rhs_idx,
                                      bool is_intersect);
 
     //Fourier-Motzkin elimination
@@ -129,7 +129,7 @@ public:
         ak*xk <= const + F(x) + a0x0 + a1x1 + ... + a(k-1)x(k-1) +
                     a(k+1)x(k+1) + ... + anxn.
     */
-    void formatBound(IN UINT u, OUT RMat & ineqt_of_u);
+    void formatBound(UINT u, OUT RMat & ineqt_of_u);
     bool calcBound(IN OUT List<RMat*> & limits);
 
     void move2cstsym(IN RMat & ieq, UINT rhs_idx,
@@ -142,12 +142,12 @@ public:
 
     //Polyhedra operation
     bool convertConstraint2Ray(OUT INTMat & gmat, IN INTMat const& cs,
-                               IN UINT rhs_idx, UINT raylimit = 1000);
+                               UINT rhs_idx, UINT raylimit = 1000);
     bool convertRay2Constraint(IN INTMat const& gmat,
                                OUT INTMat & cs, UINT cslimit = 100);
-    void PolyDiff(OUT RMat & res, IN RMat & a, IN RMat & b, IN UINT rhs_idx);
-    void PolyImage(OUT RMat & res, IN RMat & a, IN UINT rhs_idx);
-    void EhartPoly(OUT RMat & res, IN RMat & a, IN UINT rhs_idx);
+    void PolyDiff(OUT RMat & res, IN RMat & a, IN RMat & b, UINT rhs_idx);
+    void PolyImage(OUT RMat & res, IN RMat & a, UINT rhs_idx);
+    void EhartPoly(OUT RMat & res, IN RMat & a, UINT rhs_idx);
 
     /* Dumps variable, forms as
         ak*xk <= const + F(x) + a0x0 + a1x1 + ... + a(k-1)x(k-1) +

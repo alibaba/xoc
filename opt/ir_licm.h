@@ -101,7 +101,7 @@ public:
         m_aa = ru->get_aa();
         m_du = ru->get_du_mgr();
         m_cfg = ru->get_cfg();
-        m_dm = ru->get_dm();
+        m_dm = ru->get_type_mgr();
         m_md_sys = ru->get_md_sys();
         m_pool = smpoolCreate(4 * sizeof(UINT), MEM_CONST_SIZE);
         m_is_in_ssa_form = false;

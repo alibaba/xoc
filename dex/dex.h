@@ -307,4 +307,6 @@ extern bool g_dump_ir2dex;
 extern bool g_dump_dex2ir;
 extern bool g_dump_classdefs;
 extern bool g_dump_lirs;
+extern bool g_is_pretty_print_method_name;
+extern bool g_dump_dex_file_path;
 #endif

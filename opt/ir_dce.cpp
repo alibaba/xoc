@@ -224,7 +224,8 @@ void IR_DCE::mark_effect_ir(IN OUT EFFECT_STMT & is_stmt_effect,
 }
 
 
-bool IR_DCE::find_effect_kid(IN IRBB * bb, IN IR * ir,
+bool IR_DCE::find_effect_kid(IN IRBB * bb,
+                             IN IR * ir,
                              IN EFFECT_STMT & is_stmt_effect)
 {
     ASSERT0(m_cfg && m_cdg);
@@ -284,18 +285,17 @@ bool IR_DCE::preserve_cd(IN OUT BitSet & is_bb_effect,
             UINT bbid = BB_id(bb);
             //Set control dep bb to be effective.
             ASSERT0(m_cdg->get_vertex(bbid));
-            EdgeC const* ec = VERTEX_in_list(m_cdg->get_vertex(bbid));
-            while (ec != NULL) {
+            for (EdgeC const* ec = VERTEX_in_list(m_cdg->get_vertex(bbid));
+                 ec != NULL; ec = EC_next(ec)) {
                 INT cd_pred = VERTEX_id(EDGE_from(EC_edge(ec)));
                 if (!is_bb_effect.is_contain(cd_pred)) {
                     is_bb_effect.bunion(cd_pred);
                     change = true;
                 }
-                ec = EC_next(ec);
             }
 
             ASSERT0(m_cfg->get_vertex(bbid));
-            ec = VERTEX_in_list(m_cfg->get_vertex(bbid));
+            EdgeC const* ec = VERTEX_in_list(m_cfg->get_vertex(bbid));
             if (cnt_list(ec) >= 2) {
                 ASSERT0(BB_rpo(bb) >= 0);
                 UINT bbto = BB_rpo(bb);
@@ -465,7 +465,7 @@ void IR_DCE::fix_control_flow(List<IRBB*> & bblst, List<C<IRBB*>*> & ctlst)
                 ASSERT0(tgt);
 
                 //Find a normal label as target.
-                LabelInfo * li;
+                LabelInfo const* li;
                 for (li = tgt->get_lab_list().get_head();
                      li != NULL; li = tgt->get_lab_list().get_next()) {
                     if (LABEL_INFO_is_catch_start(li) ||

@@ -56,9 +56,9 @@ RegionMgr::~RegionMgr()
         m_var_mgr = NULL;
     }
 
-    if (m_callg != NULL) {
-        delete m_callg;
-        m_callg = NULL;
+    if (m_call_graph != NULL) {
+        delete m_call_graph;
+        m_call_graph = NULL;
     }
 }
 
@@ -117,7 +117,7 @@ void RegionMgr::registerGlobalMDS()
         MD md;
         MD_base(&md) = v;
         MD_ofst(&md) = 0;
-        MD_size(&md) = v->getByteSize(get_dm());
+        MD_size(&md) = v->getByteSize(get_type_mgr());
         MD_ty(&md) = MD_EXACT;
         m_md_sys->registerMD(md);
     }
@@ -198,7 +198,7 @@ IPA * RegionMgr::allocIPA(Region * program)
 //Scan call site and build call graph.
 CallGraph * RegionMgr::initCallGraph(Region * top, bool scan_call)
 {
-    ASSERT0(m_callg == NULL);
+    ASSERT0(m_call_graph == NULL);
     UINT vn = 0, en = 0;
     IR * irs = top->get_ir_list();
     while (irs != NULL) {
@@ -224,9 +224,9 @@ CallGraph * RegionMgr::initCallGraph(Region * top, bool scan_call)
 
     vn = MAX(4, xcom::getNearestPowerOf2(vn));
     en = MAX(4, xcom::getNearestPowerOf2(en));
-    m_callg = allocCallGraph(vn, en);
-    m_callg->build(top);
-    return m_callg;
+    m_call_graph = allocCallGraph(vn, en);
+    m_call_graph->build(top);
+    return m_call_graph;
 }
 
 

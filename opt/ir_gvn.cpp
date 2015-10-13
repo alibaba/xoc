@@ -53,7 +53,7 @@ IR_GVN::IR_GVN(Region * ru)
     m_ru = ru;
     m_md_sys = m_ru->get_md_sys();
     m_du = m_ru->get_du_mgr();
-    m_dm = m_ru->get_dm();
+    m_dm = m_ru->get_type_mgr();
     m_cfg = m_ru->get_cfg();
     m_vn_count = 1;
     m_is_vn_fp = false;
@@ -883,7 +883,7 @@ VN * IR_GVN::computeVN(IR const* exp, bool & change)
         {
             IR const* ldabase = LDA_base(exp);
             VN * basevn;
-            if (IR_code(ldabase) == IR_ID) {
+            if (ldabase->is_id()) {
                 MD const* emd = ldabase->get_exact_ref();
                 if (emd == NULL) {
                     //e.g: p = &"blabla", regard MD of "blabla" as inexact.
@@ -903,6 +903,7 @@ VN * IR_GVN::computeVN(IR const* exp, bool & change)
             } else {
                 basevn = computeVN(LDA_base(exp), change);
             }
+
             if (basevn == NULL) {
                 if (m_ir2vn.get(IR_id(exp)) != NULL) {
                     m_ir2vn.set(IR_id(exp), NULL);
@@ -1117,41 +1118,6 @@ void IR_GVN::dump_ir2vn()
 }
 
 
-void IR_GVN::dump_bb_labs(List<LabelInfo*> & lst)
-{
-    for (LabelInfo * li = lst.get_head(); li != NULL; li = lst.get_next()) {
-        switch (LABEL_INFO_type(li)) {
-        case L_CLABEL:
-            note(CLABEL_STR_FORMAT, CLABEL_CONT(li));
-            break;
-        case L_ILABEL:
-            note(ILABEL_STR_FORMAT, ILABEL_CONT(li));
-            break;
-        case L_PRAGMA:
-            note("%s", LABEL_INFO_pragma(li));
-            break;
-        default: ASSERT(0,("unsupport"));
-        }
-        if (LABEL_INFO_is_try_start(li) ||
-            LABEL_INFO_is_try_end(li) ||
-            LABEL_INFO_is_catch_start(li)) {
-            fprintf(g_tfile, "(");
-            if (LABEL_INFO_is_try_start(li)) {
-                fprintf(g_tfile, "try_start,");
-            }
-            if (LABEL_INFO_is_try_end(li)) {
-                fprintf(g_tfile, "try_end,");
-            }
-            if (LABEL_INFO_is_catch_start(li)) {
-                fprintf(g_tfile, "catch_start");
-            }
-            fprintf(g_tfile, ")");
-        }
-        fprintf(g_tfile, " ");
-    }
-}
-
-
 void IR_GVN::dump_h1(IR const* k, VN * x)
 {
     fprintf(g_tfile, "\n\t%s", IRTNAME(IR_code(k)));
@@ -1175,11 +1141,11 @@ void IR_GVN::dump_bb(UINT bbid)
 
     ConstIRIter ii;
     fprintf(g_tfile, "\n-- BB%d ", BB_id(bb));
-    dump_bb_labs(bb->get_lab_list());
+    dumpBBLabel(bb->get_lab_list(), g_tfile);
     fprintf(g_tfile, "\n");
     for (IR * ir = BB_first_ir(bb);
          ir != NULL; ir = BB_next_ir(bb)) {
-        dump_ir(ir, m_ru->get_dm());
+        dump_ir(ir, m_ru->get_type_mgr());
         fprintf(g_tfile, "\n");
         VN * x = m_ir2vn.get(IR_id(ir));
         if (x != NULL) {
@@ -1289,8 +1255,7 @@ void IR_GVN::dump()
 
 
 //Return true if gvn is able to determine the result of 'ir'.
-bool IR_GVN::calcCondMustVal(IN IR const* ir,
-                                bool & must_true, bool & must_false)
+bool IR_GVN::calcCondMustVal(IR const* ir, bool & must_true, bool & must_false)
 {
     must_true = false;
     must_false = false;

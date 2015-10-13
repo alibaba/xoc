@@ -87,7 +87,7 @@ public:
         for (INT i = get_first(&iter); i >= 0; i = get_next(i, &iter)) {
             MD const* t = m_md_sys->get_md(i);
             ASSERT0(t);
-            t->dump(m_md_sys->get_dm());
+            t->dump(m_md_sys->get_type_mgr());
         }
 
         fflush(g_tfile);
@@ -275,7 +275,7 @@ public:
         m_ru = ru;
         m_md_sys = ru->get_md_sys();
         m_cfg = ru->get_cfg();
-        m_dm = ru->get_dm();
+        m_dm = ru->get_type_mgr();
         m_du = ru->get_du_mgr();
         m_mds_mgr = ru->get_mds_mgr();
         m_misc_bs_mgr = ru->getMiscBitSetMgr();

@@ -492,7 +492,7 @@ IR * Region::simplifyLogicalNot(IN IR * ir, SimpCTX * ctx)
     copyDbx(true_br, ir, this);
     add_next(&ret_list, true_br);
 
-    TypeMgr * dm = get_dm();
+    TypeMgr * dm = get_type_mgr();
     //pr = 1
     Type const* t = dm->getSimplexTypeEx(
                 dm->get_dtype(WORD_LENGTH_OF_HOST_MACHINE, true));
@@ -548,7 +548,7 @@ IR * Region::simplifyLogicalAnd(IN IR * ir, SimpCTX * ctx)
     IR * pr = buildPR(IR_dt(ir));
     allocRefForPR(pr);
     IR * ret_list = simplifyLogicalAndAtTruebr(ir, label1);
-    TypeMgr * dm = get_dm();
+    TypeMgr * dm = get_type_mgr();
     Type const* t = dm->getSimplexTypeEx(
                 dm->get_dtype(WORD_LENGTH_OF_HOST_MACHINE, true));
     IR * imm0 = buildImmInt(0, t);
@@ -582,7 +582,7 @@ would be translated to:
     L2:
     ----------
 NOTE: ir's parent can NOT be FALSEBR. */
-IR * Region::simplifyLogicalAndAtTruebr(IN IR * ir, IN LabelInfo * tgt_label)
+IR * Region::simplifyLogicalAndAtTruebr(IR * ir, LabelInfo const* tgt_label)
 {
     ASSERT0(ir->is_land() && tgt_label != NULL);
     IR * ret_list = NULL;
@@ -626,7 +626,7 @@ would be translated to:
     L2:
     ----------
 NOTE: ir's parent must be FALSEBR. */
-IR * Region::simplifyLogicalAndAtFalsebr(IN IR * ir, IN LabelInfo * tgt_label)
+IR * Region::simplifyLogicalAndAtFalsebr(IR * ir, LabelInfo const* tgt_label)
 {
     ASSERT0(ir->is_land() && tgt_label != NULL);
     IR * ret_list = NULL;
@@ -667,7 +667,7 @@ or
     pr = (c != 0)
     ----------
 NOTE: ir's parent can NOT be FALSEBR. */
-IR * Region::simplifyLogicalOrAtTruebr(IN IR * ir, IN LabelInfo * tgt_label)
+IR * Region::simplifyLogicalOrAtTruebr(IR * ir, LabelInfo const* tgt_label)
 {
     ASSERT0(ir->is_lor() && tgt_label != NULL);
     IR * ret_list = NULL;
@@ -711,7 +711,7 @@ would be translated to:
     L2:
     ----------
 NOTE: ir's parent must be be FALSEBR. */
-IR * Region::simplifyLogicalOrAtFalsebr(IN IR * ir, IN LabelInfo * tgt_label)
+IR * Region::simplifyLogicalOrAtFalsebr(IR * ir, LabelInfo const* tgt_label)
 {
     ASSERT0(ir->is_lor() && tgt_label != NULL);
     IR * ret_list = NULL;
@@ -772,7 +772,7 @@ IR * Region::simplifyLogicalOr(IN IR * ir, SimpCTX * ctx)
     IR * pr = buildPR(IR_dt(ir));
     allocRefForPR(pr);
     IR * ret_list = simplifyLogicalOrAtTruebr(ir, label1);
-    TypeMgr * dm = get_dm();
+    TypeMgr * dm = get_type_mgr();
     Type const* type = dm->getSimplexTypeEx(
                     dm->get_dtype(WORD_LENGTH_OF_HOST_MACHINE, true));
     IR * imm0 = buildImmInt(0, type);
@@ -996,7 +996,7 @@ IR * Region::simplifySwitch(IR * ir, SimpCTX * ctx)
 
     IR * vexp_stmt = NULL;
     IR * swt_val = SWITCH_vexp(ir);
-    if (IR_code(swt_val) != IR_PR) {
+    if (!swt_val->is_pr()) {
         IR * pr = buildPR(IR_dt(swt_val));
         allocRefForPR(pr);
         vexp_stmt = buildStorePR(PR_no(pr), IR_dt(pr), swt_val);
@@ -1084,7 +1084,7 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCTX * ctx)
     ASSERT0(ir && SIMP_array(ctx) && ir->is_array_op());
     ASSERT0(ARR_sub_list(ir));
 
-    TypeMgr * dm = get_dm(); //may generate new pointer type.
+    TypeMgr * dm = get_type_mgr(); //may generate new pointer type.
     ASSERT0(ir->get_dtype_size(dm) > 0);
 
     //For n dimension array, enumb record the number
@@ -1189,7 +1189,7 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCTX * ctx)
                         dm->getPointerType(ir->get_dtype_size(dm)),
                         newbase,
                         ofst_exp);
-    if (SIMP_to_pr_mode(ctx) && IR_code(array_addr) != IR_PR) {
+    if (SIMP_to_pr_mode(ctx) && !array_addr->is_pr()) {
         SimpCTX ttcont(*ctx);
         SIMP_ret_array_val(&ttcont) = true;
         array_addr->setParentPointer(true);
@@ -1434,9 +1434,8 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCTX * ctx)
                 IR * newir = simplifyLogicalNot(ir, &tcont);
                 ASSERT0(newir->is_exp());
                 IR * lst = SIMP_ir_stmt_list(&tcont);
-                ASSERT(IR_code(newir) == IR_PR,
-                        ("For now, newir will "
-                        "fairly be IR_PR. But it is not "
+                ASSERT(newir->is_pr(),
+                       ("For now, newir will fairly be IR_PR. But it is not "
                         "certain in the future."));
                 SimpCTX t_tcont(tcont);
                 lst = simplifyStmtList(lst, &t_tcont);
@@ -1586,14 +1585,14 @@ IR * Region::simplifyArray(IR * ir, SimpCTX * ctx)
         return array_addr;
     }
 
-    if (IR_code(array_addr) == IR_ID) {
+    if (array_addr->is_id()) {
         IR * ld = buildLoad(ID_info(array_addr), IR_dt(array_addr));
         freeIRTree(array_addr);
         return ld;
     }
 
     if (SIMP_to_pr_mode(ctx)) {
-        if (IR_code(array_addr) != IR_PR) {
+        if (!array_addr->is_pr()) {
             IR * pr = buildPR(IR_dt(array_addr));
             allocRefForPR(pr);
             IR * st = buildStorePR(PR_no(pr), IR_dt(pr), array_addr);
@@ -1938,12 +1937,10 @@ IR * Region::simplifyStmt(IR * ir, SimpCTX * ctx)
             SimpCTX tcont(*ctx);
             ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
             SIMP_ret_array_val(&tcont) = true;
-            if ((SIMP_logical_or_and(ctx) &&
-                 (IR_code(BR_det(ir)) == IR_LOR ||
-                  IR_code(BR_det(ir)) == IR_LAND)) ||
-                (SIMP_logical_not(ctx) &&
-                 IR_code(BR_det(ir)) == IR_LNOT)) {
 
+            if ((SIMP_logical_or_and(ctx) &&
+                 (BR_det(ir)->is_lor() || BR_det(ir)->is_land())) ||
+                (SIMP_logical_not(ctx) && BR_det(ir)->is_lnot())) {
                 ret_list = simplifyLogicalDet(ir, &tcont);
                 ret_list = simplifyStmtList(ret_list, &tcont);
             } else {

@@ -55,6 +55,7 @@ public:
 #define DR_functype(dr)     ((dr)->m_functype)
 #define DR_funcname(dr)     ((dr)->m_funcname)
 #define DR_classname(dr)    ((dr)->m_classname)
+#define DR_is_locked(dr)    ((dr)->m_is_locked)
 class DexRegion : public Region {
 protected:
     VAR2PR m_var2pr; //map from var id to prno.
@@ -70,7 +71,7 @@ protected:
 
 protected:
     bool is_64bit(IR const* ir)
-    { return get_dm()->get_bytesize(IR_dt(ir))== 8; }
+    { return get_type_mgr()->get_bytesize(IR_dt(ir))== 8; }
     void HighProcessImpl(OptCTX & oc);
 
 public:
@@ -106,6 +107,7 @@ public:
     virtual IR_AA * allocAliasAnalysis();
 
     SMemPool * get_sc_pool() const { return m_sc_pool; }
+
     void setDex2IR(Dex2IR * dex2ir) { m_dex2ir = dex2ir; }
     Dex2IR * getDex2IR() { return m_dex2ir; }
 
@@ -166,6 +168,7 @@ public:
         return *q != 0;
     }
 };
+
 
 //
 //START DexRegionMgr
@@ -269,10 +272,11 @@ void dump_all_class_and_field(DexFile * df);
 inline bool is_wide(LIR * lir)
 {
     return LIR_dt(lir) == LIR_JDT_wide ||
-            LIR_dt(lir) == LIR_JDT_double ||
-            LIR_dt(lir) == LIR_JDT_long;
+           LIR_dt(lir) == LIR_JDT_double ||
+           LIR_dt(lir) == LIR_JDT_long;
 }
 
+//Generate unique name by assembling Class Name, Function Parameter Type,
 //and Function Name.
 CHAR * assemblyUniqueName(
         OUT CHAR buf[],
@@ -287,15 +291,28 @@ void extractFunctionTypeFromFunctionTypeString(
         OUT CHAR * param_type,
         OUT CHAR * return_type);
 
+//Extract the function parameter and return value name
+//from entirely name format, and return the function name.
+//Note outputbuf should big enough to hold the string.
 void extractFunctionTypeFromRegionName(
         CHAR const* runame,
+        CHAR const** functionname,
         OUT CHAR * param_type,
         OUT CHAR * return_type);
 
-//Note outputbuf should big enough to hold the string.
-void extractSeparateParamterType(
+//Seperate param_type_string into a set of individual type string.
+//Return the number of individual type strings.
+//If params is NULL, this function only compute the number of type string.
+//Note the outputbuf recorded in params should big enough to
+//hold each type string.
+UINT extractSeparateParamterType(
         CHAR const* param_type_string,
-        OUT List<CHAR*> & params);
+        OUT List<CHAR*> * params,
+        UINT len = 0);
+
+//Print human readable type info according to type_string.
+//Note this function check the length of buffer needed.
+UINT printType2Buffer(CHAR const* type_string, OUT CHAR * buf);
 
 CHAR const* getClassSourceFilePath(
         DexFile const* df,

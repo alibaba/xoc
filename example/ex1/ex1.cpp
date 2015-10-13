@@ -41,7 +41,7 @@ static UINT generate_region(RegionMgr * rm)
     rm->set_region(topru);
     topru->set_ru_var(rm->get_var_mgr()->registerVar(
                                         ".file",
-                                        rm->get_dm()->getMCType(0),
+                                        rm->get_type_mgr()->getMCType(0),
                                         0,
                                         VAR_GLOBAL|VAR_FAKE));
 
@@ -50,7 +50,7 @@ static UINT generate_region(RegionMgr * rm)
     Region * func_ru = rm->allocRegion(RU_FUNC);
     func_ru->set_ru_var(rm->get_var_mgr()->registerVar(
                                         ".func.name",
-                                        rm->get_dm()->getMCType(0),
+                                        rm->get_type_mgr()->getMCType(0),
                                         0,
                                         VAR_GLOBAL|VAR_FAKE));
     IR * ir = topru->buildRegion(func_ru);

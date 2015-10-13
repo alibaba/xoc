@@ -447,11 +447,12 @@ void IR_GCSE::handleCandidate(IR * exp, IRBB * bb, UINT entry_id, bool & change)
 bool IR_GCSE::shouldBeCse(IR * det)
 {
     ASSERT0(det->is_judge());
+
     //If the det if simply enough, cse is dispensable.
-    if (IR_code(IR_parent(det)) != IR_TRUEBR &&
-        IR_code(IR_parent(det)) != IR_FALSEBR) {
+    if (!IR_parent(det)->is_truebr() && !IR_parent(det)->is_falsebr()) {
         return true;
     }
+
     if (!det->is_relation()) {
         //det is complex operation.
         return true;
@@ -459,12 +460,14 @@ bool IR_GCSE::shouldBeCse(IR * det)
 
     IR const* op0 = BIN_opnd0(det);
     IR const* op1 = BIN_opnd1(det);
-    if (IR_code(op0) != IR_PR && IR_code(op0) != IR_CONST) {
+    if (!op0->is_pr() && !op0->is_const()) {
         return true;
     }
-    if (IR_code(op1) != IR_PR && IR_code(op1) != IR_CONST) {
+
+    if (!op1->is_pr() && !op1->is_const()) {
         return true;
     }
+
     return false;
 }
 

@@ -193,7 +193,7 @@ void PRDF::computeLocal(IRBB * bb, List<IR const*> & lst)
             lst.clean();
             processOpnd(CALL_param_list(x), lst, use, gen);
 
-            if (IR_code(x) == IR_ICALL && ICALL_callee(x)->is_pr()) {
+            if (x->is_icall() && ICALL_callee(x)->is_pr()) {
                 use->bunion(PR_no(ICALL_callee(x)), m_sbs_mgr);
                 processMay(ICALL_callee(x), gen, use, false);
             }

@@ -529,7 +529,6 @@ protected:
     }
 
     void dump_h1(IR const* k, VN * x);
-    void dump_bb_labs(List<LabelInfo*> & lst);
 
     void processBB(IRBB * bb, bool & change);
     void processCall(IR const* ir, bool & change);
@@ -540,7 +539,7 @@ public:
     COPY_CONSTRUCTOR(IR_GVN);
     virtual ~IR_GVN();
 
-    bool calcCondMustVal(IN IR const* ir, bool & must_true, bool & must_false);
+    bool calcCondMustVal(IR const* ir, bool & must_true, bool & must_false);
     void dump();
     void dump_bb(UINT bbid);
     void dump_ir2vn();

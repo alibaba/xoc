@@ -44,8 +44,8 @@ bool Inliner::is_call_site(IR * call, Region * ru)
 {
     ASSERT0(call->is_calls_stmt());
     SYM * name = VAR_name(CALL_idinfo(call));
-    CallNode const* cn1 = m_callg->map_sym2cn(name);
-    CallNode const* cn2 = m_callg->map_ru2cn(ru);
+    CallNode const* cn1 = m_call_graph->map_sym2cn(name);
+    CallNode const* cn2 = m_call_graph->map_ru2cn(ru);
     return cn1 == cn2;
 }
 
@@ -246,13 +246,13 @@ bool Inliner::do_inline_c(Region * caller, Region * callee)
 //'cand': candidate that expected to be inlined.
 void Inliner::do_inline(Region * cand)
 {
-    CallNode * cn = m_callg->map_ru2cn(cand);
+    CallNode * cn = m_call_graph->map_ru2cn(cand);
     ASSERT0(cn);
-    Vertex * v = m_callg->get_vertex(CN_id(cn));
+    Vertex * v = m_call_graph->get_vertex(CN_id(cn));
     ASSERT0(v);
     for (EdgeC * el = VERTEX_in_list(v);
          el != NULL; el = EC_next(el)) {
-        Region * caller = CN_ru(m_callg->map_vex2cn(EDGE_from(EC_edge(el))));
+        Region * caller = CN_ru(m_call_graph->map_vex2cn(EDGE_from(EC_edge(el))));
         if (caller != NULL) {
             do_inline_c(caller, cand);
         }

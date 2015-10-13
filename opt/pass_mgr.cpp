@@ -41,7 +41,7 @@ PassMgr::PassMgr(Region * ru)
     ASSERT0(ru);
     m_pool = smpoolCreate(sizeof(TimeInfo) * 4, MEM_COMM);
     m_ru = ru;
-    m_dm = ru->get_dm();
+    m_dm = ru->get_type_mgr();
     ASSERT0(m_dm);
 }
 

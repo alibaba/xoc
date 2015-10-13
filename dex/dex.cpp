@@ -65,3 +65,5 @@ bool g_dump_ir2dex = false;
 bool g_dump_dex2ir = false;
 bool g_dump_classdefs = false;
 bool g_dump_lirs = false;
+bool g_is_pretty_print_method_name = true;
+bool g_dump_dex_file_path = false;

@@ -146,7 +146,7 @@ public:
         ASSERT0(ru && df && fu);
         m_ru = (DexRegion*)ru;
         m_ru_mgr = ru->get_region_mgr();
-        m_dm = ru->get_dm();
+        m_dm = ru->get_type_mgr();
         m_vm = ru->get_var_mgr();
         m_df = df;
         m_lircode = fu;

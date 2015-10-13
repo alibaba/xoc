@@ -570,7 +570,7 @@ UINT RMat::comden(UINT row, UINT col)
     and if 'is_eq' is true, matrix repesented an equation,
         x1 + 7x2 - 2x3  = -10
 */
-void RMat::substit(IN RMat const& exp, IN UINT v, bool is_eq, INT rhs_idx)
+void RMat::substit(IN RMat const& exp, UINT v, bool is_eq, INT rhs_idx)
 {
     ASSERT(m_is_init && exp.m_is_init,
             ("not yet initialize."));
@@ -856,7 +856,7 @@ INT INTMat::det()
 
 
 //Generate unimodular matrix to elimnate element.
-void INTMat::gen_elim_mat(IN UINT row, IN UINT col, OUT INTMat & elim)
+void INTMat::gen_elim_mat(UINT row, UINT col, OUT INTMat & elim)
 {
     ASSERT(m_is_init, ("not yet initialize."));
     INT aii = get(row, row), aij = get(row, col), x, y;
@@ -1497,7 +1497,7 @@ FloatMat& FloatMat::operator = (FloatMat const& m)
 }
 
 
-void FloatMat::substit(IN FloatMat const& exp, IN UINT v, bool is_eq, INT rhs_idx)
+void FloatMat::substit(IN FloatMat const& exp, UINT v, bool is_eq, INT rhs_idx)
 {
     ASSERT(m_is_init && exp.m_is_init,
                             ("not yet initialize."));

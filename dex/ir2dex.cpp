@@ -36,7 +36,6 @@ author: Su Zhenyu
 #include "liropcode.h"
 #include "drAlloc.h"
 #include "d2d_comm.h"
-
 #include "cominc.h"
 #include "comopt.h"
 #include "dx_mgr.h"
@@ -393,7 +392,7 @@ LIR * IR2Dex::buildConst(IN IR ** ir)
 {
     IR * tir = *ir;
     ASSERT0(tir->is_stpr());
-    ASSERT0(IR_code(STPR_rhs(tir)) == IR_CONST);
+    ASSERT0(STPR_rhs(tir)->is_const());
     UINT vx = get_vreg(STPR_no(tir));
     LIRConstOp * lir = (LIRConstOp*)ymalloc(sizeof(LIRConstOp));
     lir->opcode = LOP_CONST;
@@ -482,7 +481,7 @@ LIR * IR2Dex::buildIget(IN IR ** ir)
 {
     IR * tir = *ir;
     ASSERT0(tir->is_stpr());
-    ASSERT0(IR_code(STPR_rhs(tir)) == IR_ILD);
+    ASSERT0(STPR_rhs(tir)->is_ild());
     DATA_TYPE ty = TY_dtype(tir->get_type());
     UINT vx = get_vreg(STPR_no(tir));
 
@@ -491,7 +490,7 @@ LIR * IR2Dex::buildIget(IN IR ** ir)
     //UINT field_id = findFieldId(tir, objptr);
     UINT field_id = ILD_ofst(STPR_rhs(tir));
     field_id /= m_d2ir->get_ofst_addend();
-    ASSERT0(IR_code(objptr) == IR_PR);
+    ASSERT0(objptr->is_pr());
     UINT vy = get_vreg(objptr);
     LIRABCOp * lir = (LIRABCOp*)ymalloc(sizeof(LIRABCOp));
     lir->opcode = LOP_IGET;
@@ -697,7 +696,7 @@ LIR * IR2Dex::convertStorePR(IN OUT IR ** ir, IN IR2DexCtx * cont)
     case IR_LDA:
         {
             IR * id = LDA_base(rhs);
-            ASSERT0(IR_code(id) == IR_ID);
+            ASSERT0(id->is_id());
             if (id->is_str()) {
                 return buildConstString(ir);
             }
@@ -807,7 +806,7 @@ LIR * IR2Dex::buildInvoke(IN IR ** ir)
     ASSERT0(p);
 
     //Inoke-kind.
-    ASSERT0(IR_code(p) == IR_CONST);
+    ASSERT0(p->is_const());
     INVOKE_KIND ik = (INVOKE_KIND)CONST_int_val(p);
     UINT flag = 0;
     switch (ik) {
@@ -833,7 +832,7 @@ LIR * IR2Dex::buildInvoke(IN IR ** ir)
     p = IR_next(p);
 
     //Method id.
-    ASSERT0(p && IR_code(p) == IR_CONST);
+    ASSERT0(p && p->is_const());
     lir->ref = CONST_int_val(p);
     p = IR_next(p);
 
@@ -876,8 +875,7 @@ LIR * IR2Dex::buildNewInstance(IN IR ** ir)
     lir->opcode = LOP_NEW_INSTANCE;
     IR * tir = *ir;
     //class-id
-    ASSERT0(CALL_param_list(tir) &&
-             IR_code(CALL_param_list(tir)) == IR_CONST);
+    ASSERT0(CALL_param_list(tir) && CALL_param_list(tir)->is_const());
     lir->vB = CONST_int_val(CALL_param_list(tir));
     LIR_dt(lir) = LIR_JDT_object;
 
@@ -907,7 +905,7 @@ LIR * IR2Dex::buildFillArrayData(IN IR ** ir)
     IR * p = CALL_param_list(tir);
 
     //The first parameter is array obj-ptr.
-    ASSERT0(p && IR_code(p) == IR_PR);
+    ASSERT0(p && p->is_pr());
     lir->value = get_vreg(p);
     p = IR_next(p);
 
@@ -961,7 +959,7 @@ LIR * IR2Dex::buildFilledNewArray(IN IR ** ir)
     UINT i = 0;
     IR * t = p;
     while (t != NULL) {
-        ASSERT0(IR_code(t) == IR_PR);
+        ASSERT0(t->is_pr());
         t = IR_next(t);
         i++;
     }
@@ -998,7 +996,7 @@ LIR * IR2Dex::buildConstClass(IN IR ** ir)
 
     //Type id of array element.
     ASSERT0(CALL_param_list(tir) &&
-             IR_code(CALL_param_list(tir)) == IR_CONST);
+            CALL_param_list(tir)->is_const());
     lir->vB = CONST_int_val(CALL_param_list(tir));
     ASSERT0(IR_next(CALL_param_list(tir)) == NULL);
 
@@ -1021,12 +1019,12 @@ LIR * IR2Dex::buildNewArray(IN IR ** ir)
     ASSERT0(p);
 
     //The number of array element.
-    ASSERT0(IR_code(p) == IR_PR);
+    ASSERT0(p->is_pr());
     lir->vB = get_vreg(p);
     p = IR_next(p);
 
     //Type id of array element.
-    ASSERT0(IR_code(p) == IR_CONST);
+    ASSERT0(p->is_const());
     lir->vC = CONST_int_val(p);
     ASSERT0(IR_next(p) == NULL);
 
@@ -1058,12 +1056,12 @@ LIR * IR2Dex::buildInstanceOf(IN IR ** ir)
 
     //Object-ptr register.
     IR * p = CALL_param_list(tir);
-    ASSERT0(IR_code(p) == IR_PR);
+    ASSERT0(p->is_pr());
     lir->vB = get_vreg(p);
     p = IR_next(p);
 
     //type-id
-    ASSERT0(IR_code(p) == IR_CONST);
+    ASSERT0(p->is_const());
     lir->vC = CONST_int_val(p);
     ASSERT0(IR_next(p) == NULL);
 
@@ -1094,11 +1092,11 @@ LIR * IR2Dex::buildCmpBias(IN IR ** ir)
     CMP_KIND ck = (CMP_KIND)CONST_int_val(p);
     p = IR_next(p);
 
-    ASSERT0(p && IR_code(p) == IR_PR);
+    ASSERT0(p && p->is_pr());
     LIR_op0(lir) = get_vreg(p);
     p = IR_next(p);
 
-    ASSERT0(p && IR_code(p) == IR_PR);
+    ASSERT0(p && p->is_pr());
     LIR_op1(lir) = get_vreg(p);
     p = IR_next(p);
 
@@ -1190,7 +1188,7 @@ LIR * IR2Dex::convertReturn(IN OUT IR ** ir, IN IR2DexCtx * cont)
     IR * retval = RET_exp(*ir);
     if (retval != NULL) {
         ASSERT0(IR_next(retval) == NULL);
-        ASSERT0(IR_code(retval) == IR_PR);
+        ASSERT0(retval->is_pr());
         Type const* ty = IR_dt(retval);
         if (ty == m_tr->ptr) {
             LIR_dt(lir) = LIR_JDT_object;
@@ -1229,26 +1227,27 @@ LIR * IR2Dex::convertGoto(IN OUT IR ** ir, IN IR2DexCtx * cont)
 
 
 //ABCCCC
-LIR * IR2Dex::convertBranch(bool is_truebr, IN OUT IR ** ir,
-                             IN IR2DexCtx * cont)
+LIR * IR2Dex::convertBranch(bool is_truebr, IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
     LIR * lir = NULL;
     IR * det = BR_det(*ir);
-    if (IR_code(BIN_opnd1(det)) == IR_CONST &&
+    if (BIN_opnd1(det)->is_const() &&
         CONST_int_val(BIN_opnd1(det)) == 0) {
         lir = (LIR*)ymalloc(sizeof(LIRABOp));
         LIR_opcode(lir) = LOP_IFZ;
         LIR_res(lir) = get_vreg(BIN_opnd0(det));
         LIR_op0(lir) = (UInt32)0xFFFFffff; //target.
     } else {
-        ASSERT0(IR_code(BIN_opnd1(det)) == IR_PR);
+        ASSERT0(BIN_opnd1(det)->is_pr());
         lir = (LIR*)ymalloc(sizeof(LIRABCOp));
         LIR_opcode(lir) = LOP_IF;
         LIR_res(lir) = get_vreg(BIN_opnd0(det));
         LIR_op0(lir) = get_vreg(BIN_opnd1(det));
         LIR_op1(lir) = (UInt32)0xFFFFffff; //target.
     }
-    ASSERT0(IR_code(BIN_opnd0(det)) == IR_PR);
+
+    ASSERT0(BIN_opnd0(det)->is_pr());
+
     if (is_truebr) {
         switch (IR_code(det)) {
         case IR_LT: LIR_dt(lir) = LIR_cond_LT; break;
@@ -1285,7 +1284,7 @@ LIR * IR2Dex::convertSwitch(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
     LIRSwitchOp * lir = (LIRSwitchOp*)ymalloc(sizeof(LIRSwitchOp));
     IR * vexp = SWITCH_vexp(*ir);
-    ASSERT0(IR_code(vexp) == IR_PR);
+    ASSERT0(vexp->is_pr());
     lir->value = get_vreg(vexp);
     IR * case_list = SWITCH_case_list(*ir);
     if (case_list != NULL) {
@@ -1516,7 +1515,7 @@ void IR2Dex::convert(IR * ir_list, List<LIR*> & newlirs)
             dump_ir(ir_list, m_dm);
         }
 
-        if (IR_code(ir_list) == IR_LABEL) {
+        if (ir_list->is_label()) {
             m_lab2idx.set(LAB_lab(ir_list), idx);
             ir_list = IR_next(ir_list);
             continue;

@@ -322,7 +322,7 @@ void RSC::comp_st_fmt(IR const* ir)
             m_ir2fmt.set(IR_id(ir), FABCCCCv);
             return;
         case IR_LDA:
-            ASSERT0(IR_code(LDA_base(stv)) == IR_ID);
+            ASSERT0(LDA_base(stv)->is_id());
             ASSERT0(LDA_base(stv)->is_str());
             //AABBBB
             m_ir2fmt.set(IR_id(ir), FAABBBBv);
@@ -342,7 +342,7 @@ void RSC::comp_st_fmt(IR const* ir)
             {
                 IR * op1 = BIN_opnd1(stv);
                 ASSERT0(BIN_opnd0(stv)->is_pr());
-                if (IR_code(op1) == IR_CONST) {
+                if (op1->is_const()) {
                     ASSERT0(op1->is_int(m_dm));
                     if (!is_s8((INT)CONST_int_val(op1))) {
                         //vA, vB, CCCC+
@@ -445,7 +445,7 @@ void RSC::comp_ist_fmt(IR const* ir)
 void RSC::comp_call_fmt(IR const* ir)
 {
     ASSERT0(ir->is_calls_stmt());
-    if (IR_code(ir) == IR_ICALL) {
+    if (ir->is_icall()) {
         comp_ir_fmt(ICALL_callee(ir));
     }
     if (ir->is_call() && CALL_is_intrinsic(ir)) {
@@ -476,11 +476,11 @@ void RSC::comp_call_fmt(IR const* ir)
             {
             //first parameter is invoke-kind.
             IR * p = CALL_param_list(ir);
-            ASSERT0(IR_code(p) == IR_CONST);
+            ASSERT0(p->is_const());
 
             //second one is class-id.
             p = IR_next(p);
-            ASSERT0(IR_code(p) == IR_CONST);
+            ASSERT0(p->is_const());
 
             p = IR_next(p);
             for (; p != NULL; p = IR_next(p)) {
@@ -512,7 +512,7 @@ void RSC::comp_call_fmt(IR const* ir)
         case BLTIN_CMP_BIAS:
             {
                 IR const* p = CALL_param_list(ir);
-                ASSERT0(p && IR_code(p) == IR_CONST);
+                ASSERT0(p && p->is_const());
                 p = IR_next(p);
                 ASSERT0(p && p->is_pr() && IR_next(p) && IR_next(p)->is_pr());
                 m_ir2fmt.set(IR_id(ir), FAABBCC);
@@ -523,10 +523,10 @@ void RSC::comp_call_fmt(IR const* ir)
     }
 
     IR const* p = CALL_param_list(ir);
-    ASSERT0(p && IR_code(p) == IR_CONST);
+    ASSERT0(p && p->is_const());
     INVOKE_KIND ik = (INVOKE_KIND)CONST_int_val(p);
     p = IR_next(p);
-    ASSERT0(p && IR_code(p) == IR_CONST);
+    ASSERT0(p && p->is_const());
     p = IR_next(p);
     switch (ik) {
     case INVOKE_UNDEF:
@@ -639,7 +639,7 @@ void RSC::comp_ir_fmt(IR const* ir)
             IR * det = BR_det(ir);
             comp_ir_fmt(BR_det(ir));
             ASSERT0(det->is_relation());
-            if (IR_code(BIN_opnd1(det)) == IR_CONST) {
+            if (BIN_opnd1(det)->is_const()) {
                 //AABBBB
                 ASSERT0(BIN_opnd0(det)->is_pr());
                 m_ir2fmt.set(IR_id(ir), FAABBBBv);
@@ -695,7 +695,7 @@ void RSC::dump_ir_fmt()
              ir != NULL; ir = BB_next_ir(bb)) {
             FMT f = m_ir2fmt.get(IR_id(ir));
             fprintf(g_tfile, "\nFMT:%s", g_fmt_name[f]);
-            dump_ir(ir, m_ru->get_dm());
+            dump_ir(ir, m_ru->get_type_mgr());
         }
     }
     fprintf(g_tfile, "\n");
@@ -965,7 +965,7 @@ GltMgr::GltMgr(Region * ru, PRDF * prdf, RA * ra)
     m_ru = ru;
     m_ra = ra;
     m_rsc = ra->get_rsc();
-    m_dm = ru->get_dm();
+    m_dm = ru->get_type_mgr();
     m_prdf = prdf;
     m_is_consider_local_interf = false;
     m_pool = smpoolCreate(sizeof(GLT) * 10, MEM_COMM);
@@ -2444,8 +2444,10 @@ void LTMgr::buildGroup(ConstIRIter & cii)
 NOTE: If bb is empty, we also need to generate lifetime for live in/out
     global pr.
 */
-void LTMgr::build(bool consider_glt, List<LT*> * liveout_exitbb_lts,
-                ConstIRIter & cii)
+void LTMgr::build(
+        bool consider_glt,
+        List<LT*> * liveout_exitbb_lts,
+        ConstIRIter & cii)
 {
     ASSERT(m_bb != NULL, ("Basic block is NULL"));
     //Add two point for live in exposed use and live out exposed use.
@@ -2462,7 +2464,7 @@ void LTMgr::build(bool consider_glt, List<LT*> * liveout_exitbb_lts,
     if (BB_is_exit(m_bb)) {
         //Keep USE point of special register in exit BB.
         //Append lt of each return value of register.
-        BitSet * retval_rs = m_tm->get_retval_regset();
+        RegSet const* retval_rs = tmGetRegSetOfReturnValue();
         processExitBB(liveout_exitbb_lts, lived_lt, *retval_rs, pos);
     }
     #endif
@@ -3709,10 +3711,12 @@ e.g: Given pos1, pos2, both of them are USE.
     the best USE between 'pos1' and 'pos2' to insert reload code.
     While both positions are useless, we do not insert any code in
     those positions, and set 'pos1' and 'pos2' to -1. */
-void BBRA::selectReasonableSplitPos(OUT INT & pos1, OUT INT & pos2,
-                                       OUT bool & is_pos1_spill,
-                                       OUT bool & is_pos2_spill,
-                                       LT * lt)
+void BBRA::selectReasonableSplitPos(
+        OUT INT & pos1,
+        OUT INT & pos2,
+        OUT bool & is_pos1_spill,
+        OUT bool & is_pos2_spill,
+        LT * lt)
 {
     ASSERT(lt && pos1 >= 0 && pos2 > 0 && pos1 < pos2, ("Illegal hole"));
     INT p1 = pos1, p2 = pos2;
@@ -3784,7 +3788,7 @@ void BBRA::selectReasonableSplitPos(OUT INT & pos1, OUT INT & pos2,
             if (lt->is_def(p2)) {
                 IR * ir = m_ltm->get_ir(p2);
                 ASSERT0(ir);
-                if (IR_code(ir) == IR_SELECT) {
+                if (ir->is_select()) {
                     /* CASE: 20020402-3.c:blockvector_for_pc_sect():BB10
                         gsr275(a3) lived in and lived out.
                         first pos:0

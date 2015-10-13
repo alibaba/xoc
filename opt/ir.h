@@ -461,7 +461,7 @@ public:
     }
 
     //Return label info if exist.
-    inline LabelInfo * get_label() const;
+    inline LabelInfo const* get_label() const;
 
     //Return the byte size of array element.
     inline UINT getArrayElemDtSize(TypeMgr const* dm) const;
@@ -898,7 +898,7 @@ public:
     inline void set_rhs(IR * rhs);
     inline void set_prno(UINT prno);
     inline void set_ssainfo(SSAInfo * ssa);
-    inline void set_label(LabelInfo * li);
+    inline void set_label(LabelInfo const* li);
     inline void set_ofst(UINT ofst);
     inline void set_du(DU * du);
     inline void set_bb(IRBB * bb);
@@ -1268,6 +1268,9 @@ public:
     //NOTE: 'opnd' must be the last member.
     IR * opnd[1];
 
+    CHAR const* get_callee_name() const
+    { return SYM_name(VAR_name(CALL_idinfo(this))); }
+
     bool isMustBBbound()
     {
         #ifdef _DEBUG_
@@ -1334,7 +1337,7 @@ public:
 #define GOTO_lab(ir)        (((CGoto*)CK_IRT(ir, IR_GOTO))->jump_target_lab)
 class CGoto : public IR, public StmtProp {
 public:
-    LabelInfo * jump_target_lab;
+    LabelInfo const* jump_target_lab;
 };
 
 
@@ -1438,7 +1441,7 @@ public:
 #define LAB_lab(ir)        (((CLab*)CK_IRT(ir, IR_LABEL))->label_info)
 class CLab : public IR {
 public:
-    LabelInfo * label_info;
+    LabelInfo const* label_info;
 };
 
 
@@ -1470,7 +1473,7 @@ the default label. */
 class CSwitch : public IR, public StmtProp {
 public:
     IR * opnd[3];
-    LabelInfo * default_label;
+    LabelInfo const* default_label;
 };
 
 
@@ -1485,7 +1488,7 @@ public:
 class CCase : public IR {
 public:
     IR * opnd[1]; //case-value
-    LabelInfo * jump_target_label; //jump lable for case.
+    LabelInfo const* jump_target_label; //jump lable for case.
 };
 
 
@@ -1663,7 +1666,7 @@ public:
 class CTruebr : public IR, public StmtProp {
 public:
     IR * opnd[1];
-    LabelInfo * jump_target_lab; //jump target label.
+    LabelInfo const* jump_target_lab; //jump target label.
 };
 
 
@@ -1978,7 +1981,7 @@ UINT IR::get_offset() const
 
 
 //Return label info if exist.
-LabelInfo * IR::get_label() const
+LabelInfo const* IR::get_label() const
 {
     switch (IR_code(this)) {
     case IR_TRUEBR:
@@ -2044,7 +2047,7 @@ bool IR::is_readonly_call() const
 bool IR::is_volatile() const
 {
     //Describing if IR's address has been taken.
-    if (IR_code(this) == IR_ID) {
+    if (is_id()) {
         VAR * id_info = ID_info(this);
         ASSERT0(id_info != NULL);
         return VAR_is_volatile(id_info);
@@ -2162,7 +2165,7 @@ void IR::set_prno(UINT prno)
 
 
 //Return label or NULL.
-void IR::set_label(LabelInfo * li)
+void IR::set_label(LabelInfo const* li)
 {
     switch (IR_code(this)) {
     case IR_TRUEBR:
@@ -2258,14 +2261,14 @@ bool IR::is_pr_equal(IR const* src) const
 bool IR::is_rmw() const
 {
     if (IR_is_read_mod_write(this)) {
-        ASSERT0(IR_code(this) == IR_CALL &&
-                  CALL_param_list(this) != NULL &&
-                 IR_code(CALL_param_list(this)) == IR_ID &&
-                 IR_next(CALL_param_list(this)) != NULL &&
-                 (IR_next(CALL_param_list(this))->is_ld() ||
-                  IR_next(CALL_param_list(this))->is_pr() ||
-                  IR_next(CALL_param_list(this))->is_const()) &&
-                 CALL_prno(this) != 0);
+        ASSERT0(is_call() &&
+                CALL_param_list(this) != NULL &&
+                IR_code(CALL_param_list(this)) == IR_ID &&
+                IR_next(CALL_param_list(this)) != NULL &&
+                (IR_next(CALL_param_list(this))->is_ld() ||
+                 IR_next(CALL_param_list(this))->is_pr() ||
+                 IR_next(CALL_param_list(this))->is_const()) &&
+                CALL_prno(this) != 0);
         return true;
     }
     return false;

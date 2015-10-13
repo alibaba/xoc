@@ -58,7 +58,7 @@ MDId2IRlist::MDId2IRlist(Region * ru)
 {
     m_ru = ru;
     m_md_sys = ru->get_md_sys();
-    m_dm = ru->get_dm();
+    m_dm = ru->get_type_mgr();
     m_du = ru->get_du_mgr();
     m_misc_bs_mgr = m_du->getMiscBitSetMgr();
     m_has_stmt_which_only_have_maydef = false;
@@ -135,7 +135,7 @@ void MDId2IRlist::dump()
     TMapIter<UINT, DefSBitSetCore*> c;
     for (UINT mdid = get_first(c); mdid != MD_UNDEF; mdid = get_next(c)) {
         MD const * md = m_md_sys->get_md(mdid);
-        md->dump(m_md_sys->get_dm());
+        md->dump(m_md_sys->get_type_mgr());
         DefSBitSetCore * irs = get(mdid);
         if (irs == NULL || irs->get_elem_count() == 0) { continue; }
         SEGIter * sc = NULL;
@@ -172,7 +172,7 @@ void MDId2IRlist::dump()
 IR_DU_MGR::IR_DU_MGR(Region * ru)
 {
     m_ru = ru;
-    m_dm = ru->get_dm();
+    m_dm = ru->get_type_mgr();
     m_md_sys = ru->get_md_sys();
     m_aa = ru->get_aa();
     m_cfg = ru->get_cfg();
@@ -1391,7 +1391,7 @@ void IR_DU_MGR::dump_ir_ref(IN IR * ir, UINT indent)
 
     if (ir->is_calls_stmt()) {
         bool doit = false;
-        CallGraph * callg = m_ru->get_region_mgr()->get_callg();
+        CallGraph * callg = m_ru->get_region_mgr()->get_call_graph();
         if (callg != NULL) {
             Region * ru = callg->map_ir2ru(ir);
             if (ru != NULL && REGION_is_mddu_valid(ru)) {
@@ -1435,7 +1435,7 @@ void IR_DU_MGR::dump_bb_du_chain2(IRBB * bb)
     fprintf(g_tfile, "\n--- BB%d ---", BB_id(bb));
 
     //Label Info list.
-    LabelInfo * li = bb->get_lab_list().get_head();
+    LabelInfo const* li = bb->get_lab_list().get_head();
     if (li != NULL) {
         fprintf(g_tfile, "\nLABEL:");
     }
@@ -1478,9 +1478,7 @@ void IR_DU_MGR::dump_bb_du_chain2(IRBB * bb)
         IRIter ii;
         for (IR * k = iterInit(ir, ii);
             k != NULL; k = iterNext(ii)) {
-            if (!k->is_memory_ref() &&
-                !k->has_result() &&
-                IR_code(k) != IR_REGION) {
+            if (!k->is_memory_ref() && !k->has_result() && !k->is_region()) {
                 continue;
             }
 
@@ -1869,7 +1867,7 @@ void IR_DU_MGR::copyIRTreeDU(IR * to, IR const* from, bool copyDUChain)
          to_ir = iterNext(m_iter2),
          from_ir = iterNextC(m_citer)) {
         ASSERT0(to_ir->is_ir_equal(from_ir, true));
-        if (!to_ir->is_memory_ref() && IR_code(to_ir) != IR_ID) {
+        if (!to_ir->is_memory_ref() && !to_ir->is_id()) {
             //Copy MD for IR_ID also, some pass need it, e.g. GVN.
             continue;
         }
@@ -2351,7 +2349,7 @@ UINT IR_DU_MGR::count_mem_duset()
 e.g: a = b + *p;
     if p->w, the MustUse is {a,b,p,w}
     if p->w,u, the MustUse is {a,b,p} */
-void IR_DU_MGR::collect_must_use(IN IR const* ir, OUT MDSet & mustuse)
+void IR_DU_MGR::collect_must_use(IR const* ir, OUT MDSet & mustuse)
 {
     switch (IR_code(ir)) {
     case IR_ST:
@@ -2566,7 +2564,7 @@ void IR_DU_MGR::collectMayUse(IR const* ir, MDSet & may_use, bool computePR)
     if (is_stmt) {
         if (ir->is_calls_stmt()) {
             bool done = false;
-            CallGraph * callg = m_ru->get_region_mgr()->get_callg();
+            CallGraph * callg = m_ru->get_region_mgr()->get_call_graph();
             if (callg != NULL) {
                 Region * ru = callg->map_ir2ru(ir);
                 if (ru != NULL && REGION_is_mddu_valid(ru)) {
@@ -2657,7 +2655,7 @@ void IR_DU_MGR::collectMayUseRecursive(
             }
 
             bool done = false;
-            CallGraph * callg = m_ru->get_region_mgr()->get_callg();
+            CallGraph * callg = m_ru->get_region_mgr()->get_call_graph();
             if (callg != NULL) {
                 Region * ru = callg->map_ir2ru(ir);
                 if (ru != NULL && REGION_is_mddu_valid(ru)) {
@@ -3740,7 +3738,7 @@ UINT IR_DU_MGR::checkIsLocalKillingDef(
 {
     ASSERT0(stmt->get_bb() == exp->get_stmt()->get_bb());
 
-    if (IR_code(exp) != IR_ILD || IR_code(stmt) != IR_IST) { return CK_UNKNOWN; }
+    if (!exp->is_ild() || !stmt->is_ist()) { return CK_UNKNOWN; }
 
     IR const* t = ILD_base(exp);
 
@@ -4100,7 +4098,7 @@ UINT IR_DU_MGR::checkIsNonLocalKillingDef(IR const* stmt, IR const* exp)
     ASSERT0(m_oc);
     if (!OC_is_live_expr_valid(*m_oc)) { return CK_UNKNOWN; }
 
-    if (IR_code(exp) != IR_ILD || IR_code(stmt) != IR_IST) { return CK_UNKNOWN; }
+    if (!exp->is_ild() || !stmt->is_ist()) { return CK_UNKNOWN; }
 
     IR const* t = ILD_base(exp);
     while (t->is_cvt()) { t = CVT_exp(t); }

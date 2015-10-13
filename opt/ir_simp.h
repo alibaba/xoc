@@ -40,28 +40,28 @@ class CfsMgr;
 
 #define MAX_SIMP_WORD_LEN  1
 
-#define SIMP_if(s)                        (s)->prop_top_down.simp_if
-#define SIMP_do_loop(s)                    (s)->prop_top_down.simp_do_loop
-#define SIMP_do_while(s)                (s)->prop_top_down.simp_do_while
-#define SIMP_while_do(s)                (s)->prop_top_down.simp_while_do
-#define SIMP_switch(s)                    (s)->prop_top_down.simp_switch
-#define SIMP_select(s)                    (s)->prop_top_down.simp_select
-#define SIMP_array(s)                    (s)->prop_top_down.simp_array
-#define SIMP_break(s)                    (s)->prop_top_down.simp_break
-#define SIMP_continue(s)                (s)->prop_top_down.simp_continue
-#define SIMP_logical_or_and(s)            (s)->prop_top_down.simp_logcial_or_and
-#define SIMP_logical_not(s)                (s)->prop_top_down.simp_logcial_not
-#define SIMP_to_pr_mode(s)                (s)->prop_top_down.simp_to_pr_mode
-#define SIMP_array_to_pr_mode(s)        (s)->prop_top_down.simp_array_to_pr_mode
-#define SIMP_to_lowest_heigh(s)            (s)->prop_top_down.simp_to_lowest_heigh
-#define SIMP_ret_array_val(s)            (s)->prop_top_down.simp_to_get_array_value
-#define SIMP_is_record_cfs(s)            (s)->prop_top_down.is_record_cfs
-#define SIMP_ir_stmt_list(s)            (s)->ir_stmt_list
-#define SIMP_break_label(s)                (s)->break_label
-#define SIMP_continue_label(s)            (s)->continue_label
-#define SIMP_changed(s)                    (s)->prop_bottom_up.something_has_changed
-#define SIMP_need_recon_bblist(s)        (s)->prop_bottom_up.need_to_reconstruct_bb_list
-#define SIMP_cfs_mgr(s)                    (s)->cfs_mgr
+#define SIMP_if(s)                    (s)->prop_top_down.simp_if
+#define SIMP_do_loop(s)               (s)->prop_top_down.simp_do_loop
+#define SIMP_do_while(s)              (s)->prop_top_down.simp_do_while
+#define SIMP_while_do(s)              (s)->prop_top_down.simp_while_do
+#define SIMP_switch(s)                (s)->prop_top_down.simp_switch
+#define SIMP_select(s)                (s)->prop_top_down.simp_select
+#define SIMP_array(s)                 (s)->prop_top_down.simp_array
+#define SIMP_break(s)                 (s)->prop_top_down.simp_break
+#define SIMP_continue(s)              (s)->prop_top_down.simp_continue
+#define SIMP_logical_or_and(s)        (s)->prop_top_down.simp_logcial_or_and
+#define SIMP_logical_not(s)           (s)->prop_top_down.simp_logcial_not
+#define SIMP_to_pr_mode(s)            (s)->prop_top_down.simp_to_pr_mode
+#define SIMP_array_to_pr_mode(s)      (s)->prop_top_down.simp_array_to_pr_mode
+#define SIMP_to_lowest_heigh(s)       (s)->prop_top_down.simp_to_lowest_heigh
+#define SIMP_ret_array_val(s)         (s)->prop_top_down.simp_to_get_array_value
+#define SIMP_is_record_cfs(s)         (s)->prop_top_down.is_record_cfs
+#define SIMP_ir_stmt_list(s)          (s)->ir_stmt_list
+#define SIMP_break_label(s)           (s)->break_label
+#define SIMP_continue_label(s)        (s)->continue_label
+#define SIMP_changed(s)               (s)->prop_bottom_up.something_has_changed
+#define SIMP_need_recon_bblist(s)     (s)->prop_bottom_up.need_to_reconstruct_bb_list
+#define SIMP_cfs_mgr(s)               (s)->cfs_mgr
 class SimpCTX {
 public:
     struct {
@@ -160,8 +160,8 @@ public:
     //--
     //Propagate info top down.
     //Record label info for context.
-    LabelInfo * break_label; //record the current LOOP/IF/SWITCH end label.
-    LabelInfo * continue_label; //record the current LOOP start label.
+    LabelInfo const* break_label; //record the current LOOP/IF/SWITCH end label.
+    LabelInfo const* continue_label; //record the current LOOP start label.
     //--
 
 public:

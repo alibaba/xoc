@@ -103,7 +103,7 @@ public:
     {
         ASSERT0(ru != NULL);
         m_ru = ru;
-        m_dm = ru->get_dm();
+        m_dm = ru->get_type_mgr();
         m_cfg = ru->get_cfg();
         m_du = ru->get_du_mgr();
         m_md_sys = ru->get_md_sys();

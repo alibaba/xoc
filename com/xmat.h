@@ -72,7 +72,7 @@ public:
     void copy(INTMat const& r);
     UINT comden(UINT row, UINT col); //Common denominator
     void substit(IN RMat const& exp,
-                IN UINT v,
+                UINT v,
                 bool is_eq = true,
                 INT rhs_idx = -1);
     void intlize(INT row = -1); //Converting rational element to integer.
@@ -115,7 +115,7 @@ public:
     INT det();
 
     //Generate unimodular matrix to elimnate element.
-    void gen_elim_mat(IN UINT row, IN UINT col, OUT INTMat &elim);
+    void gen_elim_mat(UINT row, UINT col, OUT INTMat &elim);
 
     //Hermite Normal Form decomposition.
     void hnf(OUT INTMat &h, OUT INTMat &u);
@@ -152,7 +152,7 @@ public:
     void setie(UINT num, ...);
     FloatMat& operator = (FloatMat const& m);
     void set_sd(UINT sd); //Redefine the significant digit.
-    void substit(IN FloatMat const& exp, IN UINT v, bool is_eq, INT rhs_idx);
+    void substit(IN FloatMat const& exp, UINT v, bool is_eq, INT rhs_idx);
     bool is_imat(UINT * row, UINT * col);
 
     //Get the significant digit description string.

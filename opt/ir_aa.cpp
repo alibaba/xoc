@@ -116,7 +116,7 @@ IR_AA::IR_AA(Region * ru)
     m_cfg = ru->get_cfg();
     m_var_mgr = ru->get_var_mgr();
     m_ru = ru;
-    m_dm = ru->get_dm();
+    m_dm = ru->get_type_mgr();
     m_md_sys = ru->get_md_sys();
     m_mds_mgr = ru->get_mds_mgr();
     m_mds_hash = ru->get_mds_hash();
@@ -314,10 +314,10 @@ bool IR_AA::isValidStmtToAA(IR * ir)
 //e.g: y = &x.
 //'mds' : record memory descriptor of 'ir'
 void IR_AA::processLda(
-            IR * ir,
-            IN OUT MDSet & mds,
-            IN OUT AACTX * ic,
-            IN OUT MD2MDSet * mx)
+        IR * ir,
+        IN OUT MDSet & mds,
+        IN OUT AACTX * ic,
+        IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_lda() && ir->is_ptr());
     ASSERT0(!IR_parent(ir)->is_array());
@@ -368,10 +368,10 @@ void IR_AA::processLda(
 //e.g: p = &A[i]
 //'mds' : record memory descriptor of 'ir'.
 void IR_AA::processArrayLdabase(
-            IR * ir,
-            IN OUT MDSet & mds,
-            IN OUT AACTX * ic,
-            IN OUT MD2MDSet * mx)
+        IR * ir,
+        IN OUT MDSet & mds,
+        IN OUT AACTX * ic,
+        IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_lda() && ir->is_ptr());
     ASSERT0(IR_parent(ir)->is_array_op()); //lda must be array base.
@@ -541,14 +541,14 @@ void IR_AA::computeMayPointTo(IR * pointer, IN MD2MDSet * mx, OUT MDSet & mds)
 //'is_ofst_predicable': true if array element offset is constant.
 //This function will set the Ref MD and Ref MD set of array operation.
 void IR_AA::inferArrayExpBase(
-            IR * ir,
-            IR * array_base,
-            bool is_ofst_predicable,
-            UINT ofst,
-            OUT MDSet & mds,
-            OUT bool mds_is_may_pt,
-            IN OUT AACTX * ic,
-            IN OUT MD2MDSet * mx)
+        IR * ir,
+        IR * array_base,
+        bool is_ofst_predicable,
+        UINT ofst,
+        OUT MDSet & mds,
+        OUT bool mds_is_may_pt,
+        IN OUT AACTX * ic,
+        IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_array_op() && array_base->is_ptr());
     MDSet tmp;
@@ -633,13 +633,13 @@ void IR_AA::inferArrayExpBase(
 //the LDA base of array operation.
 //This function will set the Ref MD and Ref MD set of array operation.
 void IR_AA::inferArrayLdabase(
-                IR * ir,
-                IR * array_base,
-                bool is_ofst_pred,
-                UINT ofst,
-                OUT MDSet & mds,
-                IN OUT AACTX * ic,
-                IN OUT MD2MDSet * mx)
+        IR * ir,
+        IR * array_base,
+        bool is_ofst_pred,
+        UINT ofst,
+        OUT MDSet & mds,
+        IN OUT AACTX * ic,
+        IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_array_op() && array_base->is_lda());
     AACTX tic(*ic);
@@ -694,10 +694,10 @@ void IR_AA::inferArrayLdabase(
 //'mds' : record memory descriptor of 'ir'.
 //This function will set the Ref MD and Ref MD set of array operation.
 void IR_AA::processArray(
-            IR * ir,
-            IN OUT MDSet & mds,
-            IN OUT AACTX * ic,
-            IN OUT MD2MDSet * mx)
+        IR * ir,
+        IN OUT MDSet & mds,
+        IN OUT AACTX * ic,
+        IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_array_op());
 
@@ -971,11 +971,11 @@ registered to be unbound. Since if p+1 is placed in a loop,
 we could not determine the exact MD where p pointed to.
 'mds' : record memory descriptor of 'ir' */
 void IR_AA::inferPtArith(
-            IR const* ir,
-            IN OUT MDSet & mds,
-            IN OUT MDSet & opnd0_mds,
-            IN OUT AACTX * opnd0_ic,
-            IN OUT MD2MDSet * mx)
+        IR const* ir,
+        IN OUT MDSet & mds,
+        IN OUT MDSet & opnd0_mds,
+        IN OUT AACTX * opnd0_ic,
+        IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_add() || ir->is_sub());
     IR * opnd1 = BIN_opnd1(ir);
@@ -1070,10 +1070,10 @@ void IR_AA::inferPtArith(
 //'mds' : record memory-descriptor set or
 //    point-to set of 'ir' if AC_comp_pt(ic) is true.
 void IR_AA::processPointerArith(
-            IR * ir,
-            IN OUT MDSet & mds,
-            IN OUT AACTX * ic,
-            IN OUT MD2MDSet * mx)
+        IR * ir,
+        IN OUT MDSet & mds,
+        IN OUT AACTX * ic,
+        IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_add() || ir->is_sub());
     IR * opnd0 = BIN_opnd0(ir);
@@ -1241,9 +1241,9 @@ MD const* IR_AA::assignLoadMD(
 //Assign unique MD to 'id'.
 //'mds': record memory descriptor of 'ir'.
 MD const* IR_AA::assignIdMD(
-            IR * ir,
-            IN OUT MDSet * mds,
-            IN OUT AACTX * ic)
+        IR * ir,
+        IN OUT MDSet * mds,
+        IN OUT AACTX * ic)
 {
     ASSERT0(ir->is_id());
     ASSERT0(ic && mds);
@@ -1271,9 +1271,9 @@ MD const* IR_AA::assignIdMD(
 //Return true if all element in mds are effect and derived from the same VAR.
 //mustref: record the Unbound MD if the function return true, or meaningless.
 static bool isAllElementDerivedFromSameEffectVar(
-                MDSet const& mds,
-                MDSystem * mdsys,
-                MD const** mustref)
+        MDSet const& mds,
+        MDSystem * mdsys,
+        MD const** mustref)
 {
     ASSERT0(!mds.is_empty() && mustref);
 
@@ -1339,10 +1339,10 @@ MD const* IR_AA::allocStringMD(IR * ir)
 
 //'mds' : record memory descriptor of 'ir'.
 void IR_AA::processIload(
-                IR * ir,
-                IN OUT MDSet & mds,
-                IN OUT AACTX * ic,
-                IN OUT MD2MDSet * mx)
+        IR * ir,
+        IN OUT MDSet & mds,
+        IN OUT AACTX * ic,
+        IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_ild());
     ASSERT0(ILD_base(ir)->is_ptr());
@@ -1441,9 +1441,9 @@ p = q, for any x : if q -> x, add p -> x.
 
 'mds' : record memory descriptor of 'ir'. */
 MD const* IR_AA::assignStringConst(
-            IR * ir,
-            IN OUT MDSet * mds,
-            IN OUT AACTX * ic)
+        IR * ir,
+        IN OUT MDSet * mds,
+        IN OUT AACTX * ic)
 {
     ASSERT0(ir->is_str());
     ASSERT0(mds && ic);
@@ -1497,9 +1497,9 @@ p = q, for any x : if q -> x, add p -> x.
 
 'mds' : record memory descriptor of 'ir'. */
 MD const* IR_AA::assignStringIdentifier(
-            IR * ir,
-            IN OUT MDSet * mds,
-            IN OUT AACTX * ic)
+        IR * ir,
+        IN OUT MDSet * mds,
+        IN OUT AACTX * ic)
 {
     ASSERT0(ir->is_id() && ID_info(ir)->is_string());
     ASSERT0(mds && ic);
@@ -1537,9 +1537,9 @@ MD const* IR_AA::assignStringIdentifier(
 
 //'mds' : record memory descriptor of 'ir'.
 void IR_AA::processConst(
-            IR * ir,
-            IN OUT MDSet & mds,
-            IN OUT AACTX * ic)
+        IR * ir,
+        IN OUT MDSet & mds,
+        IN OUT AACTX * ic)
 {
     if (ir->is_str()) {
         assignStringConst(ir, &mds, ic);
@@ -1551,11 +1551,11 @@ void IR_AA::processConst(
 
 
 void IR_AA::inferStoreValue(
-            IN IR * ir,
-            IR * rhs,
-            MD const* lhs_md,
-            IN AACTX * ic,
-            IN MD2MDSet * mx)
+        IN IR * ir,
+        IR * rhs,
+        MD const* lhs_md,
+        IN AACTX * ic,
+        IN MD2MDSet * mx)
 {
     ASSERT0(ir->is_st() || ir->is_stpr() || ir->is_setelem());
 
@@ -2427,10 +2427,10 @@ and compute the MDSet for 'expr'.
 'mds': record memory descriptors which 'expr' might express.
 'ic': context of analysis. */
 void IR_AA::inferExpression(
-            IR * expr,
-            IN OUT MDSet & mds,
-            IN OUT AACTX * ic,
-            IN OUT MD2MDSet * mx)
+        IR * expr,
+        IN OUT MDSet & mds,
+        IN OUT AACTX * ic,
+        IN OUT MD2MDSet * mx)
 {
     switch (IR_code(expr)) {
     case IR_ID:
@@ -2563,9 +2563,9 @@ void IR_AA::inferExpression(
 //Set POINT TO info.
 //Set each md in 'mds' add set 'pt_set'.
 void IR_AA::ElemUnionPointTo(
-                MDSet const& mds,
-                IN MDSet & pt_set,
-                IN MD2MDSet * mx)
+        MDSet const& mds,
+        IN MDSet & pt_set,
+        IN MD2MDSet * mx)
 {
     bool set_all = false;
     SEGIter * iter;
@@ -2599,9 +2599,9 @@ void IR_AA::ElemUnionPointTo(
 //Set POINT TO info.
 //Set each md in 'mds' add 'pt_elem'.
 void IR_AA::ElemUnionPointTo(
-                MDSet const& mds,
-                IN MD * pt_elem,
-                IN MD2MDSet * mx)
+        MDSet const& mds,
+        IN MD * pt_elem,
+        IN MD2MDSet * mx)
 {
     bool set_all = false;
     SEGIter * iter;
@@ -2637,9 +2637,9 @@ void IR_AA::ElemUnionPointTo(
 //Set each md in 'mds' points to 'pt_set' if it is exact, or
 //else unify the set.
 void IR_AA::ElemCopyAndUnionPointTo(
-            MDSet const& mds,
-            IN MDSet & pt_set,
-            IN MD2MDSet * mx)
+        MDSet const& mds,
+        IN MDSet & pt_set,
+        IN MD2MDSet * mx)
 {
     bool set_all = false;
     SEGIter * iter;
@@ -2686,8 +2686,10 @@ void IR_AA::ElemCopyAndUnionPointTo(
 
 //Set POINT TO info.
 //Set each md in 'mds' points to 'pt_set'.
-void IR_AA::ElemCopyPointTo(MDSet const& mds, IN MDSet & pt_set,
-                         IN MD2MDSet * mx)
+void IR_AA::ElemCopyPointTo(
+        MDSet const& mds,
+        IN MDSet & pt_set,
+        IN MD2MDSet * mx)
 {
     bool set_all = false;
     SEGIter * iter;
@@ -3248,9 +3250,9 @@ void IR_AA::dumpMD2MDSet(MD const* md, IN MD2MDSet * mx)
 
 
 void IR_AA::convertMD2MDSet2PT(
-            OUT PtPairSet & pps,
-            IN PtPairMgr & pt_pair_mgr,
-            IN MD2MDSet * mx)
+        OUT PtPairSet & pps,
+        IN PtPairMgr & pt_pair_mgr,
+        IN MD2MDSet * mx)
 {
     MD * allm = m_md_sys->get_md(MD_ALL_MEM);
     MD2MDSetIter mxiter;

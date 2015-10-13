@@ -219,7 +219,7 @@ template <class Mat, class T> class SIX : public Element<T> {
                 Vector<INT> & eq2bvmap,
                 IN OUT INT & new_rhs_idx);
     void newPPT(INT rhs_idx);
-    void pivot(IN UINT nv, IN UINT bv, IN OUT PVParam<Mat> & pp);
+    void pivot(UINT nv, UINT bv, IN OUT PVParam<Mat> & pp);
     INT findPivotBV(UINT pivot_nv, IN OUT PVParam<Mat> & pp);
     INT findPivotNVandBVPair(OUT INT & nvidx, OUT INT & bvidx,
                              IN OUT PVParam<Mat> & pp);
@@ -231,12 +231,12 @@ template <class Mat, class T> class SIX : public Element<T> {
                         IN OUT Vector<bool> & bvset,
                         IN OUT Vector<INT> & bv2eqmap,
                         IN OUT Vector<INT> & eq2bvmap,
-                        IN INT rhs_idx);
+                        INT rhs_idx);
     void verify(IN Mat const& leq,
                 IN Mat const& eq,
                 IN Mat const& tgtf,
                 IN Mat const& vc,
-                IN INT rhs_idx);
+                INT rhs_idx);
     INT normalize(OUT Mat & newleq,
                   OUT Mat & newvc,
                   OUT INTMat & vcmap,
@@ -527,7 +527,7 @@ NOTICE:
     specifical basic variable, the value of basic variable is
     also the slack range of 'pivot_nv'. */
 template <class Mat, class T>
-INT SIX<Mat, T>::findPivotBV(IN UINT pivot_nv, IN OUT PVParam<Mat> & pp)
+INT SIX<Mat, T>::findPivotBV(UINT pivot_nv, IN OUT PVParam<Mat> & pp)
 {
     ASSERT(m_is_init, ("not yet initialize"));
     Mat const& eqc = *pp.eq;
@@ -989,7 +989,7 @@ UINT SIX<Mat, T>::solveSlackForm(IN OUT Mat & tgtf,
                                     IN OUT Vector<bool> & bvset,
                                     IN OUT Vector<INT> & bv2eqmap,
                                     IN OUT Vector<INT> & eq2bvmap,
-                                    IN INT rhs_idx)
+                                    INT rhs_idx)
 {
     ASSERT(m_is_init, ("not yet initialize"));
     newPPT(rhs_idx);
@@ -1441,7 +1441,7 @@ NOTICE:
     sign change.
 */
 template <class Mat, class T>
-void SIX<Mat, T>::pivot(IN UINT nv, IN UINT bv, IN OUT PVParam<Mat> & pp)
+void SIX<Mat, T>::pivot(UINT nv, UINT bv, IN OUT PVParam<Mat> & pp)
 {
     ASSERT(m_is_init, ("not yet initialize"));
     Mat & eq = *pp.eq;
@@ -2039,7 +2039,7 @@ template <class Mat, class T>
 void SIX<Mat, T>::reviseTargetFunc(IN OUT Mat & tgtf,
                                      Mat const& eq,
                                      Mat const& leq,
-                                     IN INT rhs_idx)
+                                     INT rhs_idx)
 {
     Vector<bool> is_nonzero;
     INT j;
@@ -2083,7 +2083,7 @@ template <class Mat, class T> class MIP : public Element<T> {
                     IN Mat & vc,
                     IN Mat const& eq,
                     IN Mat const& leq,
-                    IN INT rhs_idx,
+                    INT rhs_idx,
                     IN bool is_max,
                     IN bool is_bin,
                     IN INTMat & fork_count);
@@ -2096,7 +2096,7 @@ public:
                 IN Mat const& eq,
                 IN Mat const& tgtf,
                 IN Mat const& vc,
-                IN INT rhs_idx);
+                INT rhs_idx);
     virtual bool is_satisfying(OUT UINT & row, OUT UINT & col,
                                IN Mat & sol, bool is_bin);
     virtual UINT minm(OUT T & minv, OUT Mat & res,
@@ -2104,17 +2104,17 @@ public:
                       Mat const& eq, Mat const& leq,
                       IN bool is_bin = false,
                       IN BMAT * rational_indicator = NULL,
-                      IN INT rhs_idx = -1); //Linear minmum solution
+                      INT rhs_idx = -1); //Linear minmum solution
     virtual UINT maxm(OUT T & maxv, OUT Mat & res,
                       Mat const& tgtf, IN Mat & vc,
                       Mat const& eq, Mat const& leq,
                       IN bool is_bin = false,
                       IN BMAT * rational_indicator = NULL,
-                      IN INT rhs_idx = -1); //Linear maximum solution
+                      INT rhs_idx = -1); //Linear maximum solution
     void reviseTargetFunc(IN OUT Mat & tgtf,
                             Mat const& eq,
                             Mat const& leq,
-                            IN INT rhs_idx);
+                            INT rhs_idx);
     virtual FILE * dump_open_file();
     virtual bool dump_prt_indent(FILE * h);
     virtual bool dump_start_six(Mat const& tgtf,
@@ -2663,7 +2663,7 @@ UINT MIP<Mat, T>::minm(OUT T & minv,
                        Mat const& leq,
                        bool is_bin,
                        IN BMAT * rational_indicator,
-                       IN INT rhs_idx)
+                       INT rhs_idx)
 {
     ASSERT(m_is_init, ("not yet initialize"));
     m_allow_rational_indicator = rational_indicator;

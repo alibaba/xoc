@@ -118,7 +118,7 @@ public:
         m_aa = ru->get_aa();
         ASSERT0(m_du && m_aa);
         m_expr_tab = NULL;
-        m_dm = ru->get_dm();
+        m_dm = ru->get_type_mgr();
         m_gvn = gvn;
         m_misc_bs_mgr = ru->getMiscBitSetMgr();
         m_tg = NULL;

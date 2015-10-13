@@ -80,63 +80,34 @@ void IRBB::dump(Region * ru)
 
     g_indent = 0;
 
-    note("\n----- BB%d ------", BB_id(this));
-
-    //Label Info list
-    LabelInfo * li = get_lab_list().get_head();
-    if (li != NULL) {
-        note("\nLABEL:");
-    }
-    for (; li != NULL; li = get_lab_list().get_next()) {
-        switch (LABEL_INFO_type(li)) {
-        case L_CLABEL:
-            note(CLABEL_STR_FORMAT, CLABEL_CONT(li));
-            break;
-        case L_ILABEL:
-            note(ILABEL_STR_FORMAT, ILABEL_CONT(li));
-            break;
-        case L_PRAGMA:
-            note("%s", LABEL_INFO_pragma(li));
-            break;
-        default: ASSERT(0,("unsupport"));
-        }
-        if (LABEL_INFO_is_try_start(li) ||
-            LABEL_INFO_is_try_end(li) ||
-            LABEL_INFO_is_catch_start(li)) {
-            fprintf(g_tfile, "(");
-            if (LABEL_INFO_is_try_start(li)) {
-                fprintf(g_tfile, "try_start,");
-            }
-            if (LABEL_INFO_is_try_end(li)) {
-                fprintf(g_tfile, "try_end,");
-            }
-            if (LABEL_INFO_is_catch_start(li)) {
-                fprintf(g_tfile, "catch_start");
-            }
-            fprintf(g_tfile, ")");
-        }
-        fprintf(g_tfile, " ");
+    fprintf(g_tfile, "\n----- BB%d ------", BB_id(this));
+    if (get_lab_list().get_elem_count() > 0) {
+        fprintf(g_tfile, "\nLABEL:");
+        dumpBBLabel(get_lab_list(), g_tfile);
     }
 
     //Attributes
-    note("\nATTR:");
+    fprintf(g_tfile, "\nATTR:");
     if (BB_is_entry(this)) {
-        note("entry_bb ");
+        fprintf(g_tfile, "entry_bb ");
     }
+
     //if (BB_is_exit(this)) {
-    //    note("exit_bb ");
+    //    fprintf(g_tfile, "exit_bb ");
     //}
+
     if (BB_is_fallthrough(this)) {
-        note("fall_through ");
+        fprintf(g_tfile, "fall_through ");
     }
+
     if (BB_is_target(this)) {
-        note("branch_target ");
+        fprintf(g_tfile, "branch_target ");
     }
 
     //IR list
-    note("\nSTMT NUM:%d", getNumOfIR());
+    fprintf(g_tfile, "\nSTMT NUM:%d", getNumOfIR());
     g_indent += 3;
-    TypeMgr * dm = ru->get_dm();
+    TypeMgr * dm = ru->get_type_mgr();
     for (IR * ir = BB_first_ir(this);
         ir != NULL; ir = BB_irlist(this).get_next()) {
         ASSERT0(IR_next(ir) == NULL && IR_prev(ir) == NULL);
@@ -144,7 +115,7 @@ void IRBB::dump(Region * ru)
         dump_ir(ir, dm, NULL, true, true, false);
     }
     g_indent -= 3;
-    note("\n");
+    fprintf(g_tfile, "\n");
     fflush(g_tfile);
 }
 
@@ -289,6 +260,44 @@ void IRBB::removeSuccessorPhiOpnd(CFG<IRBB, IR> * cfg)
     }
 }
 //END IRBB
+
+void dumpBBLabel(List<LabelInfo const*> & lablist, FILE * h)
+{
+    ASSERT0(h);
+    C<LabelInfo const*> * ct;
+    for (lablist.get_head(&ct); ct != lablist.end(); ct = lablist.get_next(ct)) {
+        LabelInfo const* li = ct->val();
+        switch (LABEL_INFO_type(li)) {
+        case L_CLABEL:
+            fprintf(h, CLABEL_STR_FORMAT, CLABEL_CONT(li));
+            break;
+        case L_ILABEL:
+            fprintf(h, ILABEL_STR_FORMAT, ILABEL_CONT(li));
+            break;
+        case L_PRAGMA:
+            fprintf(h, "%s", SYM_name(LABEL_INFO_pragma(li)));
+            break;
+        default: ASSERT0(0);
+        }
+
+        if (LABEL_INFO_is_try_start(li) ||
+            LABEL_INFO_is_try_end(li) ||
+            LABEL_INFO_is_catch_start(li)) {
+            fprintf(g_tfile, "(");
+            if (LABEL_INFO_is_try_start(li)) {
+                fprintf(g_tfile, "try_start,");
+            }
+            if (LABEL_INFO_is_try_end(li)) {
+                fprintf(g_tfile, "try_end,");
+            }
+            if (LABEL_INFO_is_catch_start(li)) {
+                fprintf(g_tfile, "catch_start");
+            }
+            fprintf(g_tfile, ")");
+        }
+        fprintf(g_tfile, " ");
+    }
+}
 
 
 void dumpBBList(BBList * bbl, Region * ru, CHAR const* name)

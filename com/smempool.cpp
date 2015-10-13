@@ -502,7 +502,7 @@ void * smpoolMallocViaPoolIndex(size_t size, MEMPOOLIDX mpt_idx, size_t grow_siz
     }
 
     if (mp == NULL) {
-        //Mem pool of Index %lu does not exist", mpt_idx);
+        //Mem pool of Index %lu does not exist", (ULONG)mpt_idx);
         return NULL;
     }
 

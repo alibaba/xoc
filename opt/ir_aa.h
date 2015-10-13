@@ -314,17 +314,28 @@ protected:
 
 protected:
     MD const* allocHeapobj(IR * ir);
-    MD const* assignStringConst(IN IR * ir, IN OUT MDSet * mds,
-                                IN OUT AACTX * ic);
-    MD const* assignStringIdentifier(IN IR * ir, IN OUT MDSet * mds,
-                                     IN OUT AACTX * ic);
-    MD const* assignIdMD(IN IR * ir, IN OUT MDSet * mds,
-                         IN OUT AACTX * ic);
-    MD const* assignLoadMD(IN IR * ir, IN OUT MDSet * mds,
-                           IN OUT AACTX * ic, IN OUT MD2MDSet * mx);
-    MD const* assignPRMD(IN IR * ir, IN OUT MDSet * mds,
-                         IN OUT AACTX * ic, IN OUT MD2MDSet * mx);
-
+    MD const* assignStringConst(
+                    IN IR * ir,
+                    IN OUT MDSet * mds,
+                    IN OUT AACTX * ic);
+    MD const* assignStringIdentifier(
+                    IN IR * ir,
+                    IN OUT MDSet * mds,
+                    IN OUT AACTX * ic);
+    MD const* assignIdMD(
+                    IN IR * ir,
+                    IN OUT MDSet * mds,
+                    IN OUT AACTX * ic);
+    MD const* assignLoadMD(
+                    IN IR * ir,
+                    IN OUT MDSet * mds,
+                    IN OUT AACTX * ic,
+                    IN OUT MD2MDSet * mx);
+    MD const* assignPRMD(
+                    IN IR * ir,
+                    IN OUT MDSet * mds,
+                    IN OUT AACTX * ic,
+                    IN OUT MD2MDSet * mx);
     MD const* allocIdMD(IR * ir);
     MD const* allocLoadMD(IR * ir);
     MD const* allocStoreMD(IR * ir);
@@ -335,6 +346,15 @@ protected:
     MD const* allocSetelemMD(IR * ir);
     MD const* allocGetelemMD(IR * ir);
     MD const* allocStringMD(IR * ir);
+
+    void convertPT2MD2MDSet(
+            PtPairSet const& pps,
+            IN PtPairMgr & pt_pair_mgr,
+            IN OUT MD2MDSet * ctx);
+    void convertMD2MDSet2PT(
+            OUT PtPairSet & pps,
+            IN PtPairMgr & pt_pair_mgr,
+            IN MD2MDSet * mx);
 
     bool evaluateFromLda(IR const* ir);
 
@@ -349,66 +369,98 @@ protected:
             IN OUT AACTX * opnd0_ic,
             IN OUT MD2MDSet * mx);
     void inferStoreValue(
-            IN IR * ir, IN IR * rhs, MD const* lhs_md,
-            IN AACTX * ic, IN MD2MDSet * mx);
+            IN IR * ir,
+            IN IR * rhs,
+            MD const* lhs_md,
+            IN AACTX * ic,
+            IN MD2MDSet * mx);
     void inferStoreArrayValue(IN IR * ir, IN AACTX * ic, IN MD2MDSet * mx);
     void inferIstoreValue(IN IR * ir, IN AACTX * ic, IN MD2MDSet * mx);
     void inferArrayInfinite(
-            INT ofst, bool is_ofst_pred, UINT md_size,
-            MDSet const& in, OUT MDSet & out);
+            INT ofst,
+            bool is_ofst_pred,
+            UINT md_size,
+            MDSet const& in,
+            OUT MDSet & out);
     void inferArrayLdabase(
-            IR * ir, IR * array_base,
-            bool is_ofst_pred, UINT ofst,
-            OUT MDSet & mds, IN OUT AACTX * ic,
+            IR * ir,
+            IR * array_base,
+            bool is_ofst_pred,
+            UINT ofst,
+            OUT MDSet & mds,
+            IN OUT AACTX * ic,
             IN OUT MD2MDSet * mx);
     void inferExpression(
-            IR * ir, IN OUT MDSet & mds,
-            IN OUT AACTX * ic, IN OUT MD2MDSet * mx);
+            IR * ir,
+            IN OUT MDSet & mds,
+            IN OUT AACTX * ic,
+            IN OUT MD2MDSet * mx);
 
-    void processLda(IR * ir, IN OUT MDSet & mds,
-                    IN OUT AACTX * ic, IN OUT MD2MDSet * mx);
-    void processArrayLdabase(IR * ir, IN OUT MDSet & mds,
-                             IN OUT AACTX * ic, IN OUT MD2MDSet * mx);
-    void processCvt(IR const* ir, IN OUT MDSet & mds,
-                    IN OUT AACTX * ic, IN OUT MD2MDSet * mx);
-    void processGetelem(IR * ir, IN OUT MDSet & mds,
-                        IN OUT AACTX * ic, IN OUT MD2MDSet * mx);
+    void processLda(
+            IR * ir,
+            IN OUT MDSet & mds,
+            IN OUT AACTX * ic,
+            IN OUT MD2MDSet * mx);
+    void processArrayLdabase(
+            IR * ir,
+            IN OUT MDSet & mds,
+            IN OUT AACTX * ic,
+            IN OUT MD2MDSet * mx);
+    void processCvt(
+            IR const* ir,
+            IN OUT MDSet & mds,
+            IN OUT AACTX * ic,
+            IN OUT MD2MDSet * mx);
+    void processGetelem(
+            IR * ir,
+            IN OUT MDSet & mds,
+            IN OUT AACTX * ic,
+            IN OUT MD2MDSet * mx);
     void processGetelem(IR * ir, IN MD2MDSet * mx);
     void processSetelem(IR * ir, IN MD2MDSet * mx);
-    void processIload(IR * ir, IN OUT MDSet & mds,
-                      IN OUT AACTX * ic, IN OUT MD2MDSet * mx);
-    void processPointerArith(IR * ir, IN OUT MDSet & mds,
-                             IN OUT AACTX * ic, IN OUT MD2MDSet * mx);
-    void processArray(IR * ir, IN OUT MDSet & mds,
-                      IN OUT AACTX * ic, IN OUT MD2MDSet * mx);
-    void processConst(IR * ir, IN OUT MDSet & mds,
-                      IN OUT AACTX * ic);
+    void processIload(
+            IR * ir,
+            IN OUT MDSet & mds,
+            IN OUT AACTX * ic,
+            IN OUT MD2MDSet * mx);
+    void processPointerArith(
+            IR * ir,
+            IN OUT MDSet & mds,
+            IN OUT AACTX * ic,
+            IN OUT MD2MDSet * mx);
+    void processArray(
+            IR * ir,
+            IN OUT MDSet & mds,
+            IN OUT AACTX * ic,
+            IN OUT MD2MDSet * mx);
+    void processConst(
+            IR * ir,
+            IN OUT MDSet & mds,
+            IN OUT AACTX * ic);
     void processStore(IN IR * ir, IN OUT MD2MDSet * mx);
     void processStorePR(IN IR * ir, IN MD2MDSet * mx);
     void processIstore(IN IR * ir, IN OUT MD2MDSet * mx);
     void processStoreArray(IN IR * ir, IN MD2MDSet * mx);
     void processPhi(IN IR * ir, IN MD2MDSet * mx);
-    void processCallSideeffect(IN OUT MD2MDSet & mx, bool by_addr,
-                               MDSet const& by_addr_mds);
+    void processCallSideeffect(
+            IN OUT MD2MDSet & mx,
+            bool by_addr,
+            MDSet const& by_addr_mds);
     void processCall(IN IR * ir, IN OUT MD2MDSet * mx);
     void processReturn(IN IR * ir, IN MD2MDSet * mx);
     void processRegionSideeffect(IN OUT MD2MDSet & mx);
     void processRegion(IR const* ir, IN MD2MDSet * mx);
-    void inferArrayExpBase(IR * ir,
-                           IR * array_base,
-                           bool is_ofst_predicable,
-                           UINT ofst,
-                           OUT MDSet & mds,
-                           OUT bool mds_is_may_pt,
-                           IN OUT AACTX * ic,
-                           IN OUT MD2MDSet * mx);
-    void convertPT2MD2MDSet(PtPairSet const& pps, IN PtPairMgr & pt_pair_mgr,
-                            IN OUT MD2MDSet * ctx);
+    void inferArrayExpBase(
+            IR * ir,
+            IR * array_base,
+            bool is_ofst_predicable,
+            UINT ofst,
+            OUT MDSet & mds,
+            OUT bool mds_is_may_pt,
+            IN OUT AACTX * ic,
+            IN OUT MD2MDSet * mx);
 
     void reviseMDsize(IN OUT MDSet & mds, UINT size);
-
-    void convertMD2MDSet2PT(OUT PtPairSet & pps, IN PtPairMgr & pt_pair_mgr,
-                            IN MD2MDSet * mx);
 
     inline void * xmalloc(size_t size)
     {
@@ -431,8 +483,7 @@ public:
     { ctx.setAlways(MD_id(md), NULL); }
 
     void computeFlowSensitive(List<IRBB*> const& bbl);
-    void computeStmt(IRBB const* bb,
-                         IN OUT MD2MDSet * mx);
+    void computeStmt(IRBB const* bb, IN OUT MD2MDSet * mx);
     void computeFlowInsensitive();
     void computeMayPointTo(IR * pointer, IN MD2MDSet * mx, OUT MDSet & mds);
     void computeMayPointTo(IR * pointer, OUT MDSet & mds);
@@ -453,8 +504,10 @@ public:
     void ElemUnionPointTo(MDSet const& mds, IN MD * in_elem, IN MD2MDSet * mx);
     void ElemCopyPointTo(MDSet const& mds, IN MDSet & in_set, IN MD2MDSet * mx);
     void ElemCopyPointToAndMayPointTo(MDSet const& mds, IN MD2MDSet * mx);
-    void ElemCopyAndUnionPointTo(MDSet const& mds, IN MDSet & pt_set,
-                                 IN MD2MDSet * mx);
+    void ElemCopyAndUnionPointTo(
+            MDSet const& mds,
+            IN MDSet & pt_set,
+            IN MD2MDSet * mx);
     void ElemCleanPointTo(MDSet const& mds, IN MD2MDSet * mx);
     void ElemCleanExactPointTo(MDSet const& mds, IN MD2MDSet * mx);
 
@@ -550,9 +603,9 @@ public:
 
     //Set pointer points to 'target_set' in the context.
     inline void setPointToMDSet(
-                        MD const* pointer,
-                        MD2MDSet & ctx,
-                        MDSet const& target_set)
+                   MD const* pointer,
+                   MD2MDSet & ctx,
+                   MDSet const& target_set)
     {
         ASSERT0(pointer);
         MDSet const* hashed = m_mds_hash->append(target_set);

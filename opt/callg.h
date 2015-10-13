@@ -48,10 +48,8 @@ public:
     Region * ru; //record the Region that callnode corresponds to.
     union {
         struct {
-            /*
-            It is marked by attribute used, which usually means
-            that it is called in inline assembly code.
-            */
+            //It is marked by attribute used, which usually means
+            //that it is called in inline assembly code.
             BYTE is_used:1;
         } s1;
         BYTE u1b1;
@@ -77,8 +75,7 @@ class CallGraph : public DGraph {
     CallNode * newCallNode()
     {
         ASSERT0(m_cn_pool);
-        CallNode * p =
-            (CallNode*)smpoolMallocConstSize(
+        CallNode * p = (CallNode*)smpoolMallocConstSize(
                             sizeof(CallNode), m_cn_pool);
         ASSERT0(p);
         memset(p, 0, sizeof(CallNode));
@@ -90,7 +87,7 @@ public:
     {
         ASSERT0(edge_hash > 0 && vex_hash > 0);
         m_ru_mgr = rumgr;
-        m_dm = rumgr->get_dm();
+        m_dm = rumgr->get_type_mgr();
         m_cn_count = 1;
         m_cn_pool = smpoolCreate(sizeof(CallNode) * 2, MEM_CONST_SIZE);
     }
@@ -106,6 +103,9 @@ public:
     void computeEntryList(List<CallNode*> & elst);
     void computeExitList(List<CallNode*> & elst);
 
+    //name: file name if you want to dump VCG to specified file.
+    //flag: default is 0xFFFFffff(-1) means doing dumping
+    //        with completely information.
     void dump_vcg(CHAR const* name = NULL, INT flag = -1);
 
     CallNode * map_id2cn(UINT id) const { return m_cnid2cn.get(id); }

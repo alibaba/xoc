@@ -43,7 +43,7 @@ IR_LCSE::IR_LCSE(Region * ru)
 {
     ASSERT0(ru != NULL);
     m_ru = ru;
-    m_dm = ru->get_dm();
+    m_dm = ru->get_type_mgr();
     m_du = m_ru->get_du_mgr();
     m_expr_tab = NULL;
     m_expr_vec = NULL;

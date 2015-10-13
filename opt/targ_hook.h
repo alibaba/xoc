@@ -45,7 +45,6 @@ author: Su Zhenyu
 #include "../pac/pacir2or.h"
 #include "../pac/pacasmprinter.h"
 #include "../pac/pac_cg.h"
-#include "../pac/pactargmach.h"
 
 #elif defined(FOR_ARM)
 #include "../arm/arm.h"

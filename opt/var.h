@@ -233,8 +233,8 @@ public:
     }
 
     virtual CHAR * dumpVARDecl(CHAR*, UINT) { return NULL; }
-    virtual void dump(FILE * h, TypeMgr * dm);
-    virtual CHAR * dump(CHAR * buf, TypeMgr * dm);
+    virtual void dump(FILE * h, TypeMgr const* dm);
+    virtual CHAR * dump(CHAR * buf, TypeMgr const* dm);
 };
 //END VAR
 
@@ -310,7 +310,7 @@ public:
 
     void dump(IN OUT CHAR * name = NULL);
 
-    TypeMgr * get_dm() const { return m_dm; }
+    TypeMgr * get_type_mgr() const { return m_dm; }
     ID2VAR * get_var_vec() { return &m_var_vec; }
 
     VAR * findStringVar(SYM * str) { return m_str_tab.get(str); }

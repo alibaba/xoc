@@ -42,7 +42,7 @@ IR_EXPR_TAB::IR_EXPR_TAB(Region * ru)
 {
     m_expr_count = 0;
     m_ru = ru;
-    m_dm = ru->get_dm();
+    m_dm = ru->get_type_mgr();
     memset(m_level1_hash_tab, 0,
            sizeof(ExpRep*) * IR_EXPR_TAB_LEVEL1_HASH_BUCKET);
     m_pool = smpoolCreate(sizeof(ExpRep*) * 128, MEM_COMM);

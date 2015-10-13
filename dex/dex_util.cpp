@@ -34,18 +34,13 @@ author: Su Zhenyu
 #include "libdex/DexFile.h"
 #include "libdex/DexClass.h"
 #include "libdex/DexProto.h"
-
 #include "liropcode.h"
-
 #include "cominc.h"
 #include "comopt.h"
-
 #include "drAlloc.h"
 #include "d2d_comm.h"
-
 #include "dex.h"
 #include "gra.h"
-
 #include "dx_mgr.h"
 #include "aoc_dx_mgr.h"
 #include "dex_util.h"
@@ -143,19 +138,19 @@ void extractFunctionTypeFromFunctionTypeString(
 
 
 //Extract the function parameter and return value name
-//from entirely name format.
+//from entirely name format, and return the function name.
 //Note outputbuf should big enough to hold the string.
 void extractFunctionTypeFromRegionName(
         CHAR const* runame,
+        CHAR const** functionname,
         OUT CHAR * param_type,
         OUT CHAR * return_type)
 {
-    ASSERT0(runame && param_type && return_type);
+    ASSERT0(runame);
     UINT l = strlen(runame);
     CHAR const* type = NULL;
     CHAR const* start = runame + l;
     CHAR const* end = start;
-    UINT seg = 0;
 
     for (; l != 0; l--, start--) {
         if (*start != 0) {
@@ -164,9 +159,18 @@ void extractFunctionTypeFromRegionName(
         }
     }
 
+    UINT seg = 0;
     for (; l != 0;) {
         if (*start != ':') { l--, start--; continue; }
+        if (seg == 0) {
+            //Now, the start points to function name.
+            if (functionname != NULL) {
+                *functionname = start + 1; //omit ':'
+            }
+        }
+
         if (seg == 1) {
+            //Now, the start points to function type.
             start++;
             break;
         }
@@ -177,7 +181,16 @@ void extractFunctionTypeFromRegionName(
         seg++;
     }
 
-    ASSERT(l > 0, ("unsupport string pattern"));
+    if (l == 0) {
+        //There is only one segment, and entire segment is functionname.
+        if (functionname != NULL) {
+            *functionname = start;
+        }
+
+        //Given runame is unsupported string pattern.
+        //ASSERT(l > 0, ("unsupport string pattern"));
+        return;
+    }
 
     //The format of type string is: (Ljava/lang/String;)Ljava/lang/String;
     UINT len = end - start + 1;
@@ -191,8 +204,11 @@ void extractFunctionTypeFromRegionName(
         } else if (*p == ')') {
             end2 = p;
             UINT s = end2 - start2 - 1;
-            memcpy(param_type, start2 + 1, s);
-            param_type[s] = 0;
+            if (param_type != NULL) {
+                memcpy(param_type, start2 + 1, s);
+                param_type[s] = 0;
+
+            }
             break;
         }
     }
@@ -200,24 +216,93 @@ void extractFunctionTypeFromRegionName(
     ASSERT(end2, ("unsupport string pattern"));
 
     UINT s = end - end2;
-    memcpy(return_type, end2 + 1, s);
-    return_type[s] = 0;
+    if (return_type != NULL) {
+        memcpy(return_type, end2 + 1, s);
+        return_type[s] = 0;
+    }
+}
+
+
+//Print human readable type info according to type_string.
+//Return the length of string.
+//Note the length does not include the ending '\0'.
+UINT printType2Buffer(CHAR const* type_string, OUT CHAR * buf)
+{
+    ASSERT0(type_string);
+
+    //buf may be NULL. If it is the case, user want to compute the
+    //actual length of the buffer.
+
+    CHAR const* name = NULL;
+    UINT len = 0;
+    CHAR const* start = type_string;
+    switch (*type_string) {
+    case 'V': name = "void"; len = strlen(name); start++; break;
+    case 'Z': name = "boolean"; len = strlen(name); start++; break;
+    case 'B': name = "unsigned char"; len = strlen(name); start++; break;
+    case 'S': name = "short"; len = strlen(name); start++; break;
+    case 'C': name = "char"; len = strlen(name); start++; break;
+    case 'I': name = "int"; len = strlen(name); start++; break;
+    case 'J': name = "long long"; len = strlen(name); start++; break;
+    case 'F': name = "float"; len = strlen(name); start++; break;
+    case 'D': name = "double"; len = strlen(name); start++; break;
+    case 'L': //object pointer
+        name = type_string + 1;
+        CHAR const* p;
+        for (p = type_string; *p != 0 && *p != ';'; p++, len++) ;
+        ASSERT0(len > 0);
+
+        start += len;
+
+        len--; //omit L
+        break;
+    case '[': break;
+    default: ASSERT(0, ("unknown dex type"));
+    }
+
+    if (buf != NULL) {
+        for (UINT i = 0; i < len; i++) {
+            buf[i] = name[i];
+        }
+        buf += len;
+    }
+
+    for (; *start == '['; start++) {
+        len += 2; // print [ ]
+        if (buf != NULL) {
+            *buf++ = '[';
+            *buf++ = ']';
+        }
+    }
+
+    if (buf != NULL) {
+        *buf = 0;
+    }
+    return len; //the length does not include the ending '\0'.
 }
 
 
 //Note outputbuf should big enough to hold the string.
-void extractSeparateParamterType(
+UINT extractSeparateParamterType(
         CHAR const* param_type_string,
-        OUT List<CHAR*> & params)
+        OUT List<CHAR*> * params,
+        UINT len)
 {
     //The format of type string is: a;b;c;
     ASSERT0(param_type_string);
-    UINT len = strlen(param_type_string);
+    if (len == 0) {
+        len = strlen(param_type_string);
+    }
     CHAR const* start = param_type_string;
     CHAR const* end = param_type_string;
 
     //Note outputbuf should big enough to hold the string.
-    CHAR * outputbuf = params.get_head();
+    CHAR * outputbuf = NULL;
+    if (params != NULL) {
+        outputbuf = params->get_head();
+    }
+
+    UINT num_of_param = 0;
     bool is_obj = false;
     for (; end != 0 && len != 0;) {
         //Determine if parameter is primitive type.
@@ -229,11 +314,14 @@ void extractSeparateParamterType(
                 continue;
             }
 
-            ASSERT0(outputbuf);
             UINT s = end - start;
-            memcpy(outputbuf, start, s);
-            outputbuf[s] = 0;
-            outputbuf = params.get_next();
+            if (outputbuf != NULL) {
+                memcpy(outputbuf, start, s);
+                outputbuf[s] = 0;
+                ASSERT0(params);
+                outputbuf = params->get_next();
+            }
+            num_of_param++;
             start = end + 1;
             is_obj = false;
         } else {
@@ -249,11 +337,14 @@ void extractSeparateParamterType(
             case 'D': //f64
                 if (start == end) {
                     //Parse primitive type.
-                    ASSERT0(outputbuf);
-                    UINT s = 1;
-                    outputbuf[0] = *end;
-                    outputbuf[1] = 0;
-                    outputbuf = params.get_next();
+                    if (outputbuf != NULL) {
+                        outputbuf[0] = *end;
+                        outputbuf[1] = 0;
+                        ASSERT0(outputbuf);
+                        outputbuf = params->get_next();
+                    }
+
+                    num_of_param++;
                     start = end + 1;
                 }
                 break;
@@ -268,14 +359,19 @@ void extractSeparateParamterType(
                 }
                 ASSERT0(end != 0);
                 continue;
-            default: break;
+            default:
+                ASSERT(is_obj,
+                ("Not match any case, it is also not an object"));
+                break;
             }
         }
         len--;
         end++;
    }
 
-    ASSERT0(len == 0 && *end == 0);
+    ASSERT0(len == 0);
+    //ASSERT0(*end == 0); //User may ask to parse part of string.
+    return num_of_param;
 }
 
 
@@ -1313,7 +1409,7 @@ public:
 
     void insert_stuff_code(IR const* ref, Region * ru, IR_GVN * gvn)
     {
-        ASSERT0(IR_type(ref) == IR_ARRAY);
+        ASSERT0(ref->is_array());
 
         IR * stmt = ref->get_stmt();
         ASSERT0(stmt);
@@ -1353,7 +1449,7 @@ public:
                                     IRIter & ii)
     {
         if (!m_has_insert_stuff &&
-            IR_type(ref) == IR_ARRAY &&
+            ref->is_array() &&
             (m_ru->isRegionName(
                 "Lsoftweg/hw/performance/CPUTest;::arrayElementsDouble") ||
              m_ru->isRegionName(
@@ -1368,6 +1464,7 @@ public:
     }
     */
 };
+
 
 //
 //START AocDxMgr
@@ -1611,6 +1708,8 @@ public:
 
 
 //
+//START DexCallGraph
+//
 static CHAR const* g_unimportant_func[] = {
     "Ljava/lang/StringBuilder;:()V:<init>",
 };
@@ -1646,8 +1745,15 @@ void DexRegionMgr::processProgramRegion(Region * program)
 
     //Function region has been handled. And call list should be available.
     CallGraph * callg = initCallGraph(program, false);
+
     //callg->dump_vcg();
+
 }
+//END DexRegionMgr
+
+
+
+//
 //START DexRegion
 //
 PassMgr * DexRegion::allocPassMgr()
@@ -1665,7 +1771,7 @@ IR_AA * DexRegion::allocAliasAnalysis()
 
 bool DexRegion::MiddleProcess(OptCTX & oc)
 {
-    return Region::MiddleProcess(oc);
+   return Region::MiddleProcess(oc);
 }
 
 
@@ -1717,7 +1823,7 @@ void DexRegion::HighProcessImpl(OptCTX & oc)
 
         dumgr->perform(oc, f);
         dumgr->computeMDDUChain(oc);
-}
+    }
 }
 
 
@@ -1822,6 +1928,7 @@ void DexRegion::processSimply()
 {
     LOG("DexRegion::processSimply %s", get_ru_name());
     if (get_ir_list() == NULL) { return ; }
+
     OptCTX oc;
     OC_show_comp_time(oc) = g_show_comp_time;
 
@@ -1881,6 +1988,10 @@ void DexRegion::process()
     destroyPassMgr();
 
     if (!is_function()) { return; }
+
+    /////////////////////////////////////
+    //DO NOT QUERY PASS AFTER THIS LINE//
+    /////////////////////////////////////
 
     BBList * bbl = get_bb_list();
     if (bbl->get_elem_count() == 0) { return; }

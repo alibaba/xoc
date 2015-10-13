@@ -41,7 +41,7 @@ namespace xoc {
 //
 bool IR_IVR::computeInitVal(IR const* ir, IV * iv)
 {
-    if (IR_code(ir) != IR_ST && IR_code(ir) != IR_IST) {
+    if (!ir->is_st() && !ir->is_ist()) {
         return false;
     }
 
@@ -113,10 +113,10 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
         ASSERT0(bb && m_cfg->get_vertex(BB_id(bb)));
         for (IR * ir = BB_first_ir(bb);
              ir != NULL; ir = BB_next_ir(bb)) {
-            if (IR_code(ir) != IR_ST && IR_code(ir) != IR_IST &&
-                IR_code(ir) != IR_CALL && IR_code(ir) != IR_ICALL) {
+            if (!ir->is_st() && !ir->is_ist() && !ir->is_calls_stmt()) {
                 continue;
             }
+
             MD const* exact_md = m_du->get_must_def(ir);
             if (exact_md != NULL) {
                 if (exact_md->is_exact()) {
@@ -207,7 +207,7 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
         IV_iv_occ(x) = op0;
         IV_iv_def(x) = def;
         IV_step(x) = CONST_int_val(op1);
-        if (IR_code(stv) == IR_ADD) {
+        if (stv->is_add()) {
             IV_is_inc(x) = true;
         } else {
             IV_is_inc(x) = false;

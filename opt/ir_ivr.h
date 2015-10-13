@@ -112,7 +112,7 @@ public:
         m_md_sys = ru->get_md_sys();
         m_du = ru->get_du_mgr();
         m_cfg = ru->get_cfg();
-        m_dm = ru->get_dm();
+        m_dm = ru->get_type_mgr();
         m_pool = smpoolCreate(sizeof(IV) * 4, MEM_COMM);
         m_sc_pool = smpoolCreate(sizeof(SC<IV*>) * 4, MEM_CONST_SIZE);
     }

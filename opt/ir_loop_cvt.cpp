@@ -162,7 +162,8 @@ bool IR_LOOP_CVT::try_convert(LI<IRBB> * li, IRBB * gobackbb,
     m_ru->freeIR(lastir);
     m_cfg->removeEdge(gobackbb, head); //revise cfg.
 
-    LabelInfo * loopbody_start_lab = loopbody_start_bb->get_lab_list().get_head();
+    LabelInfo const* loopbody_start_lab =
+            loopbody_start_bb->get_lab_list().get_head();
     if (loopbody_start_lab == NULL) {
         loopbody_start_lab = ::newInternalLabel(m_ru->get_pool());
         m_cfg->add_lab(loopbody_start_bb, loopbody_start_lab);

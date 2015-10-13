@@ -173,21 +173,25 @@ public:
 #define BB_is_fallthrough(b)    ((b)->u1.s1.is_fallthrough)
 #define BB_is_target(b)         ((b)->u1.s1.is_target)
 #define BB_is_catch_start(b)    ((b)->u1.s1.is_catch_start)
+#define BB_is_try_start(b)      ((b)->u1.s1.is_try_start)
+#define BB_is_try_end(b)        ((b)->u1.s1.is_try_end)
 #define BB_is_unreach(b)        ((b)->u1.s1.is_unreachable)
 class IRBB {
 public:
     UINT id; //BB's id
     INT rpo; //reverse post order
     BBIRList ir_list; //IR list
-    List<LabelInfo*> lab_list; //Record labels attached on BB
+    List<LabelInfo const*> lab_list; //Record labels attached on BB
     union {
         struct {
             BYTE is_entry:1; //bb is entry of the region.
             BYTE is_exit:1; //bb is exit of the region.
             BYTE is_fallthrough:1; //bb has a fall through successor.
             BYTE is_target:1; //bb is branch target.
-            BYTE is_catch_start:1; //bb is catch start.
+            BYTE is_catch_start:1; //bb is entry of catch block.
             BYTE is_unreachable:1; //bb is unreachable.
+            BYTE is_try_start:1; //bb is entry of try block.
+            BYTE is_try_end:1; //bb is exit of try block.
         } s1;
         BYTE u1b1;
     } u1;
@@ -210,18 +214,27 @@ public:
         //}
     }
 
-    inline void addLabel(LabelInfo * li)
+    inline void addLabel(LabelInfo const* li)
     {
         ASSERT0(li != NULL);
-        if (!lab_list.find(li)) {
+        if (!get_lab_list().find(li)) {
             if (LABEL_INFO_is_catch_start(li)) {
                 BB_is_catch_start(this) = true;
             }
+
+            if (LABEL_INFO_is_try_start(li)) {
+                BB_is_try_start(this) = true;
+            }
+
+            if (LABEL_INFO_is_try_end(li)) {
+                BB_is_try_end(this) = true;
+            }
+
             if (LABEL_INFO_is_unreachable(li)) {
                 BB_is_unreach(this) = true;
 
             }
-            lab_list.append_tail(li);
+            get_lab_list().append_tail(li);
         }
     }
 
@@ -230,7 +243,8 @@ public:
     void dump(Region * ru);
     void dupSuccessorPhiOpnd(CFG<IRBB, IR> * cfg, Region * ru, UINT opnd_pos);
 
-    List<LabelInfo*> & get_lab_list() { return lab_list; }
+    List<LabelInfo const*> & get_lab_list() { return lab_list; }
+    List<LabelInfo const*> const& get_lab_list_c() const { return lab_list; }
     UINT getNumOfIR() const { return BB_irlist(this).get_elem_count(); }
 
     //For some aggressive optimized purposes, call node is not looked as
@@ -260,7 +274,45 @@ public:
         return false;
     }
 
-    //Return true if BB is a CATCH block entry.
+    //Return true if BB is an entry BB of TRY block.
+    inline bool is_try_start() const
+    {
+        bool r = BB_is_try_start(this);
+     #ifdef _DEBUG_
+        bool find = false;
+        IRBB * pthis = const_cast<IRBB*>(this);
+        for (LabelInfo const* li = pthis->get_lab_list().get_head();
+             li != NULL; li = pthis->get_lab_list().get_next()) {
+            if (LABEL_INFO_is_try_start(li)) {
+                find = true;
+                break;
+            }
+        }
+        ASSERT0(r == find);
+     #endif
+        return r;
+    }
+
+    //Return true if BB is an exit BB of TRY block.
+    inline bool is_try_end() const
+    {
+        bool r = BB_is_try_end(this);
+ #ifdef _DEBUG_
+        bool find = false;
+        IRBB * pthis = const_cast<IRBB*>(this);
+        for (LabelInfo const* li = pthis->get_lab_list().get_head();
+             li != NULL; li = pthis->get_lab_list().get_next()) {
+            if (LABEL_INFO_is_try_end(li)) {
+                find = true;
+                break;
+            }
+        }
+        ASSERT0(r == find);
+ #endif
+        return r;
+    }
+
+    //Return true if BB is entry of CATCH block.
     inline bool is_exp_handling() const
     {
         bool r = BB_is_catch_start(this);
@@ -278,7 +330,6 @@ public:
         #endif
         return r;
     }
-
 
     //Return true if BB is unreachable.
     inline bool is_unreachable() const
@@ -325,7 +376,7 @@ public:
 
     inline bool is_attach_dedicated_lab()
     {
-        for (LabelInfo * li = get_lab_list().get_head();
+        for (LabelInfo const* li = get_lab_list().get_head();
              li != NULL; li = get_lab_list().get_next()) {
             if (LABEL_INFO_is_catch_start(li) ||
                 LABEL_INFO_is_try_start(li) ||
@@ -376,7 +427,7 @@ public:
     //Union all labels of 'src' to current bb.
     inline void unionLabels(IRBB * src)
     {
-        for (LabelInfo * li = src->get_lab_list().get_head();
+        for (LabelInfo const* li = src->get_lab_list().get_head();
              li != NULL; li = src->get_lab_list().get_next()) {
             if (!lab_list.find(li)) {
                 lab_list.append_head(li);
@@ -443,7 +494,8 @@ public:
 //END IRBBMgr
 
 //Exported Functions
-extern void dumpBBList(BBList * bbl, Region * ru, CHAR const* name = NULL);
+void dumpBBLabel(List<LabelInfo const*> & lablist, FILE * h);
+void dumpBBList(BBList * bbl, Region * ru, CHAR const* name = NULL);
 
 } //namespace xoc
 #endif

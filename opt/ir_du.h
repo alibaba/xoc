@@ -293,19 +293,19 @@ protected:
     void collectMustUseForLda(IR const* lda, OUT MDSet * ret_mds);
     void computeMustDefForRegion(IR const* ir, MDSet * bb_mustdefmds);
      void computeBBMayDef(
-                IR const* ir,
-                MDSet * bb_maydefmds,
-                DefDBitSetCore * maygen_stmt);
+            IR const* ir,
+            MDSet * bb_maydefmds,
+            DefDBitSetCore * maygen_stmt);
     void computeBBMustDef(
-                IR const* ir,
-                MDSet * bb_mustdefmds,
-                DefDBitSetCore * mustgen_stmt,
-                ConstMDIter & mditer);
+            IR const* ir,
+            MDSet * bb_mustdefmds,
+            DefDBitSetCore * mustgen_stmt,
+            ConstMDIter & mditer);
     void computeMustDef_MayDef_MayUse(
-                OUT Vector<MDSet*> * mustdef,
-                OUT Vector<MDSet*> * maydef,
-                OUT MDSet * mayuse,
-                UINT flag);
+            OUT Vector<MDSet*> * mustdef,
+            OUT Vector<MDSet*> * maydef,
+            OUT MDSet * mayuse,
+            UINT flag);
 
     bool ForAvailReachDef(UINT bbid, List<IRBB*> & preds, List<IRBB*> * lst);
     bool ForReachDef(UINT bbid, List<IRBB*> & preds, List<IRBB*> * lst);
@@ -321,9 +321,9 @@ protected:
     bool hasSingleDefToMD(DUSet const& defset, MD const* md) const;
 
     bool is_overlap_def_use(
-                MD const* mustdef,
-                MDSet const* maydef,
-                IR const* use);
+            MD const* mustdef,
+            MDSet const* maydef,
+            IR const* use);
     void initMD2IRList(IRBB * bb);
     void inferRegion(IR * ir, bool ruinfo_avail, IN MDSet * tmp);
     void inferIstore(IR * ir);
@@ -366,7 +366,8 @@ public:
     void computeOverlapUseMDSet(IR * ir, bool recompute);
     void collect_must_use(IR const* ir, OUT MDSet & mustuse);
     void computeGenForBB(
-            IN IRBB * bb, IN OUT DefDBitSetCore & expr_univers,
+            IN IRBB * bb,
+            IN OUT DefDBitSetCore & expr_univers,
             MDSet & tmp);
     void computeMDDUforBB(IRBB * bb);
     void computeMDRef();
@@ -407,13 +408,14 @@ public:
     //Count the memory usage to IR_DU_MGR.
     UINT count_mem();
     UINT count_mem_duset();
-    UINT count_mem_local_data(DefDBitSetCore * expr_univers,
-                              Vector<MDSet*> * maydef_mds,
-                              Vector<MDSet*> * mustdef_mds,
-                              MDSet * mayuse_mds,
-                              MDSet mds_arr_for_must[],
-                              MDSet mds_arr_for_may[],
-                              UINT elemnum);
+    UINT count_mem_local_data(
+            DefDBitSetCore * expr_univers,
+            Vector<MDSet*> * maydef_mds,
+            Vector<MDSet*> * mustdef_mds,
+            MDSet * mayuse_mds,
+            MDSet mds_arr_for_must[],
+            MDSet mds_arr_for_may[],
+            UINT elemnum);
 
     //Collect must and may memory reference.
     void collectMayUseRecursive(IR const* ir, MDSet & may_use, bool computePR);
@@ -486,11 +488,15 @@ public:
     'useset': each element is USE, it is the USE expression set of 'from'.
     e.g:
         from->USE change to to->USE */
-    void changeDef(UINT to, UINT from, DUSet * useset_of_to,
-                   DUSet * useset_of_from, DefMiscBitSetMgr * m)
+    void changeDef(
+            UINT to,
+            UINT from,
+            DUSet * useset_of_to,
+            DUSet * useset_of_from,
+            DefMiscBitSetMgr * m)
     {
         ASSERT0(get_ir(from)->is_stmt() && get_ir(to)->is_stmt() &&
-                 useset_of_to && useset_of_from && m);
+                useset_of_to && useset_of_from && m);
         DU_ITER di = NULL;
         for (INT i = useset_of_from->get_first(&di);
              di != NULL; i = useset_of_from->get_next((UINT)i, &di)) {
@@ -529,8 +535,12 @@ public:
     'defset': it is the DEF stmt set of 'from'.
     e.g:
         DEF->from change to DEF->to */
-    void changeUse(UINT to, UINT from, DUSet * defset_of_to,
-                   DUSet * defset_of_from, DefMiscBitSetMgr * m)
+    void changeUse(
+            UINT to,
+            UINT from,
+            DUSet * defset_of_to,
+            DUSet * defset_of_from,
+            DefMiscBitSetMgr * m)
     {
         ASSERT0(get_ir(from)->is_exp() && get_ir(to)->is_exp() &&
                  defset_of_from && defset_of_to && m);
@@ -677,11 +687,16 @@ public:
     bool is_may_kill(IR const* def1, IR const* def2);
     bool is_must_kill(IR const* def1, IR const* def2);
     bool isExactAndUniqueDef(IR const* def, IR const* exp);
-    IR * findDomDef(IR const* exp, IR const* exp_stmt,
-                    DUSet const* expdu, bool omit_self);
+    IR * findDomDef(
+            IR const* exp,
+            IR const* exp_stmt,
+            DUSet const* expdu,
+            bool omit_self);
     IR const* findKillingLocalDef(
-                    IR const* stmt, C<IR*> * ct,
-                    IR const* exp, MD const* md);
+            IR const* stmt,
+            C<IR*> * ct,
+            IR const* exp,
+            MD const* md);
 
     void setComputePRDU(bool compute)
     { m_is_compute_pr_du_chain = (BYTE)compute; }

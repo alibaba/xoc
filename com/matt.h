@@ -397,9 +397,9 @@ public:
     bool is_rowvec() const; //matrix is row vector
     bool is_colvec() const; //matrix is col vector
     bool is_rowequ(UINT row, T v) const; //row entry equals 'v'.
-    bool is_rowequ(UINT row, IN Matrix<T> const& m, IN UINT mrow) const;
+    bool is_rowequ(UINT row, IN Matrix<T> const& m, UINT mrow) const;
     bool is_colequ(UINT col, T v) const; //col entry equals 'v'.
-    bool is_colequ(UINT col, IN Matrix<T> const& m, IN UINT mcol) const;
+    bool is_colequ(UINT col, IN Matrix<T> const& m, UINT mcol) const;
     bool is_vec() const; //matrix is vector
     bool isLowTriangular() const;
     bool isAntiLowTriangular() const;
@@ -407,9 +407,9 @@ public:
     bool isAntiUpTriangular() const;
     //Add row 'from' to row 'to', then row 'to' be modified
     void addRowToRow(UINT from, UINT to);
-    void addRowToRow(IN Matrix<T> const& m, IN UINT mfrom, IN UINT to);
+    void addRowToRow(IN Matrix<T> const& m, UINT mfrom, UINT to);
     void addColumnToColumn(UINT from, UINT to);
-    void addColumnToColumn(IN Matrix<T> const& m, IN UINT mfrom, IN UINT to);
+    void addColumnToColumn(IN Matrix<T> const& m, UINT mfrom, UINT to);
 
     void mul(T v); //scalar multiplification
 
@@ -1465,7 +1465,7 @@ void Matrix<T>::addRowToRow(UINT from, UINT to)
 //Add one row of 'm' to one row of 'this'. Row 'to' changed.
 template <class T>
 void Matrix<T>::addRowToRow(IN Matrix<T> const& m,
-                            IN UINT mfrom, IN UINT to)
+                            UINT mfrom, UINT to)
 {
     ASSERT(m_is_init && m.m_is_init, ("not yet initialize."));
     ASSERT(m_row_size > 0 && m_col_size > 0 && mfrom < m.m_row_size &&
@@ -1493,7 +1493,7 @@ void Matrix<T>::addColumnToColumn(UINT from, UINT to)
 //Add one column of 'm' to one column of 'this'. Column 'to' changed.
 template <class T>
 void Matrix<T>::addColumnToColumn(IN Matrix<T> const& m,
-                               IN UINT mfrom, IN UINT to)
+                               UINT mfrom, UINT to)
 {
     ASSERT(m_is_init, ("not yet initialize."));
     ASSERT(m_row_size > 0 && m_col_size > 0 && mfrom < m.m_col_size &&
@@ -2372,7 +2372,7 @@ bool Matrix<T>::is_rowequ(UINT row, T v) const
 
 
 template <class T>
-bool Matrix<T>::is_rowequ(UINT row, IN Matrix<T> const& m, IN UINT mrow) const
+bool Matrix<T>::is_rowequ(UINT row, IN Matrix<T> const& m, UINT mrow) const
 {
     ASSERT(m_is_init, ("not yet initialize."));
     ASSERT(row < m_row_size &&
@@ -2402,7 +2402,7 @@ bool Matrix<T>::is_colequ(UINT col, T v) const
 
 
 template <class T>
-bool Matrix<T>::is_colequ(UINT col, IN Matrix<T> const& m, IN UINT mcol) const
+bool Matrix<T>::is_colequ(UINT col, IN Matrix<T> const& m, UINT mcol) const
 {
     ASSERT(m_is_init, ("not yet initialize."));
     ASSERT(col < m_col_size &&

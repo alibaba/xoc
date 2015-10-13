@@ -290,7 +290,7 @@ public:
     { ASSERT(0, ("Target Dependent Code")); }
 
     //Find the bb that referred given label.
-    virtual BB * findBBbyLabel(LabelInfo *)
+    virtual BB * findBBbyLabel(LabelInfo const*)
     {
         ASSERT(0, ("Target Dependent Code"));
         return NULL;
@@ -335,7 +335,7 @@ public:
         ASSERT0(bb);
         XR * xr = get_last_xr(bb);
         ASSERT(xr != NULL, ("bb is empty"));
-        LabelInfo * lab = xr->get_label();
+        LabelInfo const* lab = xr->get_label();
         ASSERT(lab != NULL, ("xr does not correspond to a unqiue label"));
         BB * target = findBBbyLabel(lab);
         ASSERT(target != NULL, ("label does not correspond to a BB"));
@@ -808,8 +808,7 @@ bool CFG<BB, XR>::removeEmptyBB(OptCTX & oc)
                     succ:
                         L1:
                     */
-                    BB * tgt_bb =
-                        findBBbyLabel(last_xr->get_label());
+                    BB * tgt_bb = findBBbyLabel(last_xr->get_label());
                     ASSERT0(tgt_bb != NULL);
                     if (tgt_bb == succ) {
                         addEdge(prev_bb_of_succ->id, succ->id);

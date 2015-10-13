@@ -44,7 +44,7 @@ IR_CFG::IR_CFG(CFG_SHAPE cs, BBList * bbl, Region * ru,
     : CFG<IRBB, IR>(bbl, edge_hash_size, vertex_hash_size)
 {
     m_ru = ru;
-    m_dm = ru->get_dm();
+    m_dm = ru->get_type_mgr();
     set_bs_mgr(ru->get_bs_mgr());
     if (m_bb_list->get_elem_count() == 0) {
         return;
@@ -56,7 +56,7 @@ IR_CFG::IR_CFG(CFG_SHAPE cs, BBList * bbl, Region * ru,
          bb != NULL; bb = m_bb_list->get_prev()) {
         m_bb_vec.set(BB_id(bb), bb);
         addVertex(BB_id(bb));
-        for (LabelInfo * li = bb->get_lab_list().get_head();
+        for (LabelInfo const* li = bb->get_lab_list().get_head();
              li != NULL; li = bb->get_lab_list().get_next()) {
             m_lab2bb.set(li, bb);
             if (LABEL_INFO_is_catch_start(li)) {
@@ -255,19 +255,69 @@ void IR_CFG::findEHRegion(
 }
 
 
+//This function find all BB of exception try region, and record them in trybbs.
+//trybbs: record all BB of the try region.
+//Note: this function does not clean trybbs. Caller is responsible for that.
+void IR_CFG::findAllTryRegions(OUT BitSet & trybbs)
+{
+    C<IRBB*> * ct;
+    for (m_bb_list->get_head(&ct);
+         ct != m_bb_list->end(); ct = m_bb_list->get_next(ct)) {
+        IRBB const* bb = ct->val();
+        if (!bb->is_try_start()) { continue; }
+        findTryRegion(bb, trybbs);
+    }
+}
+
+
+//This function find BBs which belong to exception try region.
+//try_start: start BB of an entry of exception try region.
+//trybbs: record all BB of the try region.
+//Note: this function does not clean trybbs. Caller is responsible for that.
+void IR_CFG::findTryRegion(IRBB const* try_start, OUT BitSet & trybbs)
+{
+    ASSERT0(try_start && try_start->is_try_start());
+    List<Vertex const*> list;
+    Vertex const* bbv = get_vertex(BB_id(try_start));
+    ASSERT0(bbv);
+    list.append_head(bbv);
+    for (Vertex const* v = list.remove_head();
+         v != NULL; v = list.remove_head()) {
+        UINT id = VERTEX_id(v);
+        if (trybbs.is_contain(id)) { continue; }
+
+        trybbs.bunion(id);
+
+        IRBB * bb = get_bb(id);
+        ASSERT(bb, ("vertex on CFG correspond to nothing"));
+
+        if (bb->is_try_end()) { continue; }
+
+        EdgeC * el = VERTEX_out_list(v);
+        while (el != NULL) {
+            Vertex const* succ = EDGE_to(EC_edge(el));
+            if (!trybbs.is_contain(VERTEX_id(succ))) {
+                list.append_tail(succ);
+            }
+            el = EC_next(el);
+        }
+    }
+}
+
+
 //Find a list bb that referred labels which is the target of ir.
 void IR_CFG::findTargetBBOfIndirectBranch(IR * ir, OUT List<IRBB*> & tgtlst)
 {
     ASSERT0(ir->is_indirect_br());
     for (IR * c = IGOTO_case_list(ir); c != NULL; c = IR_next(c)) {
-        ASSERT0(IR_code(c) == IR_CASE);
+        ASSERT0(c->is_case());
         IRBB * bb = m_lab2bb.get(CASE_lab(c));
         ASSERT0(bb); //no bb is correspond to lab.
         tgtlst.append_tail(bb);
 
         #ifdef _DEBUG_
         bool find = false;
-        for (LabelInfo * li = bb->get_lab_list().get_head();
+        for (LabelInfo const* li = bb->get_lab_list().get_head();
              li != NULL; li = bb->get_lab_list().get_next()) {
             if (isSameLabel(CASE_lab(c), li)) {
                 find = true;
@@ -291,14 +341,14 @@ void IR_CFG::LoopAnalysis(OptCTX & oc)
 
 
 //Find bb that 'lab' attouchemented.
-IRBB * IR_CFG::findBBbyLabel(LabelInfo * lab)
+IRBB * IR_CFG::findBBbyLabel(LabelInfo const* lab)
 {
     IRBB * bb = m_lab2bb.get(lab);
     ASSERT(bb, ("no bb correspond to this label."));
 
     #ifdef _DEBUG_
     bool find = false;
-    for (LabelInfo * li = bb->get_lab_list().get_head();
+    for (LabelInfo const* li = bb->get_lab_list().get_head();
          li != NULL; li = bb->get_lab_list().get_next()) {
         if (isSameLabel(lab, li)) {
             find = true;
@@ -384,7 +434,7 @@ void IR_CFG::insertBBbetween(
     IR * last_xr_of_from = get_last_xr(from);
 
     ASSERT0(last_xr_of_from->get_label() &&
-             findBBbyLabel(last_xr_of_from->get_label()) == to);
+            findBBbyLabel(last_xr_of_from->get_label()) == to);
     ASSERT0(last_xr_of_from->get_label() != NULL);
 
     LabelInfo * li = m_ru->genIlabel();
@@ -406,7 +456,7 @@ void IR_CFG::unionLabels(IRBB * src, IRBB * tgt)
     tgt->unionLabels(src);
 
     //Set label2bb map.
-    for (LabelInfo * li = tgt->get_lab_list().get_head();
+    for (LabelInfo const* li = tgt->get_lab_list().get_head();
          li != NULL; li = tgt->get_lab_list().get_next()) {
         m_lab2bb.setAlways(li, tgt);
     }
@@ -491,7 +541,7 @@ bool IR_CFG::removeTrampolinBB()
                 IR * last_xr_of_pred = get_last_xr(pred);
 
                 ASSERT0(last_xr_of_pred->get_label() &&
-                     findBBbyLabel(last_xr_of_pred->get_label()) == bb);
+                        findBBbyLabel(last_xr_of_pred->get_label()) == bb);
 
                 ASSERT0(last_xr_of_pred->get_label() != NULL);
                 last_xr_of_pred->set_label(br->get_label());
@@ -531,7 +581,7 @@ bool IR_CFG::removeTrampolinEdge()
 
         IR * last_xr = get_last_xr(bb);
         if (last_xr->is_goto() && !bb->is_attach_dedicated_lab()) {
-            LabelInfo * tgt_li = last_xr->get_label();
+            LabelInfo const* tgt_li = last_xr->get_label();
             ASSERT0(tgt_li != NULL);
 
             List<IRBB*> preds; //use list because cfg may be modify.
@@ -598,7 +648,7 @@ bool IR_CFG::removeTrampolinEdge()
                             goto L2
                     */
                     ASSERT0(last_xr_of_pred->get_label() &&
-                        findBBbyLabel(last_xr_of_pred->get_label()) == bb);
+                            findBBbyLabel(last_xr_of_pred->get_label()) == bb);
 
                     ASSERT0(last_xr_of_pred->get_label() != NULL);
                     GOTO_lab(last_xr_of_pred) = tgt_li;
@@ -640,7 +690,7 @@ bool IR_CFG::removeTrampolinEdge()
                     }
 
                     ASSERT0(last_xr_of_pred->get_label() &&
-                        findBBbyLabel(last_xr_of_pred->get_label()) == bb);
+                            findBBbyLabel(last_xr_of_pred->get_label()) == bb);
 
                     ASSERT0(last_xr_of_pred->get_label() != NULL);
                     if (bb != succ) {
@@ -684,7 +734,7 @@ bool IR_CFG::removeRedundantBranch()
             if ((last_xr->is_truebr() && always_true) ||
                 (last_xr->is_falsebr() && always_false)) {
                 //Substitute cond_br with 'goto'.
-                LabelInfo * tgt_li = last_xr->get_label();
+                LabelInfo const* tgt_li = last_xr->get_label();
                 ASSERT0(tgt_li != NULL);
 
                 BB_irlist(bb).remove_tail();
@@ -957,38 +1007,7 @@ void IR_CFG::dump_vcg(CHAR const* name, bool detail, bool dump_eh)
 
             IRBB * bb = get_bb(id);
             ASSERT0(bb != NULL);
-
-            for (LabelInfo * li = bb->get_lab_list().get_head();
-                 li != NULL; li = bb->get_lab_list().get_next()) {
-                switch (LABEL_INFO_type(li)) {
-                case L_CLABEL:
-                    fprintf(h, CLABEL_STR_FORMAT, CLABEL_CONT(li));
-                    break;
-                case L_ILABEL:
-                    fprintf(h, ILABEL_STR_FORMAT, ILABEL_CONT(li));
-                    break;
-                case L_PRAGMA:
-                    fprintf(h, "%s", SYM_name(LABEL_INFO_pragma(li)));
-                    break;
-                default: ASSERT0(0);
-                }
-                if (LABEL_INFO_is_try_start(li) ||
-                    LABEL_INFO_is_try_end(li) ||
-                    LABEL_INFO_is_catch_start(li)) {
-                    fprintf(g_tfile, "(");
-                    if (LABEL_INFO_is_try_start(li)) {
-                        fprintf(g_tfile, "try_start,");
-                    }
-                    if (LABEL_INFO_is_try_end(li)) {
-                        fprintf(g_tfile, "try_end,");
-                    }
-                    if (LABEL_INFO_is_catch_start(li)) {
-                        fprintf(g_tfile, "catch_start");
-                    }
-                    fprintf(g_tfile, ")");
-                }
-                fprintf(g_tfile, " ");
-            }
+            dumpBBLabel(bb->get_lab_list(), h);
             fprintf(h, "\n");
             for (IR * ir = BB_first_ir(bb);
                  ir != NULL; ir = BB_next_ir(bb)) {

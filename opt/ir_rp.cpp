@@ -64,7 +64,7 @@ public:
                  x != NULL; x = iterNextC(m_iter)) {
                 UINT v = IR_code(x) + (x->get_offset() + 1) +
                         (UINT)(size_t)IR_dt(x);
-                if (IR_code(x) == IR_ID) {
+                if (x->is_id()) {
                     v += ((UINT)(size_t)ID_info(x)) * 5;
                 }
                 hval += v;
@@ -80,7 +80,7 @@ public:
                  x != NULL; x = iterNextC(m_iter)) {
                 UINT v = IR_code(x) + (x->get_offset() + 1) +
                         (UINT)(size_t)IR_dt(x);
-                if (IR_code(x) == IR_ID) {
+                if (x->is_id()) {
                     v += ((UINT)(size_t)ID_info(x)) * 5;
                 }
                 hval += v;
@@ -94,7 +94,7 @@ public:
                  x != NULL; x = iterNextC(m_iter)) {
                 UINT v = IR_code(x) + (x->get_offset() + 1) +
                         (UINT)(size_t)IR_dt(x);
-                if (IR_code(x) == IR_ID) {
+                if (x->is_id()) {
                     v += ((UINT)(size_t)ID_info(x)) * 5;
                 }
                 hval += v;
@@ -1367,8 +1367,7 @@ bool IR_RP::is_may_throw(IR * ir, IRIter & iter)
             return true;
         }
 
-        if (IR_code(k) == IR_DIV || IR_code(k) == IR_REM ||
-            IR_code(k) == IR_MOD) {
+        if (k->is_div() || k->is_rem() || k->is_mod()) {
             return true;
         }
     }
@@ -1991,8 +1990,10 @@ UINT IR_RP::analyzeArrayStatus(IR const* ref1, IR const* ref2)
     if (base1->is_lda() && base2->is_lda()) {
         IR const* b1 = LDA_base(base1);
         IR const* b2 = LDA_base(base2);
-        if (IR_code(b1) == IR_ID && IR_code(b2) == IR_ID) {
-            if (ID_info(b1) == ID_info(b2)) { return RP_SAME_ARRAY; }
+        if (b1->is_id() && b2->is_id()) {
+            if (ID_info(b1) == ID_info(b2)) {
+                return RP_SAME_ARRAY;
+            }
             return RP_DIFFERENT_ARRAY;
         }
         return RP_UNKNOWN;

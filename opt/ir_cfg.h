@@ -36,7 +36,7 @@ author: Su Zhenyu
 
 namespace xoc {
 
-typedef TMap<LabelInfo*, IRBB*> LAB2BB;
+typedef TMap<LabelInfo const*, IRBB*> LAB2BB;
 
 /*
 NOTICE:
@@ -57,7 +57,7 @@ public:
     virtual ~IR_CFG() {}
 
     //Add LABEL to bb, and establish map between label and bb.
-    void add_lab(IRBB * src, LabelInfo * li)
+    void add_lab(IRBB * src, LabelInfo const* li)
     {
         src->addLabel(li);
 
@@ -208,12 +208,14 @@ public:
 
     void findTargetBBOfMulticondBranch(IN IR * ir,
                                         OUT List<IRBB*> & tgt_bbs);
-    IRBB * findBBbyLabel(LabelInfo * lab);
+    IRBB * findBBbyLabel(LabelInfo const* lab);
     void findTargetBBOfIndirectBranch(IR * ir, OUT List<IRBB*> & tgtlst);
     void findEHRegion(
             IRBB const* catch_start,
             BitSet const& rubbs,
             OUT BitSet & ehbbs);
+    void findTryRegion(IRBB const* try_start, OUT BitSet & ehbbs);
+    void findAllTryRegions(OUT BitSet & trybbs);
 
     //Allocate and initialize control flow graph.
     void initCfg(OptCTX & oc);
@@ -282,9 +284,10 @@ public:
     {
         ASSERT0(bbct);
         ASSERT0(m_bb_list->in_list(bbct));
-        m_bb_vec.set(BB_id(C_val(bbct)), NULL);
+        IRBB * bb = bbct->val();
+        m_bb_vec.set(BB_id(bb), NULL);
         m_bb_list->remove(bbct);
-        removeVertex(BB_id(C_val(bbct)));
+        removeVertex(BB_id(bb));
     }
 
     //We only remove 'bb' from CF graph, vector and bb-list.
