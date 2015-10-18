@@ -55,7 +55,6 @@ static void usage()
             "\nOptions: "
             "\n  -o <file>       refer to output dex file path"
             "\n  -dump <file>    refer to dump file path"
-            "\n  -dump-dex-path  if it is true, dexpro will dump DEX file path"
             "\n", g_version);
 }
 
@@ -76,7 +75,7 @@ static bool is_dex_source_file(CHAR const* fn)
 }
 
 
-static bool create_dump_file(UINT argc, CHAR const* argv[], IN OUT UINT & i)
+static bool process_dump(UINT argc, CHAR const* argv[], IN OUT UINT & i)
 {
     CHAR const* dumpfile = NULL;
     if (i + 1 < argc && argv[i + 1] != NULL) {
@@ -87,23 +86,6 @@ static bool create_dump_file(UINT argc, CHAR const* argv[], IN OUT UINT & i)
 
     initdump(dumpfile, false);
     return true;
-}
-
-
-//Return true if command line is valid, otherwise return false.
-static bool process_prefix_dump(UINT argc, CHAR const* argv[], IN OUT UINT & i)
-{
-    if (strcmp(argv[i], "-dump-dex-path") == 0) {
-        g_dump_dex_file_path = true;
-        i += 1;
-        return true;
-    }
-
-    if (strcmp(argv[i], "-dump") == 0) {
-        return create_dump_file(argc, argv, i);
-    }
-
-    return false;
 }
 
 
@@ -139,8 +121,8 @@ bool processCommandLine(UINT argc, CHAR const* argv[])
                     usage();
                     return false;
                 }
-            } else if (strncmp(cmdstr, "dump", 4) == 0) {
-                if (!process_prefix_dump(argc, argv, i)) {
+            } else if (strcmp(cmdstr, "dump") == 0) {
+                if (!process_dump(argc, argv, i)) {
                     usage();
                     return false;
                 }

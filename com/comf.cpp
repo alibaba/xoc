@@ -485,6 +485,46 @@ INT xstrstr(CHAR const* src, CHAR const* par, INT i)
 }
 
 
+//Split string by given separetor, and return the number of substring.
+//str: input string.
+//ret: record each substring which separated by sep.
+//sep: separator.
+//Note caller is responsible for the free of each string memory in ret.
+UINT xsplit(CHAR const* str, OUT Vector<CHAR*> & ret, CHAR const* sep)
+{
+    ASSERT0(str);
+    ASSERT(strlen(sep) == 1, ("separator must be single character"));
+    CHAR const* start = str;
+    CHAR const* end = str;
+
+    UINT num = 0;
+    UINT len = 0;
+    for (; *end != 0;) {
+        if (*end != *sep) { len++; end++; continue; }
+
+        CHAR * substr = (CHAR*)malloc(len + 1);
+        memcpy(substr, start, len);
+        substr[len] = 0;
+        ret.set(num, substr);
+        num++;
+        len = 0;
+        end++;
+        start = end;
+    }
+
+    CHAR * substr = (CHAR*)malloc(len + 1);
+    memcpy(substr, start, len);
+    substr[len] = 0;
+    ret.set(num, substr);
+    num++;
+    len = 0;
+    end++;
+    start = end;
+
+    return num;
+}
+
+
 void xstrcpy(CHAR * tgt, CHAR const* src, UINT size)
 {
     UINT l = strlen(src);

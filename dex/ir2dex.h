@@ -71,7 +71,8 @@ public:
 //Transformator from IR to LIR/DEX.
 class IR2Dex {
 protected:
-    Region * m_ru;
+    DexRegion * m_ru;
+    DexRegionMgr * m_ru_mgr;
     TypeMgr * m_dm;
     TypeIndexRep * m_tr;
     DexFile * m_df;
@@ -99,7 +100,8 @@ public:
     IR2Dex(IN Region * ru, IN DexFile * df)
     {
         ASSERT0(ru && df);
-        m_ru = ru;
+        m_ru = (DexRegion*)ru;
+        m_ru_mgr = (DexRegionMgr*)ru->get_region_mgr();
         m_df = df;
         m_dm = ru->get_type_mgr();
         m_tr = ((DexRegion*)ru)->getTypeIndexRep();
@@ -183,7 +185,6 @@ public:
 
     inline bool is_pair(IR const* ir)
     { return m_dm->get_bytesize(IR_dt(ir))== 8; }
-    bool is_builtin(IR const* ir, BLTIN_TYPE bt);
     void reloc();
 };
 #endif

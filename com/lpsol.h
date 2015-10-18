@@ -68,7 +68,7 @@ public:
 class PivotPairTab {
 public:
     bool m_is_init;
-    BMAT m_pair; //Pairs of nv,bv.
+    BMat m_pair; //Pairs of nv,bv.
 
     PivotPairTab(INT varnum)
     {
@@ -2073,7 +2073,7 @@ template <class Mat, class T> class MIP : public Element<T> {
     bool m_is_init;
     Mat m_cur_best_sol;
     T m_cur_best_v;
-    BMAT * m_allow_rational_indicator;
+    BMat * m_allow_rational_indicator;
     INT m_rhs_idx;
     UINT m_indent;
     UINT m_times;
@@ -2103,13 +2103,13 @@ public:
                       Mat const& tgtf, IN Mat & vc,
                       Mat const& eq, Mat const& leq,
                       IN bool is_bin = false,
-                      IN BMAT * rational_indicator = NULL,
+                      IN BMat * rational_indicator = NULL,
                       INT rhs_idx = -1); //Linear minmum solution
     virtual UINT maxm(OUT T & maxv, OUT Mat & res,
                       Mat const& tgtf, IN Mat & vc,
                       Mat const& eq, Mat const& leq,
                       IN bool is_bin = false,
-                      IN BMAT * rational_indicator = NULL,
+                      IN BMat * rational_indicator = NULL,
                       INT rhs_idx = -1); //Linear maximum solution
     void reviseTargetFunc(IN OUT Mat & tgtf,
                             Mat const& eq,
@@ -2617,7 +2617,7 @@ UINT MIP<Mat, T>::maxm(OUT T & maxv,
                        Mat const& eq,
                        Mat const& leq,
                        bool is_bin,
-                       IN BMAT * rational_indicator,
+                       IN BMat * rational_indicator,
                        INT rhs_idx)
 {
     ASSERT(m_is_init, ("not yet initialize"));
@@ -2662,7 +2662,7 @@ UINT MIP<Mat, T>::minm(OUT T & minv,
                        Mat const& eq,
                        Mat const& leq,
                        bool is_bin,
-                       IN BMAT * rational_indicator,
+                       IN BMat * rational_indicator,
                        INT rhs_idx)
 {
     ASSERT(m_is_init, ("not yet initialize"));

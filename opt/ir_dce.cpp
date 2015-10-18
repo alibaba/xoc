@@ -446,7 +446,7 @@ void IR_DCE::fix_control_flow(List<IRBB*> & bblst, List<C<IRBB*>*> & ctlst)
 
         while (vout != NULL) {
             Edge * e = EC_edge(vout);
-            if (EDGE_info(e) != NULL && EI_is_eh((EI*)EDGE_info(e))) {
+            if (EDGE_info(e) != NULL && CFGEI_is_eh((CFGEdgeInfo*)EDGE_info(e))) {
                 vout = EC_next(vout);
                 continue;
             }
@@ -544,7 +544,7 @@ void IR_DCE::revise_successor(IRBB * bb, C<IRBB*> * bbct, BBList * bbl)
 
     while (ec != NULL) {
         Edge * e = EC_edge(ec);
-        if (EDGE_info(e) != NULL && EI_is_eh((EI*)EDGE_info(e))) {
+        if (EDGE_info(e) != NULL && CFGEI_is_eh((CFGEdgeInfo*)EDGE_info(e))) {
             ec = EC_next(ec);
             continue;
         }

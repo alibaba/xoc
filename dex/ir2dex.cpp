@@ -36,6 +36,7 @@ author: Su Zhenyu
 #include "liropcode.h"
 #include "drAlloc.h"
 #include "d2d_comm.h"
+
 #include "cominc.h"
 #include "comopt.h"
 #include "dx_mgr.h"
@@ -234,7 +235,7 @@ LIR * IR2Dex::buildCvt(IN IR ** ir)
 //move-result-object: vA <- retvalue.
 LIR * IR2Dex::buildMoveResult(IN IR ** ir)
 {
-    ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_MOVE_RES));
+    ASSERT0(is_builtin(*ir, BLTIN_MOVE_RES, m_ru_mgr));
     LIRAOp * lir = (LIRAOp*)ymalloc(sizeof(LIRAOp));
     lir->opcode = LOP_MOVE_RESULT;
 
@@ -262,7 +263,7 @@ LIR * IR2Dex::buildMoveResult(IN IR ** ir)
 //AA
 LIR * IR2Dex::buildThrow(IN IR ** ir)
 {
-    ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_THROW));
+    ASSERT0(is_builtin(*ir, BLTIN_THROW, m_ru_mgr));
     LIRAOp * lir = (LIRAOp*)ymalloc(sizeof(LIRAOp));
     lir->opcode = LOP_THROW;
     LIR_dt(lir) = LIR_JDT_unknown;
@@ -278,7 +279,7 @@ LIR * IR2Dex::buildThrow(IN IR ** ir)
 //AA
 LIR * IR2Dex::buildMonitorExit(IN IR ** ir)
 {
-    ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_MONITOR_EXIT));
+    ASSERT0(is_builtin(*ir, BLTIN_MONITOR_EXIT, m_ru_mgr));
     LIRAOp * lir = (LIRAOp*)ymalloc(sizeof(LIRAOp));
     lir->opcode = LOP_MONITOR_EXIT;
     LIR_dt(lir) = LIR_JDT_unknown;
@@ -295,7 +296,7 @@ LIR * IR2Dex::buildMonitorExit(IN IR ** ir)
 //AA
 LIR * IR2Dex::buildMonitorEnter(IN IR ** ir)
 {
-    ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_MONITOR_ENTER));
+    ASSERT0(is_builtin(*ir, BLTIN_MONITOR_ENTER, m_ru_mgr));
     LIRAOp * lir = (LIRAOp*)ymalloc(sizeof(LIRAOp));
     lir->opcode = LOP_MONITOR_ENTER;
     LIR_dt(lir) = LIR_JDT_unknown;
@@ -312,7 +313,7 @@ LIR * IR2Dex::buildMonitorEnter(IN IR ** ir)
 //AA
 LIR * IR2Dex::buildMoveException(IN IR ** ir)
 {
-    ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_MOVE_EXP));
+    ASSERT0(is_builtin(*ir, BLTIN_MOVE_EXP, m_ru_mgr));
     LIRAOp * lir = (LIRAOp*)ymalloc(sizeof(LIRAOp));
     lir->opcode = LOP_MOVE_EXCEPTION;
 
@@ -342,7 +343,7 @@ LIR * IR2Dex::buildMoveException(IN IR ** ir)
 //AABBBB
 LIR * IR2Dex::buildArrayLength(IN IR ** ir)
 {
-    ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_ARRAY_LENGTH));
+    ASSERT0(is_builtin(*ir, BLTIN_ARRAY_LENGTH, m_ru_mgr));
     LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_ARRAY_LENGTH; //see genInstruction()
     LIR_dt(lir) = LIR_JDT_unknown; //see genInstruction()
@@ -364,7 +365,7 @@ LIR * IR2Dex::buildArrayLength(IN IR ** ir)
 //AABBBB
 LIR * IR2Dex::buildCheckCast(IN IR ** ir)
 {
-    ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_CHECK_CAST));
+    ASSERT0(is_builtin(*ir, BLTIN_CHECK_CAST, m_ru_mgr));
     LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_CHECK_CAST;
     IR * tir = *ir;
@@ -470,7 +471,7 @@ UINT IR2Dex::findFieldId(IR * ir, IR * objptr)
     IR const* def = du_mgr->getExactAndUniqueDef(objptr);
     ASSERT0(def);
 
-    ASSERT0(m_d2ir->is_builtin(def, BLTIN_NEW));
+    ASSERT0(is_builtin(def, BLTIN_NEW, m_ru_mgr));
     UINT field_id = CONST_int_val(CALL_param_list(def));
     return field_id;
 }
@@ -799,6 +800,28 @@ LIR * IR2Dex::convertIstore(IN OUT IR ** ir, IN IR2DexCtx * cont)
 LIR * IR2Dex::buildInvoke(IN IR ** ir)
 {
     IR * tir = *ir;
+
+    #ifdef _DEBUG_
+    {
+        //Check the legality of CALL stmt.
+        // CALL id:16 'LCAnimal;::<init>'
+        //     intconst:U32 (0x2) param0 id:10
+        //     intconst:U32 (0x0) param1 id:12
+        //     $pr1:I32 param2 id:14
+
+        //The first must be inoke-flag.
+        IR * p = CALL_param_list(tir);
+        ASSERT0(p->is_const());
+        UINT invoke_flags = CONST_int_val(p);
+        p = IR_next(p);
+
+        //The second must be method-id.
+        ASSERT0(p && p->is_const());
+        UINT method_id = CONST_int_val(p);
+        UNUSED(method_id);
+    }
+    #endif
+
     LIRInvokeOp * lir = (LIRInvokeOp*)ymalloc(sizeof(LIRInvokeOp));
     lir->opcode = LOP_INVOKE;
 
@@ -870,7 +893,7 @@ LIR * IR2Dex::buildInvoke(IN IR ** ir)
 
 LIR * IR2Dex::buildNewInstance(IN IR ** ir)
 {
-    ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_NEW));
+    ASSERT0(is_builtin(*ir, BLTIN_NEW, m_ru_mgr));
     LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_NEW_INSTANCE;
     IR * tir = *ir;
@@ -898,7 +921,7 @@ NOTE: it is very different with filled-new-array.
 */
 LIR * IR2Dex::buildFillArrayData(IN IR ** ir)
 {
-    ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_FILL_ARRAY_DATA));
+    ASSERT0(is_builtin(*ir, BLTIN_FILL_ARRAY_DATA, m_ru_mgr));
     LIRSwitchOp * lir = (LIRSwitchOp*)ymalloc(sizeof(LIRSwitchOp));
     lir->opcode = LOP_FILL_ARRAY_DATA;
     IR * tir = *ir;
@@ -939,7 +962,7 @@ filled-new-array instruction.
 */
 LIR * IR2Dex::buildFilledNewArray(IN IR ** ir)
 {
-    ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_FILLED_NEW_ARRAY));
+    ASSERT0(is_builtin(*ir, BLTIN_FILLED_NEW_ARRAY, m_ru_mgr));
     LIRInvokeOp * lir = (LIRInvokeOp*)ymalloc(sizeof(LIRInvokeOp));
     lir->opcode = LOP_FILLED_NEW_ARRAY;
     IR * tir = *ir;
@@ -984,7 +1007,7 @@ type_id (e.g. Object.class) into vA.
 */
 LIR * IR2Dex::buildConstClass(IN IR ** ir)
 {
-    ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_CONST_CLASS));
+    ASSERT0(is_builtin(*ir, BLTIN_CONST_CLASS, m_ru_mgr));
     IR * tir = *ir;
     LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_CONST_CLASS;
@@ -1009,7 +1032,7 @@ LIR * IR2Dex::buildConstClass(IN IR ** ir)
 //new-array vA(res) <- vB(op0), LCAnimal(op1)
 LIR * IR2Dex::buildNewArray(IN IR ** ir)
 {
-    ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_NEW_ARRAY));
+    ASSERT0(is_builtin(*ir, BLTIN_NEW_ARRAY, m_ru_mgr));
     IR * tir = *ir;
     LIRABCOp * lir = (LIRABCOp*)ymalloc(sizeof(LIRABCOp));
     lir->opcode = LOP_NEW_ARRAY;
@@ -1044,7 +1067,7 @@ Sets vA non-zero if it is, 0 otherwise.
 */
 LIR * IR2Dex::buildInstanceOf(IN IR ** ir)
 {
-    ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_INSTANCE_OF));
+    ASSERT0(is_builtin(*ir, BLTIN_INSTANCE_OF, m_ru_mgr));
     IR * tir = *ir;
     LIRABCOp * lir = (LIRABCOp*)ymalloc(sizeof(LIRABCOp));
     lir->opcode = LOP_INSTANCE_OF;
@@ -1082,7 +1105,7 @@ IR will be:
 */
 LIR * IR2Dex::buildCmpBias(IN IR ** ir)
 {
-    ASSERT0(m_d2ir->is_builtin(*ir, BLTIN_CMP_BIAS));
+    ASSERT0(is_builtin(*ir, BLTIN_CMP_BIAS, m_ru_mgr));
     IR * tir = *ir;
     LIRABCOp * lir = (LIRABCOp*)ymalloc(sizeof(LIRABCOp));
 
@@ -1133,42 +1156,29 @@ LIR * IR2Dex::buildCmpBias(IN IR ** ir)
 
 LIR * IR2Dex::convertCall(IN OUT IR ** ir, IN IR2DexCtx * cont)
 {
-    VAR * v = CALL_idinfo(*ir);
-    BLTIN_TYPE bt = (BLTIN_TYPE)m_d2ir->getVAR2Builtin()->mget(v);
-    switch (bt) {
-    case BLTIN_INVOKE:
-        return buildInvoke(ir);
-    case BLTIN_NEW:
-        return buildNewInstance(ir);
-    case BLTIN_NEW_ARRAY:
-        return buildNewArray(ir);
-    case BLTIN_MOVE_EXP:
-        return buildMoveException(ir);
-    case BLTIN_MOVE_RES:
-        return buildMoveResult(ir);
-    case BLTIN_THROW:
-        return buildThrow(ir);
-    case BLTIN_CHECK_CAST:
-        return buildCheckCast(ir);
-    case BLTIN_FILLED_NEW_ARRAY:
-        return buildFilledNewArray(ir);
-    case BLTIN_FILL_ARRAY_DATA:
-        return buildFillArrayData(ir);
-    case BLTIN_CONST_CLASS:
-        return buildConstClass(ir);
-    case BLTIN_ARRAY_LENGTH:
-        return buildArrayLength(ir);
-    case BLTIN_MONITOR_ENTER:
-        return buildMonitorEnter(ir);
-    case BLTIN_MONITOR_EXIT:
-        return buildMonitorExit(ir);
-    case BLTIN_INSTANCE_OF:
-        return buildInstanceOf(ir);
-    case BLTIN_CMP_BIAS:
-        return buildCmpBias(ir);
-    default: ASSERT0(0);
+    IR const* tir = *ir;
+    if (is_builtin(tir)) {
+        switch (getBuiltinType(tir, m_ru_mgr)) {
+        case BLTIN_NEW: return buildNewInstance(ir);
+        case BLTIN_NEW_ARRAY: return buildNewArray(ir);
+        case BLTIN_MOVE_EXP: return buildMoveException(ir);
+        case BLTIN_MOVE_RES: return buildMoveResult(ir);
+        case BLTIN_THROW: return buildThrow(ir);
+        case BLTIN_CHECK_CAST: return buildCheckCast(ir);
+        case BLTIN_FILLED_NEW_ARRAY: return buildFilledNewArray(ir);
+        case BLTIN_FILL_ARRAY_DATA: return buildFillArrayData(ir);
+        case BLTIN_CONST_CLASS: return buildConstClass(ir);
+        case BLTIN_ARRAY_LENGTH: return buildArrayLength(ir);
+        case BLTIN_MONITOR_ENTER: return buildMonitorEnter(ir);
+        case BLTIN_MONITOR_EXIT: return buildMonitorExit(ir);
+        case BLTIN_INSTANCE_OF: return buildInstanceOf(ir);
+        case BLTIN_CMP_BIAS: return buildCmpBias(ir);
+        default: ASSERT0(0);
+        }
+        return NULL;
     }
-    return NULL;
+
+    return buildInvoke(ir);
 }
 
 

@@ -1297,19 +1297,20 @@ public:
         return C_val(c);
     }
 
-    bool find(IN T t, OUT C<T> ** holder = NULL)
+    bool find(IN T t, OUT C<T> ** holder = NULL) const
     {
         C<T> * c = m_head;
         while (c != NULL) {
             if (C_val(c) == t) {
-                if (holder    != NULL) {
+                if (holder != NULL) {
                     *holder = c;
                 }
                 return true;
             }
             c = C_next(c);
         }
-        if (holder    != NULL) {
+
+        if (holder != NULL) {
             *holder = NULL;
         }
         return false;
@@ -3032,8 +3033,7 @@ protected:
         ASSERT0(m_free_list_pool);
         HC<T> * c = m_free_list.get_free_elem();
         if (c == NULL) {
-            c = (HC<T>*)smpoolMallocConstSize(sizeof(HC<T>),
-                                            m_free_list_pool);
+            c = (HC<T>*)smpoolMallocConstSize(sizeof(HC<T>), m_free_list_pool);
             ASSERT0(c);
             memset(c, 0, sizeof(HC<T>));
         }
@@ -3497,7 +3497,7 @@ public:
     change the order that elements in m_elem_vector and the value of m_cur.
     Because it will impact the effect of get_first(), get_next(),
     get_last() and get_prev(). */
-    bool find(T t, HC<T> const** ct = NULL)
+    bool find(T t, HC<T> const** ct = NULL) const
     {
         ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
         if (t == T(0)) { return false; }
@@ -3531,7 +3531,7 @@ public:
     get_last() and get_prev().
 
     'ot': output the element if found it. */
-    bool find(T t, OUT T * ot)
+    bool find(T t, OUT T * ot) const
     {
         HC<T> const* hc;
         if (find(t, &hc)) {

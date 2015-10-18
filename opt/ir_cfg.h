@@ -101,8 +101,8 @@ public:
                     IRBB * tgt = findBBbyLabel(sc->val());
                     ASSERT0(tgt);
                     Edge * e = addEdge(BB_id(bb), BB_id(tgt));
-                    EDGE_info(e) = xmalloc(sizeof(EI));
-                    EI_is_eh((EI*)EDGE_info(e)) = true;
+                    EDGE_info(e) = xmalloc(sizeof(CFGEdgeInfo));
+                    CFGEI_is_eh((CFGEdgeInfo*)EDGE_info(e)) = true;
                     m_has_eh_edge = true;
                 }
             }
@@ -165,8 +165,8 @@ public:
                 if (ehbbs.is_contain(BB_id(a))) { continue; }
 
                 Edge * e = addEdge(a->id, b->id);
-                EDGE_info(e) = xmalloc(sizeof(EI));
-                EI_is_eh((EI*)EDGE_info(e)) = true;
+                EDGE_info(e) = xmalloc(sizeof(CFGEdgeInfo));
+                CFGEI_is_eh((CFGEdgeInfo*)EDGE_info(e)) = true;
                 m_has_eh_edge = true;
             }
         }

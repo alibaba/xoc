@@ -56,7 +56,6 @@ typedef enum _INVOKE_KIND {
 
 typedef enum _BLTIN_TYPE {
     BLTIN_UNDEF = 0,
-    BLTIN_INVOKE,
     BLTIN_NEW,
     BLTIN_NEW_ARRAY,
     BLTIN_MOVE_EXP,
@@ -93,12 +92,28 @@ public:
     Var2UINT() {}
     virtual ~Var2UINT() {}
 
-    UINT mget(VAR const* v)
+    UINT mget(VAR const* v) const
     {
         bool find;
         UINT i = TMap<VAR const*, UINT>::get(v, &find);
         ASSERT0(find);
         return i;
+    }
+};
+
+
+class UINT2Var : public TMap<UINT, VAR*> {
+public:
+    UINT2Var() {}
+    virtual ~UINT2Var() {}
+
+    VAR * mget(UINT u)
+    {
+        ASSERT0(u != 0);
+        bool find;
+        VAR * v = TMap<UINT, VAR*>::get(u, &find);
+        ASSERT0(find);
+        return v;
     }
 };
 
@@ -309,4 +324,5 @@ extern bool g_dump_classdefs;
 extern bool g_dump_lirs;
 extern bool g_is_pretty_print_method_name;
 extern bool g_dump_dex_file_path;
+extern bool g_record_region_for_classs;
 #endif

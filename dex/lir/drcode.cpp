@@ -54,7 +54,6 @@ author: GongKai, JinYue
 #include "xassert.h"
 #include "lircomm.h"
 
-#include "lir.h"
 #include "dx_mgr.h"
 #include "aoc_dx_mgr.h"
 #include "prdf.h"
@@ -65,6 +64,7 @@ author: GongKai, JinYue
 #include "ir2dex.h"
 #include "d2d_l2d.h"
 #include "dex_driver.h"
+#include "lir.h"
 
 Int32 gMemAlloc = 0;
 
@@ -684,7 +684,6 @@ bool aotDrGenCode(
 }
 #endif
 
-
 //Only used on debug mode and single thread, because the tricky usage
 //might lead to string allocated in this function overrided by other thread.
 CHAR const* debugAssemblyName(DexFile const* df, DexMethod const* dexm)
@@ -731,12 +730,13 @@ bool checkMethodName(DexFile const* df, DexMethod const* dexm)
     return false;
 }
 
-bool d2rMethod(
+void d2rMethod(
         D2Dpool* pool,
         DexFile* pDexFile,
         const DexMethod* pDexMethod,
         const DexClassDef* classdef,
-        RegionMgr* rumgr)
+        RegionMgr* rumgr,
+        List<DexRegion const*> * rulist)
 {
     const DexCode* dexCode = dexGetCode(pDexFile, pDexMethod);
     UInt16* codeStart = (UInt16*)dexCode->insns;
@@ -864,7 +864,7 @@ bool d2rMethod(
     }
 
     compileFunc(rumgr, pool, lircode, pDexFile,
-                pDexMethod, dexCode, classdef, offvec);
+                pDexMethod, dexCode, classdef, offvec, rulist);
     lir2dexCode(pool, dexCode, lircode);
 
     //Leave it to verify.
@@ -873,5 +873,4 @@ bool d2rMethod(
     //Obsolete code.
     //l2dWithAot(pool, dexCode, code);
     drLinearFree();
-    return true;
 }

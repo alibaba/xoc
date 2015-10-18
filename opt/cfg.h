@@ -56,8 +56,8 @@ typedef enum {
 
 
 //CFG Edge Info.
-#define EI_is_eh(ei)    ((ei)->is_eh)
-class EI {
+#define CFGEI_is_eh(ei)    ((ei)->is_eh)
+class CFGEdgeInfo {
 public:
     BYTE is_eh:1; //true if edge describe eh edge.
 };
@@ -113,7 +113,7 @@ public:
         m_loop_info = NULL;
         m_bs_mgr = NULL;
         m_li_count = 1;
-        m_pool = smpoolCreate(sizeof(EI) * 4, MEM_COMM);
+        m_pool = smpoolCreate(sizeof(CFGEdgeInfo) * 4, MEM_COMM);
         set_dense(true);
     }
 
@@ -656,7 +656,7 @@ bool CFG<BB, XR>::verify_rmbb(IN CDG * cdg, OptCTX & oc)
                         }
                         Edge * e = get_edge(bb->id, succ->id);
                         if (EDGE_info(e) != NULL &&
-                            EI_is_eh((EI*)EDGE_info(e))) {
+                            CFGEI_is_eh((CFGEdgeInfo*)EDGE_info(e))) {
                             continue;
                         }
                         if (!cdg->is_cd(bb->id, succ->id)) {
@@ -1235,7 +1235,9 @@ void CFG<BB, XR>::build(OptCTX & oc)
         }
 
         //Check bb boundary
-        if (last->is_call()) {
+        if (last->is_terminate()) {
+            ; //Do nothing.
+        } else if (last->is_call()) {
             //Add fall-through edge
             //The last bb may not be terminated by 'return' stmt.
             if (next != NULL && !next->is_unreachable()) {
@@ -1284,7 +1286,7 @@ void CFG<BB, XR>::build(OptCTX & oc)
                 ASSERT(target_bb != NULL, ("target cannot be NULL"));
                 addEdge(bb->id, target_bb->id);
             }
-        } else if (!last->is_return() && !last->is_terminate()) {
+        } else if (!last->is_return()) {
             //Add fall-through edge.
             //The last bb may not end by 'return' stmt.
             if (next != NULL && !next->is_unreachable()) {
@@ -1586,12 +1588,12 @@ void CFG<BB, XR>::dump_vcg(CHAR const* name)
     INT c;
     for (Edge * e = m_edges.get_first(c);
          e != NULL;  e = m_edges.get_next(c)) {
-        EI * ei = (EI*)EDGE_info(e);
+        CFGEdgeInfo * ei = (CFGEdgeInfo*)EDGE_info(e);
         if (ei == NULL) {
             fprintf(hvcg,
                     "\nedge: { sourcename:\"%d\" targetname:\"%d\" }",
                     VERTEX_id(EDGE_from(e)), VERTEX_id(EDGE_to(e)));
-        } else if (EI_is_eh(ei)) {
+        } else if (CFGEI_is_eh(ei)) {
             fprintf(hvcg,
                     "\nedge: { sourcename:\"%d\" targetname:\"%d\" linestyle:dotted }",
                     VERTEX_id(EDGE_from(e)), VERTEX_id(EDGE_to(e)));

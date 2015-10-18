@@ -428,10 +428,19 @@ static void dump_ai(OUT CHAR * buf, IR const* ir)
 
     strcat(buf, " ai:");
     CHAR * p = buf + strlen(buf);
+    bool not_first = false;
     for (UINT i = 0; i < cont.get_capacity(); i++) {
         BaseAttachInfo * ac = cont.get(i);
         if (ac == NULL) { continue; }
-        sprintf(p, "%s,", ai->get_ai_name(ac->type));
+
+        if (!not_first) {
+            not_first = true;
+        } else {
+
+            sprintf(p, ",");
+        }
+
+        sprintf(p, "%s", ai->get_ai_name(ac->type));
         p = p + strlen(p);
     }
 }
@@ -535,7 +544,7 @@ void dump_ir(IR const* ir,
         }
         break;
     case IR_STPR:
-        note("\nstpr:%s $pr%d", xdm->dump_type(d, buf), STPR_no(ir));
+        note("\nstpr $pr%d:%s", STPR_no(ir), xdm->dump_type(d, buf));
         PADDR(ir);
         fprintf(g_tfile, "%s", attr);
 

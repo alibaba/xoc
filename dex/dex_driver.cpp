@@ -121,7 +121,7 @@ static void updateLIRCodeOrg(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
 
 
 //Update try-catch info if any.
-static void updateLIRCode(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
+static void updateTryInfo(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
 {
     TryInfo * ti = d2ir.getTryInfo();
     if (ti == NULL) { return; }
@@ -138,11 +138,19 @@ static void updateLIRCode(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
         lab2idx->get(ti->try_start, &find_start_lab);
         lab2idx->get(ti->try_end, &find_end_lab);
         if (!find_start_lab || !find_end_lab) {
-            ASSERT(!(find_start_lab ^ find_end_lab), ("either both or not"));
-            continue; //current try-block has been removed, just neglect it.
+            if (!find_end_lab &&
+                d2ir.getLastTryEndLabelList().find(ti->try_end)) {
+                //ti->try_end label will be added the end of LIR list.
+            } else if (!find_start_lab &&
+                       d2ir.getLastTryEndLabelList().find(ti->try_start)) {
+                //Could this happen?
+                //ti->try_start label will be added the end of LIR list.
+            } else {
+                ASSERT(!(find_start_lab ^ find_end_lab),
+                       ("try_start and try_end must both exist or not"));
+                continue; //current try-block has been removed, just neglect it.
+            }
         }
-
-        ASSERT(!(find_start_lab ^ find_end_lab), ("both exist or not"));
 
         //Check if catch-block is not exist.
         UINT j = 0;
@@ -184,7 +192,11 @@ static void updateLIRCode(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
         each_try->start_pc = idx;
 
         idx = lab2idx->get(ti->try_end, &find);
-        ASSERT0(find);
+        if (!find) {
+            ASSERT(d2ir.getLastTryEndLabelList().find(ti->try_end),
+                   ("Miss the try-end label, it may be deleted incorrectly."));
+            idx = lircode->instrCount;
+        }
 
         //The means of value of try_end position is not
         //same as try start position.
@@ -228,7 +240,7 @@ static void do_opt(IR * ir_list, DexRegion * func_ru)
 {
     if (ir_list == NULL) { return; }
 
-    //dump_irs(ir_list, func_ru->get_type_mgr());
+    //dump_irs(ir_list, func_ru->get_dm());
 
     bool change;
 
@@ -318,7 +330,7 @@ static void convertIR2LIR(
         ASSERT0(l);
         lircode->lirList[i++] = l;
     }
-    updateLIRCode(lircode, *func_ru->getDex2IR(), ir2dex);
+    updateTryInfo(lircode, *func_ru->getDex2IR(), ir2dex);
     //updateLIRCodeOrg(lircode, *func_ru->getDex2IR(), ir2dex);
 }
 
@@ -485,7 +497,7 @@ static void handleRegion(
         //goto FIN;
     }
 
-    //dump_irs(ir_list, func_ru->get_type_mgr());
+    //dump_irs(ir_list, func_ru->get_dm());
     func_ru->setPrno2Vreg(&prno2v);
 
     #if 1
@@ -571,7 +583,8 @@ bool compileFunc(
         DexMethod const* dexm,
         DexCode const* dexcode,
         DexClassDef const* dexclassdef,
-        OffsetVec const& offsetvec)
+        OffsetVec const& offsetvec,
+        List<DexRegion const*> * rulist)
 {
     CHAR tmp[256];
     CHAR * runame = NULL;
@@ -615,6 +628,7 @@ bool compileFunc(
         ASSERT0(rumgr == NULL);
         rm = new DexRegionMgr();
         rm->initVarMgr();
+        rm->init();
     }
 
     //Generate Program region.
@@ -647,6 +661,10 @@ bool compileFunc(
         ASSERT0(program);
         REGION_parent(func_ru) = program;
         program->addToIRList(program->buildRegion(func_ru));
+        if (rulist != NULL) {
+            //Caller must make sure func_ru will not be destroied before IPA.
+            rulist->append_tail(func_ru);
+        }
     } else {
         ASSERT0(rumgr == NULL);
         rm->deleteRegion(func_ru);

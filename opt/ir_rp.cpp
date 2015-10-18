@@ -42,7 +42,6 @@ namespace xoc {
 
 class RefHashFunc {
     IR_GVN * m_gvn;
-    ConstIRIter m_iter;
 public:
     void initMem(IR_GVN * gvn)
     {
@@ -50,20 +49,21 @@ public:
         m_gvn = gvn;
     }
 
-    UINT get_hash_value(IR * t, UINT bucket_size)
+    //The function will modify m_iter.
+    UINT get_hash_value(IR * t, UINT bucket_size) const
     {
         ASSERT0(bucket_size != 0 && isPowerOf2(bucket_size));
         UINT hval = 0;
+        ConstIRIter iter;
         switch (IR_code(t)) {
         case IR_LD:
             hval = IR_code(t) + (t->get_offset() + 1) + (UINT)(size_t)IR_dt(t);
             break;
         case IR_ILD:
-            m_iter.clean();
-            for (IR const* x = iterInitC(t, m_iter);
-                 x != NULL; x = iterNextC(m_iter)) {
+            for (IR const* x = iterInitC(t, iter);
+                 x != NULL; x = iterNextC(iter)) {
                 UINT v = IR_code(x) + (x->get_offset() + 1) +
-                        (UINT)(size_t)IR_dt(x);
+                         (UINT)(size_t)IR_dt(x);
                 if (x->is_id()) {
                     v += ((UINT)(size_t)ID_info(x)) * 5;
                 }
@@ -72,12 +72,11 @@ public:
             break;
         case IR_ST:
             hval = ((UINT)IR_LD) + (t->get_offset() + 1) +
-                    (UINT)(size_t)IR_dt(t);
+                   (UINT)(size_t)IR_dt(t);
             break;
         case IR_IST:
-            m_iter.clean();
-            for (IR const* x = iterInitC(IST_base(t), m_iter);
-                 x != NULL; x = iterNextC(m_iter)) {
+            for (IR const* x = iterInitC(IST_base(t), iter);
+                 x != NULL; x = iterNextC(iter)) {
                 UINT v = IR_code(x) + (x->get_offset() + 1) +
                         (UINT)(size_t)IR_dt(x);
                 if (x->is_id()) {
@@ -89,9 +88,8 @@ public:
                     (UINT)(size_t)IR_dt(t);
             break;
         case IR_ARRAY:
-            m_iter.clean();
-            for (IR const* x = iterInitC(t, m_iter);
-                 x != NULL; x = iterNextC(m_iter)) {
+            for (IR const* x = iterInitC(t, iter);
+                 x != NULL; x = iterNextC(iter)) {
                 UINT v = IR_code(x) + (x->get_offset() + 1) +
                         (UINT)(size_t)IR_dt(x);
                 if (x->is_id()) {

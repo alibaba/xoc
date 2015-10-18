@@ -47,7 +47,8 @@ bool compileFunc(
         DexMethod const* dm,
         DexCode const* dexcode,
         DexClassDef const* dexclassdef,
-        OffsetVec const& offsetvec);
+        OffsetVec const& offsetvec,
+        List<DexRegion const*> * rulist);
 
 #ifdef __cplusplus
 }

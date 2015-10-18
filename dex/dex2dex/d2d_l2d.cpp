@@ -58,7 +58,6 @@ author: GongKai, JinYue
 #include "d2d_comm.h"
 #include "d2d_dexlib.h"
 
-#include "lir.h"
 #include "xassert.h"
 #include "io/cio.h"
 #include "d2d_comm.h"
@@ -72,6 +71,7 @@ author: GongKai, JinYue
 #include "ir2dex.h"
 #include "d2d_l2d.h"
 #include "dex_driver.h"
+#include "lir.h"
 
 static inline UInt8 getlirOpcode(ULong codePtr){
     BYTE* data = (BYTE*)codePtr;

@@ -88,7 +88,7 @@ typedef TMap<CHAR const*, Type const*, CmpStr> Str2Type;
 class Dex2IR {
 protected:
     DexRegion * m_ru;
-    RegionMgr * m_ru_mgr;
+    DexRegionMgr * m_ru_mgr;
     TypeMgr * m_dm;
     DexFile * m_df;
     VarMgr * m_vm;
@@ -96,7 +96,6 @@ protected:
     TypeIndexRep const* m_tr;
     SMemPool * m_pool;
     Var2UINT m_map_var2ofst;
-    Var2UINT m_var2blt;
     LIR2LABS m_lir2labs;
     Str2Type m_typename2type;
     DbxVec const& m_dbxvec;
@@ -114,6 +113,9 @@ protected:
 
     void attachCatchInfo(IR * ir);
     void attachCatchInfo(IR * ir, AttachInfo * ai);
+
+    void markLIRLabel();
+    void markTryLabel();
 
     void * xmalloc(UINT size, SMemPool * pool)
     {
@@ -145,7 +147,7 @@ public:
     {
         ASSERT0(ru && df && fu);
         m_ru = (DexRegion*)ru;
-        m_ru_mgr = ru->get_region_mgr();
+        m_ru_mgr = (DexRegionMgr*)ru->get_region_mgr();
         m_dm = ru->get_type_mgr();
         m_vm = ru->get_var_mgr();
         m_df = df;
@@ -234,20 +236,19 @@ public:
     Prno2Vreg * getPR2Vreg() { return &m_pr2v; }
     Vreg2PR * getVreg2PR() { return &m_v2pr; }
     Var2UINT * getVAR2Ofst() { return &m_map_var2ofst; }
-    Var2UINT * getVAR2Builtin() { return &m_var2blt; }
     TryInfo * getTryInfo() { return m_ti; }
+
+    List<LabelInfo*> & getLastTryEndLabelList()
+    { return m_last_try_end_lab_list; }
 
     bool is_readonly(CHAR const* method_name) const;
 
     //Return true if ir is built-in function.
-    bool is_builtin(IR const* ir, BLTIN_TYPE bt);
     bool hasCatch() const { return m_has_catch; }
 
     Type const* mapDexType2XocType(CHAR charty);
     Type const* mapFieldType2Type(UINT field_id);
-    void markLabel();
 
-    void set_map_v2blt(VAR * v, BLTIN_TYPE b);
     void set_map_v2ofst(VAR * v, UINT ofst);
 };
 

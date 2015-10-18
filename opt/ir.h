@@ -355,7 +355,7 @@ public:
     AttachInfo * ai;
 
 public:
-    bool calcArrayOffset(TMWORD * ofst, TypeMgr * dm) const;
+    bool calcArrayOffset(TMWORD * ofst, TypeMgr * tm) const;
     inline DU * cleanDU();
     inline void clearSSAInfo();
     void cleanRefMD()
@@ -464,11 +464,11 @@ public:
     inline LabelInfo const* get_label() const;
 
     //Return the byte size of array element.
-    inline UINT getArrayElemDtSize(TypeMgr const* dm) const;
+    inline UINT getArrayElemDtSize(TypeMgr const* tm) const;
 
     //Return byte size of ir data type.
-    inline UINT get_dtype_size(TypeMgr const* dm) const
-    { return dm->get_bytesize(IR_dt(this)); }
+    inline UINT get_dtype_size(TypeMgr const* tm) const
+    { return tm->get_bytesize(IR_dt(this)); }
 
     DATA_TYPE get_dtype() const { return TY_dtype(IR_dt(this)); }
 
@@ -633,24 +633,24 @@ public:
 
     //Return true if ir data type is signed, and the type
     //may be integer or float.
-    inline bool is_signed(TypeMgr const* dm) const
-    { return dm->is_signed(IR_dt(this)); }
+    inline bool is_signed(TypeMgr const* tm) const
+    { return tm->is_signed(IR_dt(this)); }
 
     //Return true if ir data type is signed integer.
-    inline bool is_sint(TypeMgr const* dm) const
-    { return dm->is_sint(IR_dt(this)); }
+    inline bool is_sint(TypeMgr const* tm) const
+    { return tm->is_sint(IR_dt(this)); }
 
     //Return true if ir data type is unsgined integer.
-    bool is_uint(TypeMgr const* dm) const
-    { return dm->is_uint(IR_dt(this)); }
+    bool is_uint(TypeMgr const* tm) const
+    { return tm->is_uint(IR_dt(this)); }
 
     //Return true if ir data type is integer.
-    bool is_int(TypeMgr const* dm) const
-    { return dm->is_int(IR_dt(this)); }
+    bool is_int(TypeMgr const* tm) const
+    { return tm->is_int(IR_dt(this)); }
 
     //Return true if ir data type is float.
-    bool is_fp(TypeMgr const* dm) const
-    { return dm->is_fp(IR_dt(this)); }
+    bool is_fp(TypeMgr const* tm) const
+    { return tm->is_fp(IR_dt(this)); }
 
     //Return true if ir data type is boolean.
     bool is_bool() const
@@ -784,7 +784,7 @@ public:
 
     //Return true if current ir is integer constant, and the number
     //is equal to 'value'.
-    inline bool isConstIntValueEqualTo(HOST_INT value, TypeMgr * dm) const;
+    inline bool isConstIntValueEqualTo(HOST_INT value, TypeMgr * tm) const;
 
     //Return true if current operation references memory except
     //the PR memory.
@@ -920,12 +920,12 @@ public:
 
     //The current ir is set to pointer type.
     //Note pointer_base_size may be 0.
-    inline void setPointerType(UINT pointer_base_size, TypeMgr * dm)
+    inline void setPointerType(UINT pointer_base_size, TypeMgr * tm)
     {
         PointerType d;
         TY_dtype(&d) = D_PTR;
         TY_ptr_base_size(&d) = pointer_base_size;
-        IR_dt(this) = TC_type(dm->registerPointer(&d));
+        IR_dt(this) = TC_type(tm->registerPointer(&d));
     }
     void set_ref_md(MD const* md, Region * ru);
     void set_ref_mds(MDSet const* mds, Region * ru);
@@ -1999,10 +1999,10 @@ LabelInfo const* IR::get_label() const
 }
 
 
-UINT IR::getArrayElemDtSize(TypeMgr const* dm) const
+UINT IR::getArrayElemDtSize(TypeMgr const* tm) const
 {
     ASSERT0(is_array() || is_starray());
-    return dm->get_bytesize(ARR_elemtype(this));
+    return tm->get_bytesize(ARR_elemtype(this));
 }
 
 
@@ -2452,7 +2452,7 @@ bool IR::hasReturnValue() const
 
 //Return true if current ir is integer constant, and the number
 //is equal to 'value'.
-bool IR::isConstIntValueEqualTo(HOST_INT value, TypeMgr * dm) const
+bool IR::isConstIntValueEqualTo(HOST_INT value, TypeMgr * tm) const
 {
     if (!is_const_exp()) { return false; }
 
@@ -2462,19 +2462,19 @@ bool IR::isConstIntValueEqualTo(HOST_INT value, TypeMgr * dm) const
         p = CVT_exp(p);
         ASSERT0(p);
     }
-    return p->is_int(dm) && CONST_int_val(p) == value;
+    return p->is_int(tm) && CONST_int_val(p) == value;
 }
 //END IR
 
 
 //Exported Functions.
-void dump_ir(IR const* ir, TypeMgr const* dm, CHAR * attr = NULL,
+void dump_ir(IR const* ir, TypeMgr const* tm, CHAR * attr = NULL,
              bool dump_kid = true, bool dump_src_line = true,
              bool dump_addr = false);
-void dump_irs_h(IR * ir_list , TypeMgr const* dm);
-void dump_irs(IR * ir_list, TypeMgr const* dm, CHAR * attr = NULL);
-void dump_irs(IRList & ir_list, TypeMgr const* dm);
-void dump_irs(List<IR*> & ir_list, TypeMgr const* dm);
+void dump_irs_h(IR * ir_list , TypeMgr const* tm);
+void dump_irs(IR * ir_list, TypeMgr const* tm, CHAR * attr = NULL);
+void dump_irs(IRList & ir_list, TypeMgr const* tm);
+void dump_irs(List<IR*> & ir_list, TypeMgr const* tm);
 bool verify_irs(IR * ir, IRAddressHash * irh, Region const* ru);
 bool verifyIRandBB(BBList * ir_bb_list, Region const* ru);
 bool verify_simp(IR * ir, SimpCTX & simp);

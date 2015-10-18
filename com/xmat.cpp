@@ -1574,7 +1574,7 @@ FloatMat operator - (FloatMat const& a, FloatMat const& b)
 static void bool_dumpf_by_handle(void const* pbasis, FILE * h)
 {
     ASSERT(h != NULL, ("file handle is NULL"));
-    BMAT * pthis = (BMAT*)pbasis;
+    BMat * pthis = (BMat*)pbasis;
     fprintf(h, "\nMATRIX(%d,%d)\n", pthis->get_row_size(), pthis->get_col_size());
     for (UINT i = 0; i < pthis->get_row_size(); i++) {
         fprintf(h, "\t");
@@ -1606,7 +1606,7 @@ static void bool_dumpf(void const* pbasis, CHAR const* name, bool is_del)
 //Print as real number even though T is integer.
 static void bool_dumps(void const* pbasis)
 {
-    BMAT * pthis = (BMAT*)pbasis;
+    BMat * pthis = (BMat*)pbasis;
     printf("\n");
     for (UINT i = 0; i < pthis->get_row_size(); i++) {
         printf("\t");
@@ -1620,7 +1620,7 @@ static void bool_dumps(void const* pbasis)
 }
 
 
-BMAT::BMAT()
+BMat::BMat()
 {
     m_is_init = false;
     init();
@@ -1628,13 +1628,13 @@ BMAT::BMAT()
 
 
 //used by template call of T(0) in Vector<Mat>
-BMAT::BMAT(INT)
+BMat::BMat(INT)
 {
-    BMAT();
+    BMat();
 }
 
 
-BMAT::BMAT(UINT row, UINT col)
+BMat::BMat(UINT row, UINT col)
 {
     m_is_init = false;
     init();
@@ -1642,13 +1642,13 @@ BMAT::BMAT(UINT row, UINT col)
 }
 
 
-BMAT::~BMAT()
+BMat::~BMat()
 {
     destroy();
 }
 
 
-void BMAT::init()
+void BMat::init()
 {
     if (m_is_init) return;
     ((Matrix<bool>*)this)->init();
@@ -1661,7 +1661,7 @@ void BMAT::init()
 }
 
 
-void BMAT::destroy()
+void BMat::destroy()
 {
     if(!m_is_init) return;
     m_is_init = false;
@@ -1670,7 +1670,7 @@ void BMAT::destroy()
 
 //Assignment value of matrix element
 //e.g: sete(3, true, true, false)
-void BMAT::sete(UINT num, ...)
+void BMat::sete(UINT num, ...)
 {
     ASSERT(m_is_init, ("not yet initialize."));
     ASSERT(num <= m_col_size*m_row_size, ("set out of boundary."));
@@ -1694,7 +1694,7 @@ void BMAT::sete(UINT num, ...)
 }
 
 
-BMAT& BMAT::operator = (BMAT const& m)
+BMat& BMat::operator = (BMat const& m)
 {
     ((Matrix<bool>*)this)->copy(*((Matrix<bool>*)&m));
     return *this;

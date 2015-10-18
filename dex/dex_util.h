@@ -55,7 +55,6 @@ public:
 #define DR_functype(dr)     ((dr)->m_functype)
 #define DR_funcname(dr)     ((dr)->m_funcname)
 #define DR_classname(dr)    ((dr)->m_classname)
-#define DR_is_locked(dr)    ((dr)->m_is_locked)
 class DexRegion : public Region {
 protected:
     VAR2PR m_var2pr; //map from var id to prno.
@@ -107,7 +106,6 @@ public:
     virtual IR_AA * allocAliasAnalysis();
 
     SMemPool * get_sc_pool() const { return m_sc_pool; }
-
     void setDex2IR(Dex2IR * dex2ir) { m_dex2ir = dex2ir; }
     Dex2IR * getDex2IR() { return m_dex2ir; }
 
@@ -169,14 +167,18 @@ public:
     }
 };
 
-
 //
 //START DexRegionMgr
 //
 class DexRegionMgr : public RegionMgr {
 protected:
     SMemPool * m_pool;
+    Var2UINT m_var2blt;
+    UINT2Var m_blt2var;
 
+protected:
+    VAR * addVarForBuiltin(CHAR const* name);
+    void initBuiltin();
 
 public:
     DexRegionMgr()
@@ -196,6 +198,13 @@ public:
         return get_region(1);
     }
     SMemPool * get_pool() { return m_pool; }
+    Var2UINT & getVar2Builtin() { return m_var2blt; }
+    UINT2Var & getBuiltin2Var() { return m_blt2var; }
+    Var2UINT const& getVar2BuiltinC() const { return m_var2blt; }
+    UINT2Var const& getBuiltin2VarC() const { return m_blt2var; }
+
+    //Do some initialization.
+    void init() { initBuiltin(); }
 
     DexRegionMgr * self() { return this; }
 
@@ -272,12 +281,21 @@ void dump_all_class_and_field(DexFile * df);
 inline bool is_wide(LIR * lir)
 {
     return LIR_dt(lir) == LIR_JDT_wide ||
-           LIR_dt(lir) == LIR_JDT_double ||
-           LIR_dt(lir) == LIR_JDT_long;
+            LIR_dt(lir) == LIR_JDT_double ||
+            LIR_dt(lir) == LIR_JDT_long;
 }
+
+
+#define NUM_OF_PART       3
+#define CLASSPATH_PART    0
+#define TYPE_PART         1
+#define FUNCNAME_PART     2
 
 //Generate unique name by assembling Class Name, Function Parameter Type,
 //and Function Name.
+//1th part: class path
+//2th part: type string, include (parameters string list) return-value-type
+//3th part: function name.
 CHAR * assemblyUniqueName(
         OUT CHAR buf[],
         CHAR const* class_name,
@@ -296,7 +314,8 @@ void extractFunctionTypeFromFunctionTypeString(
 //Note outputbuf should big enough to hold the string.
 void extractFunctionTypeFromRegionName(
         CHAR const* runame,
-        CHAR const** functionname,
+        OUT CHAR * classpath,
+        OUT CHAR * functionname,
         OUT CHAR * param_type,
         OUT CHAR * return_type);
 
@@ -314,21 +333,48 @@ UINT extractSeparateParamterType(
 //Note this function check the length of buffer needed.
 UINT printType2Buffer(CHAR const* type_string, OUT CHAR * buf);
 
+//Return the VAR related to given builtin.
+inline VAR * getBuiltinVar(BLTIN_TYPE blt, DexRegionMgr const* rumgr)
+{
+    ASSERT0(rumgr);
+    bool find = false;
+    VAR * v = rumgr->getBuiltin2VarC().get((UINT)blt, &find);
+    ASSERT0(find);
+    return v;
+}
+
+inline BLTIN_TYPE getBuiltinType(IR const* ir, DexRegionMgr const* rumgr)
+{
+    ASSERT0(ir && ir->is_call() && rumgr);
+    BLTIN_TYPE bt = (BLTIN_TYPE)rumgr->getVar2BuiltinC().mget(CALL_idinfo(ir));
+    ASSERT0(bt > BLTIN_UNDEF && BLTIN_LAST);
+    return bt;
+}
+
 CHAR const* getClassSourceFilePath(
         DexFile const* df,
         DexClassDef const* class_info);
+
 CHAR const* get_class_name(DexFile const* df, DexMethod const* dm);
 CHAR const* get_class_name(DexFile const* df, UINT cls_type_idx);
 CHAR const* get_class_name(DexFile const* df, DexClassDef const* class_info);
 CHAR const* get_func_name(DexFile const* df, DexMethod const* dm);
 CHAR const* get_func_type(DexFile const* df, DexMethod const* dm);
 CHAR const* get_func_type(DexFile const* df, DexMethodId const* dmid);
-CHAR const* get_field_name(DexFile * df, UINT field_id);
-CHAR const* get_field_name(DexFile * df, DexField * finfo);
-CHAR const* get_field_type_name(DexFile * df, UINT field_id);
-CHAR const* get_field_type_name(DexFile * df, DexField * finfo);
-CHAR const* get_field_class_name(DexFile * df, UINT field_id);
-CHAR const* get_field_class_name(DexFile * df, DexField * finfo);
+CHAR const* get_field_name(DexFile const* df, UINT field_id);
+CHAR const* get_field_name(DexFile const* df, DexField * finfo);
+CHAR const* get_field_type_name(DexFile const* df, UINT field_id);
+CHAR const* get_field_type_name(DexFile const* df, DexField * finfo);
+CHAR const* get_field_class_name(DexFile const* df, UINT field_id);
+CHAR const* get_field_class_name(DexFile const* df, DexField * finfo);
 CHAR const* get_dt_name(LIR * ir);
+
+bool is_builtin(IR const* ir, BLTIN_TYPE bt, DexRegionMgr const* rumgr);
+inline bool is_builtin(IR const* ir)
+{
+    //The first charactor of builtin function is #.
+    ASSERT0(ir && ir->is_call());
+    return ((CCall*)ir)->get_callee_name()[0] == '#';
+}
 #endif
 

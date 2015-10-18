@@ -261,11 +261,14 @@ void IR_CFG::findEHRegion(
 void IR_CFG::findAllTryRegions(OUT BitSet & trybbs)
 {
     C<IRBB*> * ct;
+    BitSet t;
     for (m_bb_list->get_head(&ct);
          ct != m_bb_list->end(); ct = m_bb_list->get_next(ct)) {
         IRBB const* bb = ct->val();
         if (!bb->is_try_start()) { continue; }
-        findTryRegion(bb, trybbs);
+        t.clean();
+        findTryRegion(bb, t);
+        trybbs.bunion(t);
     }
 }
 
@@ -291,15 +294,26 @@ void IR_CFG::findTryRegion(IRBB const* try_start, OUT BitSet & trybbs)
         IRBB * bb = get_bb(id);
         ASSERT(bb, ("vertex on CFG correspond to nothing"));
 
-        if (bb->is_try_end()) { continue; }
+        if (bb->is_try_end() && bb != try_start) {
+            //BB may have both try_start and try_end label.
+            //If it is the case, the try_end is always other region's
+            //end label, just ignore that.
+            continue;
+        }
 
-        EdgeC * el = VERTEX_out_list(v);
-        while (el != NULL) {
-            Vertex const* succ = EDGE_to(EC_edge(el));
+        for (EdgeC * el = VERTEX_out_list(v); el != NULL; el = EC_next(el)) {
+            Edge const* e = EC_edge(el);
+            CFGEdgeInfo * ei = (CFGEdgeInfo*)EDGE_info(e);
+            if (ei != NULL && CFGEI_is_eh(ei)) {
+                //Do not consider EH edge.
+                continue;
+            }
+
+            Vertex const* succ = EDGE_to(e);
             if (!trybbs.is_contain(VERTEX_id(succ))) {
                 list.append_tail(succ);
             }
-            el = EC_next(el);
+
         }
     }
 }
@@ -527,12 +541,12 @@ bool IR_CFG::removeTrampolinBB()
 
                     //Add normal control flow edge.
                     Edge * e = addEdge(BB_id(pred), BB_id(next));
-                    EI * ei = (EI*)EDGE_info(e);
-                    if (ei != NULL && EI_is_eh(ei)) {
+                    CFGEdgeInfo * ei = (CFGEdgeInfo*)EDGE_info(e);
+                    if (ei != NULL && CFGEI_is_eh(ei)) {
                         //If there is already an edge, check if it is an
                         //exception edge. If it is, change the exception edge
                         //to be normal control flow edge.
-                        EI_is_eh(ei) = false;
+                        CFGEI_is_eh(ei) = false;
                     }
                     continue;
                 }
@@ -547,12 +561,12 @@ bool IR_CFG::removeTrampolinBB()
                 last_xr_of_pred->set_label(br->get_label());
                 removeEdge(pred, bb);
                 Edge * e = addEdge(BB_id(pred), BB_id(next));
-                EI * ei = (EI*)EDGE_info(e);
-                if (ei != NULL && EI_is_eh(ei)) {
+                CFGEdgeInfo * ei = (CFGEdgeInfo*)EDGE_info(e);
+                if (ei != NULL && CFGEI_is_eh(ei)) {
                     //If there is already an edge, check if it is an
                     //exception edge. If it is, change the exception edge
                     //to be normal control flow edge.
-                    EI_is_eh(ei) = false;
+                    CFGEI_is_eh(ei) = false;
                 }
             } //end for each pred of BB.
 
@@ -820,8 +834,9 @@ void IR_CFG::dump_dot(CHAR const* name, bool detail, bool dump_eh)
     g_prt_carriage_return_for_dot = true;
 
     //Print Region name.
-    fprintf(h, "\nstartnode [fontsize=24,style=filled,color=gold,shape=diamond,label=\"%s\"];",
-            m_ru->get_ru_name());
+    fprintf(h, "\nstartnode [fontsize=24,style=filled, "
+               "color=gold,shape=Mrecord,label=\"RegionName:%s\"];",
+                  m_ru->get_ru_name());
 
     //Print node
     INT c;
@@ -865,6 +880,10 @@ void IR_CFG::dump_dot(CHAR const* name, bool detail, bool dump_eh)
                  //TODO: implement dump_ir_buf();
                 dump_ir(ir, m_dm, NULL, true, false, false);
             }
+
+            //The last \l is very important to display DOT in a fine manner.
+            fprintf(h, "\\l");
+
             fprintf(h, "\"];");
         } else {
             fprintf(h, "\nnode%d [font=\"%s\",fontsize=%d,color=%s,"
@@ -883,18 +902,20 @@ void IR_CFG::dump_dot(CHAR const* name, bool detail, bool dump_eh)
     //Print edge
     for (Edge const* e = m_edges.get_first(c);
          e != NULL;  e = m_edges.get_next(c)) {
-        EI * ei = (EI*)EDGE_info(e);
+        CFGEdgeInfo * ei = (CFGEdgeInfo*)EDGE_info(e);
         if (ei == NULL) {
             fprintf(h, "\nnode%d->node%d[style=bold, color=maroon, label=\"%s\"]",
                     VERTEX_id(EDGE_from(e)),
                     VERTEX_id(EDGE_to(e)),
                     "");
-        } else if (EI_is_eh(ei)) {
+        } else if (CFGEI_is_eh(ei)) {
             if (dump_eh) {
-                fprintf(h, "\nnode%d->node%d[style=dotted, color=lightgray, label=\"%s\"]",
-                    VERTEX_id(EDGE_from(e)),
-                    VERTEX_id(EDGE_to(e)),
-                    "");
+                fprintf(h,
+                        "\nnode%d->node%d[style=dotted, "
+                        "color=lightgray, label=\"%s\"]",
+                        VERTEX_id(EDGE_from(e)),
+                        VERTEX_id(EDGE_to(e)),
+                        "");
             }
         } else {
             ASSERT(0, ("unsupport EDGE_INFO"));
@@ -966,9 +987,9 @@ void IR_CFG::dump_vcg(CHAR const* name, bool detail, bool dump_eh)
 
     //Print Region name.
     fprintf(h,
-            "\nnode: {title:\"\" shape:rhomboid color:turquoise "
+            "\nnode: {title:\"\" vertical_order:0 shape:box color:turquoise "
             "borderwidth:0 fontname:\"Courier Bold\" "
-            "scaling:2 label:\"Region:%s\" }", m_ru->get_ru_name());
+            "scaling:2 label:\"RegionName:%s\" }", m_ru->get_ru_name());
 
     //Print node.
     old = g_tfile;
@@ -1032,13 +1053,13 @@ void IR_CFG::dump_vcg(CHAR const* name, bool detail, bool dump_eh)
     //Print edge
     INT c;
     for (Edge * e = m_edges.get_first(c); e != NULL; e = m_edges.get_next(c)) {
-        EI * ei = (EI*)EDGE_info(e);
+        CFGEdgeInfo * ei = (CFGEdgeInfo*)EDGE_info(e);
         if (ei == NULL) {
             fprintf(h,
                     "\nedge: { sourcename:\"%d\" targetname:\"%d\" "
                     " thickness:4 color:darkred }",
                     VERTEX_id(EDGE_from(e)), VERTEX_id(EDGE_to(e)));
-        } else if (EI_is_eh(ei)) {
+        } else if (CFGEI_is_eh(ei)) {
             if (dump_eh) {
                 fprintf(h,
                         "\nedge: { sourcename:\"%d\" targetname:\"%d\" "

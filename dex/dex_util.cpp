@@ -34,13 +34,18 @@ author: Su Zhenyu
 #include "libdex/DexFile.h"
 #include "libdex/DexClass.h"
 #include "libdex/DexProto.h"
+
 #include "liropcode.h"
+
 #include "cominc.h"
 #include "comopt.h"
+
 #include "drAlloc.h"
 #include "d2d_comm.h"
+
 #include "dex.h"
 #include "gra.h"
+
 #include "dx_mgr.h"
 #include "aoc_dx_mgr.h"
 #include "dex_util.h"
@@ -80,6 +85,228 @@ CHAR const* get_dt_name(LIR * ir)
         return "DOUBLE";
     }
     return NULL;
+}
+
+
+//Return true if ir is specified builtin function.
+bool is_builtin(IR const* ir, BLTIN_TYPE bt, DexRegionMgr const* rumgr)
+{
+    if (!is_builtin(ir)) { return false; }
+    BLTIN_TYPE tbt = getBuiltinType(ir, rumgr);
+    if (tbt != bt) { return false; }
+
+#ifdef _DEBUG_
+    //Check builtin function's legality.
+    switch (bt) {
+    case BLTIN_NEW                :
+        {
+            /*CALL (r:PTR:4 ptbase:1) id:4
+                ID ('#new' r:PTR:4 ptbase:1) callee id:1
+                PARAM param0 id:3
+                    INTCONST r:U32:4 (1 0x1) id:2
+                PR, retv0 */
+            ASSERT0(CALL_param_list(ir) && CALL_param_list(ir)->is_const());
+            ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
+            ASSERT0(ir->hasReturnValue());
+        }
+        break;
+    case BLTIN_NEW_ARRAY        :
+        {
+            /* (new_array, res), UNDEF, v5 <-
+                (num_of_elem, op0)v8, (elem_type, op1)'[LCAnimal;'
+
+            CALL (r:PTR:4 ptbase:1) id:66
+                ID ('#new_array' r:PTR:4 ptbase:1) callee id:61
+                PARAM param0 id:64
+                    PR2 (r:PTR:4 ptbase:1) id:62
+                PARAM param1 id:65
+                    INTCONST r:U32:4 (14 0xe) id:64
+                PR7 (r:PTR:4 ptbase:1) retv id:69 */
+            //The first is a pr that record the number of array elements.
+            IR * p = CALL_param_list(ir);
+            ASSERT0(p && p->is_pr());
+            p = IR_next(p);
+
+            //The second is array element type id.
+            ASSERT0(p && p->is_const());
+            UINT elem_type_id = CONST_int_val(p);
+            ASSERT0(IR_next(p) == NULL);
+        }
+        break;
+    case BLTIN_MOVE_EXP         :
+        //The res is a pr that record the exception handler.
+        ASSERT0(ir->hasReturnValue());
+        break;
+    case BLTIN_MOVE_RES         :
+        ASSERT0(ir->hasReturnValue());
+        break;
+    case BLTIN_THROW            :
+        {
+            //The first is a pr that is the reference of
+            //the exception object.
+            IR * p = CALL_param_list(ir);
+            ASSERT0(p->is_pr());
+            ASSERT0(IR_next(p) == NULL);
+        }
+        break;
+    case BLTIN_CHECK_CAST       :
+        {
+            /*
+            CALL (r:PTR:4 ptbase:1) id:113
+                ID ('#check_cast' r:PTR:4 ptbase:1) callee id:108
+                PARAM param0 id:110
+                    PR8 (r:I32:4) id:109
+                PARAM param1 id:112
+                    INTCONST r:I32:4 (16 0x10) id:111
+            */
+            //The first is a pr that record the object-ptr
+            IR * p = CALL_param_list(ir);
+            ASSERT0(p && p->is_pr());
+            p = IR_next(p);
+
+            //The second is class type id.
+            ASSERT0(p && p->is_const());
+            UINT type_id = CONST_int_val(p);
+            ASSERT0(IR_next(p) == NULL);
+        }
+        break;
+    case BLTIN_FILLED_NEW_ARRAY    :
+        {
+            /*
+            CALL (r:PTR:4 ptbase:1) id:82
+                ID ('#filled_new_array' r:PTR:4 ptbase:1) callee id:75
+                PARAM param0 id:77
+                    INTCONST r:I32:4 (0 0x0) id:76
+                PARAM param1 id:77
+                    INTCONST r:I32:4 (13 0xd) id:76
+                PARAM param2 id:79
+                    PR2 (r:I32:4) id:78
+                PARAM param3 id:81
+                    PR8 (r:I32:4) id:80
+            */
+            IR * p = CALL_param_list(ir);
+
+            //The first record invoke flag.
+            ASSERT0(p->is_const());
+            p = IR_next(p);
+
+            //The second record class type id.
+            ASSERT0(p && p->is_const());
+            p = IR_next(p);
+            while (p != NULL) {
+                ASSERT0(p->is_pr());
+                p = IR_next(p);
+            }
+        }
+        break;
+    case BLTIN_FILL_ARRAY_DATA:
+        {
+            /*
+            CALL (r:PTR:4 ptbase:1) id:82
+                ID ('#fill_array_data' r:PTR:4 ptbase:1) callee id:75
+                PARAM param0 id:77
+                    PR2 r:I32:4 id:76
+                PARAM param1 id:77
+                    INTCONST r:U32:4 (13 0xd) id:76
+            */
+            IR * p = CALL_param_list(ir);
+
+            //The first record array obj-ptr.
+            ASSERT0(p->is_pr());
+            p = IR_next(p);
+
+            //The second record binary data.
+            ASSERT0(p && p->is_const());
+            ASSERT0(IR_next(p) == NULL);
+        }
+        break;
+    case BLTIN_CONST_CLASS      :
+        {
+            /*
+            CALL (r:PTR:4 ptbase:1) id:94
+                ID ('#const_class' r:PTR:4 ptbase:1) callee id:88
+                PARAM param0 id:91
+                    PR9 (r:I32:4) id:90
+                PARAM param1 id:93
+                    INTCONST r:I32:4 (2 0x2) id:92
+            */
+            ASSERT0(ir->hasReturnValue());
+            ASSERT0(CALL_param_list(ir) && CALL_param_list(ir)->is_const());
+            ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
+        }
+        break;
+    case BLTIN_ARRAY_LENGTH     :
+        ASSERT0(ir->hasReturnValue());
+        ASSERT0(CALL_param_list(ir) &&
+                 CALL_param_list(ir)->is_pr());
+        ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
+        break;
+    case BLTIN_MONITOR_ENTER    :
+        ASSERT0(CALL_param_list(ir) &&
+                 CALL_param_list(ir)->is_pr());
+        ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
+        break;
+    case BLTIN_MONITOR_EXIT     :
+        ASSERT0(CALL_param_list(ir) &&
+                 CALL_param_list(ir)->is_pr());
+        ASSERT0(IR_next(CALL_param_list(ir)) == NULL);
+        break;
+    case BLTIN_INSTANCE_OF      :
+        {
+            /*
+            CALL (r:PTR:4 ptbase:1) id:82
+                ID ('#instance_of' r:PTR:4 ptbase:1) callee id:75
+                PARAM param0 id:77
+                    PR r:I32:4 (0 0x0) id:76
+                PARAM param1 id:77
+                    PR r:I32:4 (13 0xd) id:76
+                PARAM param2 id:79
+                    INTCONST
+            */
+            IR * p = CALL_param_list(ir);
+            //The first is object-ptr reg.
+            ASSERT0(p && p->is_pr());
+            p = IR_next(p);
+
+            //The second is type-id.
+            ASSERT0(p->is_const());
+            ASSERT0(IR_next(p) == NULL);
+
+            //The first is result reg..
+            ASSERT0(ir->hasReturnValue());
+        }
+        break;
+    case BLTIN_CMP_BIAS:
+        {
+            /*
+            AABBCC
+            cmpkind vAA <- vBB, vCC
+            IR will be:
+                IR_CALL
+                    param0: cmp-kind.
+                    param1: vBB
+                    param2: vCC
+                    res: vAA
+            */
+            IR * p = CALL_param_list(ir);
+            //The first is object-ptr reg.
+            RegionMgr * trumgr =
+                   const_cast<RegionMgr*>((RegionMgr const*)rumgr);
+            ASSERT0(p && p->is_int(trumgr->get_type_mgr()));
+            p = IR_next(p);
+
+            ASSERT0(p && p->is_pr());
+            p = IR_next(p);
+
+            ASSERT0(p && p->is_pr());
+            ASSERT0(IR_next(p) == NULL);
+            ASSERT0(ir->hasReturnValue());
+        }
+        break;
+    default: ASSERT0(0);
+    }
+#endif
+    return true;
 }
 
 
@@ -142,83 +369,61 @@ void extractFunctionTypeFromFunctionTypeString(
 //Note outputbuf should big enough to hold the string.
 void extractFunctionTypeFromRegionName(
         CHAR const* runame,
-        CHAR const** functionname,
+        OUT CHAR * classpath,
+        OUT CHAR * functionname,
         OUT CHAR * param_type,
         OUT CHAR * return_type)
 {
     ASSERT0(runame);
-    UINT l = strlen(runame);
-    CHAR const* type = NULL;
-    CHAR const* start = runame + l;
-    CHAR const* end = start;
+    Vector<CHAR*> ret;
+    UINT num = xsplit(runame, ret, ":");
+    ASSERT(num == NUM_OF_PART, ("You may be input builtin function name"));
 
-    for (; l != 0; l--, start--) {
-        if (*start != 0) {
-            end = start;
-            break;
-        }
+    if (classpath != NULL) {
+        UINT l = strlen(ret[CLASSPATH_PART]);
+        memcpy(classpath, ret[CLASSPATH_PART], l + 1);
+        classpath[l] = 0;
     }
 
-    UINT seg = 0;
-    for (; l != 0;) {
-        if (*start != ':') { l--, start--; continue; }
-        if (seg == 0) {
-            //Now, the start points to function name.
-            if (functionname != NULL) {
-                *functionname = start + 1; //omit ':'
-            }
-        }
-
-        if (seg == 1) {
-            //Now, the start points to function type.
-            start++;
-            break;
-        }
-
-        l--;
-        start--;
-        end = start;
-        seg++;
-    }
-
-    if (l == 0) {
-        //There is only one segment, and entire segment is functionname.
-        if (functionname != NULL) {
-            *functionname = start;
-        }
-
-        //Given runame is unsupported string pattern.
-        //ASSERT(l > 0, ("unsupport string pattern"));
-        return;
+    if (functionname != NULL) {
+        UINT l = strlen(ret[FUNCNAME_PART]);
+        memcpy(functionname, ret[FUNCNAME_PART], l + 1);
+        functionname[l] = 0;
     }
 
     //The format of type string is: (Ljava/lang/String;)Ljava/lang/String;
-    UINT len = end - start + 1;
-    CHAR const* p = start;
-    CHAR const* start2 = NULL;
-    CHAR const* end2 = NULL;
-    for (; len > 0; len--, p++) {
-        if (*p == '(') {
-            ASSERT(start2 == NULL, ("unsupport string pattern"));
-            start2 = p;
-        } else if (*p == ')') {
-            end2 = p;
-            UINT s = end2 - start2 - 1;
-            if (param_type != NULL) {
-                memcpy(param_type, start2 + 1, s);
-                param_type[s] = 0;
+    CHAR const* typestr = ret[TYPE_PART];
+    CHAR const* start = NULL;
+    CHAR const* end = NULL;
 
+    //Parse parameter type string.
+    UINT len = 0;
+    for (CHAR const* p = typestr; *p != 0; p++, len++) {
+        if (*p == '(') {
+            ASSERT(start == NULL, ("unsupport string pattern"));
+            start = p;
+        } else if (*p == ')') {
+            end = p;
+            UINT s = end - start - 1;
+            if (param_type != NULL) {
+                memcpy(param_type, start + 1, s);
+                param_type[s] = 0;
             }
+            len++;
             break;
         }
     }
 
-    ASSERT(end2, ("unsupport string pattern"));
+    ASSERT(end, ("unsupport string pattern"));
 
-    UINT s = end - end2;
+    UINT s = strlen(typestr) - len;
     if (return_type != NULL) {
-        memcpy(return_type, end2 + 1, s);
+        memcpy(return_type, typestr + len, s);
         return_type[s] = 0;
+    }
+
+    for (UINT i = 0; i < num; i++) {
+        free(ret[i]);
     }
 }
 
@@ -1239,7 +1444,7 @@ static void dumpf_field(DexFile * df, DexField * finfo, INT indent)
 
 
 //finfo: field-info in class.
-CHAR const* get_field_name(DexFile * df, DexField * finfo)
+CHAR const* get_field_name(DexFile const* df, DexField * finfo)
 {
     //Get field's name via nameIdx in symbol table.
     return get_field_name(df, finfo->fieldIdx);
@@ -1247,21 +1452,21 @@ CHAR const* get_field_name(DexFile * df, DexField * finfo)
 
 
 //finfo: field-info in class.
-CHAR const* get_field_type_name(DexFile * df, DexField * finfo)
+CHAR const* get_field_type_name(DexFile const* df, DexField * finfo)
 {
     return get_field_type_name(df, finfo->fieldIdx);
 }
 
 
 //finfo: field-info in class.
-CHAR const* get_field_class_name(DexFile * df, DexField * finfo)
+CHAR const* get_field_class_name(DexFile const* df, DexField * finfo)
 {
     return get_field_class_name(df, finfo->fieldIdx);
 }
 
 
 //field_id: field number in dexfile.
-CHAR const* get_field_type_name(DexFile * df, UINT field_id)
+CHAR const* get_field_type_name(DexFile const* df, UINT field_id)
 {
     DexFieldId const* fid = dexGetFieldId(df, field_id);
     ASSERT0(fid);
@@ -1272,7 +1477,7 @@ CHAR const* get_field_type_name(DexFile * df, UINT field_id)
 
 
 //Return the class name which 'field_id' was place in.
-CHAR const* get_field_class_name(DexFile * df, UINT field_id)
+CHAR const* get_field_class_name(DexFile const* df, UINT field_id)
 {
     DexFieldId const* fid = dexGetFieldId(df, field_id);
     ASSERT0(fid);
@@ -1281,7 +1486,7 @@ CHAR const* get_field_class_name(DexFile * df, UINT field_id)
 
 
 //field_id: field number in dexfile.
-CHAR const* get_field_name(DexFile * df, UINT field_id)
+CHAR const* get_field_name(DexFile const* df, UINT field_id)
 {
     DexFieldId const* fid = dexGetFieldId(df, field_id);
     ASSERT0(fid);
@@ -1409,7 +1614,7 @@ public:
 
     void insert_stuff_code(IR const* ref, Region * ru, IR_GVN * gvn)
     {
-        ASSERT0(ref->is_array());
+        ASSERT0(IR_type(ref) == IR_ARRAY);
 
         IR * stmt = ref->get_stmt();
         ASSERT0(stmt);
@@ -1449,7 +1654,7 @@ public:
                                     IRIter & ii)
     {
         if (!m_has_insert_stuff &&
-            ref->is_array() &&
+            IR_type(ref) == IR_ARRAY &&
             (m_ru->isRegionName(
                 "Lsoftweg/hw/performance/CPUTest;::arrayElementsDouble") ||
              m_ru->isRegionName(
@@ -1464,7 +1669,6 @@ public:
     }
     */
 };
-
 
 //
 //START AocDxMgr
@@ -1708,8 +1912,6 @@ public:
 
 
 //
-//START DexCallGraph
-//
 static CHAR const* g_unimportant_func[] = {
     "Ljava/lang/StringBuilder;:()V:<init>",
 };
@@ -1739,21 +1941,35 @@ bool DexCallGraph::is_unimportant(SYM const* sym) const
 //
 //START DexRegionMgr
 //
+
+//Add a variable of CLASS.
+VAR * DexRegionMgr::addVarForBuiltin(CHAR const* name)
+{
+    SYM * sym = addToSymbolTab(name);
+    UINT flag = 0;
+    SET_FLAG(flag, VAR_GLOBAL);
+    return get_var_mgr()->registerVar(sym, get_type_mgr()->getVoid(), 0, flag);
+}
+
+
+void DexRegionMgr::initBuiltin()
+{
+    for (UINT i = BLTIN_UNDEF + 1; i < BLTIN_LAST; i++) {
+        VAR * v = addVarForBuiltin(BLTIN_name((BLTIN_TYPE)i));
+        m_var2blt.set(v, i);
+        m_blt2var.set(i, v);
+    }
+}
+
+
 void DexRegionMgr::processProgramRegion(Region * program)
 {
     ASSERT0(program && program->is_program());
 
     //Function region has been handled. And call list should be available.
     CallGraph * callg = initCallGraph(program, false);
-
     //callg->dump_vcg();
-
 }
-//END DexRegionMgr
-
-
-
-//
 //START DexRegion
 //
 PassMgr * DexRegion::allocPassMgr()
@@ -1771,7 +1987,7 @@ IR_AA * DexRegion::allocAliasAnalysis()
 
 bool DexRegion::MiddleProcess(OptCTX & oc)
 {
-   return Region::MiddleProcess(oc);
+    return Region::MiddleProcess(oc);
 }
 
 
@@ -1823,7 +2039,7 @@ void DexRegion::HighProcessImpl(OptCTX & oc)
 
         dumgr->perform(oc, f);
         dumgr->computeMDDUChain(oc);
-    }
+}
 }
 
 
@@ -1928,7 +2144,6 @@ void DexRegion::processSimply()
 {
     LOG("DexRegion::processSimply %s", get_ru_name());
     if (get_ir_list() == NULL) { return ; }
-
     OptCTX oc;
     OC_show_comp_time(oc) = g_show_comp_time;
 
@@ -1988,10 +2203,6 @@ void DexRegion::process()
     destroyPassMgr();
 
     if (!is_function()) { return; }
-
-    /////////////////////////////////////
-    //DO NOT QUERY PASS AFTER THIS LINE//
-    /////////////////////////////////////
 
     BBList * bbl = get_bb_list();
     if (bbl->get_elem_count() == 0) { return; }

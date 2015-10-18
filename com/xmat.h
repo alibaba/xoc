@@ -163,20 +163,20 @@ public:
 
 
 ///Boolean
-class BMAT : public Matrix<bool> {
+class BMat : public Matrix<bool> {
     bool m_is_init;
 public:
-    BMAT();
-    BMAT(INT v); //used by template call of T(0) in Vector<Mat>
-    BMAT(UINT row, UINT col);
-    ~BMAT();
+    BMat();
+    BMat(INT v); //used by template call of T(0) in Vector<Mat>
+    BMat(UINT row, UINT col);
+    ~BMat();
     void init();
     void destroy();
     bool is_init() const { return m_is_init; }
 
     //Set entry value one by one, 'num' indicate entry number.
     void sete(UINT num, ...);
-    BMAT & operator = (BMAT const& m);
+    BMat & operator = (BMat const& m);
 };
 
 } //namespace xcom

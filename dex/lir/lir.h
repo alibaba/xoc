@@ -38,12 +38,13 @@ author: GongKai, JinYue
 extern "C"
 {
 #endif
-bool d2rMethod(
+void d2rMethod(
         D2Dpool* pool,
         DexFile* pDexFile,
         const DexMethod* pDexMethod,
         const DexClassDef* classdef,
-        RegionMgr* rumgr);
+        RegionMgr* rumgr,
+        List<DexRegion const*> * rulist);
 void d2rCopyData(D2Dpool* pool, BYTE* endAddr);
 #ifdef __cplusplus
 }
