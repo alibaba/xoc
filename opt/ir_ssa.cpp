@@ -1827,7 +1827,7 @@ void IR_SSA_MGR::construction(DomTree & domtree)
 bool verifySSAInfo(Region * ru)
 {
     IR_SSA_MGR * ssamgr =
-        (IR_SSA_MGR*)(ru->get_pass_mgr()->query_opt(PASS_SSA_MGR));
+        (IR_SSA_MGR*)(ru->get_pass_mgr()->queryPass(PASS_SSA_MGR));
     if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
         ASSERT0(ssamgr->verifySSAInfo());
         ASSERT0(ssamgr->verifyPhi(false));

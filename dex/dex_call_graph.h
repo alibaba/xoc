@@ -31,61 +31,32 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 author: Su Zhenyu
 @*/
-#include "cominc.h"
+#ifndef _DEX_CALL_GRAPH_H_
+#define _DEX_CALL_GRAPH_H_
 
-namespace xoc {
+class DexCallGraph : public CallGraph {
+protected:
+    //Record very unimportant functions that do not
+    //need to add an edge on call graph.
+    TTab<SYM const*> m_unimportant_symtab;
 
-bool DUSet::verify_def(IR_DU_MGR * du) const
-{
-    CK_USE(du);
-    DUIter di = NULL;
-    for (UINT d = get_first(&di);
-         di != NULL; d = get_next(d, &di)) {
-        ASSERT0(du->get_ir(d)->is_stmt());
+public:
+    DexCallGraph(UINT edge_hash, UINT vex_hash, RegionMgr * rumgr);
+    virtual ~DexCallGraph() {}
+
+    bool is_unimportant(SYM const* sym) const;
+
+    virtual bool shouldAddEdge(IR const* ir) const
+    {
+        ASSERT0(ir->is_calls_stmt());
+        SYM const* name = VAR_name(CALL_idinfo(ir));
+        if (is_unimportant(name)) { return false; }
+
+        CHAR const* q = "Ljava/lang/";
+        CHAR const* p = SYM_name(name);
+        while ((*p++ == *q++) && *q != 0);
+        return *q != 0;
     }
-    return true;
-}
+};
 
-
-bool DUSet::verify_use(IR_DU_MGR * du) const
-{
-    CK_USE(du);
-    DUIter di = NULL;
-    for (UINT u = get_first(&di);
-         di != NULL; u = get_next(u, &di)) {
-        ASSERT0(du->get_ir(u)->is_exp());
-    }
-    return true;
-}
-
-
-//Add define stmt with check if the stmt is unique in list.
-void DUSet::add_use(IR const* exp, DefMiscBitSetMgr & m)
-{
-    ASSERT0(exp && exp->is_exp());
-    bunion(IR_id(exp), m);
-}
-
-
-//Add define stmt with check if the stmt is unique in list.
-void DUSet::add_def(IR const* stmt, DefMiscBitSetMgr & m)
-{
-    ASSERT0(stmt && stmt->is_stmt());
-    bunion(IR_id(stmt), m);
-}
-
-
-void DUSet::remove_use(IR const* exp, DefMiscBitSetMgr & m)
-{
-    ASSERT0(exp && exp->is_exp());
-    diff(IR_id(exp), m);
-}
-
-
-void DUSet::removeDef(IR const* stmt, DefMiscBitSetMgr & m)
-{
-    ASSERT0(stmt && stmt->is_stmt());
-    diff(IR_id(stmt), m);
-}
-
-} //namespace xoc
+#endif

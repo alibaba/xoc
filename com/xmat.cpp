@@ -570,7 +570,7 @@ UINT RMat::comden(UINT row, UINT col)
     and if 'is_eq' is true, matrix repesented an equation,
         x1 + 7x2 - 2x3  = -10
 */
-void RMat::substit(IN RMat const& exp, UINT v, bool is_eq, INT rhs_idx)
+void RMat::substit(RMat const& exp, UINT v, bool is_eq, INT rhs_idx)
 {
     ASSERT(m_is_init && exp.m_is_init,
             ("not yet initialize."));
@@ -687,7 +687,7 @@ or equals 1.
 e.g: L <= x <= U , to ( L + 1) <= U.
 
 'c': constant vector. */
-void RMat::ds(IN RMat const&)
+void RMat::ds(RMat const&)
 {
     ASSERT(m_is_init, ("not yet initialize."));
 }

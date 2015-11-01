@@ -31,61 +31,61 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 author: Su Zhenyu
 @*/
+#include "libdex/DexFile.h"
+#include "libdex/DexClass.h"
+#include "libdex/DexProto.h"
+#include "liropcode.h"
+#include "lir.h"
+#include "d2d_comm.h"
+#include "drAlloc.h"
 #include "cominc.h"
+#include "comopt.h"
+#include "dex.h"
+#include "gra.h"
+#ifdef _CODE_ANA_
+#include "auxsym.h"
+#include "warnmgr.h"
+#include "dexscan.h"
+#include "closable.h"
+#include "lockscan.h"
+#endif
+#include "dex_hook.h"
+#include "dex_util.h"
 
-namespace xoc {
-
-bool DUSet::verify_def(IR_DU_MGR * du) const
+//Add a variable of CLASS.
+VAR * DexRegionMgr::addVarForBuiltin(CHAR const* name)
 {
-    CK_USE(du);
-    DUIter di = NULL;
-    for (UINT d = get_first(&di);
-         di != NULL; d = get_next(d, &di)) {
-        ASSERT0(du->get_ir(d)->is_stmt());
+    SYM * sym = addToSymbolTab(name);
+    UINT flag = 0;
+    SET_FLAG(flag, VAR_GLOBAL);
+    return get_var_mgr()->registerVar(sym, get_type_mgr()->getVoid(), 0, flag);
+}
+
+
+void DexRegionMgr::initBuiltin()
+{
+    for (UINT i = BLTIN_UNDEF + 1; i < BLTIN_LAST; i++) {
+        VAR * v = addVarForBuiltin(BLTIN_name((BLTIN_TYPE)i));
+        m_var2blt.set(v, i);
+        m_blt2var.set(i, v);
     }
-    return true;
 }
 
 
-bool DUSet::verify_use(IR_DU_MGR * du) const
+void DexRegionMgr::processProgramRegion(Region * program)
 {
-    CK_USE(du);
-    DUIter di = NULL;
-    for (UINT u = get_first(&di);
-         di != NULL; u = get_next(u, &di)) {
-        ASSERT0(du->get_ir(u)->is_exp());
-    }
-    return true;
+    ASSERT0(program && program->is_program());
+
+    //Function region has been handled. And call list should be available.
+    CallGraph * callg = initCallGraph(program, false);
+
+    //callg->dump_vcg();
+
+    #ifdef _CODE_ANA_
+    LockScan ls(this);
+    ls.set_program(program);
+    OptCTX oc;
+    ls.perform(oc);
+    m_warnmgr.report();
+    #endif
 }
-
-
-//Add define stmt with check if the stmt is unique in list.
-void DUSet::add_use(IR const* exp, DefMiscBitSetMgr & m)
-{
-    ASSERT0(exp && exp->is_exp());
-    bunion(IR_id(exp), m);
-}
-
-
-//Add define stmt with check if the stmt is unique in list.
-void DUSet::add_def(IR const* stmt, DefMiscBitSetMgr & m)
-{
-    ASSERT0(stmt && stmt->is_stmt());
-    bunion(IR_id(stmt), m);
-}
-
-
-void DUSet::remove_use(IR const* exp, DefMiscBitSetMgr & m)
-{
-    ASSERT0(exp && exp->is_exp());
-    diff(IR_id(exp), m);
-}
-
-
-void DUSet::removeDef(IR const* stmt, DefMiscBitSetMgr & m)
-{
-    ASSERT0(stmt && stmt->is_stmt());
-    diff(IR_id(stmt), m);
-}
-
-} //namespace xoc

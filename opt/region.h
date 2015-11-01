@@ -234,6 +234,20 @@ public:
         return du;
     }
 
+    IRBB * allocBB() { return get_bb_mgr()->allocBB(); }
+
+    //Allocate an IR.
+    IR * allocIR(IR_TYPE irt);
+
+    //Allocate AttachInfo.
+    inline AttachInfo * allocAI()
+    {
+        AttachInfo * ai = (AttachInfo*)xmalloc(sizeof(AttachInfo));
+        ASSERT0(ai);
+        ai->init();
+        return ai;
+    }
+
     IR * buildContinue();
     IR * buildBreak();
     IR * buildCase(IR * casev_exp, LabelInfo const* case_br_lab);
@@ -416,20 +430,20 @@ public:
     IR_CFG * get_cfg() const
     {
         return get_pass_mgr() != NULL ?
-                   (IR_CFG*)get_pass_mgr()->query_opt(PASS_CFG) : NULL;
+                   (IR_CFG*)get_pass_mgr()->queryPass(PASS_CFG) : NULL;
     }
 
     IR_AA * get_aa() const
     {
         return get_pass_mgr() != NULL ?
-                (IR_AA*)get_pass_mgr()->query_opt(PASS_AA) : NULL;
+                (IR_AA*)get_pass_mgr()->queryPass(PASS_AA) : NULL;
     }
 
     //Return DU info manager.
     IR_DU_MGR * get_du_mgr() const
     {
         return get_pass_mgr() != NULL ?
-                (IR_DU_MGR*)get_pass_mgr()->query_opt(PASS_DU_MGR) : NULL;
+                (IR_DU_MGR*)get_pass_mgr()->queryPass(PASS_DU_MGR) : NULL;
     }
 
     CHAR const* get_ru_name() const;
@@ -491,7 +505,7 @@ public:
     LabelInfo * genIlabel(UINT labid)
     {
         ASSERT0(labid <= RM_label_count(get_region_mgr()));
-        LabelInfo * li = newInternalLabel(get_pool());
+        LabelInfo * li = allocInternalLabel(get_pool());
         LABEL_INFO_num(li) = labid;
         return li;
     }
@@ -608,21 +622,6 @@ public:
 
     //Allocate AliasAnalysis.
     virtual IR_AA * allocAliasAnalysis();
-
-    //Allocate IRBB.
-    IRBB * newBB();
-
-    //Allocate an IR.
-    IR * newIR(IR_TYPE irt);
-
-    //Allocate AttachInfo.
-    inline AttachInfo * newAI()
-    {
-        AttachInfo * ai = (AttachInfo*)xmalloc(sizeof(AttachInfo));
-        ASSERT0(ai);
-        ai->init();
-        return ai;
-    }
 
     //Peephole optimizations.
     IR * refineBand(IR * ir, bool & change);

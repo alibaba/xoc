@@ -38,7 +38,7 @@ namespace xoc {
 
 class IR_DU_MGR;
 
-typedef SEGIter * DU_ITER;
+typedef SEGIter * DUIter;
 
 class DUSet : public DefSBitSetCore {
 protected:

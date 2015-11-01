@@ -212,7 +212,7 @@ Graph * PassMgr::registerGraphBasedPass(PASS_TYPE opty)
 
 Pass * PassMgr::registerPass(PASS_TYPE opty)
 {
-    Pass * pass = query_opt(opty);
+    Pass * pass = queryPass(opty);
     if (pass != NULL) { return pass; }
 
     switch (opty) {
@@ -309,7 +309,7 @@ void PassMgr::performScalarOpt(OptCTX & oc)
 
     bool in_ssa_form = false;
     IR_SSA_MGR * ssamgr =
-            (IR_SSA_MGR*)(m_ru->get_pass_mgr()->query_opt(PASS_SSA_MGR));
+            (IR_SSA_MGR*)(m_ru->get_pass_mgr()->queryPass(PASS_SSA_MGR));
     if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
         in_ssa_form = true;
     }

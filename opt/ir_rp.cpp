@@ -591,7 +591,7 @@ bool IR_RP::checkExpressionIsLoopInvariant(IN IR * ir, LI<IRBB> const* li)
         DUSet const* duset = ir->get_duset_c();
         if (duset == NULL) { return true; }
 
-        DU_ITER dui = NULL;
+        DUIter dui = NULL;
         for (INT i = duset->get_first(&dui);
              i >= 0; i = duset->get_next(i, &dui)) {
             IR const* defstmt = m_ru->get_ir(i);
@@ -1381,7 +1381,7 @@ bool IR_RP::hasLoopOutsideUse(IR const* stmt, LI<IRBB> const* li)
     DUSet const* useset = stmt->get_duset_c();
     if (useset == NULL) { return false; }
 
-    DU_ITER di = NULL;
+    DUIter di = NULL;
     for (INT i = useset->get_first(&di);
          i >= 0; i = useset->get_next(i, &di)) {
         IR const* u = m_ru->get_ir(i);
@@ -1409,7 +1409,7 @@ void IR_RP::removeRedundantDUChain(List<IR*> & fixup_list)
         DUSet const* duset = ref->get_duset_c();
         if (duset == NULL) { continue; }
 
-        DU_ITER di = NULL;
+        DUIter di = NULL;
         UINT cnt = 0;
         if (ref->is_stpr()) {
             UINT prno = STPR_no(ref);
@@ -1767,7 +1767,7 @@ void IR_RP::computeOuterDefUse(
         }
 
         if (refduset != NULL) {
-            DU_ITER di = NULL;
+            DUIter di = NULL;
             for (INT i = refduset->get_first(&di);
                  i >= 0; i = refduset->get_next(i, &di)) {
                 IR const* d = m_ru->get_ir(i);
@@ -1788,7 +1788,7 @@ void IR_RP::computeOuterDefUse(
         }
 
         if (refduset != NULL) {
-            DU_ITER di = NULL;
+            DUIter di = NULL;
             for (INT i = refduset->get_first(&di);
                  i >= 0; i = refduset->get_next(i, &di)) {
                 IR const* u = m_ru->get_ir(i);
@@ -2155,7 +2155,7 @@ bool IR_RP::perform(OptCTX & oc)
 
     m_is_in_ssa_form = false;
     IR_SSA_MGR * ssamgr =
-            (IR_SSA_MGR*)(m_ru->get_pass_mgr()->query_opt(PASS_SSA_MGR));
+            (IR_SSA_MGR*)(m_ru->get_pass_mgr()->queryPass(PASS_SSA_MGR));
     if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
         m_is_in_ssa_form = true;
         m_ssamgr = ssamgr;

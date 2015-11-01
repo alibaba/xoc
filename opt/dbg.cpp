@@ -42,7 +42,7 @@ void set_lineno(IR * ir, UINT lineno, Region * ru)
     DbxAttachInfo * da;
     ASSERT0(ru);
     if (IR_ai(ir) == NULL) {
-        IR_ai(ir) = ru->newAI();
+        IR_ai(ir) = ru->allocAI();
         da = (DbxAttachInfo*)smpoolMalloc(
                         sizeof(DbxAttachInfo), ru->get_pool());
         ASSERT0(da);
@@ -84,7 +84,7 @@ void copyDbx(IR * tgt, IR const* src, Region * ru)
     DbxAttachInfo * src_da = (DbxAttachInfo*)IR_ai(src)->get(AI_DBX);
     if (IR_ai(tgt) == NULL) {
         if (src_da == NULL) { return; }
-        IR_ai(tgt) = ru->newAI();
+        IR_ai(tgt) = ru->allocAI();
     }
     ASSERT0(IR_ai(tgt));
     if (src_da == NULL) {

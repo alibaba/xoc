@@ -137,7 +137,7 @@ IRBB * findAndInsertPreheader(LI<IRBB> const* li, Region * ru,
     List<IRBB*> preds;
     cfg->get_preds(preds, head);
     insert_bb = true;
-    IRBB * newbb = ru->newBB();
+    IRBB * newbb = ru->allocBB();
     bblst->insert_before(newbb, bbholder);
     BitSet * loop_body = LI_bb_set(li);
     for (IRBB * p = preds.get_head(); p != NULL; p = preds.get_next()) {

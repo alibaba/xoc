@@ -43,7 +43,7 @@ namespace xoc {
 
 e.g:
     IR * ir = ...; Given IR.
-    IR_ai(ir) = region->newAI();
+    IR_ai(ir) = region->allocAI();
     Dbx * dbx = getDbx();
     IR_ai(ir)->set(AI_DBX, (BaseAttachInfo*)dbx);
 

@@ -389,7 +389,7 @@ void IR_DCE::iter_collect(IN OUT EFFECT_STMT & is_stmt_effect,
                     DUSet const* defset = x->get_duset_c();
                     if (defset == NULL) { continue; }
 
-                    DU_ITER di = NULL;
+                    DUIter di = NULL;
                     for (INT i = defset->get_first(&di);
                          i >= 0; i = defset->get_next(i, &di)) {
                         IR const* d = m_ru->get_ir(i);

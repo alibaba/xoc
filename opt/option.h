@@ -176,6 +176,7 @@ typedef enum _PASS_TYPE {
     PASS_CFS_MGR,
     PASS_POLY_TRAN,
     PASS_MD_SSA_MGR,
+    PASS_MD_BUGPATTERN_MGR,
     PASS_NUM,
 } PASS_TYPE;
 
@@ -204,7 +205,7 @@ extern bool g_do_cfg_dom;
 extern bool g_do_cfg_pdom;
 extern bool g_do_cdg;
 extern bool g_do_aa;
-extern bool g_do_du_ana;
+extern bool g_do_md_du_ana;
 extern bool g_do_compute_available_exp;
 extern bool g_do_expr_tab;
 

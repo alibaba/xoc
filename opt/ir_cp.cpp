@@ -51,8 +51,8 @@ bool IR_CP::checkTypeConsistency(IR const* ir, IR const* cand_expr) const
     //Do copy-prog even if data type is VOID.
     if (t1 == t2) { return true; }
 
-    if (m_dm->is_scalar(t1) && m_dm->is_scalar(t2)) {
-        if (m_dm->is_signed(t1) ^ m_dm->is_signed(t2)) {
+    if (t1->is_scalar() && t2->is_scalar()) {
+        if (t1->is_signed() ^ t2->is_signed()) {
             //Sign must be consistent.
             return false;
         }
@@ -350,7 +350,7 @@ bool IR_CP::doProp(IN IRBB * bb, Vector<IR*> & usevec)
                    useset->get_elem_count() != 0) {
             //Record use_stmt in another vector to facilitate this function
             //if it is not in use-list any more after copy-propagation.
-            DU_ITER di = NULL;
+            DUIter di = NULL;
             for    (INT u = useset->get_first(&di);
                  u >= 0; u = useset->get_next(u, &di)) {
                 IR * use = m_ru->get_ir(u);

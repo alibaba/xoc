@@ -343,7 +343,7 @@ void RSC::comp_st_fmt(IR const* ir)
                 IR * op1 = BIN_opnd1(stv);
                 ASSERT0(BIN_opnd0(stv)->is_pr());
                 if (op1->is_const()) {
-                    ASSERT0(op1->is_int(m_dm));
+                    ASSERT0(op1->is_int());
                     if (!is_s8((INT)CONST_int_val(op1))) {
                         //vA, vB, CCCC+
                         m_ir2fmt.set(IR_id(ir), FABCCCCv);
@@ -2025,12 +2025,12 @@ IR * LTMgr::genMappedPR(UINT vid, Type const* ty)
 }
 
 
-static bool is_range_call(IR const* ir, TypeMgr const* dm)
+static bool is_range_call(IR const* ir)
 {
     if (!ir->is_call()) { return false; }
     //The first parameter is used to record invoke-kind.
     IR const* p = CALL_param_list(ir);
-    if (p == NULL || !p->is_const() || !p->is_uint(dm)) {
+    if (p == NULL || !p->is_const() || !p->is_uint()) {
         return false;
     }
     CHAR const* fname = SYM_name(VAR_name(CALL_idinfo(ir)));
@@ -2064,7 +2064,7 @@ static bool is_range_call(IR const* ir, TypeMgr const* dm)
 
 void LTMgr::genRangeCallGroup(IR const* ir)
 {
-    ASSERT0(is_range_call(ir, m_dm));
+    ASSERT0(is_range_call(ir));
     IR * p;
     for (p = CALL_param_list(ir); p != NULL; p = IR_next(p)) {
         if (!p->is_pr()) { continue; }
@@ -2289,7 +2289,7 @@ void LTMgr::processUse(IN IR * ir, ConstIRIter & cii, INT pos,
         }
     }
 
-    if (is_range_call(ir, m_dm)) {
+    if (is_range_call(ir)) {
         genRangeCallGroup(ir);
     }
 }
@@ -5403,7 +5403,7 @@ void RA::dump_ltg()
     for (UINT id = m_gltm.m_ltgmgr.get_first(iter, &ltg);
          id != 0; id = m_gltm.m_ltgmgr.get_next(iter, &ltg)) {
         IR * ir = m_ru->get_ir(id);
-        ASSERT0(ir && is_range_call(ir, m_gltm.m_dm) && ltg);
+        ASSERT0(ir && is_range_call(ir) && ltg);
         IRBB * bb = ir->get_bb();
         dump_ir(ir, m_dm);
         LTMgr * ltm = m_gltm.map_bb2ltm(bb);
@@ -5708,7 +5708,7 @@ void RA::allocGroup()
     for (UINT id = m_gltm.m_ltgmgr.get_first(iter, &ltg);
          id != 0; id = m_gltm.m_ltgmgr.get_next(iter, &ltg)) {
         IR * ir = m_ru->get_ir(id);
-        ASSERT0(ir && is_range_call(ir, m_gltm.m_dm) && ltg);
+        ASSERT0(ir && is_range_call(ir) && ltg);
         assignLTG(ltg, ir);
     }
 }
@@ -5884,7 +5884,7 @@ bool RA::verify_ltg()
     for (UINT id = m_gltm.m_ltgmgr.get_first(iter, &ltg);
          id != 0; id = m_gltm.m_ltgmgr.get_next(iter, &ltg)) {
         IR * ir = m_ru->get_ir(id);
-        ASSERT0(ir && is_range_call(ir, m_gltm.m_dm) && ltg);
+        ASSERT0(ir && is_range_call(ir) && ltg);
 
         IR * arg = NULL;
         for (arg = CALL_param_list(ir); arg != NULL; arg = IR_next(arg)) {

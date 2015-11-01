@@ -118,7 +118,7 @@ public:
 
     Pass * registerPass(PASS_TYPE opty);
 
-    Pass * query_opt(PASS_TYPE opty)
+    Pass * queryPass(PASS_TYPE opty)
     {
         if (opty == PASS_CDG) {
             return (Pass*)m_registered_graph_based_pass.get(opty);

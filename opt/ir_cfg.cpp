@@ -71,7 +71,7 @@ IR_CFG::IR_CFG(CFG_SHAPE cs, BBList * bbl, Region * ru,
     case C_SESE:
         {
             //Make sure the region has the unique entry.
-            IRBB * entry = m_ru->newBB();
+            IRBB * entry = m_ru->allocBB();
             BB_is_entry(entry) = true;
             BB_is_fallthrough(entry) = true;
             add_bb(entry);
@@ -82,7 +82,7 @@ IR_CFG::IR_CFG(CFG_SHAPE cs, BBList * bbl, Region * ru,
             NOTICE: In actually, the logical exit BB is ONLY
             used to solve diverse dataflow equations, whereas
             considering the requirement of ENTRY BB, EXIT BB. */
-            IRBB * exit = m_ru->newBB();
+            IRBB * exit = m_ru->allocBB();
             BB_is_fallthrough(exit) = true;
             add_bb(exit);
             m_bb_list->append_tail(exit);
@@ -92,7 +92,7 @@ IR_CFG::IR_CFG(CFG_SHAPE cs, BBList * bbl, Region * ru,
     case C_SEME:
         {
             //Create entry BB.
-            IRBB * entry = m_ru->newBB();
+            IRBB * entry = m_ru->allocBB();
             BB_is_entry(entry) = true;
             //BB_is_fallthrough(entry) = true;
             add_bb(entry);
@@ -426,7 +426,7 @@ void IR_CFG::insertBBbetween(
                     ...
                     ...
             */
-            IRBB * tmp_tramp_bb = m_ru->newBB();
+            IRBB * tmp_tramp_bb = m_ru->allocBB();
             LabelInfo * li = m_ru->genIlabel();
             IR * goto_ir = m_ru->buildGoto(li);
             BB_irlist(tmp_tramp_bb).append_tail(goto_ir);
@@ -738,11 +738,11 @@ bool IR_CFG::removeRedundantBranch()
             IR * det = BR_det(last_xr);
             ASSERT0(det != NULL);
             bool always_true = (det->is_const() &&
-                                det->is_int(m_dm) &&
+                                det->is_int() &&
                                 CONST_int_val(det) != 0) ||
                                 det->is_str();
             bool always_false = det->is_const() &&
-                                det->is_int(m_dm) &&
+                                det->is_int() &&
                                 CONST_int_val(det) == 0;
 
             if ((last_xr->is_truebr() && always_true) ||
@@ -929,72 +929,8 @@ void IR_CFG::dump_dot(CHAR const* name, bool detail, bool dump_eh)
 }
 
 
-void IR_CFG::dump_vcg(CHAR const* name, bool detail, bool dump_eh)
+void IR_CFG::dump_node(FILE * h, bool detail)
 {
-    if (name == NULL) {
-        name = "graph_cfg.vcg";
-    }
-    //Note this function does not use g_tfile as output.
-    //So it is dispensable to check g_tfile.
-    unlink(name);
-    FILE * h = fopen(name, "a+");
-    ASSERT(h != NULL, ("%s create failed!!!",name));
-    FILE * old = NULL;
-
-    //Print comment
-    //fprintf(h, "\n/*");
-    //old = g_tfile;
-    //g_tfile = h;
-    //dumpBBList(m_bb_list, m_ru);
-    //g_tfile = old;
-    //fprintf(h, "\n*/\n");
-
-    //Print graph structure description.
-    fprintf(h, "graph: {"
-              "title: \"Graph\"\n"
-              "shrink:  15\n"
-              "stretch: 27\n"
-              "layout_downfactor: 1\n"
-              "layout_upfactor: 1\n"
-              "layout_nearfactor: 1\n"
-              "layout_splinefactor: 70\n"
-              "spreadlevel: 1\n"
-              "treefactor: 0.500000\n"
-              "node_alignment: center\n"
-              "orientation: top_to_bottom\n"
-              "late_edge_labels: no\n"
-              "display_edge_labels: yes\n"
-              "dirty_edge_labels: no\n"
-              "finetuning: no\n"
-              "nearedges: no\n"
-              "splines: yes\n"
-              "ignoresingles: no\n"
-              "straight_phase: no\n"
-              "priority_phase: no\n"
-              "manhatten_edges: no\n"
-              "smanhatten_edges: no\n"
-              "port_sharing: no\n"
-              "crossingphase2: yes\n"
-              "crossingoptimization: yes\n"
-              "crossingweight: bary\n"
-              "arrow_mode: free\n"
-              "layoutalgorithm: mindepthslow\n"
-              "node.borderwidth: 2\n"
-              "node.color: lightcyan\n"
-              "node.textcolor: black\n"
-              "node.bordercolor: blue\n"
-              "edge.color: darkgreen\n");
-
-    //Print Region name.
-    fprintf(h,
-            "\nnode: {title:\"\" vertical_order:0 shape:box color:turquoise "
-            "borderwidth:0 fontname:\"Courier Bold\" "
-            "scaling:2 label:\"RegionName:%s\" }", m_ru->get_ru_name());
-
-    //Print node.
-    old = g_tfile;
-    g_tfile = h;
-
     C<IRBB*> * bbct;
     UINT vertical_order = 1;
     for (IRBB * bb = m_bb_list->get_head(&bbct);
@@ -1049,8 +985,51 @@ void IR_CFG::dump_vcg(CHAR const* name, bool detail, bool dump_eh)
             fprintf(h, "\" }");
         }
     }
+}
 
-    //Print edge
+
+//Print graph structure description.
+void IR_CFG::dump_head(FILE * h)
+{
+    fprintf(h, "graph: {"
+              "title: \"Graph\"\n"
+              "shrink:    15\n"
+              "stretch: 27\n"
+              "layout_downfactor: 1\n"
+              "layout_upfactor: 1\n"
+              "layout_nearfactor: 1\n"
+              "layout_splinefactor: 70\n"
+              "spreadlevel: 1\n"
+              "treefactor: 0.500000\n"
+              "node_alignment: center\n"
+              "orientation: top_to_bottom\n"
+              "late_edge_labels: no\n"
+              "display_edge_labels: yes\n"
+              "dirty_edge_labels: no\n"
+              "finetuning: no\n"
+              "nearedges: no\n"
+              "splines: yes\n"
+              "ignoresingles: no\n"
+              "straight_phase: no\n"
+              "priority_phase: no\n"
+              "manhatten_edges: no\n"
+              "smanhatten_edges: no\n"
+              "port_sharing: no\n"
+              "crossingphase2: yes\n"
+              "crossingoptimization: yes\n"
+              "crossingweight: bary\n"
+              "arrow_mode: free\n"
+              "layoutalgorithm: mindepthslow\n"
+              "node.borderwidth: 2\n"
+              "node.color: lightcyan\n"
+              "node.textcolor: black\n"
+              "node.bordercolor: blue\n"
+              "edge.color: darkgreen\n");
+}
+
+
+void IR_CFG::dump_edge(FILE * h, bool dump_eh)
+{
     INT c;
     for (Edge * e = m_edges.get_first(c); e != NULL; e = m_edges.get_next(c)) {
         CFGEdgeInfo * ei = (CFGEdgeInfo*)EDGE_info(e);
@@ -1073,6 +1052,40 @@ void IR_CFG::dump_vcg(CHAR const* name, bool detail, bool dump_eh)
                     VERTEX_id(EDGE_from(e)), VERTEX_id(EDGE_to(e)));
         }
     }
+}
+
+
+void IR_CFG::dump_vcg(CHAR const* name, bool detail, bool dump_eh)
+{
+    if (name == NULL) {
+        name = "graph_cfg.vcg";
+    }
+    //Note this function does not use g_tfile as output.
+    //So it is dispensable to check g_tfile.
+    unlink(name);
+    FILE * h = fopen(name, "a+");
+    ASSERT(h != NULL, ("%s create failed!!!",name));
+    FILE * old = NULL;
+
+    //Print comment
+    //fprintf(h, "\n/*");
+    //old = g_tfile;
+    //g_tfile = h;
+    //dumpBBList(m_bb_list, m_ru);
+    //g_tfile = old;
+    //fprintf(h, "\n*/\n");
+    dump_head(h);
+
+    //Print Region name.
+    fprintf(h,
+            "\nnode: {title:\"\" vertical_order:0 shape:box color:turquoise "
+            "borderwidth:0 fontname:\"Courier Bold\" "
+            "scaling:2 label:\"RegionName:%s\" }", m_ru->get_ru_name());
+
+    old = g_tfile;
+    g_tfile = h;
+    dump_node(h, detail);
+    dump_edge(h, dump_eh);
     g_tfile = old;
     fprintf(h, "\n}\n");
     fclose(h);

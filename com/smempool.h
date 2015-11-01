@@ -50,7 +50,6 @@ typedef size_t MEMPOOLIDX;
 typedef enum {
     MEM_NONE = 0,
     MEM_COMM,     //can be realloc, free
-    MEM_VOLATILE, //can be realloc , but free is forbidded
     MEM_CONST_SIZE, //the element in the pool should be in same size.
 } MEMPOOLTYPE;
 

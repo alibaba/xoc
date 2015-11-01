@@ -173,6 +173,9 @@ INT findstr(CHAR * src, CHAR * s);
 //e.g: Given string is a\b\c, separator is '\', return c;
 CHAR const* extractRightMostSubString(CHAR const* string, CHAR separator);
 
+//Extract the left most sub-string which separated by 'separator' from string.
+//e.g: Given string is a\b\c, separator is '\', return a;
+void extractLeftMostSubString(CHAR * tgt, CHAR const* string, CHAR separator);
 //Great common divisor for number of values.
 INT gcdm(UINT num, ...);
 

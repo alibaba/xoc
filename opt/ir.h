@@ -301,7 +301,7 @@ operation with other volatile operations. */
 #define IR_has_sideeffect(ir)    ((ir)->has_sideeffect)
 
 // Define this marco if we try to searh
-//ir in free_ir_tab while invoking newIR().
+//ir in free_ir_tab while invoking allocIR().
 //#define CONST_IRT_SZ
 
 #ifdef CONST_IRT_SZ
@@ -570,7 +570,7 @@ public:
     }
 
     //Return true if ir's data type is vector.
-    inline bool is_vec() const { return IR_dt(this)->is_vector(); }
+    bool is_vec() const { return IR_dt(this)->is_vector(); }
 
     //Return true if ir's data type is pointer.
     bool is_ptr() const { return IR_dt(this)->is_pointer(); }
@@ -582,6 +582,25 @@ public:
     bool is_mc() const { return IR_dt(this)->is_mc(); }
 
     bool is_void() const { return IR_dt(this)->is_void(); }
+
+    //Return true if ir data type is signed, and the type
+    //may be integer or float.
+    bool is_signed() const { return IR_dt(this)->is_signed(); }
+
+    //Return true if ir data type is signed integer.
+    bool is_sint() const { return IR_dt(this)->is_sint(); }
+
+    //Return true if ir data type is unsigned integer.
+    bool is_uint() const { return IR_dt(this)->is_uint(); }
+
+    //Return true if ir data type is integer.
+    bool is_int() const { return IR_dt(this)->is_int(); }
+
+    //Return true if ir data type is float.
+    bool is_fp() const { return IR_dt(this)->is_fp(); }
+
+    //Return true if ir data type is boolean.
+    bool is_bool() const { return IR_dt(this)->is_bool(); }
 
     //Return true if ir is label.
     bool is_lab() const { return IR_code(this) == IR_LABEL; }
@@ -604,7 +623,7 @@ public:
     { return is_st() || is_stpr() || is_ist() || is_starray(); }
 
     //Return true if current ir is valid type to be phi operand.
-    inline bool is_phi_opnd() const { return is_pr() || is_const(); }
+    bool is_phi_opnd() const { return is_pr() || is_const(); }
 
     //Return true if current ir is stmt.
     //Only statement can be chained.
@@ -630,31 +649,6 @@ public:
 
     //Return true if ir terminates the control flow.
     bool is_terminate() const { return IR_is_termiate(this); }
-
-    //Return true if ir data type is signed, and the type
-    //may be integer or float.
-    inline bool is_signed(TypeMgr const* tm) const
-    { return tm->is_signed(IR_dt(this)); }
-
-    //Return true if ir data type is signed integer.
-    inline bool is_sint(TypeMgr const* tm) const
-    { return tm->is_sint(IR_dt(this)); }
-
-    //Return true if ir data type is unsgined integer.
-    bool is_uint(TypeMgr const* tm) const
-    { return tm->is_uint(IR_dt(this)); }
-
-    //Return true if ir data type is integer.
-    bool is_int(TypeMgr const* tm) const
-    { return tm->is_int(IR_dt(this)); }
-
-    //Return true if ir data type is float.
-    bool is_fp(TypeMgr const* tm) const
-    { return tm->is_fp(IR_dt(this)); }
-
-    //Return true if ir data type is boolean.
-    bool is_bool() const
-    { return IR_dt(this)->is_bool(); }
 
     //Return true if ir is volatile.
     inline bool is_volatile() const;
@@ -756,8 +750,7 @@ public:
     //Return true if ir is indirect jump to multiple target.
     bool is_indirect_br() const { return is_igoto(); }
 
-    bool is_calls_stmt() const
-    { return is_call() || is_icall(); }
+    bool is_calls_stmt() const { return is_call() || is_icall(); }
 
     //Return true if ir is a call and has a return value.
     inline bool isCallHasRetVal() const
@@ -784,7 +777,7 @@ public:
 
     //Return true if current ir is integer constant, and the number
     //is equal to 'value'.
-    inline bool isConstIntValueEqualTo(HOST_INT value, TypeMgr * tm) const;
+    inline bool isConstIntValueEqualTo(HOST_INT value) const;
 
     //Return true if current operation references memory except
     //the PR memory.
@@ -2452,7 +2445,7 @@ bool IR::hasReturnValue() const
 
 //Return true if current ir is integer constant, and the number
 //is equal to 'value'.
-bool IR::isConstIntValueEqualTo(HOST_INT value, TypeMgr * tm) const
+bool IR::isConstIntValueEqualTo(HOST_INT value) const
 {
     if (!is_const_exp()) { return false; }
 
@@ -2462,7 +2455,7 @@ bool IR::isConstIntValueEqualTo(HOST_INT value, TypeMgr * tm) const
         p = CVT_exp(p);
         ASSERT0(p);
     }
-    return p->is_int(tm) && CONST_int_val(p) == value;
+    return p->is_int() && CONST_int_val(p) == value;
 }
 //END IR
 

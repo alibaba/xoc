@@ -35,13 +35,13 @@ author: Su Zhenyu
 #include "libdex/DexClass.h"
 #include "libdex/DexOpcodes.h"
 #include "liropcode.h"
-
+#include "lir.h"
 #include "cominc.h"
 #include "comopt.h"
 #include "dx_mgr.h"
-#include "prdf.h"
 #include "dex.h"
 #include "gra.h"
+#include "dex_hook.h"
 #include "dex_util.h"
 #include "dex2ir.h"
 
@@ -56,6 +56,29 @@ inline static bool is_obj_type(CHAR const* type_name)
 {
     ASSERT0(type_name);
     return *type_name == 'L';
+}
+
+Dex2IR::Dex2IR(IN Region * ru,
+               IN DexFile * df,
+               IN LIRCode * fu,
+               DbxVec const& dbxvec) : m_dbxvec(dbxvec)
+{
+    ASSERT0(ru && df && fu);
+    m_ru = (DexRegion*)ru;
+    m_ru_mgr = (DexRegionMgr*)ru->get_region_mgr();
+    m_dm = ru->get_type_mgr();
+    m_vm = ru->get_var_mgr();
+    m_df = df;
+    m_lircode = fu;
+    m_tr = ((DexRegion*)ru)->getTypeIndexRep();
+    m_ti = NULL;
+    m_pool = smpoolCreate(16, MEM_COMM);
+    m_pr2v.init(MAX(4, getNearestPowerOf2(fu->maxVars)));
+    m_ptr_addend = m_dm->getSimplexType(D_U32);
+    m_ofst_addend = m_dm->get_dtype_bytesize(D_I64);
+    m_pr2v.maxreg = fu->maxVars - 1;
+    m_pr2v.paramnum = fu->numArgs;
+    m_current_catch_list = NULL;
 }
 
 
@@ -317,7 +340,7 @@ IR * Dex2IR::convertSget(IN LIR * lir)
     }
     */
     rhs = m_ru->buildLoad(v);
-    AttachInfo * ai = m_ru->newAI();
+    AttachInfo * ai = m_ru->allocAI();
 
     TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
                     sizeof(TbaaAttachInfo), m_ru->get_pool());
@@ -328,7 +351,7 @@ IR * Dex2IR::convertSget(IN LIR * lir)
     ASSERT0(rhs->get_ai() == NULL);
     IR_ai(rhs) = ai;
 
-    return m_ru->buildStorePR(PR_no(res), IR_dt(res), rhs);
+    return m_ru->buildStorePR(PR_no(res), res->get_type(), rhs);
 }
 
 
@@ -381,7 +404,7 @@ IR * Dex2IR::convertSput(IN LIR * lir)
     TODO: Generate new PR instead of change the ty.
     */
     IR_dt(res) = getType(lir);
-    ASSERT0(IR_dt(res));
+    ASSERT0(res->get_type());
     VAR * v = addStaticVar(LIR_op0(lir), getType(lir));
     set_map_v2ofst(v, LIR_op0(lir));
     return m_ru->buildStore(v, res);
@@ -401,7 +424,7 @@ IR * Dex2IR::convertAput(IN LIR * lir)
     TMWORD enbuf = 0;
 
     //base type info.
-    AttachInfo * ai = m_ru->newAI();
+    AttachInfo * ai = m_ru->allocAI();
     TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
                     sizeof(TbaaAttachInfo), m_ru->get_pool());
     tbaa->init(AI_TBAA);
@@ -441,7 +464,7 @@ IR * Dex2IR::convertAget(IN LIR * lir)
     //IR_may_throw(array) = true;
 
     //base type info.
-    AttachInfo * ai = m_ru->newAI();
+    AttachInfo * ai = m_ru->allocAI();
     TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
                     sizeof(TbaaAttachInfo), m_ru->get_pool());
     tbaa->init(AI_TBAA);
@@ -451,7 +474,7 @@ IR * Dex2IR::convertAget(IN LIR * lir)
     ASSERT0(base->get_ai() == NULL);
     IR_ai(base) = ai;
 
-    IR * c = m_ru->buildStorePR(PR_no(res), IR_dt(res), array);
+    IR * c = m_ru->buildStorePR(PR_no(res), res->get_type(), array);
     IR_may_throw(c) = true;
     if (m_has_catch) {
         IR * lab = m_ru->buildLabel(m_ru->genIlabel());
@@ -494,11 +517,11 @@ IR * Dex2IR::convertIput(IN LIR * lir)
     /*
     UINT ofst = computeFieldOffset(LIR_op1(lir));
     IR * addr = m_ru->buildBinaryOp(IR_ADD,
-                                IR_dt(thisptr),
+                                thisptr->get_type(),
                                 thisptr,
                                 m_ru->buildImmInt(ofst, m_ptr_addend));
     */
-    IR * c = m_ru->buildIstore(addr, stv, IR_dt(stv));
+    IR * c = m_ru->buildIstore(addr, stv, stv->get_type());
     IST_ofst(c) = LIR_op1(lir) * m_ofst_addend;
 
     IR_may_throw(c) = true;
@@ -687,11 +710,11 @@ IR * Dex2IR::convertIget(IN LIR * lir)
     IR * ild = m_ru->buildIload(obj, ty);
     ILD_ofst(ild) = objofst; //ILD(MEM_ADDR+ofst)
     IR_may_throw(ild) = true;
-    IR * c = m_ru->buildStorePR(PR_no(res), IR_dt(res), ild);
+    IR * c = m_ru->buildStorePR(PR_no(res), res->get_type(), ild);
 
     IR_may_throw(c) = true;
 
-    AttachInfo * ai = m_ru->newAI();
+    AttachInfo * ai = m_ru->allocAI();
     TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
                     sizeof(TbaaAttachInfo), m_ru->get_pool());
     tbaa->init(AI_TBAA);
@@ -710,7 +733,7 @@ IR * Dex2IR::convertIget(IN LIR * lir)
     CHAR const* type_name = get_var_type_name(LIR_op1(lir));
     if (is_array_type(type_name)) {
         //The type of result value of ild is pointer to array type.
-        AttachInfo * ai = m_ru->newAI();
+        AttachInfo * ai = m_ru->allocAI();
         TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
                     sizeof(TbaaAttachInfo), m_ru->get_pool());
         tbaa->init(AI_TBAA);
@@ -721,7 +744,7 @@ IR * Dex2IR::convertIget(IN LIR * lir)
         IR_ai(ild) = ai;
     } else if (is_obj_type(type_name)) {
         //The type of result value of ild is pointer to object type.
-        AttachInfo * ai = m_ru->newAI();
+        AttachInfo * ai = m_ru->allocAI();
         TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
                     sizeof(TbaaAttachInfo), m_ru->get_pool());
         tbaa->init(AI_TBAA);
@@ -762,7 +785,7 @@ IR * Dex2IR::convertBinaryOpAssign(IN LIR * lir)
     IR * res = genMappedPR(LIR_res(lir), ty);
     IR * op0 = genMappedPR(LIR_op0(lir), ty2);
     IR * x = m_ru->buildBinaryOp(ir_ty, ty, res, op0);
-    IR * c = m_ru->buildStorePR(PR_no(res), IR_dt(res), x);
+    IR * c = m_ru->buildStorePR(PR_no(res), res->get_type(), x);
     if (ir_ty == IR_DIV || ir_ty == IR_REM) {
         #ifdef DIV_REM_MAY_THROW
         IR_may_throw(x) = true;
@@ -801,7 +824,7 @@ IR * Dex2IR::convertBinaryOp(IN LIR * lir)
     IR * op0 = genMappedPR(LIR_op0(lir), ty);
     IR * op1 = genMappedPR(LIR_op1(lir), ty);
     IR * x = m_ru->buildBinaryOp(ir_ty, ty, op0, op1);
-    IR * c = m_ru->buildStorePR(PR_no(res), IR_dt(res), x);
+    IR * c = m_ru->buildStorePR(PR_no(res), res->get_type(), x);
     if (ir_ty == IR_DIV || ir_ty == IR_REM) {
         #ifdef DIV_REM_MAY_THROW
         IR_may_throw(x) = true;
@@ -846,7 +869,7 @@ IR * Dex2IR::convertBinaryOpLit(IN LIR * lir)
     IR * op0 = genMappedPR(LIR_op0(lir), ty);
     IR * lit = m_ru->buildImmInt(LIR_op1(lir), ty);
     IR * x = m_ru->buildBinaryOp(ir_ty, ty, op0, lit);
-    IR * c = m_ru->buildStorePR(PR_no(res), IR_dt(res), x);
+    IR * c = m_ru->buildStorePR(PR_no(res), res->get_type(), x);
     if ((ir_ty == IR_DIV || ir_ty == IR_REM) && CONST_int_val(lit) == 0) {
         IR_may_throw(x) = true;
         IR_may_throw(c) = true;
@@ -1100,7 +1123,7 @@ void Dex2IR::attachCatchInfo(IR * ir, AttachInfo * ai)
 void Dex2IR::attachCatchInfo(IR * ir)
 {
     if (m_current_catch_list != NULL) {
-        AttachInfo * ai = m_ru->newAI();
+        AttachInfo * ai = m_ru->allocAI();
         ASSERT0(ir->get_ai() == NULL);
         IR_ai(ir) = ai;
 
@@ -1423,7 +1446,7 @@ IR * Dex2IR::convertMove(IN LIR * lir)
     }
     IR * tgt = genMappedPR(LIR_res(lir), ty);
     IR * src = genMappedPR(LIR_op0(lir), ty);
-    return m_ru->buildStorePR(PR_no(tgt), IR_dt(tgt), src);
+    return m_ru->buildStorePR(PR_no(tgt), tgt->get_type(), src);
 }
 
 
@@ -1491,7 +1514,7 @@ IR * Dex2IR::convertUnaryOp(IN LIR * lir)
     IR * res = genMappedPR(LIR_res(lir), ty);
     IR * op0 = genMappedPR(LIR_op0(lir), ty);
     IR * x = m_ru->buildUnaryOp(ir_ty, ty, op0);
-    return m_ru->buildStorePR(PR_no(res), IR_dt(res), x);
+    return m_ru->buildStorePR(PR_no(res), res->get_type(), x);
     //Not throw exception.
 }
 
@@ -1504,7 +1527,7 @@ IR * Dex2IR::convertLoadStringAddr(IN LIR * lir)
     set_map_v2ofst(v, LIR_op0(lir));
     IR * lda = m_ru->buildLda(m_ru->buildId(v));
     IR * res = genMappedPR(LIR_res(lir), m_tr->ptr);
-    return m_ru->buildStorePR(PR_no(res), IR_dt(res), lda);
+    return m_ru->buildStorePR(PR_no(res), res->get_type(), lda);
 }
 
 
@@ -1538,7 +1561,7 @@ IR * Dex2IR::convertLoadConst(IN LIR * lir)
     }
 
     IR * res = genMappedPR(LIR_res(lir), ty);
-    return m_ru->buildStorePR(PR_no(res), IR_dt(res),
+    return m_ru->buildStorePR(PR_no(res), res->get_type(),
                               m_ru->buildImmInt(LIR_int_imm(lir), ty));
 }
 
@@ -1621,7 +1644,7 @@ IR * Dex2IR::convertCvt(IN LIR * lir)
     IR * res = genMappedPR(LIR_res(lir), tgt);
     IR * exp = genMappedPR(LIR_op0(lir), src);
     IR * cvt = m_ru->buildCvt(exp, tgt);
-    return m_ru->buildStorePR(PR_no(res), IR_dt(res), cvt);
+    return m_ru->buildStorePR(PR_no(res), res->get_type(), cvt);
 }
 
 
@@ -1934,7 +1957,9 @@ void Dex2IR::markTryLabel()
                 ci->kind = each_catch->class_type;
                 ci->kindname = ci->kind == kDexNoIndex ?
                                "<any>" : dexStringByTypeIdx(m_df, ci->kind);
-
+                //In DEX, one catch-block may be shared by multiple try-block.
+                //We only record one of them.
+                m_label2catchinfo.setAlways(lab, ci);
                 add_next(&ti->catch_list, &last, ci);
                 m_has_catch = true;
             }
@@ -2052,7 +2077,7 @@ IR * Dex2IR::convert(bool * succ)
             for (IR * tmp = newir; tmp != NULL; tmp = IR_next(tmp)) {
                 AttachInfo * ai = IR_ai(tmp);
                 if (ai == NULL) {
-                    ai = m_ru->newAI();
+                    ai = m_ru->allocAI();
                     IR_ai(tmp) = ai;
                 }
                 ai->set((BaseAttachInfo*)dbx);

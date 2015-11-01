@@ -131,9 +131,9 @@ inline UINT computeLabelHashValue(LabelInfo const* li)
 }
 
 
-LabelInfo * newLabel(SMemPool * pool);
-LabelInfo * newInternalLabel(SMemPool * pool);
-LabelInfo * newCustomerLabel(SYM * st, SMemPool * pool);
+LabelInfo * allocLabel(SMemPool * pool);
+LabelInfo * allocInternalLabel(SMemPool * pool);
+LabelInfo * allocCustomerLabel(SYM * st, SMemPool * pool);
 inline bool isSameLabel(LabelInfo const* li1, LabelInfo const* li2)
 {
     ASSERT0(li1 && li2);

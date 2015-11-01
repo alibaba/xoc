@@ -436,8 +436,8 @@ static void dump_ai(OUT CHAR * buf, IR const* ir)
         if (!not_first) {
             not_first = true;
         } else {
-
             sprintf(p, ",");
+            p = p + strlen(p);
         }
 
         sprintf(p, "%s", ai->get_ai_name(ac->type));
@@ -506,7 +506,7 @@ void dump_ir(IR const* ir,
     }
 
     Type const* d = NULL;
-    if (IR_dt(ir) != NULL) {
+    if (ir->get_type() != NULL) {
         d = ir->get_type();
     }
 
@@ -616,7 +616,7 @@ void dump_ir(IR const* ir,
 
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(IST_base(ir), dm, (CHAR*)" lhs");
+            dump_irs(IST_base(ir), dm, (CHAR*)" base");
             dump_irs(IST_rhs(ir), dm);
             g_indent -= dn;
         }
@@ -688,17 +688,17 @@ void dump_ir(IR const* ir,
             break;
         }
     case IR_CONST:
-        if (ir->is_sint(dm)) {
+        if (ir->is_sint()) {
             note("\nintconst:%s %lld|0x%llx",
                  xdm->dump_type(d, buf),
                  CONST_int_val(ir),
                  CONST_int_val(ir));
-        } else if (ir->is_uint(dm)) {
+        } else if (ir->is_uint()) {
             note("\nintconst:%s %llu|0x%llx",
                  xdm->dump_type(d, buf),
                  CONST_int_val(ir),
                  CONST_int_val(ir));
-        } else if (ir->is_fp(dm)) {
+        } else if (ir->is_fp()) {
             note("\nfpconst:%s %f",
                  xdm->dump_type(d, buf),
                  CONST_fp_val(ir));
@@ -1322,7 +1322,7 @@ bool IR::verify(Region const* ru) const
     TypeMgr const* dm = ru->get_type_mgr();
     ASSERT0(dm);
 
-    Type const* d = IR_dt(this);
+    Type const* d = get_type();
     ASSERT0(d);
 
     if (d->is_pointer()) {
@@ -1359,14 +1359,13 @@ bool IR::verify(Region const* ru) const
     case IR_CONST:
         ASSERT0(d);
         ASSERT(TY_dtype(d) != D_UNDEF, ("size of load value cannot be zero"));
-        if (!is_sint(dm) &&
-            !is_uint(dm) &&
-            !is_fp(dm) &&
+        if (!is_sint() &&
+            !is_uint() &&
+            !is_fp() &&
             !is_bool() &&
-            //!IR_dt(this)->is_mc() && //IR_CONST can not be MC.
+            //!get_type()->is_mc() && //IR_CONST can not be MC.
             !is_str()) {
-            ASSERT(0, ("unsupport immediate value DATA_TYPE:%d",
-                    get_dtype()));
+            ASSERT(0, ("unsupport immediate value DATA_TYPE:%d", get_dtype()));
         }
         break;
     case IR_ID: break;
@@ -1546,8 +1545,7 @@ bool IR::verify(Region const* ru) const
                  BIN_opnd1(this)->is_exp());
 
         //Check that shift operations only have integer type.
-        ASSERT0(BIN_opnd0(this)->is_int(dm) &&
-                 BIN_opnd1(this)->is_int(dm));
+        ASSERT0(BIN_opnd0(this)->is_int() && BIN_opnd1(this)->is_int());
 
         ASSERT0(IR_next(BIN_opnd0(this)) == NULL &&
                  IR_prev(BIN_opnd0(this)) == NULL);
@@ -1817,7 +1815,7 @@ bool IR::calcArrayOffset(TMWORD * ofst_val, TypeMgr * dm) const
         ASSERT0(ARR_elem_num_buf(this));
         if (!s->is_const()) { return false; }
 
-        ASSERT0(!s->is_fp(dm) && CONST_int_val(s) >= 0);
+        ASSERT0(!s->is_fp() && CONST_int_val(s) >= 0);
 
         #ifdef _VC2010_
         #define MARK_32BIT 0xFFFFffff00000000lu
@@ -1882,42 +1880,42 @@ bool IR::is_ir_equal(IR const* src, bool is_cmp_kid) const
     case IR_LD:
         if (LD_idinfo(this) != LD_idinfo(src) ||
             LD_ofst(this) != LD_ofst(src) ||
-            IR_dt(this) != IR_dt(src)) {
+            get_type() != src->get_type()) {
             return false;
         }
         break;
     case IR_ILD:
         if (ILD_ofst(this) != ILD_ofst(src) ||
-            IR_dt(this) != IR_dt(src)) {
+            get_type() != src->get_type()) {
             return false;
         }
         break;
      case IR_ST:
         if (ST_idinfo(this) != ST_idinfo(src) ||
             ST_ofst(this) != ST_ofst(src) ||
-            IR_dt(this) != IR_dt(src)) {
+            get_type() != src->get_type()) {
             return false;
         }
         break;
     case IR_STPR:
-        if (IR_dt(this) != IR_dt(src) || STPR_no(this) != STPR_no(src)) {
+        if (get_type() != src->get_type() || STPR_no(this) != STPR_no(src)) {
             return false;
         }
         break;
     case IR_STARRAY:
-        if (ARR_ofst(this) != ARR_ofst(src) || IR_dt(this) != IR_dt(src)) {
+        if (ARR_ofst(this) != ARR_ofst(src) || get_type() != src->get_type()) {
             return false;
         }
         break;
     case IR_IST:
         if (IST_ofst(this) != IST_ofst(src) ||
-            IR_dt(this) != IR_dt(src)) {
+            get_type() != src->get_type()) {
             return false;
         }
         break;
     case IR_LDA:
         if (LDA_ofst(this) != LDA_ofst(src) ||
-            IR_dt(this) != IR_dt(src)) {
+            get_type() != src->get_type()) {
             return false;
         }
         break;
@@ -1950,7 +1948,7 @@ bool IR::is_ir_equal(IR const* src, bool is_cmp_kid) const
     case IR_LNOT:
     case IR_NEG:
     case IR_CVT:
-        if (IR_dt(this) != IR_dt(src)) return false;
+        if (get_type() != src->get_type()) return false;
         break;
     case IR_GOTO:
     case IR_IGOTO:
@@ -1966,19 +1964,19 @@ bool IR::is_ir_equal(IR const* src, bool is_cmp_kid) const
     case IR_CASE:
         break;
     case IR_ARRAY:
-        if (ARR_ofst(this) != ARR_ofst(src) || IR_dt(this) != IR_dt(src)) {
+        if (ARR_ofst(this) != ARR_ofst(src) || get_type() != src->get_type()) {
             return false;
         }
         break;
     case IR_PR:
-        if (IR_dt(this) != IR_dt(src) || PR_no(this) != PR_no(src)) {
+        if (get_type() != src->get_type() || PR_no(this) != PR_no(src)) {
             return false;
         }
         break;
     case IR_TRUEBR:
     case IR_FALSEBR:
     case IR_SELECT:
-        if (IR_dt(this) != IR_dt(src)) {
+        if (get_type() != src->get_type()) {
             return false;
         }
         break;

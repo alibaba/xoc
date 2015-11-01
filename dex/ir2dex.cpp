@@ -34,19 +34,18 @@ author: Su Zhenyu
 #include "libdex/DexFile.h"
 #include "libdex/DexClass.h"
 #include "liropcode.h"
+#include "lir.h"
 #include "drAlloc.h"
 #include "d2d_comm.h"
-
 #include "cominc.h"
 #include "comopt.h"
 #include "dx_mgr.h"
-#include "prdf.h"
 #include "dex.h"
 #include "gra.h"
+#include "dex_hook.h"
 #include "dex_util.h"
 #include "dex2ir.h"
 #include "ir2dex.h"
-
 
 //Use outside pool to alloc memory. The pool will
 //be freed by caller.
@@ -933,7 +932,7 @@ LIR * IR2Dex::buildFillArrayData(IN IR ** ir)
     p = IR_next(p);
 
     //The second parameter record the pointer to filling data.
-    ASSERT0(p && p->is_uint(m_dm));
+    ASSERT0(p && p->is_uint());
     lir->data = (UInt16*)CONST_int_val(p);
 
     #ifdef _DEBUG_
@@ -969,12 +968,12 @@ LIR * IR2Dex::buildFilledNewArray(IN IR ** ir)
     IR * p = CALL_param_list(tir);
 
     //first parameter is invoke-kind.
-    ASSERT0(p && p->is_uint(m_dm));
+    ASSERT0(p && p->is_uint());
     LIR_dt(lir) = CONST_int_val(p);
     p = IR_next(p);
 
     //second one is class-id.
-    ASSERT0(p && p->is_int(m_dm));
+    ASSERT0(p && p->is_int());
     lir->ref = CONST_int_val(p);
     p = IR_next(p);
 
@@ -1111,7 +1110,7 @@ LIR * IR2Dex::buildCmpBias(IN IR ** ir)
 
     //cmp-kind
     IR * p = CALL_param_list(tir);
-    ASSERT0(p && p->is_int(m_dm) && IR_dt(p) == m_tr->u32);
+    ASSERT0(p && p->is_int() && IR_dt(p) == m_tr->u32);
     CMP_KIND ck = (CMP_KIND)CONST_int_val(p);
     p = IR_next(p);
 

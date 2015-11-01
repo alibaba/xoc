@@ -37,9 +37,9 @@ high-level language that provides many conveninet control flow structures, such
 as if, do-while, while-do, do-loop, switch, break, continue, cond-exec, etc.
 The three different forms of XOC IR are all equivalent.
 
-XOC defines an intermediate representation (IR) for programs, using IR Trees, 
-control flow graphs(CFG), and an exception handling model. For any program to be 
-handled by XOC, it needs to be converted to this representation. 
+XOC defines an intermediate representation (IR) for programs, using IR Trees,
+control flow graphs(CFG), and an exception handling model. For any program to be
+handled by XOC, it needs to be converted to this representation.
 
 
 Programming Guides
@@ -50,11 +50,11 @@ Programming Guides
 ¡ö Quick Start
 
 ¡ö High Level Structure
-	¡ñ REGION_MGR
+	¡ñ RegionMgr
 		Region manager is the top structure to perform all kinds of analysis
 		and transformtion. It allocate region and concerned data structure.
 
-	¡ñ REGION
+	¡ñ Region
 		Defined in region.h
 		The program code organized in region, each region has it own IR stmt
 		list, local VAR table, and many kinds of analysis and transformation
@@ -105,15 +105,15 @@ Programming Guides
 			XOC apply interprocedural analysis and optimization and inlining
 			on program unit.
 
-	¡ñ SYM, SYM_TAB
+	¡ñ SYM, SymTab
 		Symbol represent identifier name, pseudo register name and string.
 		Each region manager has one unique symbol table. In general,
 		any symbol with a name occupies an entry in symbol table.
 		Any string constant value that reside in memory also occupies an entry
 		in symbol table.
 
-	¡ñ DT_MGR
-		Data type manager represent all kind of distinct type in the region manager.
+	¡ñ TypeMgr
+		Type manager represent all kind of distinct type in the region manager.
 
 	¡ñ VAR
 		Defined in var.h
@@ -191,7 +191,7 @@ Programming Guides
 			This attribute represent abstract memory object with type is
 			MD_UNBOUND. An unbound MD may be effect, but is definitly inexact.
 
-	¡ñ MD_SYS
+	¡ñ MDSystem
 		MD system is used to manage MD. It includes a MD table, each entry
 		of this table is a MD pointer, which gives the information associated
 		with MD. MD numbers 1 are reserved for dedicated variable, ALL_MEM, all
@@ -398,7 +398,7 @@ Programming Guides
 		e.g: semantics: store value of a to b.
 			IR tree is:
 			  i32 a, b;
-			  st:i32 $pr1 = ld a:i32
+			  stpr:i32 $pr1 = ld a:i32
 			  st:i32 b = $pr1:i32
 
 		Operands:
@@ -1086,7 +1086,7 @@ Programming Guides
 		the variable name with its version number, we call this structure
 		Versioned PR(VP).
 
-	¡ñ IR_AI
+	¡ñ AttachInfo
 		The attached information of IR is used to represent additional
 		information for specialized optimization or function.
 
@@ -1207,12 +1207,12 @@ Programming Guides
 		1. Create a directory under xoc/nt
 		2. Generate a header file that includes all predefined macros for const
 		   values which compiler used, named nt_const_info.h
-		3. Define a marco FOR_NT and add nt_const_info.h into 
+		3. Define a marco FOR_NT and add nt_const_info.h into
 		   xoc/opt/targ_const_info.h, suck as:
 		     ...
 		     #elif defined(FOR_NT)
 		     #include "../nt/nt_const_info.h"
 		     ...
-		   Add -DFOR_NT into build system. 
-		4. Add compiler driver files ntdriver.cpp and ntdriver.h, and place 
+		   Add -DFOR_NT into build system.
+		4. Add compiler driver files ntdriver.cpp and ntdriver.h, and place
 		   them at xoc/nt.

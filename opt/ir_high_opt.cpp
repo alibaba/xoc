@@ -111,7 +111,7 @@ bool Region::HighProcess(OptCTX & oc)
         aa->perform(oc);
     }
 
-    if (g_do_du_ana) {
+    if (g_do_md_du_ana) {
         ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc) && OC_is_aa_valid(oc));
         IR_DU_MGR * dumgr = (IR_DU_MGR*)passmgr->registerPass(PASS_DU_MGR);
         ASSERT0(dumgr);

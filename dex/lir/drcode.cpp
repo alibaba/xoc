@@ -43,28 +43,21 @@ author: GongKai, JinYue
 #include <assert.h>
 #include <stdio.h>
 
-#include "cominc.h"
-#include "comopt.h"
-
-#include "drAlloc.h"
-#include "d2lcode.h"
+#include "xassert.h"
+#include "lir.h"
+#include "d2d_comm.h"
 #include "d2d_l2d.h"
 #include "d2d_d2l.h"
+#include "cominc.h"
+#include "comopt.h"
+#include "drAlloc.h"
 #include "utils/cbytestream.h"
-#include "xassert.h"
-#include "lircomm.h"
-
-#include "dx_mgr.h"
-#include "aoc_dx_mgr.h"
-#include "prdf.h"
 #include "dex.h"
 #include "gra.h"
+#include "dex_hook.h"
 #include "dex_util.h"
-#include "dex2ir.h"
-#include "ir2dex.h"
-#include "d2d_l2d.h"
 #include "dex_driver.h"
-#include "lir.h"
+#include "drcode.h"
 
 Int32 gMemAlloc = 0;
 

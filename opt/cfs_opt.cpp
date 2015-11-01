@@ -117,7 +117,7 @@ bool IR_CFS_OPT::transformToDoWhile(IR ** head, IR * ir)
                     isSameLabel(LAB_lab(ir), GOTO_lab(IF_truebody(t)))) {
 
                     //start transform...
-                    IR * dowhile = m_ru->newIR(IR_DO_WHILE);
+                    IR * dowhile = m_ru->allocIR(IR_DO_WHILE);
                     LOOP_det(dowhile) = m_ru->dupIRTree(LOOP_det(t));
 
                     IR * if_stmt = t;
@@ -320,34 +320,34 @@ bool IR_CFS_OPT::transformIf3(IR ** head, IR * ir)
 
         if (opnd0->is_ld() &&
             opnd1->is_const() &&
-            opnd0->is_int(m_dm) &&
+            opnd0->is_int() &&
             CONST_int_val(opnd1) == MAX_INT_VALUE) {
             //x is signed, if(x>0x7FFFFFFF) {a=1} else {b=1} =>  b=1
-            IR * newIR = NULL;
+            IR * allocIR = NULL;
             if (IF_falsebody(ir)) {
-                newIR = m_ru->dupIRTree(IF_falsebody(ir));
+                allocIR = m_ru->dupIRTree(IF_falsebody(ir));
             }
-            replace(head, ir, newIR);
+            replace(head, ir, allocIR);
 
             //Revise IR_parent.
-            IR_parent(newIR) = IR_parent(ir);
+            IR_parent(allocIR) = IR_parent(ir);
 
             m_ru->freeIRTree(ir);
             return true;
         } else if (opnd0->is_ld() &&
                    opnd1->is_const() &&
-                   opnd0->is_uint(m_dm) &&
+                   opnd0->is_uint() &&
                    CONST_int_val(opnd1) == MAX_UINT_VALUE) {
             //x is unsigned, if(x>0xFFFFFFFF) {a=1} else {b=1} => b=1
-            IR * newIR = NULL;
+            IR * allocIR = NULL;
             if (IF_falsebody(ir)) {
-                newIR = m_ru->dupIRTree(IF_falsebody(ir));
+                allocIR = m_ru->dupIRTree(IF_falsebody(ir));
             }
 
-            replace(head, ir, newIR);
+            replace(head, ir, allocIR);
 
             //Revise IR_parent.
-            IR_parent(newIR) = IR_parent(ir);
+            IR_parent(allocIR) = IR_parent(ir);
 
             m_ru->freeIRTree(ir);
             return true;
@@ -357,29 +357,29 @@ bool IR_CFS_OPT::transformIf3(IR ** head, IR * ir)
         IR * opnd1 = BIN_opnd1(det);
         if (opnd0->is_ld() &&
             opnd1->is_const() &&
-            opnd0->is_int(m_dm) &&
+            opnd0->is_int() &&
             CONST_int_val(opnd1) == MIN_INT_VALUE) {
             //x is signed, IF(x < 0x80000000) {a=1} ELSE {b=1}  =>  b=1
-            IR * newIR = NULL;
+            IR * allocIR = NULL;
             if (IF_falsebody(ir)) {
-                newIR = m_ru->dupIRTree(IF_falsebody(ir));
+                allocIR = m_ru->dupIRTree(IF_falsebody(ir));
             }
-            replace(head, ir, newIR);
+            replace(head, ir, allocIR);
             m_ru->freeIRTree(ir);
             return true;
         } else if (opnd0->is_ld() &&
                    opnd1->is_const() &&
-                   opnd0->is_uint(m_dm) &&
+                   opnd0->is_uint() &&
                    CONST_int_val(opnd1) == 0) {
             //x is unsigned, if(x<0) {a=1} else {b=1}  =>  b=1
-            IR * newIR = NULL;
+            IR * allocIR = NULL;
             if (IF_falsebody(ir)) {
-                newIR = m_ru->dupIRTree(IF_falsebody(ir));
+                allocIR = m_ru->dupIRTree(IF_falsebody(ir));
             }
-            replace(head, ir, newIR);
+            replace(head, ir, allocIR);
 
             //Revise IR_parent.
-            IR_parent(newIR) = IR_parent(ir);
+            IR_parent(allocIR) = IR_parent(ir);
 
             m_ru->freeIRTree(ir);
             return true;
@@ -504,7 +504,7 @@ bool IR_CFS_OPT::perform_cfs_optimization(IN OUT IR ** ir_list,
             continue;
         }
 
-        switch (IR_code(ir)) {
+        switch (ir->get_code()) {
         case IR_IF:
             if (hoistIf(ir_list, ir)) {
                 change = true;

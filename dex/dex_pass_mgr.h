@@ -31,61 +31,19 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 author: Su Zhenyu
 @*/
-#include "cominc.h"
+#ifndef _DEX_PASS_MGR_H_
+#define _DEX_PASS_MGR_H_
 
-namespace xoc {
+class DexPassMgr : public PassMgr {
+public:
+    DexPassMgr(Region * ru) : PassMgr(ru) {}
+    virtual ~DexPassMgr() {}
 
-bool DUSet::verify_def(IR_DU_MGR * du) const
-{
-    CK_USE(du);
-    DUIter di = NULL;
-    for (UINT d = get_first(&di);
-         di != NULL; d = get_next(d, &di)) {
-        ASSERT0(du->get_ir(d)->is_stmt());
-    }
-    return true;
-}
+    virtual Pass * allocDCE();
+    virtual Pass * allocCopyProp();
+    virtual Pass * allocRP();
 
+    virtual void performScalarOpt(OptCTX & oc);
+};
 
-bool DUSet::verify_use(IR_DU_MGR * du) const
-{
-    CK_USE(du);
-    DUIter di = NULL;
-    for (UINT u = get_first(&di);
-         di != NULL; u = get_next(u, &di)) {
-        ASSERT0(du->get_ir(u)->is_exp());
-    }
-    return true;
-}
-
-
-//Add define stmt with check if the stmt is unique in list.
-void DUSet::add_use(IR const* exp, DefMiscBitSetMgr & m)
-{
-    ASSERT0(exp && exp->is_exp());
-    bunion(IR_id(exp), m);
-}
-
-
-//Add define stmt with check if the stmt is unique in list.
-void DUSet::add_def(IR const* stmt, DefMiscBitSetMgr & m)
-{
-    ASSERT0(stmt && stmt->is_stmt());
-    bunion(IR_id(stmt), m);
-}
-
-
-void DUSet::remove_use(IR const* exp, DefMiscBitSetMgr & m)
-{
-    ASSERT0(exp && exp->is_exp());
-    diff(IR_id(exp), m);
-}
-
-
-void DUSet::removeDef(IR const* stmt, DefMiscBitSetMgr & m)
-{
-    ASSERT0(stmt && stmt->is_stmt());
-    diff(IR_id(stmt), m);
-}
-
-} //namespace xoc
+#endif

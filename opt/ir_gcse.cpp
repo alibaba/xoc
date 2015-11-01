@@ -699,7 +699,7 @@ bool IR_GCSE::perform(OptCTX & oc)
 
     m_is_in_ssa_form = false;
     IR_SSA_MGR * ssamgr =
-            (IR_SSA_MGR*)(m_ru->get_pass_mgr()->query_opt(PASS_SSA_MGR));
+            (IR_SSA_MGR*)(m_ru->get_pass_mgr()->queryPass(PASS_SSA_MGR));
     if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
         m_is_in_ssa_form = true;
         m_ssamgr = ssamgr;

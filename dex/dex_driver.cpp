@@ -35,20 +35,18 @@ author: Su Zhenyu
 #include "libdex/DexClass.h"
 #include "libdex/DexDebugInfo.h"
 #include "liropcode.h"
-#include "drAlloc.h"
+#include "lir.h"
 #include "d2d_comm.h"
-
+#include "d2d_l2d.h"
+#include "drAlloc.h"
 #include "cominc.h"
 #include "comopt.h"
-#include "dx_mgr.h"
-#include "aoc_dx_mgr.h"
-#include "prdf.h"
 #include "dex.h"
 #include "gra.h"
+#include "dex_hook.h"
 #include "dex_util.h"
 #include "dex2ir.h"
 #include "ir2dex.h"
-#include "d2d_l2d.h"
 #include "dex_driver.h"
 
 //Ensure RETURN IR at the end of function if its return-type is VOID.
@@ -339,10 +337,11 @@ class DbxCtx {
 public:
     DexRegion * region;
     OffsetVec const& offsetvec;
-    UINT current_instruction_index;
+    UINT last_instruction_index;
     DbxVec & dbxvec;
     SMemPool * pool;
     UINT lircode_num;
+    DexDbx * last_debug_info;
 
 public:
     DbxCtx(DexRegion * ru,
@@ -352,10 +351,11 @@ public:
            UINT n) :
         region(ru),
         offsetvec(off),
-        current_instruction_index(0),
+        last_instruction_index(0),
         dbxvec(dv),
         pool(p),
-        lircode_num(n)
+        lircode_num(n),
+        last_debug_info(NULL)
     { ASSERT0(ru); }
 
     DexDbx * newDexDbx()
@@ -372,18 +372,28 @@ public:
 
 //Callback for "new position table entry".
 //Returning non-0 causes the decoder to stop early.
-int dumpPosition(void * cnxt, u4 address, u4 linenum)
+int dumpPosition(void * cnxt, u4 dexpc, u4 linenum)
 {
-    DbxCtx * dc = (DbxCtx*)cnxt;
-    DexDbx * dd = dc->newDexDbx();
-    dd->linenum = linenum;
-    dd->filename = dc->region->getClassSourceFilePath();
-    UINT num = dc->lircode_num;
-    UINT i = dc->current_instruction_index;
-    for (; i < num && dc->offsetvec[i] <= address; i++) {
-        dc->dbxvec[i] = dd;
+    DbxCtx * ctx = (DbxCtx*)cnxt;
+
+    //Generate new debug info.
+    DexDbx * newdbx = ctx->newDexDbx();
+    newdbx->linenum = linenum;
+    newdbx->filename = ctx->region->getClassSourceFilePath();
+
+    //Get the last debug info generated.
+    DexDbx * lastdbx = ctx->last_debug_info;
+
+    //Assign the subsequently LIR from last recording-point
+    //with the last debug info.
+    UINT i = ctx->last_instruction_index;
+    for (; i < ctx->lircode_num && ctx->offsetvec[i] < dexpc; i++) {
+        ctx->dbxvec[i] = lastdbx;
     }
-    dc->current_instruction_index = i;
+
+    //Record point, to record the debug info for followed lir used.
+    ctx->last_instruction_index = i;
+    ctx->last_debug_info = newdbx;
     return 0;
 }
 
@@ -436,6 +446,15 @@ static void parseDebugInfo(
             dumpPosition,
             dumpLocal,
             &dc);
+
+    //Assign the final LIRs from last recording-point
+    //with the last debug info.
+    UINT i = dc.last_instruction_index;
+    //Get the last debug info generated.
+    DexDbx * lastdbx = dc.last_debug_info;
+    for (; i < dc.lircode_num; i++) {
+        dc.dbxvec[i] = lastdbx;
+    }
 }
 
 

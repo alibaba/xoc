@@ -473,7 +473,7 @@ public:
         }
     }
 
-    inline IRBB * newBB()
+    inline IRBB * allocBB()
     {
         IRBB * bb = new IRBB();
         BB_id(bb) = m_bb_count++;

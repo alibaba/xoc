@@ -924,6 +924,22 @@ CHAR const* extractRightMostSubString(CHAR const* string, CHAR separator)
 }
 
 
+//Extract the left most sub-string which separated by 'separator' from string.
+void extractLeftMostSubString(CHAR * tgt, CHAR const* string, CHAR separator)
+{
+    CHAR const* p = string;
+    for (CHAR c = *p; c != 0; p++, c = *p) {
+        if (c == separator) {
+            break;
+        }
+    }
+
+    UINT l = p - string;
+    memcpy(tgt, string, l);
+    tgt[l] = 0;
+}
+
+
 UINT xstrlen(CHAR const* p)
 {
     UINT len = 0;

@@ -428,7 +428,7 @@ VN * IR_GVN::computeMemory(IR const* exp, bool & change)
             //Check if some may-def or overlapped-def disrupts the emd.
             //Omit the DEF which has effect md and it does not overlapped
             //with emd.
-            DU_ITER di = NULL;
+            DUIter di = NULL;
             UINT defcount = 0;
             for (INT i = defset->get_first(&di);
                  i >= 0; i = defset->get_next(i, &di), defcount++) {
@@ -932,9 +932,9 @@ VN * IR_GVN::computeVN(IR const* exp, bool & change)
         {
             VN * x = m_ir2vn.get(IR_id(exp));
             if (x != NULL) { return x; }
-            if (exp->is_int(m_dm)) {
+            if (exp->is_int()) {
                 x = registerVNviaINT(CONST_int_val(exp));
-            } else if (exp->is_fp(m_dm)) {
+            } else if (exp->is_fp()) {
                 if (!m_is_vn_fp) {
                     return NULL;
                 }

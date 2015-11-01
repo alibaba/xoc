@@ -469,7 +469,7 @@ public:
         copyDUSet(tgt, src);
         DUSet const* from_du = src->get_duset_c();
 
-        DU_ITER di = NULL;
+        DUIter di = NULL;
         for (UINT i = (UINT)from_du->get_first(&di);
              di != NULL; i = (UINT)from_du->get_next(i, &di)) {
             IR const* ref = get_ir(i);
@@ -497,7 +497,7 @@ public:
     {
         ASSERT0(get_ir(from)->is_stmt() && get_ir(to)->is_stmt() &&
                 useset_of_to && useset_of_from && m);
-        DU_ITER di = NULL;
+        DUIter di = NULL;
         for (INT i = useset_of_from->get_first(&di);
              di != NULL; i = useset_of_from->get_next((UINT)i, &di)) {
             IR const* exp = get_ir((UINT)i);
@@ -544,7 +544,7 @@ public:
     {
         ASSERT0(get_ir(from)->is_exp() && get_ir(to)->is_exp() &&
                  defset_of_from && defset_of_to && m);
-        DU_ITER di = NULL;
+        DUIter di = NULL;
         for (INT i = defset_of_from->get_first(&di);
              di != NULL; i = defset_of_from->get_next((UINT)i, &di)) {
             IR * stmt = get_ir((UINT)i);
@@ -719,7 +719,7 @@ public:
     inline void unionUse(DUSet const* stmtset, IR * exp)
     {
         ASSERT0(stmtset && exp && exp->is_exp());
-        DU_ITER di = NULL;
+        DUIter di = NULL;
         for (INT i = stmtset->get_first(&di);
              i >= 0; i = stmtset->get_next((UINT)i, &di)) {
             IR * d = m_ru->get_ir((UINT)i);
@@ -772,7 +772,7 @@ public:
     inline void unionDef(DUSet const* expset, IR * stmt)
     {
         ASSERT0(expset && stmt && stmt->is_stmt());
-        DU_ITER di = NULL;
+        DUIter di = NULL;
         for (INT i = expset->get_first(&di);
              i >= 0; i = expset->get_next((UINT)i, &di)) {
             IR * u = m_ru->get_ir((UINT)i);

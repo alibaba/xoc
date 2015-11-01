@@ -68,6 +68,14 @@ public:
 };
 
 
+//Backfill data.
+class BackFillData {
+public:
+    IR * ir;
+    LIR * lir;
+};
+
+
 //Transformator from IR to LIR/DEX.
 class IR2Dex {
 protected:

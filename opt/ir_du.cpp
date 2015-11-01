@@ -516,7 +516,7 @@ IR const* IR_DU_MGR::getExactAndUniqueDef(IR const* exp)
     DUSet const* defset = exp->get_duset_c();
     if (defset == NULL) { return NULL; }
 
-    DU_ITER di = NULL;
+    DUIter di = NULL;
     INT d1 = defset->get_first(&di);
     INT d2 = defset->get_next(d1, &di);
     if (d1 < 0 || (d1 >=0 && d2 >= 0)) { return NULL; }
@@ -535,7 +535,7 @@ bool IR_DU_MGR::hasSingleDefToMD(DUSet const& defset, MD const* md) const
 {
     UINT count = 0;
     IR_DU_MGR * pthis = const_cast<IR_DU_MGR*>(this);
-    DU_ITER di = NULL;
+    DUIter di = NULL;
     for (INT i = defset.get_first(&di); i >= 0; i = defset.get_next(i, &di)) {
         IR * def = m_ru->get_ir(i);
         if (pthis->get_must_def(def) == md) {
@@ -933,7 +933,7 @@ void IR_DU_MGR::computeExpression(IR * ir, OUT MDSet * ret_mds, UINT flag)
             /* e.g: PR1(U8) = ...
                      ... = PR(U32)
             PR1(U8) is correspond to MD7,
-            PR1(U32) is correspond to MD9, through MD7 and MD9 are overlapped.
+            PR1(U32) is correspond to MD9, therefore MD7 and MD9 are overlapped.
             */
             if (!isPRUniqueForSameNo()) {
                 computeOverlapUseMDSet(ir, false);
@@ -949,7 +949,7 @@ void IR_DU_MGR::computeExpression(IR * ir, OUT MDSet * ret_mds, UINT flag)
         computeExpression(SELECT_trueexp(ir), ret_mds, flag);
         computeExpression(SELECT_falseexp(ir), ret_mds, flag);
         break;
-    default: ASSERT0(0);
+    default: ASSERT(0, ("Unsupport IR code"));
     }
 }
 
@@ -974,7 +974,7 @@ void IR_DU_MGR::dump_du_graph(CHAR const* name, bool detail)
             DUSet const* useset = ir->get_duset_c();
             if (useset == NULL) { continue; }
 
-            DU_ITER di = NULL;
+            DUIter di = NULL;
             for (INT i = useset->get_first(&di);
                  i >= 0; i = useset->get_next(i, &di)) {
                 IR * u = m_ru->get_ir(i);
@@ -1521,7 +1521,7 @@ void IR_DU_MGR::dump_bb_du_chain2(IRBB * bb)
 
             DUSet const* set = k->get_duset_c();
             if (set != NULL) {
-                DU_ITER di = NULL;
+                DUIter di = NULL;
                 for (INT i = set->get_first(&di);
                      i >= 0; ) {
                     IR const* ref = m_ru->get_ir(i);
@@ -1639,7 +1639,7 @@ void IR_DU_MGR::dump_du_chain()
                     first = false;
                 }
 
-                DU_ITER di = NULL;
+                DUIter di = NULL;
                 for (INT i = defset->get_first(&di);
                      i >= 0; i = defset->get_next(i, &di)) {
                     IR const* def = m_ru->get_ir(i);
@@ -1652,7 +1652,7 @@ void IR_DU_MGR::dump_du_chain()
             if (useset == NULL || useset->get_elem_count() == 0) { continue; }
 
             fprintf(g_tfile, "\n>>USE List:");
-            DU_ITER di = NULL;
+            DUIter di = NULL;
             for (INT i = useset->get_first(&di);
                  i >= 0; i = useset->get_next(i, &di)) {
                 IR const* u = m_ru->get_ir(i);
@@ -1894,7 +1894,7 @@ void IR_DU_MGR::copyIRTreeDU(IR * to, IR const* from, bool copyDUChain)
             to_du->copy(*from_du, *m_misc_bs_mgr);
 
             //Add new du chain between DEF and USE.
-            DU_ITER di = NULL;
+            DUIter di = NULL;
             for (UINT i = from_du->get_first(&di);
                  di != NULL; i = from_du->get_next(i, &di)) {
 
@@ -2004,7 +2004,7 @@ bool IR_DU_MGR::removeExpiredDUForStmt(IR * stmt)
     MDSet const* maydef = get_may_def(stmt);
     MD const* mustdef = get_must_def(stmt);
 
-    DU_ITER di = NULL;
+    DUIter di = NULL;
     UINT next_u;
     for (UINT u = useset->get_first(&di); di != NULL; u = next_u) {
         next_u = useset->get_next(u, &di);
@@ -2058,7 +2058,7 @@ bool IR_DU_MGR::removeExpiredDUForOperand(IR * stmt)
         DUSet const* defset = k->get_duset_c();
         if (defset == NULL) { continue; }
 
-        DU_ITER di = NULL;
+        DUIter di = NULL;
         UINT nd;
         for (UINT d = defset->get_first(&di); di != NULL; d = nd) {
             nd = defset->get_next(d, &di);
@@ -2137,7 +2137,7 @@ void IR_DU_MGR::removeUseOutFromDefset(IR * ir)
         DUSet * defset = k->get_duset();
         if (defset == NULL) { continue; }
 
-        DU_ITER di = NULL;
+        DUIter di = NULL;
         bool doclean = false;
         for (INT i = defset->get_first(&di);
              i >= 0; i = defset->get_next(i, &di)) {
@@ -2175,7 +2175,7 @@ void IR_DU_MGR::removeDefOutFromUseset(IR * def)
     DUSet * useset = def->get_duset();
     if (useset == NULL) { return; }
 
-    DU_ITER di = NULL;
+    DUIter di = NULL;
     bool doclean = false;
     for (INT i = useset->get_first(&di);
     //Remove the du chain bewteen DEF and its USE.
@@ -3765,7 +3765,7 @@ UINT IR_DU_MGR::checkIsLocalKillingDef(
     */
     DUSet const* defset_of_t = t->get_duset_c();
     if (defset_of_t != NULL) {
-        DU_ITER di = NULL;
+        DUIter di = NULL;
         for (UINT d = defset_of_t->get_first(&di);
              di != NULL; d = defset_of_t->get_next(d, &di)) {
             IR const* def_of_t = get_ir(d);
@@ -4548,7 +4548,7 @@ bool IR_DU_MGR::verifyMDDUChainForIR(IR const* ir)
         DUSet const* useset = ir->get_duset_c();
 
         if (useset != NULL) {
-            DU_ITER di = NULL;
+            DUIter di = NULL;
             for (INT i = useset->get_first(&di);
                  i >= 0; i = useset->get_next(i, &di)) {
                 IR const* use = m_ru->get_ir(i);
@@ -4592,7 +4592,7 @@ bool IR_DU_MGR::verifyMDDUChainForIR(IR const* ir)
         if (defset == NULL) { continue; }
 
         ASSERT(u->is_memory_opnd(), ("only memory operand has DUSet"));
-        DU_ITER di = NULL;
+        DUIter di = NULL;
         for (INT i = defset->get_first(&di);
              i >= 0; i = defset->get_next(i, &di)) {
             IR const* def = m_ru->get_ir(i);
@@ -5017,7 +5017,7 @@ IR * IR_DU_MGR::findDomDef(
              const_cast<IR_DU_MGR*>(this)->get_must_use(exp) != NULL);
     IR * last = NULL;
     INT lastrpo = -1;
-    DU_ITER di = NULL;
+    DUIter di = NULL;
     for (INT i = expdu->get_first(&di);
          i >= 0; i = expdu->get_next(i, &di)) {
         IR * d = m_ru->get_ir(i);
@@ -5182,7 +5182,7 @@ bool IR_DU_MGR::perform(IN OUT OptCTX & oc, UINT flag)
 
     if (m_ru->get_pass_mgr() != NULL) {
         IR_SSA_MGR * ssamgr =
-            (IR_SSA_MGR*)m_ru->get_pass_mgr()->query_opt(PASS_SSA_MGR);
+            (IR_SSA_MGR*)m_ru->get_pass_mgr()->queryPass(PASS_SSA_MGR);
         if (ssamgr != NULL) {
             setComputePRDU(!ssamgr->is_ssa_constructed());
         } else {
@@ -5379,7 +5379,7 @@ void IR_DU_MGR::computeMDDUChain(IN OUT OptCTX & oc)
     //doesn't make any sense.
     if (m_ru->get_pass_mgr() != NULL) {
         IR_SSA_MGR * ssamgr =
-            (IR_SSA_MGR*)m_ru->get_pass_mgr()->query_opt(PASS_SSA_MGR);
+            (IR_SSA_MGR*)m_ru->get_pass_mgr()->queryPass(PASS_SSA_MGR);
         if (ssamgr != NULL) {
             setComputePRDU(!ssamgr->is_ssa_constructed());
         } else {

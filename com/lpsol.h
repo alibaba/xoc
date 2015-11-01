@@ -2084,8 +2084,8 @@ template <class Mat, class T> class MIP : public Element<T> {
                     IN Mat const& eq,
                     IN Mat const& leq,
                     INT rhs_idx,
-                    IN bool is_max,
-                    IN bool is_bin,
+                    bool is_max,
+                    bool is_bin,
                     IN INTMat & fork_count);
 public:
     MIP();
@@ -2102,13 +2102,13 @@ public:
     virtual UINT minm(OUT T & minv, OUT Mat & res,
                       Mat const& tgtf, IN Mat & vc,
                       Mat const& eq, Mat const& leq,
-                      IN bool is_bin = false,
+                      bool is_bin = false,
                       IN BMat * rational_indicator = NULL,
                       INT rhs_idx = -1); //Linear minmum solution
     virtual UINT maxm(OUT T & maxv, OUT Mat & res,
                       Mat const& tgtf, IN Mat & vc,
                       Mat const& eq, Mat const& leq,
-                      IN bool is_bin = false,
+                      bool is_bin = false,
                       IN BMat * rational_indicator = NULL,
                       INT rhs_idx = -1); //Linear maximum solution
     void reviseTargetFunc(IN OUT Mat & tgtf,

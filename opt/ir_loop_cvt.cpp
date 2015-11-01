@@ -106,7 +106,7 @@ bool IR_LOOP_CVT::try_convert(LI<IRBB> * li, IRBB * gobackbb,
 
     //Copy ir in header to gobackbb.
     IR * last_cond_br = NULL;
-    DU_ITER di = NULL;
+    DUIter di = NULL;
     Vector<IR*> rmvec;
     for (IR * ir = BB_first_ir(head);
          ir != NULL; ir = BB_next_ir(head)) {
@@ -165,7 +165,7 @@ bool IR_LOOP_CVT::try_convert(LI<IRBB> * li, IRBB * gobackbb,
     LabelInfo const* loopbody_start_lab =
             loopbody_start_bb->get_lab_list().get_head();
     if (loopbody_start_lab == NULL) {
-        loopbody_start_lab = ::newInternalLabel(m_ru->get_pool());
+        loopbody_start_lab = ::allocInternalLabel(m_ru->get_pool());
         m_cfg->add_lab(loopbody_start_bb, loopbody_start_lab);
     }
     last_cond_br->set_label(loopbody_start_lab);

@@ -529,10 +529,10 @@ IR * Region::refinePhi(IR * ir, bool & change, RefineCTX & rc)
     bool all_be_same_const = true;
     IR * opnd = PHI_opnd_list(ir);
     HOST_INT val = 0;
-    if (opnd->is_const() && opnd->is_int(get_type_mgr())) {
+    if (opnd->is_const() && opnd->is_int()) {
         val = CONST_int_val(opnd);
         for (opnd = IR_next(opnd); opnd != NULL; opnd = IR_next(opnd)) {
-            if (opnd->is_const() && opnd->is_int(get_type_mgr()) &&
+            if (opnd->is_const() && opnd->is_int() &&
                 val == CONST_int_val(opnd)) {
                 continue;
             }
@@ -602,10 +602,9 @@ static inline IR * hoistSelectToLnot(IR * ir, Region * ru)
     if (det->is_ne()) {
         IR * trueexp = SELECT_trueexp(ir);
         IR * falseexp = SELECT_falseexp(ir);
-        TypeMgr * dm = ru->get_type_mgr();
-        if (BIN_opnd1(det)->isConstIntValueEqualTo(0, dm) &&
-            trueexp->isConstIntValueEqualTo(0, dm) &&
-            falseexp->isConstIntValueEqualTo(1, dm)) {
+        if (BIN_opnd1(det)->isConstIntValueEqualTo(0) &&
+            trueexp->isConstIntValueEqualTo(0) &&
+            falseexp->isConstIntValueEqualTo(1)) {
             IR * lnot = ru->buildUnaryOp(IR_LNOT, IR_dt(ir), BIN_opnd0(det));
             BIN_opnd0(det) = NULL;
             return lnot;
@@ -615,10 +614,9 @@ static inline IR * hoistSelectToLnot(IR * ir, Region * ru)
     if (det->is_eq()) {
         IR * trueexp = SELECT_trueexp(ir);
         IR * falseexp = SELECT_falseexp(ir);
-        TypeMgr * dm = ru->get_type_mgr();
-        if (BIN_opnd1(det)->isConstIntValueEqualTo(0, dm) &&
-            trueexp->isConstIntValueEqualTo(1, dm) &&
-            falseexp->isConstIntValueEqualTo(0, dm)) {
+        if (BIN_opnd1(det)->isConstIntValueEqualTo(0) &&
+            trueexp->isConstIntValueEqualTo(1) &&
+            falseexp->isConstIntValueEqualTo(0)) {
             IR * lnot = ru->buildUnaryOp(IR_LNOT, IR_dt(ir), BIN_opnd0(det));
             BIN_opnd0(det) = NULL;
             return lnot;
@@ -639,7 +637,7 @@ IR * Region::refineSelect(IR * ir, bool & change, RefineCTX & rc)
     IR * det = SELECT_det(ir);
 
     IR * gen;
-    if (det->is_const() && det->is_int(get_type_mgr())) {
+    if (det->is_const() && det->is_int()) {
         HOST_INT v = CONST_int_val(det);
         if (v == 0) {
             IR * rm = SELECT_trueexp(ir);
@@ -658,7 +656,7 @@ IR * Region::refineSelect(IR * ir, bool & change, RefineCTX & rc)
             freeIRTree(rm2);
             change = true;
         }
-    } else if (det->is_const() && det->is_fp(get_type_mgr())) {
+    } else if (det->is_const() && det->is_fp()) {
         double v = CONST_fp_val(det);
         if (v < EPSILON) { //means v == 0.0
             IR * rm = SELECT_trueexp(ir);
@@ -762,9 +760,7 @@ IR * Region::refineDiv(IR * ir, bool & change, RefineCTX & rc)
     ASSERT0(ir->is_div());
     IR * op1 = BIN_opnd1(ir);
     IR * op0 = BIN_opnd0(ir);
-    TypeMgr * dm = get_type_mgr();
-    if (op1->is_const() && op1->is_fp(dm) &&
-        g_is_opt_float && !op0->is_const()) {
+    if (g_is_opt_float && op1->is_const() && op1->is_fp() && !op0->is_const()) {
         HOST_FP fp_imm = CONST_fp_val(op1);
         if (fp_imm == 1.0) {
             //X/1.0 => X
@@ -787,13 +783,13 @@ IR * Region::refineDiv(IR * ir, bool & change, RefineCTX & rc)
             return ir;
         }
     } else if (op1->is_const() &&
-               op1->is_int(dm) &&
+               op1->is_int() &&
                isPowerOf2(CONST_int_val(op1)) &&
                RC_refine_div_const(rc)) {
         //X/2 => X>>1, arith shift right.
-        if (op0->is_sint(dm)) {
+        if (op0->is_sint()) {
             IR_code(ir) = IR_ASR;
-        } else if (op0->is_uint(dm)) {
+        } else if (op0->is_uint()) {
             IR_code(ir) = IR_LSR;
         } else {
             ASSERT0(0);
@@ -812,7 +808,7 @@ IR * Region::refineDiv(IR * ir, bool & change, RefineCTX & rc)
             ty = IR_dt(op0);
         }
 
-        if (dm->is_fp(ty)) {
+        if (ty->is_fp()) {
             ir = buildImmFp(1.0f, ty);
         } else {
             ir = buildImmInt(1, ty);
@@ -840,8 +836,7 @@ IR * Region::refineMod(IR * ir, bool & change)
     CK_USE(op0);
     CK_USE(op1);
 
-    if (op1->is_const() &&
-        op1->is_int(get_type_mgr()) && CONST_int_val(op1) == 1) {
+    if (op1->is_const() && op1->is_int() && CONST_int_val(op1) == 1) {
         //mod X,1 => 0
         IR * tmp = ir;
         ir = dupIRTree(op1);
@@ -866,7 +861,7 @@ IR * Region::refineRem(IR * ir, bool & change)
     CK_USE(op0);
     CK_USE(op1);
 
-    if (op1->is_const() && op1->is_int(get_type_mgr()) && CONST_int_val(op1) == 1) {
+    if (op1->is_const() && op1->is_int() && CONST_int_val(op1) == 1) {
         //rem X,1 => 0
         IR * tmp = ir;
         ir = dupIRTree(op1);
@@ -888,7 +883,7 @@ IR * Region::refineAdd(IR * ir, bool & change)
     IR * op0 = BIN_opnd0(ir);
     IR * op1 = BIN_opnd1(ir);
     ASSERT0(op0 != NULL && op1 != NULL);
-    if (op1->is_const() && op1->is_int(get_type_mgr()) && CONST_int_val(op1) == 0) {
+    if (op1->is_const() && op1->is_int() && CONST_int_val(op1) == 0) {
         //add X,0 => X
         IR * tmp = ir;
         BIN_opnd0(ir) = NULL;
@@ -908,8 +903,8 @@ IR * Region::refineMul(IR * ir, bool & change, RefineCTX & rc)
     IR * op1 = BIN_opnd1(ir);
     ASSERT0(op0 != NULL && op1 != NULL);
     if (op1->is_const() &&
-        ((op1->is_fp(get_type_mgr()) && CONST_fp_val(op1) == 2.0) ||
-         (op1->is_int(get_type_mgr()) && CONST_int_val(op1) == 2))) {
+        ((op1->is_fp() && CONST_fp_val(op1) == 2.0) ||
+         (op1->is_int() && CONST_int_val(op1) == 2))) {
         //mul X,2.0 => add.fp X,X
         //mul X,2 => add.int X,X
         IR_code(ir) = IR_ADD;
@@ -922,7 +917,7 @@ IR * Region::refineMul(IR * ir, bool & change, RefineCTX & rc)
         ir->setParentPointer(false);
         change = true;
         return ir; //No need for updating DU.
-    } else if (op1->is_const() && op1->is_int(get_type_mgr())) {
+    } else if (op1->is_const() && op1->is_int()) {
         if (CONST_int_val(op1) == 1) {
             //mul X,1 => X
             IR * newir = op0;
@@ -960,7 +955,7 @@ IR * Region::refineBand(IR * ir, bool & change)
     IR * op0 = BIN_opnd0(ir);
     IR * op1 = BIN_opnd1(ir);
     ASSERT0(op0 != NULL && op1 != NULL);
-    if (op1->is_const() && op1->is_int(get_type_mgr()) && CONST_int_val(op1) == -1) {
+    if (op1->is_const() && op1->is_int() && CONST_int_val(op1) == -1) {
         //BAND X,-1 => X
         IR * tmp = ir;
         BIN_opnd0(ir) = NULL;
@@ -979,7 +974,7 @@ IR * Region::refineBor(IR * ir, bool & change)
     IR * op0 = BIN_opnd0(ir);
     IR * op1 = BIN_opnd1(ir);
     ASSERT0(op0 != NULL && op1 != NULL);
-    if (op1->is_const() && op1->is_int(get_type_mgr()) && CONST_int_val(op1) == 0) {
+    if (op1->is_const() && op1->is_int() && CONST_int_val(op1) == 0) {
         //BOR X,0 => X
         IR * tmp = ir;
         BIN_opnd0(ir) = NULL;
@@ -996,7 +991,7 @@ IR * Region::refineLand(IR * ir, bool & change)
 {
     ASSERT0(ir->is_land());
     IR * op0 = BIN_opnd0(ir);
-    if (op0->is_const() && op0->is_int(get_type_mgr()) && CONST_int_val(op0) == 1) {
+    if (op0->is_const() && op0->is_int() && CONST_int_val(op0) == 1) {
         //1 && x => x
         IR * tmp = BIN_opnd1(ir);
         BIN_opnd1(ir) = NULL;
@@ -1012,7 +1007,7 @@ IR * Region::refineLor(IR * ir, bool & change)
 {
     ASSERT0(ir->is_lor());
     IR * op0 = BIN_opnd0(ir);
-    if (op0->is_const() && op0->is_int(get_type_mgr()) && CONST_int_val(op0) == 1) {
+    if (op0->is_const() && op0->is_int() && CONST_int_val(op0) == 1) {
         //1 || x => 1
         if (get_du_mgr() != NULL) {
             get_du_mgr()->removeUseOutFromDefset(ir);
@@ -1047,11 +1042,13 @@ IR * Region::refineSub(IR * ir, bool & change)
         } else {
             ty = IR_dt(op0);
         }
-        if (dm->is_fp(ty)) {
+
+        if (ty->is_fp()) {
             ir = buildImmFp(0.0f, ty);
         } else {
             ir = buildImmInt(0, ty);
         }
+
         copyDbx(ir, tmp, this);
         freeIRTree(tmp);
         change = true;
@@ -1081,7 +1078,7 @@ IR * Region::refineXor(IR * ir, bool & change)
         } else {
             ty = IR_dt(op0);
         }
-        ASSERT0(dm->is_sint(ty) || dm->is_uint(ty));
+        ASSERT0(ty->is_sint() || ty->is_uint());
         ir = buildImmInt(0, ty);
         copyDbx(ir, tmp, this);
         freeIRTree(tmp);
@@ -1153,11 +1150,11 @@ IR * Region::reassociation(IR * ir, bool & change)
     //where OP1, OP2 must be identical precedence.
     TypeMgr * dm = get_type_mgr();
     if (op1->is_const() &&
-        op1->is_int(dm) &&
+        op1->is_int() &&
         op0->is_associative() &&
         ir->is_associative() &&
         BIN_opnd1(op0)->is_const() &&
-        BIN_opnd1(op0)->is_int(dm) &&
+        BIN_opnd1(op0)->is_int() &&
         ::getArithPrecedence(opt1) == ::getArithPrecedence(opt2)) {
 
         HOST_INT v = calcIntVal(opt1,
@@ -1432,8 +1429,8 @@ IR * Region::refineCvt(IR * ir, bool & change, RefineCTX & rc)
     }
 
     if (ir->is_cvt() && CVT_exp(ir)->is_const() &&
-        ((ir->is_int(get_type_mgr()) && CVT_exp(ir)->is_int(get_type_mgr())) ||
-         (ir->is_fp(get_type_mgr()) && CVT_exp(ir)->is_fp(get_type_mgr())))) {
+        ((ir->is_int() && CVT_exp(ir)->is_int()) ||
+         (ir->is_fp() && CVT_exp(ir)->is_fp()))) {
         //cvt(i64, const) => const(i64)
         IR * tmp = CVT_exp(ir);
         IR_dt(tmp) = IR_dt(ir);
@@ -1758,8 +1755,8 @@ void Region::insertCvtForBinaryOp(IR * ir, bool & change)
 
     if (op0->is_ptr()) {
         if (op1->get_dtype_size(get_type_mgr()) > op0->get_dtype_size(get_type_mgr())) {
-            ASSERT(get_type_mgr()->is_ptr_addend(IR_dt(op1)) && !op1->is_ptr(),
-                    ("illegal pointer arith"));
+            ASSERT(IR_dt(op1)->is_ptr_addend() && !op1->is_ptr(),
+                   ("illegal pointer arith"));
             DATA_TYPE t = get_type_mgr()->getPointerSizeDtype();
             BIN_opnd1(ir) = buildCvt(op1, get_type_mgr()->getSimplexTypeEx(t));
             copyDbx(BIN_opnd1(ir), op1, this);
@@ -1869,7 +1866,7 @@ IR * Region::insertCvt(IR * parent, IR * kid, bool & change)
                 //Do nothing.
                 return kid;
             }
-            if (kid->is_const() && kid->is_int(dm)) {
+            if (kid->is_const() && kid->is_int()) {
                 ASSERT0(!kid->is_mc());
                 if (tgt_ty->is_pointer()) {
                     IR_dt(kid) =
@@ -2049,18 +2046,17 @@ IR * Region::foldConstIntBinary(IR * ir, bool & change)
             if (ir->is_bool()) {
                 x = buildImmInt(calcIntVal(ir->get_code(), v0, v1),
                                 get_type_mgr()->getSimplexTypeEx(D_U32));
-            } else if (ir->is_fp(get_type_mgr())) {
+            } else if (ir->is_fp()) {
                 //The result type of binary operation is
                 //float point, inserting IR_CVT.
                 Type const* ty =
-                    get_type_mgr()->hoistDtypeForBinop(BIN_opnd0(ir), BIN_opnd1(ir));
-
+                    get_type_mgr()->hoistDtypeForBinop(BIN_opnd0(ir),
+                                                       BIN_opnd1(ir));
                 x = buildCvt(
-                        buildImmInt(
-                            calcIntVal(ir->get_code(), v0, v1), ty),
-                        IR_dt(ir));
+                      buildImmInt(calcIntVal(ir->get_code(), v0, v1), ty),
+                      IR_dt(ir));
             } else {
-                ASSERT0(ir->is_int(get_type_mgr()));
+                ASSERT0(ir->is_int());
                 x = buildImmInt(
                         calcIntVal(ir->get_code(), v0, v1), IR_dt(ir));
             }
@@ -2071,6 +2067,7 @@ IR * Region::foldConstIntBinary(IR * ir, bool & change)
         break;
     default: ASSERT0(0);
     } //end switch
+
     if (lchange) {
         freeIRTree(oldir);
         change = true;
@@ -2160,8 +2157,8 @@ IR * Region::foldConstFloatBinary(IR * ir, bool & change)
 {
     TypeMgr * dm = get_type_mgr();
     ASSERT0(ir->is_binary_op());
-    ASSERT0(BIN_opnd0(ir)->is_const() && BIN_opnd0(ir)->is_fp(dm) &&
-             BIN_opnd1(ir)->is_const() && BIN_opnd1(ir)->is_fp(dm));
+    ASSERT0(BIN_opnd0(ir)->is_const() && BIN_opnd0(ir)->is_fp() &&
+            BIN_opnd1(ir)->is_const() && BIN_opnd1(ir)->is_fp());
     double v0 = CONST_fp_val(BIN_opnd0(ir));
     double v1 = CONST_fp_val(BIN_opnd1(ir));
     INT tylen = MAX(dm->get_bytesize(IR_dt(BIN_opnd0(ir))),
@@ -2239,18 +2236,17 @@ IR * Region::foldConst(IR * ir, bool & change)
     case IR_LSR:
     case IR_LSL:
         {
-
             IR * t0 = BIN_opnd0(ir);
             IR * t1 = BIN_opnd1(ir);
             ASSERT0(ir->is_binary_op());
             ASSERT(IR_MAX_KID_NUM(ir) == 2, ("binary op"));
             ASSERT(t0 != NULL && t1 != NULL, ("binary op"));
-            if ((t0->is_const() && t0->is_fp(dm) &&
-                 t1->is_const() && t1->is_fp(dm)) &&
+            if ((t0->is_const() && t0->is_fp() &&
+                 t1->is_const() && t1->is_fp()) &&
                  g_is_opt_float) {
                 return foldConstFloatBinary(ir, change);
             } else if (t0->is_const() && t1->is_const() &&
-                       t0->is_int(dm) && t1->is_int(dm)) {
+                       t0->is_int() && t1->is_int()) {
                 return foldConstIntBinary(ir, change);
             } //end if
         }
@@ -2263,10 +2259,10 @@ IR * Region::foldConst(IR * ir, bool & change)
             ASSERT(IR_MAX_KID_NUM(ir) == 1, ("unary op"));
             ASSERT0(UNA_opnd0(ir) != NULL);
             if (UNA_opnd0(ir)->is_const() &&
-                UNA_opnd0(ir)->is_fp(dm) && g_is_opt_float) {
+                UNA_opnd0(ir)->is_fp() && g_is_opt_float) {
                 ir = foldConstFloatUnary(ir, change);
                 if (change) { return ir; }
-            } else if (UNA_opnd0(ir)->is_const() && UNA_opnd0(ir)->is_int(dm)) {
+            } else if (UNA_opnd0(ir)->is_const() && UNA_opnd0(ir)->is_int()) {
                 ir = foldConstIntUnary(ir, change);
                 if (change) { return ir; }
             } //end if
@@ -2281,8 +2277,8 @@ IR * Region::foldConst(IR * ir, bool & change)
         {
             //LT(UNSIGNED, 0) always be false.
             IR * opnd1 = BIN_opnd1(ir);
-            if (!BIN_opnd0(ir)->is_signed(dm) && opnd1->is_const() &&
-                opnd1->is_int(dm) && CONST_int_val(opnd1) == 0) {
+            if (!BIN_opnd0(ir)->is_signed() && opnd1->is_const() &&
+                opnd1->is_int() && CONST_int_val(opnd1) == 0) {
                 if (get_du_mgr() != NULL) {
                     get_du_mgr()->removeUseOutFromDefset(ir);
                 }
@@ -2297,8 +2293,8 @@ IR * Region::foldConst(IR * ir, bool & change)
         {
             //GE(UNSIGNED, 0) always be true.
             IR * opnd1 = BIN_opnd1(ir);
-            if (!BIN_opnd0(ir)->is_signed(dm) && opnd1->is_const() &&
-                opnd1->is_int(dm) && CONST_int_val(opnd1) == 0) {
+            if (!BIN_opnd0(ir)->is_signed() && opnd1->is_const() &&
+                opnd1->is_int() && CONST_int_val(opnd1) == 0) {
                 IR * x = buildImmInt(1, IR_dt(ir));
                 copyDbx(x, ir, this);
                 if (get_du_mgr() != NULL) {
@@ -2317,13 +2313,13 @@ IR * Region::foldConst(IR * ir, bool & change)
             IR * opnd1 = BIN_opnd1(ir);
             if ((opnd0->is_lda() &&
                  LDA_base(opnd0)->is_str() &&
-                 opnd1->is_const() && opnd1->is_int(dm) &&
+                 opnd1->is_const() && opnd1->is_int() &&
                  CONST_int_val(opnd1) == 0)
                 ||
                 (opnd1->is_lda() &&
                  LDA_base(opnd1)->is_str() &&
                  opnd0->is_const() &&
-                 opnd0->is_int(dm) &&
+                 opnd0->is_int() &&
                  CONST_int_val(opnd0) == 0)) {
                 IR * x = buildImmInt(1, IR_dt(ir));
                 copyDbx(x, ir, this);
@@ -2342,13 +2338,13 @@ IR * Region::foldConst(IR * ir, bool & change)
             if ((opnd0->is_lda() &&
                  LDA_base(opnd0)->is_str() &&
                  opnd1->is_const() &&
-                 opnd1->is_int(dm) &&
+                 opnd1->is_int() &&
                  CONST_int_val(opnd1) == 0)
                 ||
                 (opnd1->is_lda() &&
                  LDA_base(opnd1)->is_str() &&
                  opnd0->is_const() &&
-                 opnd0->is_int(dm) &&
+                 opnd0->is_int() &&
                  CONST_int_val(opnd0) == 0)) {
                 IR * x = buildImmInt(0, IR_dt(ir));
                 copyDbx(x, ir, this);
@@ -2364,14 +2360,14 @@ IR * Region::foldConst(IR * ir, bool & change)
             IR * opnd0 = BIN_opnd0(ir);
             IR * opnd1 = BIN_opnd1(ir);
             if (opnd0->is_const() &&
-                opnd0->is_int(dm) && CONST_int_val(opnd0) == 0) {
+                opnd0->is_int() && CONST_int_val(opnd0) == 0) {
                 IR * newir = buildImmInt(0, IR_dt(ir));
                 copyDbx(newir, ir, this);
                 freeIRTree(ir);
                 ir = newir;
                 change = true;
             } else if (opnd1->is_const() &&
-                       opnd1->is_int(dm) &&
+                       opnd1->is_int() &&
                        CONST_int_val(opnd1) == 0) {
                 IR * newir = opnd0;
                 BIN_opnd0(ir) = NULL;
@@ -2386,14 +2382,14 @@ IR * Region::foldConst(IR * ir, bool & change)
             IR * opnd0 = BIN_opnd0(ir);
             IR * opnd1 = BIN_opnd1(ir);
             if (opnd0->is_const() &&
-                opnd0->is_int(dm) &&
+                opnd0->is_int() &&
                 CONST_int_val(opnd0) == 0) {
                 IR * newir = buildImmInt(0, IR_dt(ir));
                 copyDbx(newir, ir, this);
                 freeIRTree(ir);
                 ir = newir;
                 change = true;
-            } else if (opnd1->is_const() && opnd1->is_int(dm)) {
+            } else if (opnd1->is_const() && opnd1->is_int()) {
                 if (CONST_int_val(opnd1) == 0) {
                     //x<<0 => x
                     IR * newir = opnd0;

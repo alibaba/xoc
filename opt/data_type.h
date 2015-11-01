@@ -162,6 +162,41 @@ public:
     //Return true if data type is boolean.
     bool is_bool() const { return TY_dtype(this) == D_B; }
 
+    //Return true if data type is primitive.
+    bool is_scalar() const
+    { return TY_dtype(this) >= D_B && TY_dtype(this) <= D_F128; }
+
+    //Return true if tyid is signed.
+    inline bool is_signed() const
+    {
+        if ((TY_dtype(this)>= D_I8 && TY_dtype(this) <= D_I128) ||
+            (TY_dtype(this) >= D_F32 && TY_dtype(this) <= D_F128)) {
+            return true;
+        }
+        return false;
+    }
+
+    //Return true if ir data type is signed integer.
+    bool is_sint() const
+    { return TY_dtype(this) >= D_I8 && TY_dtype(this) <= D_I128; }
+
+    //Return true if ir data type is unsgined integer.
+    bool is_uint() const
+    { return TY_dtype(this) >= D_U8 && TY_dtype(this) <= D_U128; }
+
+    //Return true if ir data type is integer.
+    bool is_int() const
+    { return TY_dtype(this) >= D_B && TY_dtype(this) <= D_U128; }
+
+    //Return true if ir data type is float.
+    bool is_fp() const
+    { return TY_dtype(this) >= D_F32 && TY_dtype(this) <= D_F128; }
+
+    //Return true if the type can be used to represent the
+    //pointer's addend. e.g:The pointer arith, int * p; p = p + (type)value.
+    bool is_ptr_addend() const
+    { return !is_fp() && !is_mc() && !is_bool() && !is_pointer(); }
+
     void copy(Type const& src) { data_type = src.data_type; }
 };
 
@@ -223,7 +258,7 @@ public:
 
 
 //Container of Type.
-#define TC_type(c)            ((c)->dtd)
+#define TC_type(c)          ((c)->dtd)
 #define TC_typeid(c)        ((c)->tyid)
 class TypeContainer {
 public:
@@ -524,7 +559,7 @@ public:
     }
 
     //Return tyid accroding to DATA_TYPE.
-    inline Type const* getSimplexTypeEx(DATA_TYPE dt)
+    inline Type const* getSimplexTypeEx(DATA_TYPE dt) const
     {
         switch (dt) {
         case D_B: return m_b;
@@ -637,68 +672,22 @@ public:
     UINT get_bytesize(Type const* dtd) const;
 
     //Return byte size according to given tyid.
-    UINT get_bytesize(UINT tyid) const
-    { return get_bytesize(get_type(tyid)); }
+    UINT get_bytesize(UINT tyid) const { return get_bytesize(get_type(tyid)); }
 
     bool is_scalar(UINT tyid)
     { return tyid >= D_B && tyid <= D_F128; }
 
-    bool is_scalar(Type const* type)
-    {
-        ASSERT0(type);
-        return TY_dtype(type) >= D_B && TY_dtype(type) <= D_F128;
-    }
-
     //Return true if tyid is signed.
-    bool is_signed(UINT tyid) const { return is_signed(get_type(tyid)); }
-
-    //Return true if tyid is signed.
-    inline bool is_signed(Type const* type) const
-    {
-        ASSERT0(type);
-        if ((TY_dtype(type)>= D_I8 && TY_dtype(type) <= D_I128) ||
-            (TY_dtype(type) >= D_F32 && TY_dtype(type) <= D_F128)) {
-            return true;
-        }
-        return false;
-    }
-
-    //Return true if ir data type is signed integer.
-    inline bool is_sint(Type const* type) const
-    {
-        ASSERT0(type);
-        return TY_dtype(type) >= D_I8 && TY_dtype(type) <= D_I128;
-    }
-
-    //Return true if ir data type is unsgined integer.
-    bool is_uint(Type const* type) const
-    {
-        ASSERT0(type);
-        return TY_dtype(type) >= D_U8 && TY_dtype(type) <= D_U128;
-    }
-
-    //Return true if ir data type is integer.
-    bool is_int(Type const* type) const
-    {
-        ASSERT0(type);
-        return TY_dtype(type) >= D_B && TY_dtype(type) <= D_U128;
-    }
-
-    //Return true if ir data type is float.
-    bool is_fp(Type const* type) const
-    {
-        ASSERT0(type);
-        return TY_dtype(type) >= D_F32 && TY_dtype(type) <= D_F128;
-    }
+    bool is_signed(UINT tyid) const { return get_type(tyid)->is_signed(); }
 
     //Return true if tyid is signed integer.
-    inline bool is_sint(UINT tyid) const { return is_sint(get_type(tyid)); }
+    bool is_sint(UINT tyid) const { return get_type(tyid)->is_sint(); }
 
     //Return true if tyid is unsigned integer.
-    inline bool is_uint(UINT tyid) const { return is_uint(get_type(tyid)); }
+    bool is_uint(UINT tyid) const { return get_type(tyid)->is_uint(); }
 
     //Return true if tyid is Float point.
-    inline bool is_fp(UINT tyid) const { return is_fp(get_type(tyid)); }
+    bool is_fp(UINT tyid) const { return get_type(tyid)->is_fp(); }
 
     //Return true if tyid is Boolean.
     bool is_bool(UINT tyid) const { return m_b == get_type(tyid); }
@@ -717,16 +706,6 @@ public:
 
     //Return true if data type is Vector.
     bool is_vec(UINT tyid) const { return get_type(tyid)->is_vector(); }
-
-    //Return true if the type can be used to represent the
-    //pointer's addend. e.g:The pointer arith, int * p; p = p + (type)value.
-    bool is_ptr_addend(Type const* type)
-    {
-        return !is_fp(type) &&
-            !type->is_mc() &&
-            !type->is_bool() &&
-            !type->is_pointer();
-    }
 };
 
 } //namespace xoc

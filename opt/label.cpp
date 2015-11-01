@@ -44,24 +44,24 @@ using namespace xcom;
 
 namespace xoc {
 
-LabelInfo * newCustomerLabel(SYM * st, SMemPool * pool)
+LabelInfo * allocCustomerLabel(SYM * st, SMemPool * pool)
 {
-    LabelInfo * li = newLabel(pool);
+    LabelInfo * li = allocLabel(pool);
     LABEL_INFO_name(li) = st;
     LABEL_INFO_type(li) = L_CLABEL;
     return li;
 }
 
 
-LabelInfo * newInternalLabel(SMemPool * pool)
+LabelInfo * allocInternalLabel(SMemPool * pool)
 {
-    LabelInfo * n = newLabel(pool);
+    LabelInfo * n = allocLabel(pool);
     LABEL_INFO_type(n) = L_ILABEL;
     return n;
 }
 
 
-LabelInfo * newLabel(SMemPool * pool)
+LabelInfo * allocLabel(SMemPool * pool)
 {
     LabelInfo * p = (LabelInfo*)smpoolMalloc(sizeof(LabelInfo), pool);
     ASSERT0(p);

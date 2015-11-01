@@ -1114,7 +1114,7 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCTX * ctx)
             s[1].b has ARR_ofst(ir)==4
             can simply to: &s + 1*sizeof(struct S) + offset(4) */
         IR * news2 = NULL;
-        if (news->is_const() && news->is_int(dm)) {
+        if (news->is_const() && news->is_int()) {
             //Subexp is const.
             if (enumb != 0) {
                 news2 = buildImmInt(

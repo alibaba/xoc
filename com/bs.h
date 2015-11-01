@@ -143,7 +143,7 @@ class ROBitSet : public BitSet {
 public:
     ROBitSet(BYTE const* vec, UINT veclen) : BitSet(0) { init(vec, veclen); }
     COPY_CONSTRUCTOR(ROBitSet);
-    ~ROBitSet() {}
+    ~ROBitSet() { m_ptr = NULL; m_size = 0; }
 
     void init(BYTE const* vec, UINT veclen)
     {

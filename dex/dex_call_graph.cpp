@@ -31,61 +31,44 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 author: Su Zhenyu
 @*/
+#include "libdex/DexFile.h"
+#include "libdex/DexClass.h"
+#include "libdex/DexProto.h"
+#include "liropcode.h"
+#include "lir.h"
 #include "cominc.h"
+#include "comopt.h"
+#include "drAlloc.h"
+#include "d2d_comm.h"
+#include "dex.h"
+#include "gra.h"
+#ifdef _CODE_ANA_
+#include "auxsym.h"
+#include "warnmgr.h"
+#endif
+#include "dex_hook.h"
+#include "dex_util.h"
 
-namespace xoc {
+static CHAR const* g_unimportant_func[] = {
+    "Ljava/lang/StringBuilder;:()V:<init>",
+};
+static UINT g_unimportant_func_num =
+    sizeof(g_unimportant_func) / sizeof(g_unimportant_func[0]);
 
-bool DUSet::verify_def(IR_DU_MGR * du) const
+
+DexCallGraph::DexCallGraph(UINT edge_hash, UINT vex_hash, RegionMgr * rumgr) :
+        CallGraph(edge_hash, vex_hash, rumgr)
 {
-    CK_USE(du);
-    DUIter di = NULL;
-    for (UINT d = get_first(&di);
-         di != NULL; d = get_next(d, &di)) {
-        ASSERT0(du->get_ir(d)->is_stmt());
+    ASSERT0(rumgr);
+    SymTab * symtab = rumgr->get_sym_tab();
+    for (UINT i = 0; i < g_unimportant_func_num; i++) {
+        SYM const* sym = symtab->add(g_unimportant_func[i]);
+        m_unimportant_symtab.append(sym);
     }
-    return true;
 }
 
 
-bool DUSet::verify_use(IR_DU_MGR * du) const
+bool DexCallGraph::is_unimportant(SYM const* sym) const
 {
-    CK_USE(du);
-    DUIter di = NULL;
-    for (UINT u = get_first(&di);
-         di != NULL; u = get_next(u, &di)) {
-        ASSERT0(du->get_ir(u)->is_exp());
-    }
-    return true;
+    return m_unimportant_symtab.find(sym);
 }
-
-
-//Add define stmt with check if the stmt is unique in list.
-void DUSet::add_use(IR const* exp, DefMiscBitSetMgr & m)
-{
-    ASSERT0(exp && exp->is_exp());
-    bunion(IR_id(exp), m);
-}
-
-
-//Add define stmt with check if the stmt is unique in list.
-void DUSet::add_def(IR const* stmt, DefMiscBitSetMgr & m)
-{
-    ASSERT0(stmt && stmt->is_stmt());
-    bunion(IR_id(stmt), m);
-}
-
-
-void DUSet::remove_use(IR const* exp, DefMiscBitSetMgr & m)
-{
-    ASSERT0(exp && exp->is_exp());
-    diff(IR_id(exp), m);
-}
-
-
-void DUSet::removeDef(IR const* stmt, DefMiscBitSetMgr & m)
-{
-    ASSERT0(stmt && stmt->is_stmt());
-    diff(IR_id(stmt), m);
-}
-
-} //namespace xoc

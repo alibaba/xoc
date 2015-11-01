@@ -88,8 +88,8 @@ The C language rules are:
 NOTE: The function does NOT hoist vector type. */
 Type const* TypeMgr::hoistDtypeForBinop(IR const* opnd0, IR const* opnd1)
 {
-    Type const* d0 = IR_dt(opnd0);
-    Type const* d1 = IR_dt(opnd1);
+    Type const* d0 = opnd0->get_type();
+    Type const* d1 = opnd1->get_type();
 
     ASSERT(!d0->is_vector() && !d1->is_vector(),
             ("Can not hoist vector type."));
@@ -100,25 +100,25 @@ Type const* TypeMgr::hoistDtypeForBinop(IR const* opnd0, IR const* opnd1)
     DATA_TYPE t1 = TY_dtype(d1);
     if (t0 == D_MC && t1 == D_MC) {
         ASSERT0(TY_mc_size(d0) == TY_mc_size(d1));
-        return IR_dt(opnd0);
+        return opnd0->get_type();
     }
 
     if (t0 == D_MC) {
         ASSERT0(TY_mc_size(d0) != 0);
         UINT ty_size = MAX(TY_mc_size(d0), get_bytesize(d1));
         if (ty_size == TY_mc_size(d0)) {
-            return IR_dt(opnd0);
+            return opnd0->get_type();
         }
-        return IR_dt(opnd1);
+        return opnd1->get_type();
     }
 
     if (t1 == D_MC) {
         ASSERT0(TY_mc_size(d1) != 0);
         UINT ty_size = MAX(TY_mc_size(d1), get_bytesize(d0));
         if (ty_size == TY_mc_size(d1)) {
-            return IR_dt(opnd1);
+            return opnd1->get_type();
         }
-        return IR_dt(opnd0);
+        return opnd0->get_type();
     }
 
     //Always hoist to longest integer type.

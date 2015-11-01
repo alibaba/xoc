@@ -37,6 +37,8 @@ author: Su Zhenyu
 //Map from LIR to LABEL.
 typedef TMap<LIR*, List<LabelInfo*>*> LIR2LABS;
 
+class DexRegion;
+class DexRegionMgr;
 
 class CatchInfo {
 public:
@@ -82,6 +84,7 @@ public:
 };
 
 typedef TMap<CHAR const*, Type const*, CmpStr> Str2Type;
+typedef TMap<LabelInfo const*, CatchInfo const*> Label2CatchInfo;
 
 //In Actually, it does work to convert ANA IR to IR, but is not DEX.
 //To wit, the class declared in class LIR2IR, that will be better.
@@ -98,6 +101,7 @@ protected:
     Var2UINT m_map_var2ofst;
     LIR2LABS m_lir2labs;
     Str2Type m_typename2type;
+    Label2CatchInfo m_label2catchinfo;
     DbxVec const& m_dbxvec;
     Type const* m_ptr_addend;
     UINT m_ofst_addend;
@@ -143,26 +147,7 @@ public:
     Dex2IR(IN Region * ru,
            IN DexFile * df,
            IN LIRCode * fu,
-           DbxVec const& dbxvec) : m_dbxvec(dbxvec)
-    {
-        ASSERT0(ru && df && fu);
-        m_ru = (DexRegion*)ru;
-        m_ru_mgr = (DexRegionMgr*)ru->get_region_mgr();
-        m_dm = ru->get_type_mgr();
-        m_vm = ru->get_var_mgr();
-        m_df = df;
-        m_lircode = fu;
-        m_tr = ((DexRegion*)ru)->getTypeIndexRep();
-        m_ti = NULL;
-        m_pool = smpoolCreate(16, MEM_COMM);
-        m_pr2v.init(MAX(4, getNearestPowerOf2(fu->maxVars)));
-        m_ptr_addend = m_dm->getSimplexType(D_U32);
-        m_ofst_addend = m_dm->get_dtype_bytesize(D_I64);
-        m_pr2v.maxreg = fu->maxVars - 1;
-        m_pr2v.paramnum = fu->numArgs;
-        m_current_catch_list = NULL;
-    }
-
+           DbxVec const& dbxvec);
     ~Dex2IR()
     {
         TMapIter<LIR*, List<LabelInfo*>*> iter;
@@ -237,6 +222,8 @@ public:
     Vreg2PR * getVreg2PR() { return &m_v2pr; }
     Var2UINT * getVAR2Ofst() { return &m_map_var2ofst; }
     TryInfo * getTryInfo() { return m_ti; }
+    Label2CatchInfo const& getLabel2CatchInfo() const
+    { return m_label2catchinfo; }
 
     List<LabelInfo*> & getLastTryEndLabelList()
     { return m_last_try_end_lab_list; }

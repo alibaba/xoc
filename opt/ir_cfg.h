@@ -50,6 +50,12 @@ protected:
     LAB2BB m_lab2bb;
     Region * m_ru;
     TypeMgr * m_dm;
+
+protected:
+    void dump_node(FILE * h, bool detail);
+    void dump_head(FILE * h);
+    void dump_edge(FILE * h, bool dump_eh);
+
 public:
     IR_CFG(CFG_SHAPE cs, BBList * bbl, Region * ru,
            UINT edge_hash_size = 16, UINT vertex_hash_size = 16);

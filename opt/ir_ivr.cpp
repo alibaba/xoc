@@ -51,7 +51,7 @@ bool IR_IVR::computeInitVal(IR const* ir, IV * iv)
         v = CVT_exp(v);
     }
 
-    if (v->is_const() && v->is_int(m_dm)) {
+    if (v->is_const() && v->is_int()) {
         if (IV_initv_i(iv) == NULL) {
             IV_initv_i(iv) = (LONGLONG*)xmalloc(sizeof(LONGLONG));
         }
@@ -173,7 +173,7 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
         DUSet const* useset = def->get_duset_c();
         if (useset == NULL) { continue; }
         bool selfmod = false;
-        DU_ITER di = NULL;
+        DUIter di = NULL;
         for (INT i = useset->get_first(&di);
              i >= 0; i = useset->get_next(i, &di)) {
             IR const* use = m_ru->get_ir(i);
@@ -195,7 +195,7 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
         //Make sure self modify stmt is monotonic.
         IR * op0 = BIN_opnd0(stv);
         IR * op1 = BIN_opnd1(stv);
-        if (!op1->is_int(m_dm)) { continue; }
+        if (!op1->is_int()) { continue; }
 
         MD const* op0md = op0->get_exact_ref();
         if (op0md == NULL || op0md != biv) { continue; }
@@ -231,7 +231,7 @@ bool IR_IVR::is_loop_invariant(LI<IRBB> const* li, IR const* ir)
     ASSERT0(ir->is_exp());
     DUSet const* defs = ir->get_duset_c();
     if (defs == NULL) { return true; }
-    DU_ITER di = NULL;
+    DUIter di = NULL;
     for (INT i = defs->get_first(&di); i >= 0; i = defs->get_next(i, &di)) {
         IR const* d = m_ru->get_ir(i);
         ASSERT0(d->is_stmt() && d->get_bb());

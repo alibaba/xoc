@@ -843,7 +843,7 @@ MD const* IR_AA::allocSetelemMD(IR * ir)
     ASSERT0(ofst);
 
     if (ofst->is_const()) {
-        ASSERT(ofst->is_int(m_dm), ("offset of SETE must be integer."));
+        ASSERT(ofst->is_int(), ("offset of SETE must be integer."));
 
         //Accumulating offset of identifier.
         //e.g: struct {int a,b; } s; s.a = 10
@@ -946,7 +946,7 @@ bool IR_AA::evaluateFromLda(IR const* ir)
             {
                 //Check the opnd0 if current expresion is : op0 + imm(0)
                 IR const* op1 = BIN_opnd1(r);
-                if (op1->is_const() && op1->is_int(m_dm)) {
+                if (op1->is_const() && op1->is_int()) {
                     r = BIN_opnd0(r);
                     break;
                 } else {
@@ -979,7 +979,7 @@ void IR_AA::inferPtArith(
 {
     ASSERT0(ir->is_add() || ir->is_sub());
     IR * opnd1 = BIN_opnd1(ir);
-    if (opnd1->is_const() && opnd1->is_int(m_dm)) {
+    if (opnd1->is_const() && opnd1->is_int()) {
         //Compute the offset for pointer arithmetic.
         if (CONST_int_val(opnd1) == 0) {
             mds.copy(opnd0_mds, *m_misc_bs_mgr);

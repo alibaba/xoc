@@ -109,7 +109,7 @@ bool IR_LICM::scanOpnd(IN LI<IRBB> * li,
                 DUSet const* defset = x->get_duset_c();
                 if (defset == NULL) { continue; }
 
-                DU_ITER di = NULL;
+                DUIter di = NULL;
                 for (INT i = defset->get_first(&di);
                      i >= 0; i = defset->get_next(i, &di)) {
                     IR const* d = m_ru->get_ir(i);
@@ -500,7 +500,7 @@ bool IR_LICM::is_dom_all_use_in_loop(IR const* ir, LI<IRBB> * li)
     DUSet const* useset = ir->get_duset_c();
     if (useset == NULL) { return true; }
 
-    DU_ITER di = NULL;
+    DUIter di = NULL;
     for (INT i = useset->get_first(&di);
          i >= 0; i = useset->get_next(i, &di)) {
         IR const* u = m_ru->get_ir(i);
@@ -575,7 +575,7 @@ bool IR_LICM::hoistCand(TTab<IR*> & invariant_exp,
                  DUSet const* defset = x->get_duset_c();
                 if (defset == NULL) { continue; }
 
-                DU_ITER di = NULL;
+                DUIter di = NULL;
                 for (INT i = defset->get_first(&di);
                      i >= 0; i = defset->get_next(i, &di)) {
                     IR const* d = m_ru->get_ir(i);
@@ -724,7 +724,7 @@ bool IR_LICM::perform(OptCTX & oc)
 
     m_is_in_ssa_form = false;
     IR_SSA_MGR * ssamgr =
-            (IR_SSA_MGR*)m_ru->get_pass_mgr()->query_opt(PASS_SSA_MGR);
+            (IR_SSA_MGR*)m_ru->get_pass_mgr()->queryPass(PASS_SSA_MGR);
     if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
         m_is_in_ssa_form = true;
         m_ssamgr = ssamgr;

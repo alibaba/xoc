@@ -235,7 +235,7 @@ INT Lineq::compareConstIterm(RMat const& m, UINT rhs_idx,
 
 
 //Comparing constant term of ineqt1 and ineqt2.
-INT Lineq::compareConstIterm(IN RMat const& m, UINT rhs_idx,
+INT Lineq::compareConstIterm(RMat const& m, UINT rhs_idx,
                            INT idx_of_eqt1, INT idx_of_eqt2)
 {
     ASSERT(m_is_init == true, ("not yet initialize."));
@@ -858,7 +858,7 @@ Call set_param() to set coefficient and rhs_idx.
 'vc': variable constrains.
 'is_int_sol': true if the solution must be integral.
 'is_unique_sol': true if there is unique solution. */
-bool Lineq::has_solution(IN RMat const& leq, IN RMat const& eq,
+bool Lineq::has_solution(RMat const& leq, RMat const& eq,
                          IN OUT RMat & vc, UINT rhs_idx,
                          bool is_int_sol, bool is_unique_sol)
 {
@@ -949,7 +949,7 @@ e.g:
         1*i - 2*j + k <= -10
 
 'eq': the equations to be appended. */
-void Lineq::appendEquation(IN RMat const& eq)
+void Lineq::appendEquation(RMat const& eq)
 {
     ASSERT(m_is_init == true, ("not yet initialize."));
     if (eq.size() == 0) return;
@@ -1156,7 +1156,7 @@ e.g: Given -2i+N<=0, substitute i with 4j-3N-1 (i=4j-3N-1), we get:
 'sub_var': index of variable to substitute.
 */
 void Lineq::substituteAndExpand(IN OUT RMat & coeff, UINT rhs_idx,
-                              IN RMat const& p, UINT sub_var)
+                              RMat const& p, UINT sub_var)
 {
     UNUSED(rhs_idx);
     ASSERT0(coeff.get_col_size() == p.get_col_size() && sub_var < rhs_idx);
@@ -1320,7 +1320,7 @@ void Lineq::EhartPoly(OUT RMat & res, IN RMat & a, UINT rhs_idx)
 }
 
 
-INT Lineq::selectLeadingColumn(IN INTMat const& coeff,
+INT Lineq::selectLeadingColumn(INTMat const& coeff,
                                   IN Vector<bool> const& is_noneg,
                                   UINT rhs_part)
 {
@@ -1359,7 +1359,7 @@ INT Lineq::selectLeadingColumn(IN INTMat const& coeff,
     =>
       1 0 0 2 3  0  4  3 10
 */
-void Lineq::combine(OUT INTMat & res, IN INTMat const& coeff,
+void Lineq::combine(OUT INTMat & res, INTMat const& coeff,
                      UINT r1, UINT r2, UINT lc, UINT pos)
 {
     if (r1 == r2) return;
@@ -1386,7 +1386,7 @@ intersects all such columns in zeros, we omit the pair.
 
 'combined': record rows whose coefficient is positive and has been combined.
 'noneg': record nonegative columns. */
-bool Lineq::omit(IN INTMat const& coeff,
+bool Lineq::omit(INTMat const& coeff,
                   UINT ncv, UINT pcv, UINT rhs_part,
                   IN Vector<UINT> const& combined,
                   IN Vector<UINT> const& noneg)
@@ -1467,7 +1467,7 @@ The function use homogeneous representation of affine spaces.
     to the vector (vertex) [0.5 1] in the affine space.
 
 'raylimit': is the maximum allowed ray. */
-bool Lineq::convertConstraint2Ray(OUT INTMat & gmat, IN INTMat const& cs,
+bool Lineq::convertConstraint2Ray(OUT INTMat & gmat, INTMat const& cs,
                        UINT rhs_idx, UINT raylimit)
 {
     if (cs.size() == 0) return false;
@@ -1661,7 +1661,7 @@ void Lineq::combineRays(OUT INTMat & res, IN OUT INTMat & coeff,
 
 void Lineq::removeRedRow(
             IN OUT INTMat & cs,
-            IN INTMat const& org_cone,
+            INTMat const& org_cone,
             UINT rhs_part)
 {
     UINT cs_rows = cs.get_row_size();
@@ -1724,7 +1724,7 @@ void Lineq::removeRedRow(
         -x+1>=0
 
 'cslimit': is the maximum allowed constraints. */
-bool Lineq::convertRay2Constraint(IN INTMat const& gmat, OUT INTMat & cs, UINT cslimit)
+bool Lineq::convertRay2Constraint(INTMat const& gmat, OUT INTMat & cs, UINT cslimit)
 {
     UNUSED(cslimit);
     if (gmat.size() == 0) {
