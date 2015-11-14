@@ -389,7 +389,7 @@ void IR_LICM::dump(TTab<IR*> const& invariant_stmt,
         g_indent = 3;
         for (IR * c = invariant_exp.get_first(ti);
              c != NULL; c = invariant_exp.get_next(ti)) {
-             dump_ir(c, m_dm);
+             dump_ir(c, m_tm);
         }
 
     }
@@ -401,7 +401,7 @@ void IR_LICM::dump(TTab<IR*> const& invariant_stmt,
         g_indent = 3;
         for (IR * c = invariant_stmt.get_first(ti);
              c != NULL; c = invariant_stmt.get_next(ti)) {
-             dump_ir(c, m_dm);
+             dump_ir(c, m_tm);
         }
     }
 }

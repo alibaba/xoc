@@ -92,7 +92,7 @@ public:
     Var2UINT() {}
     virtual ~Var2UINT() {}
 
-    UINT mget(VAR const* v) const
+    UINT get_mapped(VAR const* v) const
     {
         bool find;
         UINT i = TMap<VAR const*, UINT>::get(v, &find);
@@ -107,7 +107,7 @@ public:
     UINT2Var() {}
     virtual ~UINT2Var() {}
 
-    VAR * mget(UINT u)
+    VAR * get_mapped(UINT u)
     {
         ASSERT0(u != 0);
         bool find;

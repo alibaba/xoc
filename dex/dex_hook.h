@@ -41,5 +41,6 @@ author: Su Zhenyu
 #include "dex_cp.h"
 #include "dex_rp.h"
 #include "dex_aa.h"
+#include "dex_cfg.h"
 
 #endif

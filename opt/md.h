@@ -913,7 +913,7 @@ class MDSystem {
     SMemPool * m_pool;
     SMemPool * m_sc_mdptr_pool;
     SMemPool * m_sc_mdid_pool;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     VAR * m_all_mem;
     VAR * m_global_mem;
     MDId2MD m_id2md_map; //Map MD id to MD.
@@ -964,7 +964,7 @@ public:
     void dumpAllMD();
     void destroy();
 
-    TypeMgr * get_type_mgr() const { return m_dm; }
+    TypeMgr * get_type_mgr() const { return m_tm; }
 
     //Get registered MD.
     //NOTICE: DO NOT free the return value, because it is the registered one.

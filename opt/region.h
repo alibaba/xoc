@@ -239,10 +239,10 @@ public:
     //Allocate an IR.
     IR * allocIR(IR_TYPE irt);
 
-    //Allocate AttachInfo.
-    inline AttachInfo * allocAI()
+    //Allocate AIContainer.
+    inline AIContainer * allocAIContainer()
     {
-        AttachInfo * ai = (AttachInfo*)xmalloc(sizeof(AttachInfo));
+        AIContainer * ai = (AIContainer*)xmalloc(sizeof(AIContainer));
         ASSERT0(ai);
         ai->init();
         return ai;

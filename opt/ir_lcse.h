@@ -42,7 +42,7 @@ class IR_LCSE : public Pass {
 protected:
     bool m_enable_filter; //filter determines which expression can be CSE.
     Region * m_ru;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     IR_EXPR_TAB * m_expr_tab;
     IR_DU_MGR * m_du;
     BSVec<ExpRep*> * m_expr_vec;

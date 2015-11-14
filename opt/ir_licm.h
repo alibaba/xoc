@@ -45,7 +45,7 @@ protected:
     IR_CFG * m_cfg;
     ConstIRIter m_iriter;
     ConstMDIter m_mditer;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     MDSystem * m_md_sys;
     SMemPool * m_pool;
     List<IR*> m_analysable_stmt_list;
@@ -101,7 +101,7 @@ public:
         m_aa = ru->get_aa();
         m_du = ru->get_du_mgr();
         m_cfg = ru->get_cfg();
-        m_dm = ru->get_type_mgr();
+        m_tm = ru->get_type_mgr();
         m_md_sys = ru->get_md_sys();
         m_pool = smpoolCreate(4 * sizeof(UINT), MEM_CONST_SIZE);
         m_is_in_ssa_form = false;
@@ -122,7 +122,9 @@ public:
     {
         CK_USE(exp);
         ASSERT0(exp->is_exp());
-        return true;
+        //If IR_has_sideeffect(ir) is true, that means exp can not be removed,
+        //but still can be moved.
+        return !IR_no_move(exp);
     }
 
     virtual CHAR const* get_pass_name() const

@@ -96,7 +96,7 @@ class IR_DU_MGR;
 class MDId2IRlist : public TMap<UINT, DefSBitSetCore*> {
     Region * m_ru;
     MDSystem * m_md_sys;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     IR_DU_MGR * m_du;
     DefMiscBitSetMgr * m_misc_bs_mgr;
     TMapIter<UINT, DefSBitSetCore*> m_iter;
@@ -172,7 +172,7 @@ class IR_DU_MGR : public Pass {
     friend class DUSet;
 protected:
     Region * m_ru;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     IR_AA * m_aa;
     IR_CFG * m_cfg;
     MDSystem * m_md_sys;

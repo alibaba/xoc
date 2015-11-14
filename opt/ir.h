@@ -281,8 +281,8 @@ extern IRDesc const g_ir_desc[];
 //Access prev IR.
 #define IR_prev(ir)             ((ir)->prev)
 
-//Record attached info.
-#define IR_ai(ir)               ((ir)->ai)
+//Record attached info container.
+#define IR_ai(ir)               ((ir)->attach_info_container)
 
 //True if current operation is atomic. If ir is atomic load, write or
 //read-modify-write.
@@ -298,7 +298,14 @@ operation with other volatile operations. */
 
 //True if ir has sideeffect. This flag often be used to prevent user
 //perform incorrect optimization.
+//If ir has sideeffect, that means ir can not be removed,
+//but it still can be moved.
 #define IR_has_sideeffect(ir)    ((ir)->has_sideeffect)
+
+//True if ir can not be moved. This flag often be used to prevent user
+//perform incorrect optimization, e.g: LICM.
+//If ir is immovable, it also can not be removed
+#define IR_no_move(ir)           ((ir)->no_move)
 
 // Define this marco if we try to searh
 //ir in free_ir_tab while invoking allocIR().
@@ -337,6 +344,9 @@ public:
     //True if IR may have side effect.
     UINT has_sideeffect:1;
 
+    //True if IR can not be moved.
+    UINT no_move:1;
+
     #ifdef CONST_IRT_SZ
     //Record the specific IR byte size.
     UINT irt_size:6;
@@ -351,8 +361,8 @@ public:
     //This field should be NULL if IR is the top level of stmt.
     IR * parent;
 
-    //IR may have an unique attach info.
-    AttachInfo * ai;
+    //IR may have an unique attach info container.
+    AIContainer * attach_info_container;
 
 public:
     bool calcArrayOffset(TMWORD * ofst, TypeMgr * tm) const;
@@ -475,7 +485,7 @@ public:
     //Return data type descriptor.
     Type const* get_type() const { return IR_dt(this); }
 
-    AttachInfo const* get_ai() const { return IR_ai(this); }
+    AIContainer const* get_ai() const { return IR_ai(this); }
 
     //Return rhs if exist. Some stmt has rhs,
     //such as IR_ST, IR_STPR and IR_IST.

@@ -55,6 +55,7 @@ protected:
     DexFile const* m_dexfile;
     DexMethod const* m_dexmethod;
     SMemPool * m_sc_pool; //a pool to hold the SC<LabelInfo*>
+    Var2UINT m_var2fieldid; //map VAR to field-id.
 
 protected:
     bool is_64bit(IR const* ir)
@@ -92,6 +93,7 @@ public:
 
     IR * gen_and_add_sib(IR * ir, UINT prno);
     DexPassMgr * getDexPassMgr() { return (DexPassMgr*)get_pass_mgr(); }
+    Var2UINT * getVAR2Fieldid() { return &m_var2fieldid; }
 
     virtual bool HighProcess(OptCTX & oc);
     virtual bool MiddleProcess(OptCTX & oc);

@@ -239,6 +239,7 @@ extern UINT g_thres_opt_ir_num;
 extern UINT g_thres_opt_bb_num;
 extern bool g_do_loop_convert;
 extern bool g_do_poly_tran;
+extern bool g_retain_pass_mgr_for_region;
 
 } //namespace xoc
 #endif

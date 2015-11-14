@@ -1157,7 +1157,7 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCTX * ctx)
     if (elemsize != 1) {
         //e.g: short g[i], subexp is i*sizeof(short)
         ofst_exp = buildBinaryOp(IR_MUL, indextyid, ofst_exp,
-                                   buildImmInt(elemsize, indextyid));
+                                 buildImmInt(elemsize, indextyid));
     }
 
     if (ARR_ofst(ir) != 0) {

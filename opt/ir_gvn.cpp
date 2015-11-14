@@ -53,7 +53,7 @@ IR_GVN::IR_GVN(Region * ru)
     m_ru = ru;
     m_md_sys = m_ru->get_md_sys();
     m_du = m_ru->get_du_mgr();
-    m_dm = m_ru->get_type_mgr();
+    m_tm = m_ru->get_type_mgr();
     m_cfg = m_ru->get_cfg();
     m_vn_count = 1;
     m_is_vn_fp = false;
@@ -487,7 +487,7 @@ VN * IR_GVN::computeIloadByAnonDomDef(IR const* ild, VN const* mlvn,
 {
     ASSERT0(ild->is_ild() && m_du->is_may_def(domdef, ild, false));
     ILD_VNE2VN * vnexp_map = m_def2ildtab.get(domdef);
-    UINT dtsz = ild->get_dtype_size(m_dm);
+    UINT dtsz = ild->get_dtype_size(m_tm);
     VNE_ILD vexp(VN_id(mlvn), ILD_ofst(ild), dtsz);
     /*
     NOTE:
@@ -534,7 +534,7 @@ VN * IR_GVN::computeIload(IR const* exp, bool & change)
     if (defset == NULL || defset->get_elem_count() == 0) {
         VN * v = registerTripleVN(IR_ILD, mlvn,
                                  registerVNviaINT(ILD_ofst(exp)),
-                                 registerVNviaINT(exp->get_dtype_size(m_dm)));
+                                 registerVNviaINT(exp->get_dtype_size(m_tm)));
         m_ir2vn.set(IR_id(exp), v);
         return v;
     }
@@ -573,7 +573,7 @@ VN * IR_GVN::computeIload(IR const* exp, bool & change)
     if (uni_vn == NULL) {
         uni_vn = registerTripleVN(IR_ILD, mlvn,
                         registerVNviaINT(ILD_ofst(exp)),
-                        registerVNviaINT(exp->get_dtype_size(m_dm)));
+                        registerVNviaINT(exp->get_dtype_size(m_tm)));
         m_ir2vn.set(IR_id(domdef), uni_vn);
     }
     m_ir2vn.set(IR_id(exp), uni_vn);
@@ -599,7 +599,7 @@ VN * IR_GVN::computeArrayByAnonDomDef(IR const* arr, VN const* basevn,
 {
     ASSERT0(arr->is_array() && m_du->is_may_def(domdef, arr, false));
     ARR_VNE2VN * vnexp_map = m_def2arrtab.get(domdef);
-    UINT dtsz = arr->get_dtype_size(m_dm);
+    UINT dtsz = arr->get_dtype_size(m_tm);
     VNE_ARR vexp(VN_id(basevn), VN_id(ofstvn), ARR_ofst(arr), dtsz);
     /* NOTE:
         foo();
@@ -659,7 +659,7 @@ VN * IR_GVN::computeArray(IR const* exp, bool & change)
         //Array does not have any DEF.
         VN * x = registerQuadVN(IR_ARRAY, abase_vn, aofst_vn,
                                  registerVNviaINT(ARR_ofst(exp)),
-                                 registerVNviaINT(exp->get_dtype_size(m_dm)));
+                                 registerVNviaINT(exp->get_dtype_size(m_tm)));
         if (m_ir2vn.get(IR_id(exp)) != x) {
             m_ir2vn.set(IR_id(exp), x);
             change = true;
@@ -699,7 +699,7 @@ VN * IR_GVN::computeArray(IR const* exp, bool & change)
     if (uni_vn == NULL) {
         uni_vn = registerQuadVN(IR_ARRAY, abase_vn, aofst_vn,
                                  registerVNviaINT(ARR_ofst(exp)),
-                                 registerVNviaINT(exp->get_dtype_size(m_dm)));
+                                 registerVNviaINT(exp->get_dtype_size(m_tm)));
         m_ir2vn.set(IR_id(domdef), uni_vn);
         m_ir2vn.set(IR_id(narr), uni_vn);
     }
@@ -715,7 +715,7 @@ VN * IR_GVN::computeScalarByAnonDomDef(
     ASSERT0((exp->is_ld() || exp->is_pr()) &&
              m_du->is_may_def(domdef, exp, false));
     SCVNE2VN * vnexp_map = m_def2sctab.get(domdef);
-    UINT dtsz = exp->get_dtype_size(m_dm);
+    UINT dtsz = exp->get_dtype_size(m_tm);
     MD const* md = exp->get_exact_ref();
     ASSERT0(md);
     VNE_SC vexp(MD_id(md), exp->get_offset(), dtsz);

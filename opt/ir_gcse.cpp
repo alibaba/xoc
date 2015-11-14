@@ -706,8 +706,8 @@ bool IR_GCSE::perform(OptCTX & oc)
     }
 
     bool change = false;
-    IRBB * entry = m_cfg->get_entry_list()->get_head();
-    ASSERT(BB_is_entry(entry), ("first bb should be func entry"));
+    IRBB * entry = m_cfg->get_entry();
+    ASSERT(entry && BB_is_entry(entry), ("Not find CFG entry"));
 
     Graph domtree;
     m_cfg->get_dom_tree(domtree);

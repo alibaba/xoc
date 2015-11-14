@@ -58,7 +58,7 @@ MDId2IRlist::MDId2IRlist(Region * ru)
 {
     m_ru = ru;
     m_md_sys = ru->get_md_sys();
-    m_dm = ru->get_type_mgr();
+    m_tm = ru->get_type_mgr();
     m_du = ru->get_du_mgr();
     m_misc_bs_mgr = m_du->getMiscBitSetMgr();
     m_has_stmt_which_only_have_maydef = false;
@@ -142,7 +142,7 @@ void MDId2IRlist::dump()
         for (INT i = irs->get_first(&sc); i >= 0; i = irs->get_next(i, &sc)) {
             IR * d = m_ru->get_ir(i);
             g_indent = 4;
-            dump_ir(d, m_dm, NULL, false, false, false);
+            dump_ir(d, m_tm, NULL, false, false, false);
 
             fprintf(g_tfile, "\n\t\tdef:");
             MDSet const* ms = m_du->get_may_def(d);
@@ -172,14 +172,14 @@ void MDId2IRlist::dump()
 IR_DU_MGR::IR_DU_MGR(Region * ru)
 {
     m_ru = ru;
-    m_dm = ru->get_type_mgr();
+    m_tm = ru->get_type_mgr();
     m_md_sys = ru->get_md_sys();
     m_aa = ru->get_aa();
     m_cfg = ru->get_cfg();
     m_mds_mgr = ru->get_mds_mgr();
     m_mds_hash = ru->get_mds_hash();
     m_misc_bs_mgr = ru->getMiscBitSetMgr();
-    ASSERT0(m_aa && m_cfg && m_md_sys && m_dm);
+    ASSERT0(m_aa && m_cfg && m_md_sys && m_tm);
 
     //zfor conservative purpose.
     m_is_pr_unique_for_same_no = REGION_is_pr_unique_for_same_number(ru);
@@ -1052,7 +1052,7 @@ void IR_DU_MGR::dump_du_graph(CHAR const* name, bool detail)
                         "fontname:\"courB\" label:\"", id);
             IR * ir = m_ru->get_ir(id);
             ASSERT0(ir != NULL);
-            dump_ir(ir, m_dm);
+            dump_ir(ir, m_tm);
             fprintf(h, "\"}");
         } else {
             fprintf(h, "\nnode: { title:\"%d\" shape:box color:gold "
@@ -1099,7 +1099,7 @@ void IR_DU_MGR::dumpMemUsageForMDRef()
         fprintf(g_tfile, "\n--- BB%d ---", BB_id(bb));
         for (IR * ir = BB_first_ir(bb);
              ir != NULL; ir = BB_next_ir(bb)) {
-            dump_ir(ir, m_dm);
+            dump_ir(ir, m_tm);
             fprintf(g_tfile, "\n");
             m_citer.clean();
             for (IR const* x = iterInitC(ir, m_citer);
@@ -1363,7 +1363,7 @@ void IR_DU_MGR::dump_ir_ref(IN IR * ir, UINT indent)
     if (ir == NULL || g_tfile == NULL || ir->is_const()) { return; }
 
     g_indent = indent;
-    dump_ir(ir, m_dm, NULL, false);
+    dump_ir(ir, m_tm, NULL, false);
 
     //Dump mustref MD.
     MD const* md = ir->get_ref_md();
@@ -1472,7 +1472,7 @@ void IR_DU_MGR::dump_bb_du_chain2(IRBB * bb)
 
     for (IR * ir = BB_irlist(bb).get_head();
          ir != NULL; ir = BB_irlist(bb).get_next()) {
-        dump_ir(ir, m_dm);
+        dump_ir(ir, m_tm);
         fprintf(g_tfile, "\n");
 
         IRIter ii;
@@ -1572,7 +1572,7 @@ void IR_DU_MGR::dump_du_chain()
         fprintf(g_tfile, "\n--- BB%d ---", BB_id(bb));
         for (IR * ir = BB_irlist(bb).get_head();
              ir != NULL; ir = BB_irlist(bb).get_next()) {
-            dump_ir(ir, m_dm);
+            dump_ir(ir, m_tm);
             fprintf(g_tfile, "\n>>");
 
             //MustDef
@@ -3786,8 +3786,8 @@ UINT IR_DU_MGR::checkIsLocalKillingDef(
         return CK_OVERLAP;
     }
 
-    UINT exptysz = exp->get_dtype_size(m_dm);
-    UINT stmttysz = stmt->get_dtype_size(m_dm);
+    UINT exptysz = exp->get_dtype_size(m_tm);
+    UINT stmttysz = stmt->get_dtype_size(m_tm);
     if ((((ILD_ofst(exp) + exptysz) <= IST_ofst(stmt)) ||
         ((IST_ofst(stmt) + stmttysz) <= ILD_ofst(exp)))) {
         return CK_NOT_OVERLAP;
@@ -4120,8 +4120,8 @@ UINT IR_DU_MGR::checkIsNonLocalKillingDef(IR const* stmt, IR const* exp)
                 get_availin_expr(BB_id(exp->get_stmt()->get_bb()));
     if (!lived_in_expr->is_contain(IR_id(t2))) { return CK_UNKNOWN; }
 
-    UINT exptysz = exp->get_dtype_size(m_dm);
-    UINT stmttysz = stmt->get_dtype_size(m_dm);
+    UINT exptysz = exp->get_dtype_size(m_tm);
+    UINT stmttysz = stmt->get_dtype_size(m_tm);
     if ((((ILD_ofst(exp) + exptysz) <= IST_ofst(stmt)) ||
         ((IST_ofst(stmt) + stmttysz) <= ILD_ofst(exp)))) {
         return CK_NOT_OVERLAP;

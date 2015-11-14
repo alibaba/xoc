@@ -51,7 +51,7 @@ protected:
     List<TimeInfo*> m_ti_list;
     SMemPool * m_pool;
     Region * m_ru;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     CDG * m_cdg;
     TMap<PASS_TYPE, Pass*> m_registered_pass;
     TMap<PASS_TYPE, Graph*> m_registered_graph_based_pass;

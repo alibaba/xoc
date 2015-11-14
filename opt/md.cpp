@@ -667,8 +667,8 @@ void MDSystem::init(VarMgr * vm)
     m_free_md_list.set_pool(m_sc_mdptr_pool);
     m_free_mdid_list.set_pool(m_sc_mdid_pool);
     m_md_count = 1;
-    m_dm = vm->get_type_mgr();
-    ASSERT0(m_dm);
+    m_tm = vm->get_type_mgr();
+    ASSERT0(m_tm);
     initAllMemMD(vm);
     initGlobalMemMD(vm);
     ASSERT0(m_md_count == MD_FIRST_ALLOCABLE);

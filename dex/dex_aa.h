@@ -46,7 +46,7 @@ public:
     //Attemp to compute POINT-TO set via data type.
     virtual MD const* computePointToViaType(IR const* ir)
     {
-        AttachInfo * ai = IR_ai(ir);
+        AIContainer * ai = IR_ai(ir);
         ASSERT0(ir && ai);
 
         TbaaAttachInfo * ty = (TbaaAttachInfo*)ai->get(AI_TBAA);
@@ -79,7 +79,7 @@ public:
     void handle_ld(IR * ld, MD2MDSet * mx)
     {
         ASSERT0(ld->is_ld() && mx);
-        AttachInfo * ai = IR_ai(ld);
+        AIContainer * ai = IR_ai(ld);
         if (ai == NULL) { return; }
 
         TbaaAttachInfo * ty = (TbaaAttachInfo*)ai->get(AI_TBAA);
@@ -95,7 +95,7 @@ public:
         CHAR buf[64];
         sprintf(buf, "dummy%d", (UINT)(size_t)ty->type);
         VAR * dummy = m_var_mgr->registerVar(
-                    buf, m_dm->getMCType(0), 1, VAR_GLOBAL);
+                    buf, m_tm->getMCType(0), 1, VAR_GLOBAL);
         VAR_is_addr_taken(dummy) = true;
         VAR_allocable(dummy) = false;
         m_ru->addToVarTab(dummy);

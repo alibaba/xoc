@@ -116,7 +116,7 @@ IR_AA::IR_AA(Region * ru)
     m_cfg = ru->get_cfg();
     m_var_mgr = ru->get_var_mgr();
     m_ru = ru;
-    m_dm = ru->get_type_mgr();
+    m_tm = ru->get_type_mgr();
     m_md_sys = ru->get_md_sys();
     m_mds_mgr = ru->get_mds_mgr();
     m_mds_hash = ru->get_mds_hash();
@@ -350,7 +350,7 @@ void IR_AA::processLda(
                     arr = IR_parent(arr);
                 }
                 ASSERT0(arr && arr->is_array());
-                UINT elem_sz = arr->get_dtype_size(m_dm);
+                UINT elem_sz = arr->get_dtype_size(m_tm);
                 ASSERT0(elem_sz > 0);
                 MD_size(&md) = elem_sz;
             }
@@ -397,7 +397,7 @@ void IR_AA::processArrayLdabase(
 
             //'ir' is lda base of array operation.
             //Adjust MD size to be array's element size.
-            UINT elem_sz = IR_parent(ir)->get_dtype_size(m_dm);
+            UINT elem_sz = IR_parent(ir)->get_dtype_size(m_tm);
             ASSERT0(elem_sz > 0);
             MD_size(&md) = elem_sz;
             if (!x->is_equ(md)) {
@@ -429,7 +429,7 @@ void IR_AA::processCvt(
         for (INT i = mds.get_first(&iter);
              i >= 0; i = mds.get_next((UINT)i, &iter)) {
             MD const* l = m_md_sys->get_md((UINT)i);
-            UINT size = ir->get_dtype_size(m_dm); //cvt's tgt byte size.
+            UINT size = ir->get_dtype_size(m_tm); //cvt's tgt byte size.
             if (l->is_exact() && MD_size(l) != size) {
                 MD md(*l);
                 //Convert type-size to 'ir' claimed.
@@ -518,14 +518,14 @@ void IR_AA::computeMayPointTo(IR * pointer, IN MD2MDSet * mx, OUT MDSet & mds)
     MDSet const* ptset = getPointTo(md, *mx);
     MD const* typed_md = NULL;
     if (ptset != NULL && !ptset->is_empty()) {
-        if (IR_ai(pointer) != NULL &&
+        if (pointer->get_ai() != NULL &&
             ptset->is_contain_global() &&
             (typed_md = computePointToViaType(pointer)) != NULL) {
             mds.bunion(typed_md, *m_misc_bs_mgr);
         } else {
             mds.bunion(*ptset, *m_misc_bs_mgr);
         }
-    } else if (IR_ai(pointer) != NULL &&
+    } else if (pointer->get_ai() != NULL &&
                (typed_md = computePointToViaType(pointer)) != NULL) {
         mds.bunion(typed_md, *m_misc_bs_mgr);
     } else {
@@ -565,7 +565,7 @@ void IR_AA::inferArrayExpBase(
         //We could not determine which MD the array base refer to,
         //so we could not infer which MD the array accessed.
         MD const* typed_md = NULL;
-        if (IR_ai(array_base) != NULL &&
+        if (array_base->get_ai() != NULL &&
             (typed_md = computePointToViaType(array_base)) != NULL) {
             mds.clean(*m_misc_bs_mgr);
             mds.bunion(typed_md, *m_misc_bs_mgr);
@@ -579,7 +579,7 @@ void IR_AA::inferArrayExpBase(
         e.g: (ld(p))[i], looking for where p pointed to.
         Each MD in 'tmp' should be pointer. */
         mds.clean(*m_misc_bs_mgr);
-        UINT mdsz = ir->get_dtype_size(m_dm);
+        UINT mdsz = ir->get_dtype_size(m_tm);
         SEGIter * iter;
         for (INT i = tmp.get_first(&iter);
              i >= 0; i = tmp.get_next((UINT)i, &iter)) {
@@ -590,7 +590,7 @@ void IR_AA::inferArrayExpBase(
             MDSet const* pt_mds = getPointTo(array_base_md, *mx);
             MD const* typed_md = NULL;
             if (pt_mds != NULL && !pt_mds->is_empty()) {
-                if (IR_ai(array_base) != NULL &&
+                if (array_base->get_ai() != NULL &&
                     pt_mds->is_contain_global() &&
                     (typed_md = computePointToViaType(array_base)) != NULL) {
                     setPointToUniqueMD(array_base_md, *mx, typed_md);
@@ -601,7 +601,7 @@ void IR_AA::inferArrayExpBase(
                                        mdsz, *pt_mds, mds);
                 }
 
-            } else if (IR_ai(array_base) != NULL &&
+            } else if (array_base->get_ai() != NULL &&
                        (typed_md = computePointToViaType(array_base)) != NULL) {
                 mds.bunion(typed_md, *m_misc_bs_mgr);
             } else {
@@ -657,7 +657,7 @@ void IR_AA::inferArrayLdabase(
             MD_ofst(&tmd) += ofst;
             //MD_ty(&tmd) = MD_EXACT;
         } else {
-            UINT basesz = m_dm->getPointerBaseByteSize(IR_dt(array_base));
+            UINT basesz = m_tm->getPointerBaseByteSize(IR_dt(array_base));
             ASSERT0(basesz);
 
             MD_ofst(&tmd) = LDA_ofst(array_base);
@@ -713,7 +713,7 @@ void IR_AA::processArray(
     //Next, scaning array base, it may be LDA
     //operation or computational expression.
     UINT ofst_val = 0;
-    bool is_ofst_predicable = ir->calcArrayOffset(&ofst_val, m_dm);
+    bool is_ofst_predicable = ir->calcArrayOffset(&ofst_val, m_tm);
     bool mds_is_may_pt = false;
     AACTX tic;
     tic.copyTopDownFlag(*ic);
@@ -804,7 +804,7 @@ MD const* IR_AA::allocLoadMD(IR * ir)
         MD t2(*t);
         ASSERT0(t2.is_exact());
         MD_ofst(&t2) += LD_ofst(ir);
-        MD_size(&t2) = ir->get_dtype_size(m_dm);
+        MD_size(&t2) = ir->get_dtype_size(m_tm);
         MD const* entry = m_md_sys->registerMD(t2);
         ASSERT(MD_id(entry) > 0, ("Not yet registered"));
         t = entry; //regard MD with offset as return result.
@@ -850,9 +850,9 @@ MD const* IR_AA::allocSetelemMD(IR * ir)
         //generate: st('s', ofst:4) = 10
         MD t(*md);
         ASSERT0(t.is_exact());
-        ASSERT0(ir->get_dtype_size(m_dm) > 0);
+        ASSERT0(ir->get_dtype_size(m_tm) > 0);
         MD_ofst(&t) += (UINT)CONST_int_val(ofst);
-        MD_size(&t) = ir->get_dtype_size(m_dm);
+        MD_size(&t) = ir->get_dtype_size(m_tm);
         MD const* entry = m_md_sys->registerMD(t);
         ASSERT(MD_id(entry) > 0, ("Not yet registered"));
         md = entry; //regard MD with offset as return result.
@@ -867,10 +867,10 @@ MD const* IR_AA::allocSetelemMD(IR * ir)
 
         MD t(*md);
         ASSERT0(t.is_exact());
-        ASSERT0(ir->get_dtype_size(m_dm) > 0);
+        ASSERT0(ir->get_dtype_size(m_tm) > 0);
         MD_ty(&t) = MD_RANGE;
         MD_ofst(&t) = 0;
-        MD_size(&t) = ir->get_dtype_size(m_dm);
+        MD_size(&t) = ir->get_dtype_size(m_tm);
         MD const* entry = m_md_sys->registerMD(t);
         ASSERT(MD_id(entry) > 0, ("Not yet registered"));
         md = entry; //regard MD with range as return result.
@@ -904,9 +904,9 @@ MD const* IR_AA::allocStoreMD(IR * ir)
         //generate: st('s', ofst:4) = 10
         MD t(*md);
         ASSERT0(t.is_exact());
-        ASSERT0(ir->get_dtype_size(m_dm) > 0);
+        ASSERT0(ir->get_dtype_size(m_tm) > 0);
         MD_ofst(&t) += ST_ofst(ir);
-        MD_size(&t) = ir->get_dtype_size(m_dm);
+        MD_size(&t) = ir->get_dtype_size(m_tm);
         MD const* entry = m_md_sys->registerMD(t);
         ASSERT(MD_id(entry) > 0, ("Not yet registered"));
         md = entry; //regard MD with offset as return result.
@@ -1159,7 +1159,7 @@ MD const* IR_AA::assignPRMD(
         MD const* typed_md = NULL;
         if (pts != NULL && !pts->is_empty()) {
             if (pts->is_contain_global() &&
-                IR_ai(ir) != NULL &&
+                ir->get_ai() != NULL &&
                 (typed_md = computePointToViaType(ir)) != NULL) {
                 setPointToUniqueMD(tmp, *mx, typed_md);
                 mds->clean(*m_misc_bs_mgr);
@@ -1167,7 +1167,7 @@ MD const* IR_AA::assignPRMD(
             } else {
                 mds->copy(*pts, *m_misc_bs_mgr);
             }
-        } else if (IR_ai(ir) != NULL &&
+        } else if (ir->get_ai() != NULL &&
                    (typed_md = computePointToViaType(ir)) != NULL) {
             setPointToMDSetByAddMD(tmp, *mx, typed_md);
             mds->clean(*m_misc_bs_mgr);
@@ -1212,7 +1212,7 @@ MD const* IR_AA::assignLoadMD(
         MD const* typed_md = NULL;
         if (pts != NULL && !pts->is_empty()) {
             if (pts->is_contain_global() &&
-                IR_ai(ir) != NULL &&
+                ir->get_ai() != NULL &&
                 (typed_md = computePointToViaType(ir)) != NULL) {
                 setPointToUniqueMD(t, *mx, typed_md);
                 mds->clean(*m_misc_bs_mgr);
@@ -1220,7 +1220,7 @@ MD const* IR_AA::assignLoadMD(
             } else {
                 mds->copy(*pts, *m_misc_bs_mgr);
             }
-        } else if (IR_ai(ir) != NULL &&
+        } else if (ir->get_ai() != NULL &&
                    (typed_md = computePointToViaType(ir)) != NULL) {
             setPointToMDSetByAddMD(t, *mx, typed_md);
             mds->clean(*m_misc_bs_mgr);
@@ -1338,7 +1338,7 @@ MD const* IR_AA::allocStringMD(IR * ir)
 
 
 //'mds' : record memory descriptor of 'ir'.
-void IR_AA::processIload(
+void IR_AA::processIld(
         IR * ir,
         IN OUT MDSet & mds,
         IN OUT AACTX * ic,
@@ -1357,6 +1357,7 @@ void IR_AA::processIload(
     ASSERT0(!mds.is_empty());
     AC_is_mds_mod(ic) |= AC_is_mds_mod(&tic);
     if (ILD_ofst(ir) != 0) {
+        UINT ild_ofst = ILD_ofst(ir);
         MDSet tmp;
         bool change = false;
         SEGIter * iter;
@@ -1364,10 +1365,13 @@ void IR_AA::processIload(
              i >= 0; i = mds.get_next((UINT)i, &iter)) {
             MD * l = m_md_sys->get_md((UINT)i);
             ASSERT0(l);
-            UINT size = ir->get_dtype_size(m_dm);
-            if (l->is_exact() && (ILD_ofst(ir) != 0 || MD_size(l) != size)) {
+
+            //Note if ir's type is VOID, size is 0.
+            //Thus the MD indicates a object that is p + ild_ofst + 0.
+            UINT size = ir->get_dtype_size(m_tm);
+            if (l->is_exact() && MD_size(l) != size) {
                 MD md(*l);
-                MD_ofst(&md) += ILD_ofst(ir);
+                MD_ofst(&md) += ild_ofst;
                 MD_size(&md) = size;
                 MD const* entry = m_md_sys->registerMD(md);
                 ASSERT(MD_id(entry) > 0, ("Not yet registered"));
@@ -1377,7 +1381,9 @@ void IR_AA::processIload(
                 tmp.bunion((UINT)i, *m_misc_bs_mgr);
             }
         }
+
         if (change) { mds.copy(tmp, *m_misc_bs_mgr); }
+
         ASSERT0(!mds.is_empty());
         tmp.clean(*m_misc_bs_mgr);
     }
@@ -1608,13 +1614,13 @@ void IR_AA::inferStoreValue(
         MD const* typed_md = NULL;
         if (pts != NULL && !pts->is_empty()) {
             if (pts->is_contain_global() &&
-                IR_ai(rhs) != NULL &&
+                rhs->get_ai() != NULL &&
                 (typed_md = computePointToViaType(rhs)) != NULL) {
                 //Make use of typed pointer info to improve the precsion.
                 pts->clean(*m_misc_bs_mgr);
                 pts->bunion(typed_md, *m_misc_bs_mgr);
             }
-        } else if (IR_ai(rhs) != NULL &&
+        } else if (rhs->get_ai() != NULL &&
                    (typed_md = computePointToViaType(rhs)) != NULL) {
             pts->bunion(typed_md, *m_misc_bs_mgr);
         } else {
@@ -1862,13 +1868,13 @@ void IR_AA::inferIstoreValue(IN IR * ir, IN AACTX * ic, IN MD2MDSet * mx)
         MD const* typed_md = NULL;
         if (pts != NULL && !pts->is_empty()) {
             if (pts->is_contain_global() &&
-                IR_ai(IST_rhs(ir)) != NULL &&
+                IST_rhs(ir)->get_ai() != NULL &&
                 (typed_md = computePointToViaType(IST_rhs(ir))) != NULL) {
                 //Make use of typed pointer info to improve the precsion.
                 pts->clean(*m_misc_bs_mgr);
                 pts->bunion(typed_md, *m_misc_bs_mgr);
             }
-        } else if (IR_ai(IST_rhs(ir)) != NULL &&
+        } else if (IST_rhs(ir)->get_ai() != NULL &&
                    (typed_md = computePointToViaType(IST_rhs(ir))) != NULL) {
             pts->bunion(typed_md, *m_misc_bs_mgr);
         } else {
@@ -1973,13 +1979,13 @@ void IR_AA::inferStoreArrayValue(IN IR * ir, IN AACTX * ic, IN MD2MDSet * mx)
         MD const* typed_md = NULL;
         if (pts != NULL && !pts->is_empty()) {
             if (pts->is_contain_global() &&
-                IR_ai(STARR_rhs(ir)) != NULL &&
+                STARR_rhs(ir)->get_ai() != NULL &&
                 (typed_md = computePointToViaType(STARR_rhs(ir))) != NULL) {
                 //Make use of typed pointer info to improve the precsion.
                 pts->clean(*m_misc_bs_mgr);
                 pts->bunion(typed_md, *m_misc_bs_mgr);
             }
-        } else if (IR_ai(STARR_rhs(ir)) != NULL &&
+        } else if (STARR_rhs(ir)->get_ai() != NULL &&
                    (typed_md = computePointToViaType(STARR_rhs(ir))) != NULL) {
             pts->bunion(typed_md, *m_misc_bs_mgr);
         } else {
@@ -2054,8 +2060,8 @@ void IR_AA::processStoreArray(IN IR * ir, IN MD2MDSet * mx)
     }
 
     if (ARR_ofst(ir) != 0 ||
-        ((sz = (INT)ir->get_dtype_size(m_dm)) !=
-         (INT)ir->get_dtype_size(m_dm))) {
+        ((sz = (INT)ir->get_dtype_size(m_tm)) !=
+         (INT)ir->get_dtype_size(m_tm))) {
         //If array offset is not zero, the result data type may not
         //being the element type. Try to infer the actual memory address of
         //array element.
@@ -2069,8 +2075,8 @@ void IR_AA::processStoreArray(IN IR * ir, IN MD2MDSet * mx)
             if (l->is_exact()) {
                 MD md(*l);
                 MD_ofst(&md) += ARR_ofst(ir);
-                ASSERT0(ir->get_dtype_size(m_dm) > 0);
-                MD_size(&md) = sz == -1 ? ir->get_dtype_size(m_dm) : sz;
+                ASSERT0(ir->get_dtype_size(m_tm) > 0);
+                MD_size(&md) = sz == -1 ? ir->get_dtype_size(m_tm) : sz;
                 MD const* entry = m_md_sys->registerMD(md);
                 ASSERT(MD_id(entry) > 0, ("Not yet registered"));
                 tmp.bunion(entry, *m_misc_bs_mgr);
@@ -2113,10 +2119,10 @@ FIN:
 }
 
 
-/* Indirect store.
-Analyse pointers according to rules for individiual ir to
-constructe the map-table that maps MD to an unique VAR. */
-void IR_AA::processIstore(IN IR * ir, IN MD2MDSet * mx)
+//Indirect store.
+//Analyse pointers according to rules for individiual ir to
+//constructe the map-table that maps MD to an unique VAR.
+void IR_AA::processIst(IN IR * ir, IN MD2MDSet * mx)
 {
     ASSERT0(ir->is_ist());
     ASSERT0(IST_base(ir)->is_ptr());
@@ -2143,10 +2149,11 @@ void IR_AA::processIstore(IN IR * ir, IN MD2MDSet * mx)
         return;
     }
 
-    INT sz = -1;
+    INT size = -1;
     if (IST_ofst(ir) != 0 ||
-        ((sz = (INT)ir->get_dtype_size(m_dm)) !=
-         (INT)IST_base(ir)->get_dtype_size(m_dm))) {
+        ((size = (INT)ir->get_dtype_size(m_tm)) !=
+         (INT)IST_base(ir)->get_dtype_size(m_tm))) {
+        UINT ist_ofst = IST_ofst(ir);
         //Compute where IST_base may point to.
         MDSet tmp;
         bool change = false;
@@ -2157,9 +2164,11 @@ void IR_AA::processIstore(IN IR * ir, IN MD2MDSet * mx)
             ASSERT0(l);
             if (l->is_exact()) {
                 MD md(*l);
-                MD_ofst(&md) += IST_ofst(ir);
-                ASSERT0(ir->get_dtype_size(m_dm) > 0);
-                MD_size(&md) = sz == -1 ? ir->get_dtype_size(m_dm) : sz;
+                MD_ofst(&md) += ist_ofst;
+
+                //Note if ir's type is VOID, size is 0.
+                //Thus the MD indicates a object that is p + ild_ofst + 0.
+                MD_size(&md) = size == -1 ? ir->get_dtype_size(m_tm) : size;
                 MD const* entry = m_md_sys->registerMD(md);
                 ASSERT(MD_id(entry) > 0, ("Not yet registered"));
                 tmp.bunion(entry, *m_misc_bs_mgr);
@@ -2311,7 +2320,7 @@ MD const* IR_AA::allocHeapobj(IR * ir)
     sprintf(name, "heap_obj%d", m_ir2heapobj.get_elem_count());
     ASSERT0(strlen(name) < 64);
     VAR * tv = m_ru->get_var_mgr()->registerVar(
-            name, m_dm->getMCType(0), 0, VAR_GLOBAL);
+            name, m_tm->getMCType(0), 0, VAR_GLOBAL);
 
     /* Set the var to be unallocable, means do NOT add
     var immediately as a memory-variable.
@@ -2394,7 +2403,7 @@ void IR_AA::processCall(IN IR * ir, IN MD2MDSet * mx)
 
             //Try to improve the precsion via typed alias info.
             MD const* typed_md;
-            if (IR_ai(ir) != NULL &&
+            if (ir->get_ai() != NULL &&
                 (typed_md = computePointToViaType(ir)) != NULL) {
                 //Make use of typed pointer info to improve the precsion.
                 setPointToUniqueMD(t, *mx, typed_md);
@@ -2437,7 +2446,7 @@ void IR_AA::inferExpression(
         assignIdMD(expr, &mds, ic);
         return;
     case IR_ILD:
-        processIload(expr, mds, ic, mx);
+        processIld(expr, mds, ic, mx);
         return;
     case IR_LD:
         assignLoadMD(expr, &mds, ic, mx);
@@ -2853,7 +2862,7 @@ void IR_AA::dumpPtPairSet(PtPairSet & pps)
                         MD_id(PP_from(pp)), MD_id(PP_to(pp)));
 
         if (detail) {
-            fprintf(g_tfile, "%s", MD_base(PP_from(pp))->dump(buf, m_dm));
+            fprintf(g_tfile, "%s", MD_base(PP_from(pp))->dump(buf, m_tm));
             if (PP_from(pp)->is_exact()) {
                 fprintf(g_tfile, ":ofst(%d):size(%d)",
                         MD_ofst(PP_from(pp)), MD_size(PP_from(pp)));
@@ -2863,7 +2872,7 @@ void IR_AA::dumpPtPairSet(PtPairSet & pps)
 
             fprintf(g_tfile, " ------> ");
 
-            fprintf(g_tfile, "%s", MD_base(PP_to(pp))->dump(buf, m_dm));
+            fprintf(g_tfile, "%s", MD_base(PP_to(pp))->dump(buf, m_tm));
             if (PP_to(pp)->is_exact()) {
                 fprintf(g_tfile, ":ofst(%d):size(%d)",
                         MD_ofst(PP_to(pp)), MD_size(PP_to(pp)));
@@ -2885,7 +2894,7 @@ void IR_AA::dumpIRPointTo(IN IR * ir, bool dump_kid, IN MD2MDSet * mx)
     MDSet const* may = get_may_addr(ir);
     if (must != NULL ||
         (may != NULL && may->get_elem_count() > 0)) {
-        dump_ir(ir, m_dm, NULL, false, false);
+        dump_ir(ir, m_tm, NULL, false, false);
     }
 
     switch (IR_code(ir)) {
@@ -2954,7 +2963,7 @@ void IR_AA::dumpIRPointToForBB(IRBB * bb, bool dump_kid)
          ir != NULL; ir = BB_irlist(bb).get_next(&ct)) {
         fprintf(g_tfile, "\n---------");
         g_indent = 4;
-        dump_irs(ir, m_dm);
+        dump_irs(ir, m_tm);
         fprintf(g_tfile, "\n");
 
         ASSERT0(isValidStmtToAA(ir));
@@ -3227,7 +3236,7 @@ void IR_AA::dumpMD2MDSet(MD const* md, IN MD2MDSet * mx)
     if (g_tfile == NULL) return;
     CHAR buf[MAX_BUF_LEN];
     buf[0] = 0;
-    fprintf(g_tfile, "\n\t  %s", md->dump(buf, MAX_BUF_LEN, m_dm));
+    fprintf(g_tfile, "\n\t  %s", md->dump(buf, MAX_BUF_LEN, m_tm));
 
     //Dump MDSet of 'md'.
     MDSet const* pts = getPointTo(md, *mx);
@@ -3240,7 +3249,7 @@ void IR_AA::dumpMD2MDSet(MD const* md, IN MD2MDSet * mx)
             MD const* mmd = m_md_sys->get_md((UINT)j);
             ASSERT0(mmd != NULL);
             buf[0] = 0;
-            fprintf(g_tfile, "\t\t\t%s\n", mmd->dump(buf, MAX_BUF_LEN, m_dm));
+            fprintf(g_tfile, "\t\t\t%s\n", mmd->dump(buf, MAX_BUF_LEN, m_tm));
         }
     } else {
         fprintf(g_tfile, "----");
@@ -3323,7 +3332,7 @@ void IR_AA::computeStmt(IRBB const* bb, IN OUT MD2MDSet * mx)
             processGetelem(ir, mx);
             break;
         case IR_IST:
-            processIstore(ir, mx);
+            processIst(ir, mx);
             break;
         case IR_CALL:
         case IR_ICALL:
@@ -3575,7 +3584,7 @@ void IR_AA::initGlobalAndParameterVarPtset(
             SNPRINTF(name, 63, "DummyGlobalVarPointedByVar%x",
                      (UINT)(size_t)param);
             VAR * tv = m_ru->get_var_mgr()->registerVar(
-                                name, m_dm->getMCType(0),
+                                name, m_tm->getMCType(0),
                                 0, VAR_GLOBAL|VAR_ADDR_TAKEN);
 
             /* Set the var to be unallocable, means do NOT add
@@ -3633,7 +3642,7 @@ void IR_AA::initGlobalAndParameterVarPtset(
     MD md;
     MD_base(&md) = param;
     MD_ofst(&md) = 0;
-    MD_size(&md) = param->getByteSize(m_dm);
+    MD_size(&md) = param->getByteSize(m_tm);
     MD_ty(&md) = MD_EXACT;
     MD const* entry = m_md_sys->registerMD(md);
     if (dmd != NULL) {
@@ -3692,21 +3701,18 @@ void IR_AA::initEntryPtset(PtPairSet ** ptset_arr)
             i++;
         }
 
-        List<IRBB*> * bbl = m_cfg->get_entry_list();
-        for (IRBB * bb = bbl->get_head(&ct);
-             bb != NULL; bb = bbl->get_next(&ct)) {
-            MD2MDSet * mx = allocMD2MDSetForBB(bb);
-            setPointToAllMem(m_md_sys->get_md(MD_ALL_MEM), *mx);
-            setPointToGlobalMem(m_md_sys->get_md(MD_GLOBAL_MEM), *mx);
-            VarTabIter c;
-            for (VAR * v = vt->get_first(c); v != NULL; v = vt->get_next(c)) {
-                if (!VAR_is_global(v) && !VAR_is_formal_param(v)) { continue; }
-                if (!v->is_pointer()) { continue; }
-                initGlobalAndParameterVarPtset(v, mx, iter);
-            } //end for each VAR
-
-            convertMD2MDSet2PT(*getInPtPairSet(bb), m_pt_pair_mgr, mx);
-        } //end for each BB
+        IRBB * entry = m_cfg->get_entry();
+        ASSERT0(entry);
+        MD2MDSet * mx = allocMD2MDSetForBB(entry);
+        setPointToAllMem(m_md_sys->get_md(MD_ALL_MEM), *mx);
+        setPointToGlobalMem(m_md_sys->get_md(MD_GLOBAL_MEM), *mx);
+        VarTabIter c;
+        for (VAR * v = vt->get_first(c); v != NULL; v = vt->get_next(c)) {
+            if (!VAR_is_global(v) && !VAR_is_formal_param(v)) { continue; }
+            if (!v->is_pointer()) { continue; }
+            initGlobalAndParameterVarPtset(v, mx, iter);
+        }
+        convertMD2MDSet2PT(*getInPtPairSet(entry), m_pt_pair_mgr, mx);
     } else {
         setPointToAllMem(m_md_sys->get_md(MD_ALL_MEM), m_unique_md2mds);
         setPointToGlobalMem(m_md_sys->get_md(MD_GLOBAL_MEM), m_unique_md2mds);

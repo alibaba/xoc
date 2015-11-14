@@ -39,6 +39,7 @@ public:
     DexPassMgr(Region * ru) : PassMgr(ru) {}
     virtual ~DexPassMgr() {}
 
+    virtual Pass * allocCFG();
     virtual Pass * allocDCE();
     virtual Pass * allocCopyProp();
     virtual Pass * allocRP();

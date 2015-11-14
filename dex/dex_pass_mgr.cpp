@@ -42,12 +42,16 @@ author: Su Zhenyu
 #include "comopt.h"
 #include "dex.h"
 #include "gra.h"
-#ifdef _CODE_ANA_
-#include "auxsym.h"
-#include "warnmgr.h"
-#endif
 #include "dex_hook.h"
 #include "dex_util.h"
+
+Pass * DexPassMgr::allocCFG()
+{
+    BBList * bbl = m_ru->get_bb_list();
+    UINT n = MAX(8, xcom::getNearestPowerOf2(bbl->get_elem_count()));
+    return new DEX_CFG(C_SEME, bbl, m_ru, n, n);
+}
+
 
 Pass * DexPassMgr::allocDCE()
 {

@@ -36,14 +36,14 @@ author: Su Zhenyu
 
 namespace xoc {
 
-/* How to use AttachInfo?
-1. Allocate AttachInfo from Region.
+/* How to use AIContainer?
+1. Allocate AIContainer from Region.
 2. Construct your data structure to be attached.
-3. Set the AttachInfo type and the data structure.
+3. Set the AIContainer type and the data structure.
 
-e.g:
+e.T2IRCtx:
     IR * ir = ...; Given IR.
-    IR_ai(ir) = region->allocAI();
+    IR_ai(ir) = region->allocAIContainer();
     Dbx * dbx = getDbx();
     IR_ai(ir)->set(AI_DBX, (BaseAttachInfo*)dbx);
 
@@ -66,21 +66,25 @@ class BaseAttachInfo {
 public:
     AI_TYPE type;
 
+public:
     explicit BaseAttachInfo(AI_TYPE t) { init(t); }
     COPY_CONSTRUCTOR(BaseAttachInfo);
+    ~BaseAttachInfo() {}
 
     void init(AI_TYPE t) { type = t; }
 };
 
 
+//This class represent container of miscellaneous AttachInfo.
 typedef SimpleVec<BaseAttachInfo*, 1> AICont;
-class AttachInfo {
+class AIContainer {
 protected:
     AICont cont;
 
 public:
-    AttachInfo() { init(); }
-    COPY_CONSTRUCTOR(AttachInfo);
+    AIContainer() { init(); }
+    COPY_CONSTRUCTOR(AIContainer);
+    ~AIContainer() {}
 
     void init()
     {
@@ -93,7 +97,7 @@ public:
     void destroy() { cont.destroy(); }
     void destroy_vec() { cont.destroy_vec(); }
 
-    void copy(AttachInfo const* ai)
+    void copy(AIContainer const* ai)
     {
         ASSERT0(ai);
         if (!ai->is_init()) { return; }
@@ -128,7 +132,7 @@ public:
                 continue;
             }
 
-            //Note c will override the prior AttachInfo that has same type.
+            //Note c will override the prior AIContainer that has same type.
             cont.set(i, c);
             return;
         }
@@ -136,12 +140,12 @@ public:
         if (emptyslot != -1) {
             cont.set((UINT)emptyslot, c);
         } else {
-            //AttachInfo buffer will grow bigger.
+            //AIContainer buffer will grow bigger.
             cont.set(i, c);
         }
     }
 
-    BaseAttachInfo const* get(AI_TYPE type) const
+    BaseAttachInfo * get(AI_TYPE type) const
     {
         if (!cont.is_init()) { return NULL; }
         for (UINT i = 0; i < cont.get_capacity(); i++) {

@@ -82,7 +82,7 @@ class IR_SSA_MGR : public Pass {
 protected:
     Region * m_ru;
     SMemPool * m_vp_pool;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     IR_CFG * m_cfg;
     DefSegMgr * m_seg_mgr;
     bool m_is_ssa_constructed;
@@ -113,7 +113,7 @@ protected:
     void clean()
     {
         m_ru = NULL;
-        m_dm = NULL;
+        m_tm = NULL;
         m_seg_mgr = NULL;
         m_cfg = NULL;
         m_vp_count = 1;
@@ -184,8 +184,8 @@ public:
         ASSERT0(ru);
         m_ru = ru;
 
-        m_dm = ru->get_type_mgr();
-        ASSERT0(m_dm);
+        m_tm = ru->get_type_mgr();
+        ASSERT0(m_tm);
 
         ASSERT0(ru->getMiscBitSetMgr());
         m_seg_mgr = ru->getMiscBitSetMgr()->get_seg_mgr();

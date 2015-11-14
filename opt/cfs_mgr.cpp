@@ -163,7 +163,7 @@ AbsNode * CfsMgr::constructAbsLoop(
     UNUSED(cur_region);
     ASSERT0(cur_region == NULL || cur_region->is_contain(BB_id(entry)));
     IR_CFG * cfg = m_ru->get_cfg();
-    LI<IRBB> * li = cfg->map_bb2li(entry);
+    LI<IRBB> * li = cfg->mapBB2LabelInfo(entry);
     ASSERT0(li != NULL && LI_loop_head(li) == entry);
 
     AbsNode * node = new_abs_node(ABS_LOOP);
@@ -262,7 +262,7 @@ AbsNode * CfsMgr::constructAbsTree(
             cur_region->is_contain(BB_id(bb)))) {
         AbsNode * node = NULL;
         loc_visited.clean();
-        LI<IRBB> * li = cfg->map_bb2li(bb);
+        LI<IRBB> * li = cfg->mapBB2LabelInfo(bb);
         if (li != NULL) {
             node = constructAbsLoop(bb, parent, LI_bb_set(li),
                                       g, loc_visited);
@@ -332,10 +332,10 @@ AbsNode * CfsMgr::constructAbsTree(
 AbsNode * CfsMgr::constructAbstractControlFlowStruct()
 {
     IR_CFG * cfg = m_ru->get_cfg();
-    IRBB * entry = cfg->get_entry_list()->get_head();
-    ASSERT(cfg->get_entry_list()->get_elem_count() == 1, ("CFG should be single-entry"));
+    ASSERT(cfg->get_entry(), ("CFG should be single-entry"));
     BitSet visited;
-    AbsNode * a = constructAbsTree(entry, NULL, NULL, *(Graph*)cfg, visited);
+    AbsNode * a = constructAbsTree(cfg->get_entry(), NULL,
+                                   NULL, *(Graph*)cfg, visited);
     //dump_abs_tree(a);
     return a;
 }

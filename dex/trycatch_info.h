@@ -31,31 +31,31 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 author: Su Zhenyu
 @*/
-#ifndef __TARG_HOOK_H__
-#define __TARG_HOOK_H__
+#ifndef __TRY_CATCH_INFO_H__
+#define __TRY_CATCH_INFO_H__
 
-#include "targ_info.h"
+//Map from LIR to LABEL.
+typedef TMap<LIR*, List<LabelInfo*>*> LIR2LabelInfo;
 
-#ifdef FOR_X86
-#include "x86/x86.h"
+class CatchInfo {
+public:
+    CatchInfo * prev;
+    CatchInfo * next;
+    LabelInfo * catch_start;
+    UINT kind; //record exception type.
+    CHAR const* kindname; //record exception type name.
+};
 
-#elif defined(FOR_PAC)
-#include "../pac/pac.h"
-#include "../pac/pac_util.h"
-#include "../pac/pacir2or.h"
-#include "../pac/pacasmprinter.h"
-#include "../pac/pac_cg.h"
 
-#elif defined(FOR_ARM)
-#include "../arm/arm.h"
-
-#elif defined(FOR_DEX)
-#include "../dex/dex_const_info.h"
-#include "../dex/dex_util.h"
-
-#elif defined(FOR_JS)
-#include "../js/js_const_info.h"
-
-#endif
+class TryInfo {
+public:
+    TryInfo * prev;
+    TryInfo * next;
+    LabelInfo * try_start;
+    LabelInfo * try_end;
+    UINT try_start_pos;
+    UINT try_end_pos;
+    CatchInfo * catch_list;
+};
 
 #endif

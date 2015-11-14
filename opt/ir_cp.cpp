@@ -56,7 +56,7 @@ bool IR_CP::checkTypeConsistency(IR const* ir, IR const* cand_expr) const
             //Sign must be consistent.
             return false;
         }
-        if (m_dm->get_bytesize(t1) < m_dm->get_bytesize(t2)) {
+        if (m_tm->get_bytesize(t1) < m_tm->get_bytesize(t2)) {
             //ir size must be equal or great than cand.
             return false;
         }
@@ -479,8 +479,8 @@ bool IR_CP::perform(OptCTX & oc)
     }
 
     bool change = false;
-    IRBB * entry = m_ru->get_cfg()->get_entry_list()->get_head();
-    ASSERT(entry != NULL, ("Not unique entry, invalid Region"));
+    IRBB * entry = m_ru->get_cfg()->get_entry();
+    ASSERT(entry, ("Not unique entry, invalid Region"));
     Graph domtree;
     m_cfg->get_dom_tree(domtree);
     List<Vertex*> lst;

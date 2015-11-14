@@ -42,9 +42,6 @@ author: Su Zhenyu
 #include "comopt.h"
 #include "dex.h"
 #include "gra.h"
-
-#include "dx_mgr.h"
-#include "aoc_dx_mgr.h"
 #include "dex_hook.h"
 #include "dex_util.h"
 
@@ -1472,7 +1469,8 @@ CHAR const* get_field_type_name(DexFile const* df, UINT field_id)
 }
 
 
-//Return the class name which 'field_id' was place in.
+//Return the class name which 'field_id' was placed in.
+//field_id: field number in dexfile.
 CHAR const* get_field_class_name(DexFile const* df, UINT field_id)
 {
     DexFieldId const* fid = dexGetFieldId(df, field_id);
@@ -1537,88 +1535,3 @@ void dump_all_class_and_field(DexFile * df)
     }
     fflush(g_tfile);
 }
-
-
-/*
----dex file map-------
-    header!
-    string id!
-    type id!
-    proto id!
-    field id!
-    method id!
-    class def id!
-
-    annotation set ref list
-    annotation set item list !
-
-    code item !
-
-    annotations directory item!
-    type list info!
-    string data item list !
-    debug info!
-    annotation item list !
-    encodearray item list !
-
-    class Data item !
-            ASSERT0(sub);
-            if (cnt_list(sub) == 1) {
-                if (sub->is_pr() && PR_no(sub) == 2) {
-                    return false;
-                }
-            }
-        }
-        return IR_RP::is_promotable(ir);
-    }
-
-    void insert_stuff_code(IR const* ref, Region * ru, IR_GVN * gvn)
-    {
-        ASSERT0(IR_type(ref) == IR_ARRAY);
-
-        IR * stmt = ref->get_stmt();
-        ASSERT0(stmt);
-        IRBB * stmt_bb = stmt->get_bb();
-        ASSERT0(stmt_bb);
-
-        IR_DU_MGR * dumgr = ru->get_du_mgr();
-
-        C<IR*> * ct = NULL;
-        BB_irlist(stmt_bb).find(stmt, &ct);
-        ASSERT0(ct != NULL);
-
-        //Insert stuff code as you need. It will slow down the benchmark.
-        UINT num_want_to_insert = 30;
-        for (UINT i = 0; i < num_want_to_insert; i++) {
-            IR * newref = ru->dupIRTree(ref);
-            dumgr->copyIRTreeDU(newref, ref, true);
-            IR * stpr = ru->buildStorePR(ru->buildPrno(IR_dt(newref)),
-                                            IR_dt(newref), newref);
-            ru->allocRefForPR(stpr);
-            IR_may_throw(stpr) = true;
-
-            //New IR has same VN with original one.
-            gvn->set_mapIR2VN(stpr, gvn->mapIR2VN(ref));
-
-            BB_irlist(stmt_bb).insert_before(stpr, ct);
-        }
-    }
-
-    virtual void handleAccessInBody(IR * ref, IR * delegate, IR * delegate_pr,
-                                    TMap<IR*, SList<IR*>*> &
-                                            delegate2has_outside_uses_ir_list,
-                                    TTab<IR*> & restore2mem,
-                                    List<IR*> & fixup_list,
-                                    TMap<IR*, IR*> & delegate2stpr,
-                                    LI<IRBB> const* li,
-                                    IRIter & ii)
-    {
-        if (!m_has_insert_stuff &&
-            IR_type(ref) == IR_ARRAY &&
-            (m_ru->isRegionName(
-                "Lsoftweg/hw/performance/CPUTest;::arrayElementsDouble") ||
-             m_ru->isRegionName(
-                 "Lsoftweg/hw/performance/CPUTest;::arrayElementsSingle"))) {
-            m_has_insert_stuff = true;
-            insert_stuff_code(ref, m_ru, m_gvn);
-        }

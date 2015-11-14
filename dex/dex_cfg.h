@@ -29,12 +29,40 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-author: GongKai, JinYue
+author: Su Zhenyu
 @*/
-#ifndef _LIRCOMM_
-#define _LIRCOMM_
+#ifndef _DEX_CFG_H_
+#define _DEX_CFG_H_
 
-#define LIRMALLOC drLinearAlloc
-#define LIRFREEALL drLinearFree
+class DEX_CFG : public IR_CFG {
+protected:
+    void dump_node(FILE * h, bool detail, BitSet const& tryblock);
+    void dump_node2(
+            FILE * h,
+            bool detail,
+            BitSet const& trybbs,
+            BitSet const& catchbbs);
+    void dump_bb(
+            FILE * h,
+            bool detail,
+            UINT id,
+            UINT rpo,
+            CHAR const* shape,
+            CHAR const* color,
+            CHAR const* font,
+            UINT scale,
+            OUT UINT & vertical_order);
+public:
+    DEX_CFG(CFG_SHAPE cs,
+            BBList * bbl,
+            Region * ru,
+            UINT edge_hash_size = 16,
+            UINT vertex_hash_size = 16) :
+        IR_CFG(cs, bbl, ru, edge_hash_size, vertex_hash_size) {}
+    virtual ~DEX_CFG() {}
+
+    void dump_vcg_ex(BitSet const& markbbs);
+    void dump_vcg_ex2(BitSet const& trybbs, BitSet const& catchbbs);
+};
 
 #endif

@@ -56,6 +56,7 @@ public:
     virtual void printSrcLine(IR const*) {}
 };
 
+//User need to initialize DbxMgr before compilation.
 extern DbxMgr * g_dbg_mgr;
 
 //Copy Dbx from src.

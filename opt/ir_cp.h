@@ -77,7 +77,7 @@ protected:
     IR_DU_MGR * m_du;
     IR_CFG * m_cfg;
     MDSetMgr * m_md_set_mgr;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     UINT m_prop_kind;
 
     inline bool checkTypeConsistency(IR const* ir,
@@ -105,7 +105,7 @@ public:
         m_du = ru->get_du_mgr();
         m_cfg = ru->get_cfg();
         m_md_set_mgr = ru->get_mds_mgr();
-        m_dm = ru->get_type_mgr();
+        m_tm = ru->get_type_mgr();
         m_prop_kind = CP_PROP_UNARY_AND_SIMPLEX;
     }
     virtual ~IR_CP() {}

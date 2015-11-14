@@ -73,7 +73,7 @@ class IR_IVR : public Pass {
 protected:
     Region * m_ru;
     MDSystem * m_md_sys;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     IR_DU_MGR * m_du;
     IR_CFG * m_cfg;
     SMemPool * m_pool;
@@ -112,7 +112,7 @@ public:
         m_md_sys = ru->get_md_sys();
         m_du = ru->get_du_mgr();
         m_cfg = ru->get_cfg();
-        m_dm = ru->get_type_mgr();
+        m_tm = ru->get_type_mgr();
         m_pool = smpoolCreate(sizeof(IV) * 4, MEM_COMM);
         m_sc_pool = smpoolCreate(sizeof(SC<IV*>) * 4, MEM_CONST_SIZE);
     }

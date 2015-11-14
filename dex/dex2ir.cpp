@@ -40,6 +40,7 @@ author: Su Zhenyu
 #include "comopt.h"
 #include "dx_mgr.h"
 #include "dex.h"
+#include "trycatch_info.h"
 #include "gra.h"
 #include "dex_hook.h"
 #include "dex_util.h"
@@ -66,16 +67,17 @@ Dex2IR::Dex2IR(IN Region * ru,
     ASSERT0(ru && df && fu);
     m_ru = (DexRegion*)ru;
     m_ru_mgr = (DexRegionMgr*)ru->get_region_mgr();
-    m_dm = ru->get_type_mgr();
+    m_tm = ru->get_type_mgr();
     m_vm = ru->get_var_mgr();
     m_df = df;
+    m_var2fieldid = m_ru->getVAR2Fieldid();
     m_lircode = fu;
     m_tr = ((DexRegion*)ru)->getTypeIndexRep();
     m_ti = NULL;
     m_pool = smpoolCreate(16, MEM_COMM);
     m_pr2v.init(MAX(4, getNearestPowerOf2(fu->maxVars)));
-    m_ptr_addend = m_dm->getSimplexType(D_U32);
-    m_ofst_addend = m_dm->get_dtype_bytesize(D_I64);
+    m_ptr_addend = m_tm->getSimplexType(D_U32);
+    m_ofst_addend = m_tm->get_dtype_bytesize(D_I64);
     m_pr2v.maxreg = fu->maxVars - 1;
     m_pr2v.paramnum = fu->numArgs;
     m_current_catch_list = NULL;
@@ -303,9 +305,9 @@ Type const* Dex2IR::getType(LIR * ir)
 void Dex2IR::set_map_v2ofst(VAR * v, UINT ofst)
 {
     bool find;
-    UINT k = m_map_var2ofst.get(v, &find);
+    UINT k = m_var2fieldid->get(v, &find);
     if (!find) {
-        m_map_var2ofst.set(v, ofst);
+        m_var2fieldid->set(v, ofst);
     } else {
         ASSERT0(k == ofst);
     }
@@ -340,7 +342,7 @@ IR * Dex2IR::convertSget(IN LIR * lir)
     }
     */
     rhs = m_ru->buildLoad(v);
-    AttachInfo * ai = m_ru->allocAI();
+    AIContainer * ai = m_ru->allocAIContainer();
 
     TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
                     sizeof(TbaaAttachInfo), m_ru->get_pool());
@@ -351,7 +353,14 @@ IR * Dex2IR::convertSget(IN LIR * lir)
     ASSERT0(rhs->get_ai() == NULL);
     IR_ai(rhs) = ai;
 
-    return m_ru->buildStorePR(PR_no(res), res->get_type(), rhs);
+    IR * c = m_ru->buildStorePR(PR_no(res), res->get_type(), rhs);
+    IR_may_throw(c) = true;
+    if (m_has_catch) {
+        IR * lab = m_ru->buildLabel(m_ru->genIlabel());
+        add_next(&c, lab);
+        attachCatchInfo(c);
+    }
+    return c;
 }
 
 
@@ -359,15 +368,15 @@ Type const* Dex2IR::mapDexType2XocType(CHAR charty)
 {
     Type const* ty = NULL;
     switch (charty) {
-    case 'V': ty = m_dm->getSimplexTypeEx(D_VOID); break;
-    case 'Z': ty = m_dm->getSimplexTypeEx(D_B); break;
-    case 'B': ty = m_dm->getSimplexTypeEx(D_U8); break;
-    case 'S': ty = m_dm->getSimplexTypeEx(D_I16); break;
-    case 'C': ty = m_dm->getSimplexTypeEx(D_I8); break;
-    case 'I': ty = m_dm->getSimplexTypeEx(D_I32); break;
-    case 'J': ty = m_dm->getSimplexTypeEx(D_I64); break;
-    case 'F': ty = m_dm->getSimplexTypeEx(D_F32); break;
-    case 'D': ty = m_dm->getSimplexTypeEx(D_F64); break;
+    case 'V': ty = m_tm->getSimplexTypeEx(D_VOID); break;
+    case 'Z': ty = m_tm->getSimplexTypeEx(D_B); break;
+    case 'B': ty = m_tm->getSimplexTypeEx(D_U8); break;
+    case 'S': ty = m_tm->getSimplexTypeEx(D_I16); break;
+    case 'C': ty = m_tm->getSimplexTypeEx(D_I8); break;
+    case 'I': ty = m_tm->getSimplexTypeEx(D_I32); break;
+    case 'J': ty = m_tm->getSimplexTypeEx(D_I64); break;
+    case 'F': ty = m_tm->getSimplexTypeEx(D_F32); break;
+    case 'D': ty = m_tm->getSimplexTypeEx(D_F64); break;
     case 'L': ty = m_tr->ptr; break;
     case '[': ty = m_tr->array; break;
     default: ASSERT(0, ("TODO: not yet support")); break;
@@ -407,7 +416,14 @@ IR * Dex2IR::convertSput(IN LIR * lir)
     ASSERT0(res->get_type());
     VAR * v = addStaticVar(LIR_op0(lir), getType(lir));
     set_map_v2ofst(v, LIR_op0(lir));
-    return m_ru->buildStore(v, res);
+    IR * c = m_ru->buildStore(v, res);
+    IR_may_throw(c) = true;
+    if (m_has_catch) {
+        IR * lab = m_ru->buildLabel(m_ru->genIlabel());
+        add_next(&c, lab);
+        attachCatchInfo(c);
+    }
+    return c;
 }
 
 
@@ -424,7 +440,7 @@ IR * Dex2IR::convertAput(IN LIR * lir)
     TMWORD enbuf = 0;
 
     //base type info.
-    AttachInfo * ai = m_ru->allocAI();
+    AIContainer * ai = m_ru->allocAIContainer();
     TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
                     sizeof(TbaaAttachInfo), m_ru->get_pool());
     tbaa->init(AI_TBAA);
@@ -464,7 +480,7 @@ IR * Dex2IR::convertAget(IN LIR * lir)
     //IR_may_throw(array) = true;
 
     //base type info.
-    AttachInfo * ai = m_ru->allocAI();
+    AIContainer * ai = m_ru->allocAIContainer();
     TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
                     sizeof(TbaaAttachInfo), m_ru->get_pool());
     tbaa->init(AI_TBAA);
@@ -601,8 +617,8 @@ IR * Dex2IR::convertCmp(IN LIR * lir)
     add_next(&p, &last, r);
 
     IR * c = m_ru->buildCall(v, p,
-                            genMappedPrno(LIR_res(lir), m_tr->i32),
-                            m_tr->i32);
+                             genMappedPrno(LIR_res(lir), m_tr->i32),
+                             m_tr->i32);
     CALL_is_readonly(c) = true;
     IR_has_sideeffect(c) = false;
     CALL_is_intrinsic(c) = true;
@@ -672,7 +688,7 @@ UINT Dex2IR::computeFieldOffset(UINT field_id)
     for (UINT i = 0; i < class_data->header.instanceFieldsSize; i++) {
         DexField * finfo = &class_data->instanceFields[i];
         if (finfo->fieldIdx == field_id) {
-            return i * m_dm->get_dtype_bytesize(D_I64);
+            return i * m_tm->get_dtype_bytesize(D_I64);
         }
         //dumpf_field(df, finfo, 4);
     }
@@ -714,7 +730,7 @@ IR * Dex2IR::convertIget(IN LIR * lir)
 
     IR_may_throw(c) = true;
 
-    AttachInfo * ai = m_ru->allocAI();
+    AIContainer * ai = m_ru->allocAIContainer();
     TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
                     sizeof(TbaaAttachInfo), m_ru->get_pool());
     tbaa->init(AI_TBAA);
@@ -733,7 +749,7 @@ IR * Dex2IR::convertIget(IN LIR * lir)
     CHAR const* type_name = get_var_type_name(LIR_op1(lir));
     if (is_array_type(type_name)) {
         //The type of result value of ild is pointer to array type.
-        AttachInfo * ai = m_ru->allocAI();
+        AIContainer * ai = m_ru->allocAIContainer();
         TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
                     sizeof(TbaaAttachInfo), m_ru->get_pool());
         tbaa->init(AI_TBAA);
@@ -744,7 +760,7 @@ IR * Dex2IR::convertIget(IN LIR * lir)
         IR_ai(ild) = ai;
     } else if (is_obj_type(type_name)) {
         //The type of result value of ild is pointer to object type.
-        AttachInfo * ai = m_ru->allocAI();
+        AIContainer * ai = m_ru->allocAIContainer();
         TbaaAttachInfo * tbaa = (TbaaAttachInfo*)xmalloc(
                     sizeof(TbaaAttachInfo), m_ru->get_pool());
         tbaa->init(AI_TBAA);
@@ -775,11 +791,11 @@ IR * Dex2IR::convertBinaryOpAssign(IN LIR * lir)
     case LOP_OR_ASSIGN  : ir_ty = IR_BOR; break;
     case LOP_XOR_ASSIGN : ir_ty = IR_XOR; break;
     case LOP_SHL_ASSIGN : ir_ty = IR_LSL;
-        ty2 = m_dm->getSimplexTypeEx(D_U32); break;
+        ty2 = m_tm->getSimplexTypeEx(D_U32); break;
     case LOP_SHR_ASSIGN : ir_ty = IR_ASR;
-        ty2 = m_dm->getSimplexTypeEx(D_U32); break;
+        ty2 = m_tm->getSimplexTypeEx(D_U32); break;
     case LOP_USHR_ASSIGN: ir_ty = IR_LSR;
-        ty2 = m_dm->getSimplexTypeEx(D_U32); break;
+        ty2 = m_tm->getSimplexTypeEx(D_U32); break;
     default: ASSERT0(0);
     }
     IR * res = genMappedPR(LIR_res(lir), ty);
@@ -1021,7 +1037,7 @@ IR * Dex2IR::convertInvoke(IN LIR * lir)
         add_next(&param_list, &last, param);
     }
     ASSERT0(*paramty == 0);
-    IR * c = m_ru->buildCall(v, param_list, 0, m_dm->getVoid());
+    IR * c = m_ru->buildCall(v, param_list, 0, m_tm->getVoid());
     IR_may_throw(c) = true;
     CALL_is_readonly(c) = VAR_is_readonly(v);
     IR_has_sideeffect(c) = true;
@@ -1104,7 +1120,7 @@ IR * Dex2IR::convertArrayLength(IN LIR * lir)
 }
 
 
-void Dex2IR::attachCatchInfo(IR * ir, AttachInfo * ai)
+void Dex2IR::attachCatchInfo(IR * ir, AIContainer * ai)
 {
     if (m_current_catch_list != NULL) {
         ASSERT0(ai);
@@ -1123,7 +1139,7 @@ void Dex2IR::attachCatchInfo(IR * ir, AttachInfo * ai)
 void Dex2IR::attachCatchInfo(IR * ir)
 {
     if (m_current_catch_list != NULL) {
-        AttachInfo * ai = m_ru->allocAI();
+        AIContainer * ai = m_ru->allocAIContainer();
         ASSERT0(ir->get_ai() == NULL);
         IR_ai(ir) = ai;
 
@@ -1144,7 +1160,7 @@ IR * Dex2IR::convertMonitorExit(IN LIR * lir)
 {
     VAR * v = getBuiltinVar(BLTIN_MONITOR_EXIT, m_ru_mgr);
     IR * c = m_ru->buildCall(v, genMappedPR(LIR_res(lir), m_tr->i32),
-                             0, m_dm->getVoid());
+                             0, m_tm->getVoid());
     IR_may_throw(c) = true;
     CALL_is_intrinsic(c) = true;
     IR_has_sideeffect(c) = true;
@@ -1159,7 +1175,7 @@ IR * Dex2IR::convertMonitorEnter(IN LIR * lir)
 {
     VAR * v = getBuiltinVar(BLTIN_MONITOR_ENTER, m_ru_mgr);
     IR * c = m_ru->buildCall(v, genMappedPR(LIR_res(lir), m_tr->i32),
-                             0, m_dm->getVoid());
+                             0, m_tm->getVoid());
     IR_may_throw(c) = true;
     CALL_is_intrinsic(c) = true;
     IR_has_sideeffect(c) = true;
@@ -1229,7 +1245,7 @@ IR * Dex2IR::convertFillArrayData(IN LIR * lir)
     #endif
 
     VAR * v = getBuiltinVar(BLTIN_FILL_ARRAY_DATA, m_ru_mgr);
-    IR * call = m_ru->buildCall(v, NULL, 0, m_dm->getVoid());
+    IR * call = m_ru->buildCall(v, NULL, 0, m_tm->getVoid());
 
     //The first parameter is array obj-ptr.
     IR * p = genMappedPR(l->value, m_tr->ptr);
@@ -1314,7 +1330,7 @@ IR * Dex2IR::convertCheckCast(IN LIR * lir)
     VAR * v = getBuiltinVar(BLTIN_CHECK_CAST, m_ru_mgr);
     IR * p = genMappedPR(LIR_res(lir), m_tr->i32);
     add_next(&p, m_ru->buildImmInt(LIR_op0(lir), m_tr->i32));
-    IR * c = m_ru->buildCall(v, p, 0, m_dm->getVoid());
+    IR * c = m_ru->buildCall(v, p, 0, m_tm->getVoid());
     IR_may_throw(c) = true;
     CALL_is_intrinsic(c) = true;
     CALL_is_readonly(c) = true;
@@ -1352,7 +1368,7 @@ IR * Dex2IR::convertFilledNewArray(IN LIR * lir)
     for (UINT i = 0; i < r->argc; i++) {
         add_next(&p, &last, genMappedPR(r->args[i], m_tr->i32));
     }
-    IR * c = m_ru->buildCall(v, p, 0, m_dm->getVoid());
+    IR * c = m_ru->buildCall(v, p, 0, m_tm->getVoid());
     IR_may_throw(c) = true;
     CALL_is_intrinsic(c) = true;
     CALL_is_readonly(c) = true;
@@ -1366,7 +1382,7 @@ IR * Dex2IR::convertThrow(IN LIR * lir)
 {
     VAR * v = getBuiltinVar(BLTIN_THROW, m_ru_mgr);
     IR * c = m_ru->buildCall(v, genMappedPR(LIR_res(lir), m_tr->i32),
-                             0, m_dm->getVoid());
+                             0, m_tm->getVoid());
     IR_may_throw(c) = true;
     CALL_is_readonly(c) = true;
     CALL_is_intrinsic(c) = true;
@@ -1909,6 +1925,9 @@ void Dex2IR::markTryLabel()
                     call '#monitor_exit'  id:168 throw sideeffect ai:EH,
                         $pr3:i32 param0 id:167
 
+                    ilabel(_L12)(try_start ) id:170  <=== Try Start
+
+                    call '#throw'  id:172 throw terminate sideeffect ai:EH,
                         $pr1:i32 param0 id:171
 
                     ilabel(_L13)(try_end ) id:173 <=== Try End, the last label
@@ -2068,16 +2087,16 @@ IR * Dex2IR::convert(bool * succ)
 
         if (dump) {
             dump_lir(lir, m_df, i);
-            dump_irs(newir, m_dm);
+            dump_irs(newir, m_tm);
         }
 
         DexDbx const* dbx = m_dbxvec.get(i);
         if (dbx != NULL) {
             //Record Debug info.
             for (IR * tmp = newir; tmp != NULL; tmp = IR_next(tmp)) {
-                AttachInfo * ai = IR_ai(tmp);
+                AIContainer * ai = IR_ai(tmp);
                 if (ai == NULL) {
-                    ai = m_ru->allocAI();
+                    ai = m_ru->allocAIContainer();
                     IR_ai(tmp) = ai;
                 }
                 ai->set((BaseAttachInfo*)dbx);

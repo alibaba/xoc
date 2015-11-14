@@ -443,7 +443,7 @@ class IR_GVN : public Pass {
 protected:
     Region * m_ru;
     IR_DU_MGR * m_du;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     MDSystem * m_md_sys;
     IR_CFG * m_cfg;
     VN * m_zero_vn;

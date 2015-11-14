@@ -289,7 +289,7 @@ protected:
     size_t m_str_count;
     List<UINT> m_freelist_of_varid;
     RegionMgr * m_ru_mgr;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
 
 protected:
     inline void assignVarId(VAR * v);
@@ -310,7 +310,7 @@ public:
 
     void dump(IN OUT CHAR * name = NULL);
 
-    TypeMgr * get_type_mgr() const { return m_dm; }
+    TypeMgr * get_type_mgr() const { return m_tm; }
     ID2VAR * get_var_vec() { return &m_var_vec; }
 
     VAR * findStringVar(SYM * str) { return m_str_tab.get(str); }
@@ -330,8 +330,10 @@ public:
 
     //Create a VAR.
     VAR * registerVar(
-            CHAR const* varname, Type const* type,
-            UINT align, UINT flag);
+            CHAR const* varname,
+            Type const* type,
+            UINT align,
+            UINT flag);
     VAR * registerVar(SYM * var_name, Type const* type, UINT align, UINT flag);
 
     //Create a String VAR.

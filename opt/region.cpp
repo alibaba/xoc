@@ -87,8 +87,8 @@ AnalysisInstrument::~AnalysisInstrument()
         m_pass_mgr = NULL;
     }
 
-    //Free AttachInfo's internal structure.
-    //The vector of AttachInfo must be destroyed explicitly.
+    //Free AIContainer's internal structure.
+    //The vector of AIContainer must be destroyed explicitly.
     INT l = m_ir_vector.get_last_idx();
     for (INT i = 1; i <= l; i++) {
         IR * ir = m_ir_vector.get(i);
@@ -1114,7 +1114,6 @@ IR * Region::buildImmInt(HOST_INT v, Type const* type)
 IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
 {
     ASSERT0(lchild && rchild);
-    TypeMgr * dm = get_type_mgr();
     if (!lchild->is_ptr() && rchild->is_ptr()) {
         ASSERT0(irt == IR_ADD ||
                 irt == IR_MUL ||
@@ -1170,7 +1169,7 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
                 IR * ret = allocIR(irt);
                 BIN_opnd0(ret) = lchild;
                 BIN_opnd1(ret) = rchild;
-                IR_dt(ret) = dm->getSimplexTypeEx(D_B);
+                IR_dt(ret) = get_type_mgr()->getSimplexTypeEx(D_B);
                 IR_parent(lchild) = ret;
                 IR_parent(rchild) = ret;
                 return ret;
@@ -1201,7 +1200,7 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
 
                 //CASE: 'p = p + 1'
                 //so the result type of '+' should still be pointer type.
-                ret->setPointerType(TY_ptr_base_size(d0), dm);
+                ret->setPointerType(TY_ptr_base_size(d0), get_type_mgr());
 
                 //Avoid too much boring pointer operations.
                 ret->setParentPointer(true);
@@ -1210,13 +1209,13 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
         default:
             {
                 ASSERT0(irt == IR_LT || irt == IR_LE ||
-                         irt == IR_GT || irt == IR_GE ||
-                         irt == IR_EQ || irt == IR_NE);
+                        irt == IR_GT || irt == IR_GE ||
+                        irt == IR_EQ || irt == IR_NE);
                 //Pointer operation will incur undefined behavior.
                 IR * ret = allocIR(irt);
                 BIN_opnd0(ret) = lchild;
                 BIN_opnd1(ret) = rchild;
-                IR_dt(ret) = dm->getSimplexTypeEx(D_B);
+                IR_dt(ret) = get_type_mgr()->getSimplexTypeEx(D_B);
                 IR_parent(lchild) = ret;
                 IR_parent(rchild) = ret;
                 return ret;
@@ -1313,6 +1312,7 @@ IR * Region::buildBinaryOp(
     if (lchild->is_ptr() || rchild->is_ptr()) {
         return buildPointerOp(irt, lchild, rchild);
     }
+
     if (lchild->is_const() &&
         !rchild->is_const() &&
         (irt == IR_ADD ||
@@ -1327,15 +1327,12 @@ IR * Region::buildBinaryOp(
 
     //Both lchild and rchild are NOT pointer.
     //Generic binary operation.
-    UINT mc_size = 0;
-    if (TY_dtype(type) == D_MC) {
-        mc_size = TY_mc_size(type);
-        UNUSED(mc_size);
-        ASSERT0(mc_size == lchild->get_dtype_size(get_type_mgr()) &&
-                mc_size == rchild->get_dtype_size(get_type_mgr()));
+    if (type->is_mc()) {
+        ASSERT(TY_mc_size(type) != 0, ("Size of memory chunck can not be 0"));
+        ASSERT0(TY_mc_size(type) == lchild->get_dtype_size(get_type_mgr()) &&
+                TY_mc_size(type) == rchild->get_dtype_size(get_type_mgr()));
     }
 
-    ASSERT0(type->is_mc() ^ (mc_size == 0));
     return buildBinaryOpSimp(irt, type, lchild, rchild);
 }
 
@@ -1936,7 +1933,7 @@ void Region::freeIR(IR * ir)
     }
 
     UINT res_id = IR_id(ir);
-    AttachInfo * res_ai = IR_ai(ir);
+    AIContainer * res_ai = IR_ai(ir);
     UINT res_irt_sz = get_irt_size(ir);
     memset(ir, 0, res_irt_sz);
     IR_id(ir) = res_id;
@@ -1992,7 +1989,7 @@ IR * Region::dupIR(IR const* src)
     ASSERT(res != NULL && src != NULL, ("res/src is NULL"));
 
     UINT res_id = IR_id(res);
-    AttachInfo * res_ai = IR_ai(res);
+    AIContainer * res_ai = IR_ai(res);
     UINT res_irt_sz = get_irt_size(res);
     memcpy(res, src, IRTSIZE(irt));
     IR_id(res) = res_id;
@@ -2001,9 +1998,9 @@ IR * Region::dupIR(IR const* src)
     IR_next(res) = IR_prev(res) = IR_parent(res) = NULL;
     res->cleanDU(); //Do not copy DU info.
     res->clearSSAInfo(); //Do not copy SSA info.
-    if (IR_ai(src) != NULL) { //need to copy AttachInfo.
+    if (IR_ai(src) != NULL) { //need to copy AIContainer.
         if (IR_ai(res) == NULL) {
-            IR_ai(res) = allocAI();
+            IR_ai(res) = allocAIContainer();
         }
         IR_ai(res)->copy(IR_ai(src));
     }
@@ -2375,7 +2372,7 @@ void Region::process()
             //operation to before building.
             get_cfg()->removeEmptyBB(oc);
 
-            get_cfg()->computeEntryAndExit(true, true);
+            get_cfg()->computeExitList();
 
             if (g_do_cdg) {
                 ASSERT0(get_pass_mgr());
@@ -2576,7 +2573,7 @@ void Region::checkValidAndRecompute(OptCTX * oc, ...)
         //Caution: the validation of cfg should maintained by user.
         cfg->rebuild(*oc);
         cfg->removeEmptyBB(*oc);
-        cfg->computeEntryAndExit(true, true);
+        cfg->computeExitList();
     }
 
     if (opts.is_contain(PASS_CDG) && !OC_is_aa_valid(*oc)) {

@@ -285,7 +285,7 @@ bool IR_RCE::perform(OptCTX & oc)
             lchange |= m_cfg->removeTrampolinEdge();
         } while (lchange);
 
-        m_cfg->computeEntryAndExit(true, true);
+        m_cfg->computeExitList();
 
         //TODO: May be the change of CFG does not influence the
         //usage while we utilize du-chain and ir2mds.

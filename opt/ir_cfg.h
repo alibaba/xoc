@@ -38,23 +38,35 @@ namespace xoc {
 
 typedef TMap<LabelInfo const*, IRBB*> LAB2BB;
 
-/*
-NOTICE:
-1. For accelerating perform operation of each vertex, e.g
-   compute dominator, please try best to add vertex with
-   topological order.
-*/
+//NOTICE:
+//1. For accelerating perform operation of each vertex, e.g
+//   compute dominator, please try best to add vertex with
+//   topological order.
 class IR_CFG : public Pass, public CFG<IRBB, IR> {
 protected:
     Vector<IRBB*> m_bb_vec;
     LAB2BB m_lab2bb;
     Region * m_ru;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
 
 protected:
     void dump_node(FILE * h, bool detail);
     void dump_head(FILE * h);
     void dump_edge(FILE * h, bool dump_eh);
+
+    void remove_bb_impl(IRBB * bb)
+    {
+        ASSERT0(bb);
+        m_bb_vec.set(BB_id(bb), NULL);
+
+        //C<LabelInfo const*> * ct;
+        //for (lablst.get_head(&ct);
+        //     ct != lablst.end(); ct = lablst.get_next(ct)) {
+        //    m_lab2bb.remove(ct->val());
+        //}
+
+        removeVertex(BB_id(bb));
+    }
 
 public:
     IR_CFG(CFG_SHAPE cs, BBList * bbl, Region * ru,
@@ -183,18 +195,27 @@ public:
     void computePdomAndIpdom(IN OUT OptCTX & oc, BitSet const* uni = NULL);
 
     //Record the Exit BB here.
-    virtual void computeEntryAndExit(bool comp_entry, bool comp_exit)
+    virtual void computeExitList()
     {
-        CFG<IRBB, IR>::computeEntryAndExit(comp_entry, comp_exit);
-        if (comp_exit) {
-            C<IRBB*> * ct;
-            for (m_exit_list.get_head(&ct);
-                 ct != m_exit_list.end();
-                 ct = m_exit_list.get_next(ct)) {
-                IRBB * bb = ct->val();
-                ASSERT0(bb);
-                BB_is_exit(bb) = true;
-            }
+        //Clean the Exit flag.
+        C<IRBB*> * ct;
+        for (m_exit_list.get_head(&ct);
+             ct != m_exit_list.end();
+             ct = m_exit_list.get_next(ct)) {
+            IRBB * bb = ct->val();
+            ASSERT0(bb);
+            BB_is_exit(bb) = false;
+        }
+
+        CFG<IRBB, IR>::computeExitList();
+
+        //Record the Exit flag as BB attribute to speed up accessing.
+        for (m_exit_list.get_head(&ct);
+             ct != m_exit_list.end();
+             ct = m_exit_list.get_next(ct)) {
+            IRBB * bb = ct->val();
+            ASSERT0(bb);
+            BB_is_exit(bb) = true;
         }
     }
 
@@ -212,13 +233,12 @@ public:
 
     void erase();
 
-    void findTargetBBOfMulticondBranch(IN IR * ir,
-                                        OUT List<IRBB*> & tgt_bbs);
-    IRBB * findBBbyLabel(LabelInfo const* lab);
-    void findTargetBBOfIndirectBranch(IR * ir, OUT List<IRBB*> & tgtlst);
+    virtual void findTargetBBOfMulticondBranch(IR const*, OUT List<IRBB*>&);
+    virtual IRBB * findBBbyLabel(LabelInfo const* lab);
+    virtual void findTargetBBOfIndirectBranch(IR const*, OUT List<IRBB*>&);
     void findEHRegion(
             IRBB const* catch_start,
-            BitSet const& rubbs,
+            BitSet const& mainstreambbs,
             OUT BitSet & ehbbs);
     void findTryRegion(IRBB const* try_start, OUT BitSet & ehbbs);
     void findAllTryRegions(OUT BitSet & trybbs);
@@ -227,7 +247,7 @@ public:
     void initCfg(OptCTX & oc);
     virtual bool if_opt(IRBB * bb);
     bool is_ru_entry(IRBB * bb) { return BB_is_entry(bb); }
-    bool is_ru_exit(IRBB * bb) { return  BB_is_exit(bb); }
+    bool is_ru_exit(IRBB * bb) { return BB_is_exit(bb); }
     void insertBBbetween(
             IN IRBB * from,
             IN C<IRBB*> * from_ct,
@@ -286,38 +306,39 @@ public:
         return n;
     }
 
+    //You should clean the relation between Label and BB before remove BB.
     virtual void remove_bb(C<IRBB*> * bbct)
     {
         ASSERT0(bbct);
         ASSERT0(m_bb_list->in_list(bbct));
-        IRBB * bb = bbct->val();
-        m_bb_vec.set(BB_id(bb), NULL);
+        remove_bb_impl(bbct->val());
         m_bb_list->remove(bbct);
-        removeVertex(BB_id(bb));
     }
 
     //We only remove 'bb' from CF graph, vector and bb-list.
+       //You should clean the relation between Label and BB before remove BB.
     virtual void remove_bb(IRBB * bb)
     {
         ASSERT0(bb);
-        m_bb_vec.set(BB_id(bb), NULL);
+        remove_bb_impl(bb);
         m_bb_list->remove(bb);
-        removeVertex(BB_id(bb));
     }
     void remove_xr(IRBB * bb, IR * ir);
     bool removeTrampolinEdge();
     bool removeTrampolinBB();
     bool removeRedundantBranch();
+    virtual void resetMapBetweenLabelAndBB(IRBB * bb);
 
     virtual void set_rpo(IRBB * bb, INT order) { BB_rpo(bb) = order; }
-    virtual void unionLabels(IRBB * src, IRBB * tgt);
+
+    virtual void moveLabels(IRBB * src, IRBB * tgt);
 
     virtual bool perform(OptCTX & oc) { UNUSED(oc); return false; }
 
-    /* Perform miscellaneous control flow optimizations.
-    Include remove dead bb which is unreachable, remove empty bb as many
-    as possible, simplify and remove the branch like "if (x==x)", remove
-    the trampolin branch. */
+    //Perform miscellaneous control flow optimizations.
+    //Include remove dead bb which is unreachable, remove empty bb as many
+    //as possible, simplify and remove the branch like "if (x==x)", remove
+    //the trampolin branch.
     bool performMiscOpt(OptCTX & oc);
 };
 

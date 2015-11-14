@@ -414,7 +414,7 @@ void IR_SSA_MGR::dump()
         for (IR * ir = BB_first_ir(bb);
              ir != NULL; ir = BB_next_ir(bb)) {
             g_indent = 4;
-            dump_ir(ir, m_dm);
+            dump_ir(ir, m_tm);
             lst.clean();
             opnd_lst.clean();
             //Find IR_PR.
@@ -946,17 +946,14 @@ void IR_SSA_MGR::renameInDomTreeOrder(IRBB * root, Graph & domtree,
 
 
 //Rename variables.
-void IR_SSA_MGR::rename(DefSBitSet & effect_prs,
-                        Vector<DefSBitSet*> & defed_prs_vec,
-                        Graph & domtree)
+void IR_SSA_MGR::rename(
+        DefSBitSet & effect_prs,
+        Vector<DefSBitSet*> & defed_prs_vec,
+        Graph & domtree)
 {
     START_TIMERS("SSA: Rename", t);
     BBList * bblst = m_ru->get_bb_list();
     if (bblst->get_elem_count() == 0) { return; }
-
-    List<IRBB*> * l = m_cfg->get_entry_list();
-    ASSERT(l->get_elem_count() == 1, ("illegal region"));
-    IRBB * entry = l->get_head();
 
     SEGIter * cur = NULL;
     for (INT prno = effect_prs.get_first(&cur);
@@ -964,13 +961,14 @@ void IR_SSA_MGR::rename(DefSBitSet & effect_prs,
         VP * vp = newVP(prno, 0);
         mapPRNO2VPStack(prno)->push(vp);
     }
-    ASSERT0(entry);
-    renameInDomTreeOrder(entry, domtree, defed_prs_vec);
+
+    ASSERT0(m_cfg->get_entry());
+    renameInDomTreeOrder(m_cfg->get_entry(), domtree, defed_prs_vec);
     END_TIMERS(t);
 }
 
 
-void IR_SSA_MGR::destructBBSSAInfo(IRBB * bb, IN OUT bool & insert_stmt_after_call)
+void IR_SSA_MGR::destructBBSSAInfo(IRBB * bb, OUT bool & insert_stmt_after_call)
 {
     C<IR*> * ct, * next_ct;
     BB_irlist(bb).get_head(&next_ct);
@@ -1043,16 +1041,9 @@ void IR_SSA_MGR::destruction(DomTree & domtree)
 
     BBList * bblst = m_ru->get_bb_list();
     if (bblst->get_elem_count() == 0) { return; }
-
-    List<IRBB*> * l = m_cfg->get_entry_list();
-    ASSERT(l->get_elem_count() == 1, ("illegal region"));
-    IRBB * entry = l->get_head();
-    ASSERT0(entry);
-
-    destructionInDomTreeOrder(entry, domtree);
-
+    ASSERT0(m_cfg->get_entry());
+    destructionInDomTreeOrder(m_cfg->get_entry(), domtree);
     cleanPRSSAInfo();
-
     m_is_ssa_constructed = false;
 
     END_TIMER_FMT(("SSA: destruction in dom tree order"));

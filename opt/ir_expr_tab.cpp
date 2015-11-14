@@ -42,7 +42,7 @@ IR_EXPR_TAB::IR_EXPR_TAB(Region * ru)
 {
     m_expr_count = 0;
     m_ru = ru;
-    m_dm = ru->get_type_mgr();
+    m_tm = ru->get_type_mgr();
     memset(m_level1_hash_tab, 0,
            sizeof(ExpRep*) * IR_EXPR_TAB_LEVEL1_HASH_BUCKET);
     m_pool = smpoolCreate(sizeof(ExpRep*) * 128, MEM_COMM);
@@ -113,7 +113,7 @@ void IR_EXPR_TAB::dump_ir_expr_tab()
         if (ie == NULL) { continue; }
         ASSERT0(EXPR_id(ie) == (UINT)i);
         fprintf(g_tfile, "\n\n----------- ExpRep(%d)", i);
-        dump_ir(EXPR_ir(ie), m_dm);
+        dump_ir(EXPR_ir(ie), m_tm);
         fprintf(g_tfile, "\n\tOCC:");
         for (IR * occ = EXPR_occ_list(ie).get_head();
              occ != NULL; occ = EXPR_occ_list(ie).get_next()) {

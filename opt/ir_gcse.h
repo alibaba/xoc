@@ -87,7 +87,7 @@ protected:
     IR_AA * m_aa;
     IR_SSA_MGR * m_ssamgr;
     IR_EXPR_TAB * m_expr_tab;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     IR_GVN * m_gvn;
     TG * m_tg;
     DefMiscBitSetMgr * m_misc_bs_mgr;
@@ -118,7 +118,7 @@ public:
         m_aa = ru->get_aa();
         ASSERT0(m_du && m_aa);
         m_expr_tab = NULL;
-        m_dm = ru->get_type_mgr();
+        m_tm = ru->get_type_mgr();
         m_gvn = gvn;
         m_misc_bs_mgr = ru->getMiscBitSetMgr();
         m_tg = NULL;

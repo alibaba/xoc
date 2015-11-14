@@ -419,7 +419,7 @@ static void ir_dump_lab(IR const* ir)
 static void dump_ai(OUT CHAR * buf, IR const* ir)
 {
     ASSERT0(ir && buf);
-    AttachInfo const* ai = ir->get_ai();
+    AIContainer const* ai = ir->get_ai();
     if (ai == NULL) { return; }
 
     AICont const& cont = ai->read_cont();
@@ -492,6 +492,9 @@ void dump_ir(IR const* ir,
     }
     if (IR_has_sideeffect(ir)) {
         strcat(p, " sideeffect");
+    }
+    if (IR_no_move(ir)) {
+        strcat(p, " nomove");
     }
 
     dump_ai(p, ir);
@@ -575,7 +578,7 @@ void dump_ir(IR const* ir,
             //Dump elem number.
             g_indent += dn;
             UINT dim = 0;
-            note("\nenum[");
+            note("\nelem_num[");
             for (IR const* sub = ARR_sub_list(ir); sub != NULL;) {
                 fprintf(g_tfile, "%d", ARR_elem_num(ir, dim));
                 sub = IR_next(sub);

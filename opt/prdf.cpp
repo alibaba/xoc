@@ -240,8 +240,7 @@ static UINT g_max_times = 0;
 #endif
 void PRDF::computeGlobal()
 {
-    ASSERT0(BB_is_entry(m_cfg->get_entry_list()->get_head()) &&
-            m_cfg->get_entry_list()->get_elem_count() == 1);
+    ASSERT0(m_cfg->get_entry() && BB_is_entry(m_cfg->get_entry()));
 
     //Rpo should be available.
     List<IRBB*> * vlst = m_cfg->get_bblist_in_rpo();

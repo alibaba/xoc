@@ -42,22 +42,12 @@ author: Su Zhenyu
 #include "comopt.h"
 #include "cmdline.h"
 #include "dex.h"
+#include "trycatch_info.h"
 #include "gra.h"
-#ifdef _CODE_ANA_
-#include "auxsym.h"
-#include "warnmgr.h"
-#include "dexscan.h"
-#include "closable.h"
-#include "lockscan.h"
-#endif
 #include "dex_hook.h"
 #include "dex_util.h"
 #include "dex2ir.h"
 #include "ir2dex.h"
-#ifdef _CODE_ANA_
-#include "singleton.h"
-#endif
-
 
 PassMgr * DexRegion::allocPassMgr()
 {
@@ -296,22 +286,7 @@ void DexRegion::process()
 
     HighProcess(oc);
 
-    #ifdef _CODE_ANA_
-    if (g_do_dexscan) {
-        addCatchTypeName(this);
-
-        DexScan ds(this);
-        ds.perform(oc);
-
-        SingletonReferencePattern pattern(this);
-        pattern.perform(oc);
-
-        ClosableScan cs(this);
-        cs.perform(oc);
-    }
-    #else
     MiddleProcess(oc);
-    #endif
 
     ASSERT0(get_pass_mgr());
     IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)passmgr->queryPass(PASS_SSA_MGR);

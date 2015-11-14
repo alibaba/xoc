@@ -37,10 +37,11 @@ author: Su Zhenyu
 namespace xoc {
 
 //CALL NODE
-#define CN_id(c)         ((c)->id)
-#define CN_sym(c)        ((c)->ru_name)
-#define CN_ru(c)         ((c)->ru)
-#define CN_is_used(c)    ((c)->u1.s1.is_used)
+#define CN_id(c)             ((c)->id)
+#define CN_sym(c)            ((c)->ru_name)
+#define CN_ru(c)             ((c)->ru)
+#define CN_is_used(c)        ((c)->u1.s1.is_used)
+#define CN_unknown_callee(c) ((c)->u1.s1.has_unknown_callee)
 class CallNode {
 public:
     UINT id;
@@ -51,9 +52,16 @@ public:
             //It is marked by attribute used, which usually means
             //that it is called in inline assembly code.
             BYTE is_used:1;
+
+            //It may be unable to determine some targets
+            //of a callsite. In this case, the flag will return true.
+            BYTE has_unknown_callee:1;
         } s1;
         BYTE u1b1;
     } u1;
+
+public:
+    CallNode() { memset(this, 0, sizeof(CallNode)); }
 };
 
 
@@ -62,17 +70,19 @@ typedef TMap<SYM const*, CallNode*> SYM2CN;
 
 
 //Call Graph
+//The call graph is not precise. That is, a callsite may indicate it can
+//call a function when in fact it does not do so in the running program.
 #define CALLG_DUMP_IR    1
 class CallGraph : public DGraph {
     RegionMgr * m_ru_mgr;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     SMemPool * m_cn_pool; //pool for call node.
     UINT m_cn_count;
     Vector<CallNode*> m_cnid2cn;
     Vector<CallNode*> m_ruid2cn;
     SYM2CN m_sym2cn_map;
 
-    CallNode * newCallNode()
+    CallNode * allocCallNode()
     {
         ASSERT0(m_cn_pool);
         CallNode * p = (CallNode*)smpoolMallocConstSize(
@@ -87,7 +97,7 @@ public:
     {
         ASSERT0(edge_hash > 0 && vex_hash > 0);
         m_ru_mgr = rumgr;
-        m_dm = rumgr->get_type_mgr();
+        m_tm = rumgr->get_type_mgr();
         m_cn_count = 1;
         m_cn_pool = smpoolCreate(sizeof(CallNode) * 2, MEM_CONST_SIZE);
     }
@@ -127,7 +137,7 @@ public:
         return CN_ru(cn);
     }
 
-    CallNode * newCallNode(IR * ir);
+    CallNode * newCallNode(IR const* ir);
     CallNode * newCallNode(Region * ru);
 
     void erase()

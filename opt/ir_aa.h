@@ -276,7 +276,7 @@ class IR_AA : public Pass {
 protected:
     IR_CFG * m_cfg;
     VarMgr * m_var_mgr;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     Region * m_ru;
     MDSystem * m_md_sys;
     SMemPool * m_pool;
@@ -418,7 +418,7 @@ protected:
             IN OUT MD2MDSet * mx);
     void processGetelem(IR * ir, IN MD2MDSet * mx);
     void processSetelem(IR * ir, IN MD2MDSet * mx);
-    void processIload(
+    void processIld(
             IR * ir,
             IN OUT MDSet & mds,
             IN OUT AACTX * ic,
@@ -439,7 +439,7 @@ protected:
             IN OUT AACTX * ic);
     void processStore(IN IR * ir, IN OUT MD2MDSet * mx);
     void processStorePR(IN IR * ir, IN MD2MDSet * mx);
-    void processIstore(IN IR * ir, IN OUT MD2MDSet * mx);
+    void processIst(IN IR * ir, IN OUT MD2MDSet * mx);
     void processStoreArray(IN IR * ir, IN MD2MDSet * mx);
     void processPhi(IN IR * ir, IN MD2MDSet * mx);
     void processCallSideeffect(

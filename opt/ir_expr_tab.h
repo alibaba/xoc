@@ -67,7 +67,7 @@ public:
 class IR_EXPR_TAB : public Pass {
     UINT m_expr_count; //the encode-number expression.
     Region * m_ru;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     BSVec<ExpRep*> m_ir_expr_vec;
 
     //Record allocated object. used by destructor.

@@ -136,7 +136,10 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
         ASSERT0(cn != NULL);
         fprintf(h, "\nnode: { title:\"%d\" shape:box color:gold "
                    "fontname:\"courB\" label:\"", id);
-        fprintf(h, "FUNC(%d):%s\n", CN_id(cn), SYM_name(CN_sym(cn)));
+        fprintf(h, "FUNC(%d):%s\n",
+                CN_id(cn),
+                CN_sym(cn) != NULL ?
+                    SYM_name(CN_sym(cn)) : "IndirectCallNode");
 
         //
         fprintf(h, "\n");
@@ -146,7 +149,7 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
             for (; irs != NULL; irs = IR_next(irs)) {
                 //fprintf(h, "%s\n", dump_ir_buf(ir, buf));
                 //TODO: implement dump_ir_buf();
-                dump_ir(irs, m_dm, NULL, true, false);
+                dump_ir(irs, m_tm, NULL, true, false);
             }
         }
         //
@@ -168,24 +171,32 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
 }
 
 
-//Insure CallNode for function is unique.
-//Do NOT modify ir' content.
-CallNode * CallGraph::newCallNode(IR * ir)
+//Create a CallNode accroding to caller instruction.
+//This CallNode will corresponding to an unqiue Region.
+//Ensure CallNode for Region is unique.
+CallNode * CallGraph::newCallNode(IR const* ir)
 {
-    ASSERT0(ir->is_call());
-    SYM const* name = VAR_name(CALL_idinfo(ir));
-    CallNode * cn  = m_sym2cn_map.get(name);
-    if (cn != NULL) return cn;
+    ASSERT0(ir->is_calls_stmt());
+    if (ir->is_call()) {
+        SYM const* name = VAR_name(CALL_idinfo(ir));
+        CallNode * cn  = m_sym2cn_map.get(name);
+        if (cn != NULL) { return cn; }
 
-    cn = newCallNode();
-    CN_sym(cn) = name;
+        cn = allocCallNode();
+        CN_sym(cn) = name;
+        CN_id(cn) = m_cn_count++;
+        m_sym2cn_map.set(name, cn);
+        return cn;
+    }
+
+    CallNode * cn  = allocCallNode();
     CN_id(cn) = m_cn_count++;
-    m_sym2cn_map.set(name, cn);
     return cn;
 }
 
 
-//To guarantee CallNode of function is unique.
+//Create a CallNode for given Region.
+//To guarantee CallNode of Region is unique.
 CallNode * CallGraph::newCallNode(Region * ru)
 {
     ASSERT0(ru->is_function());
@@ -200,7 +211,7 @@ CallNode * CallGraph::newCallNode(Region * ru)
         return cn;
     }
 
-    cn = newCallNode();
+    cn = allocCallNode();
     CN_sym(cn) = name;
     CN_id(cn) = m_cn_count++;
     CN_ru(cn) = ru;
@@ -239,12 +250,13 @@ void CallGraph::build(Region * top)
 
                 if (ir->is_call()) {
                     //Direct call.
-                    CallNode * cn2 = newCallNode(const_cast<IR*>(ir));
+                    CallNode * cn2 = newCallNode(ir);
                     add_node(cn2);
                     addEdge(CN_id(cn), CN_id(cn2));
                 } else {
                     ASSERT(ir->is_icall(), ("Indirect call."));
-                    CallNode * cn3 = newCallNode(const_cast<IR*>(ir));
+                    CallNode * cn3 = newCallNode(ir);
+                    CN_unknown_callee(cn3) = true;
                     indirect_call.append_tail(cn3);
                     add_node(cn3);
                 }

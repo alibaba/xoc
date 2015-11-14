@@ -70,7 +70,7 @@ void Region::lowerIRTreeToLowestHeight(OptCTX & oc)
         if (reconstructBBlist(oc)) {
             get_cfg()->rebuild(oc);
             get_cfg()->removeEmptyBB(oc);
-            get_cfg()->computeEntryAndExit(true, true);
+            get_cfg()->computeExitList();
         }
     }
 

@@ -41,7 +41,7 @@ VarMgr::VarMgr(RegionMgr * rm)
     m_var_count = 1; //for enjoying bitset util
     m_str_count = 1;
     m_ru_mgr = rm;
-    m_dm = rm->get_type_mgr();
+    m_tm = rm->get_type_mgr();
 }
 
 
@@ -283,7 +283,7 @@ VAR * VarMgr::registerStringVar(CHAR const* var_name, SYM * s, UINT align)
         VAR_name(v) = m_ru_mgr->addToSymbolTab(var_name);
     }
     VAR_str(v) = s;
-    VAR_type(v) = m_dm->getString();
+    VAR_type(v) = m_tm->getString();
     VAR_align(v) = align;
     VAR_is_global(v) = 1; //store in .data or .rodata
     assignVarId(v);
@@ -309,7 +309,7 @@ void VarMgr::dump(CHAR * name)
         VAR * v = m_var_vec.get(i);
         if (v == NULL) { continue; }
         buf[0] = 0;
-        fprintf(h, "\n%s", v->dump(buf, m_dm));
+        fprintf(h, "\n%s", v->dump(buf, m_tm));
         fflush(h);
     }
 

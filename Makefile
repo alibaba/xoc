@@ -86,4 +86,5 @@ clean:
 	@find -name "*.swp" | xargs rm -f
 	@find -name "*.swo" | xargs rm -f
 	@find -name "*.LOGLOG" | xargs rm -f
+	@find -name "LOGLOG" | xargs rm -f
 

@@ -62,7 +62,7 @@ void IR_DCE::dump(IN EFFECT_STMT const& is_stmt_effect,
             IR * ir = ir_vec->get(j);
             ASSERT0(ir != NULL);
             fprintf(g_tfile, "\n");
-            dump_ir(ir, m_dm);
+            dump_ir(ir, m_tm);
             if (!is_stmt_effect.is_contain(IR_id(ir))) {
                 fprintf(g_tfile, "\t\tremove!");
             }
@@ -84,7 +84,7 @@ void IR_DCE::dump(IN EFFECT_STMT const& is_stmt_effect,
             ASSERT0(ir != NULL);
             if (!is_stmt_effect.is_contain(IR_id(ir))) {
                 fprintf(g_tfile, "\n");
-                dump_ir(ir, m_dm);
+                dump_ir(ir, m_tm);
                 fprintf(g_tfile, "\t\tremove!");
             }
         }
@@ -93,10 +93,12 @@ void IR_DCE::dump(IN EFFECT_STMT const& is_stmt_effect,
 }
 
 
-//Return true if ir is effect.
+//Return true if ir can be optimized.
 bool IR_DCE::check_stmt(IR const* ir)
 {
-    if (IR_may_throw(ir) || IR_has_sideeffect(ir)) { return true; }
+    if (IR_may_throw(ir) || IR_has_sideeffect(ir) || IR_no_move(ir)) {
+        return true;
+    }
 
     if (!m_is_use_md_du && ir->isMemoryRefNotOperatePR()) {
         return true;
@@ -131,9 +133,9 @@ bool IR_DCE::check_stmt(IR const* ir)
 
         if (!x->is_memory_ref()) { continue; }
 
-        /* Check if using volatile variable.
-        e.g: volatile int g = 0;
-            while(g); # The stmt has effect. */
+        //Check if using volatile variable.
+        //e.g: volatile int g = 0;
+        //    while(g); # The stmt has effect.
         MD const* md = x->get_ref_md();
         if (md != NULL) {
             if (is_effect_read(MD_base(md))) {
@@ -162,7 +164,7 @@ bool IR_DCE::check_stmt(IR const* ir)
 bool IR_DCE::check_call(IR const* ir)
 {
     ASSERT0(ir->is_calls_stmt());
-    return !ir->is_readonly_call() || IR_has_sideeffect(ir);
+    return !ir->is_readonly_call() || IR_has_sideeffect(ir) || IR_no_move(ir);
 }
 
 

@@ -42,6 +42,7 @@ author: Su Zhenyu
 #include "cominc.h"
 #include "comopt.h"
 #include "dex.h"
+#include "trycatch_info.h"
 #include "gra.h"
 #include "dex_hook.h"
 #include "dex_util.h"
@@ -69,12 +70,13 @@ static void updateLIRCodeOrg(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
 {
     TryInfo * ti = d2ir.getTryInfo();
     Label2UINT * lab2idx = ir2d.get_lab2idx();
-    if (ti != NULL) {
-        ASSERT0(lircode->trys);
-        UINT i = 0;
-        for (; ti != NULL; ti = ti->next, i++) {
-            bool find;
-            UINT idx = lab2idx->get(ti->try_start, &find);
+    if (ti == NULL) { return; }
+
+    ASSERT0(lircode->trys);
+    UINT i = 0;
+    for (; ti != NULL; ti = ti->next, i++) {
+        bool find;
+        UINT idx = lab2idx->get(ti->try_start, &find);
             ASSERT0(find);
             LIROpcodeTry * each_try = lircode->trys + i;
             each_try->start_pc = idx;
@@ -109,12 +111,11 @@ static void updateLIRCodeOrg(LIRCode * lircode, Dex2IR & d2ir, IR2Dex & ir2d)
                 each_catch->class_type = ci->kind;
             }
 
-            if (ti->catch_list != NULL) {
-                ASSERT0(j == each_try->catchSize);
-            }
+        if (ti->catch_list != NULL) {
+            ASSERT0(j == each_try->catchSize);
         }
-        ASSERT0(i == lircode->triesSize);
     }
+    ASSERT0(i == lircode->triesSize);
 }
 
 

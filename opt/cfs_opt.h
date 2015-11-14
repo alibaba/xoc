@@ -39,7 +39,7 @@ namespace xoc {
 class IR_CFS_OPT : public Pass {
 protected:
     Region * m_ru;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     bool transformToDoWhile(IR ** head, IR * ir);
     bool transformIf1(IR ** head, IR * ir);
     bool transformIf2(IR ** head, IR * ir);
@@ -49,7 +49,7 @@ protected:
     bool hoistLoop(IR ** head, IR * ir);
     bool hoistIf(IR ** head, IR * ir);
 public:
-    IR_CFS_OPT(Region * ru) { m_ru = ru; m_dm = ru->get_type_mgr(); }
+    IR_CFS_OPT(Region * ru) { m_ru = ru; m_tm = ru->get_type_mgr(); }
     ~IR_CFS_OPT() {}
 
     void dump();

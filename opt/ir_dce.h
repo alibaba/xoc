@@ -48,7 +48,7 @@ public:
 class IR_DCE : public Pass {
 protected:
     MDSystem * m_md_sys;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     Region * m_ru;
     IR_CFG * m_cfg;
     CDG * m_cdg;
@@ -74,8 +74,7 @@ protected:
     bool is_effect_write(VAR * v) const
     { return VAR_is_global(v) || VAR_is_volatile(v); }
 
-    bool is_effect_read(VAR * v) const
-    { return VAR_is_volatile(v); }
+    bool is_effect_read(VAR * v) const { return VAR_is_volatile(v); }
 
     bool is_cfs(IR const* ir) const
     {
@@ -103,7 +102,7 @@ public:
     {
         ASSERT0(ru != NULL);
         m_ru = ru;
-        m_dm = ru->get_type_mgr();
+        m_tm = ru->get_type_mgr();
         m_cfg = ru->get_cfg();
         m_du = ru->get_du_mgr();
         m_md_sys = ru->get_md_sys();

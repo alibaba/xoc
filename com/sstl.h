@@ -4184,6 +4184,8 @@ public:
         get(t, &f);
         return f;
     }
+
+    void remove(Tsrc t) { BaseType::remove(t); }
 };
 //END TMap
 

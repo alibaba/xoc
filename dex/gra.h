@@ -331,7 +331,7 @@ protected:
     Prno2Vreg * m_pr2v;
     Vreg2PR * m_v2pr;
     GltMgr * m_gltm;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     Region * m_ru;
     RA * m_ra;
     UINT m_lt_count; //local lt count.
@@ -402,7 +402,7 @@ public:
     bool has_pair_res(IR * ir);
 
     inline bool is_pair(IR const* ir) const
-    { return m_dm->get_bytesize(IR_dt(ir))== 8; }
+    { return m_tm->get_bytesize(IR_dt(ir))== 8; }
 
     inline bool is_livein(UINT prno) const
     { return m_prdf->get_livein(BB_id(m_bb))->is_contain(prno); }
@@ -542,7 +542,7 @@ protected:
     RSC * m_rsc;
     SMemPool * m_pool;
     PRDF * m_prdf;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     UINT m_glt_count;
     bool m_is_consider_local_interf;
 
@@ -676,7 +676,7 @@ protected:
     BitSet * m_16;
     Region * m_ru;
     GltMgr * m_gltm;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     BitSetMgr * m_bsm;
     Vector<FMT> m_ir2fmt;
     Str2BuiltinType m_str2builtin;
@@ -689,7 +689,7 @@ public:
         ASSERT0(gltm);
         m_gltm = gltm;
         m_ru = gltm->get_ru();
-        m_dm = m_ru->get_type_mgr();
+        m_tm = m_ru->get_type_mgr();
         m_bsm = gltm->get_bs_mgr();
         m_4 = NULL;
         m_8 = NULL;
@@ -812,7 +812,7 @@ protected:
     RSC m_rsc;
     Region * m_ru;
     IR_CFG * m_cfg;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     TypeIndexRep * m_tr;
     Vreg2PR * m_v2pr;
     Prno2Vreg * m_pr2v;
@@ -887,7 +887,7 @@ public:
         ASSERT0(ru && tr);
         m_ru = ru;
         m_cfg = ru->get_cfg();
-        m_dm = ru->get_type_mgr();
+        m_tm = ru->get_type_mgr();
         m_tr = tr;
         m_param_num = param_num;
         m_vregnum = vregnum;

@@ -128,7 +128,8 @@ inline VAR * getBuiltinVar(BLTIN_TYPE blt, DexRegionMgr const* rumgr)
 inline BLTIN_TYPE getBuiltinType(IR const* ir, DexRegionMgr const* rumgr)
 {
     ASSERT0(ir && ir->is_call() && rumgr);
-    BLTIN_TYPE bt = (BLTIN_TYPE)rumgr->getVar2BuiltinC().mget(CALL_idinfo(ir));
+    BLTIN_TYPE bt = (BLTIN_TYPE)rumgr->getVar2BuiltinC().
+                                get_mapped(CALL_idinfo(ir));
     ASSERT0(bt > BLTIN_UNDEF && BLTIN_LAST);
     return bt;
 }
@@ -152,6 +153,7 @@ CHAR const* get_field_class_name(DexFile const* df, DexField * finfo);
 CHAR const* get_dt_name(LIR * ir);
 
 bool is_builtin(IR const* ir, BLTIN_TYPE bt, DexRegionMgr const* rumgr);
+
 inline bool is_builtin(IR const* ir)
 {
     //The first charactor of builtin function is #.

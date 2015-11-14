@@ -42,13 +42,6 @@ author: Su Zhenyu
 #include "comopt.h"
 #include "dex.h"
 #include "gra.h"
-#ifdef _CODE_ANA_
-#include "auxsym.h"
-#include "warnmgr.h"
-#include "dexscan.h"
-#include "closable.h"
-#include "lockscan.h"
-#endif
 #include "dex_hook.h"
 #include "dex_util.h"
 

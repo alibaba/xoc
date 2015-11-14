@@ -187,4 +187,7 @@ bool g_do_loop_convert = false;
 //Polyhedral Transformations.
 bool g_do_poly_tran = false;
 
+//Set to true to retain the PassMgr even if Region processing finished.
+bool g_retain_pass_mgr_for_region = false;
+
 } //namespace xoc

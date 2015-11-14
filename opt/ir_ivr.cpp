@@ -415,7 +415,7 @@ void IR_IVR::_dump(LI<IRBB> * li, UINT indent)
                 ASSERT0(iv);
                 fprintf(g_tfile, "\n");
                 g_indent = indent;
-                dump_ir(iv, m_dm);
+                dump_ir(iv, m_tm);
             }
         }
 

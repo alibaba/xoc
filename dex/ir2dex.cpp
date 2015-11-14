@@ -41,6 +41,7 @@ author: Su Zhenyu
 #include "comopt.h"
 #include "dx_mgr.h"
 #include "dex.h"
+#include "trycatch_info.h"
 #include "gra.h"
 #include "dex_hook.h"
 #include "dex_util.h"
@@ -70,7 +71,7 @@ LIR * IR2Dex::buildConstString(IN IR ** ir)
     lir->opcode = LOP_CONST_STRING;
     LIR_dt(lir) = LIR_JDT_unknown; //see dir2lir.c
     lir->vA = vx;
-    lir->vB = m_var2ofst->mget(v);
+    lir->vB = m_var2fieldid->get_mapped(v);
     *ir = IR_next(*ir);
     return (LIR*)lir;
 }
@@ -88,7 +89,7 @@ LIR * IR2Dex::buildSput(IN IR ** ir)
     lir->opcode = LOP_SPUT;
     LIR_dt(lir) = get_lir_ty(TY_dtype(tir->get_type()));
     lir->vA = get_vreg(ST_rhs(tir));
-    lir->vB = m_var2ofst->mget(ST_idinfo(tir));
+    lir->vB = m_var2fieldid->get_mapped(ST_idinfo(tir));
     *ir = IR_next(*ir);
     return (LIR*)lir;
 }
@@ -103,7 +104,7 @@ LIR * IR2Dex::buildSgetBasicTypeVar(IN IR ** ir)
     UINT vx = get_vreg(STPR_no(tir));
     VAR * v = LD_idinfo(STPR_rhs(tir));
     CHAR const* n = SYM_name(VAR_name(v));
-    UINT field_id = m_var2ofst->mget(v);
+    UINT field_id = m_var2fieldid->get_mapped(v);
     LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_SGET;
     LIR_dt(lir) = get_lir_ty(TY_dtype(tir->get_type()));
@@ -123,7 +124,7 @@ LIR * IR2Dex::buildSgetObj(IN IR ** ir)
     UINT vx = get_vreg(STPR_no(tir));
     VAR * v = ID_info(LDA_base(STPR_rhs(tir)));
     CHAR const* n = SYM_name(VAR_name(v));
-    UINT field_id = m_var2ofst->mget(v);
+    UINT field_id = m_var2fieldid->get_mapped(v);
     LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_SGET;
     LIR_dt(lir) = LIR_JDT_object;
@@ -767,7 +768,7 @@ LIR * IR2Dex::convertStoreArray(IN OUT IR ** ir, IN IR2DexCtx * cont)
     lir->opcode = LOP_APUT;
 
     ASSERT0(IR_dt(tir) == IR_dt(rhs) ||
-            tir->get_dtype_size(m_dm) == rhs->get_dtype_size(m_dm));
+            tir->get_dtype_size(m_tm) == rhs->get_dtype_size(m_tm));
     *ir = IR_next(*ir);
     return (LIR*)lir;
 }
@@ -790,7 +791,7 @@ LIR * IR2Dex::convertIstore(IN OUT IR ** ir, IN IR2DexCtx * cont)
     LIR_op1(lir) = IST_ofst(tir) / m_d2ir->get_ofst_addend();
     lir->opcode = LOP_IPUT;
     ASSERT0(IR_dt(tir) == IR_dt(rhs) ||
-             tir->get_dtype_size(m_dm) == rhs->get_dtype_size(m_dm));
+             tir->get_dtype_size(m_tm) == rhs->get_dtype_size(m_tm));
     *ir = IR_next(*ir);
     return (LIR*)lir;
 }
@@ -1521,7 +1522,7 @@ void IR2Dex::convert(IR * ir_list, List<LIR*> & newlirs)
     while (ir_list != NULL) {
         if (dump) {
             fprintf(g_tfile, "\n---");
-            dump_ir(ir_list, m_dm);
+            dump_ir(ir_list, m_tm);
         }
 
         if (ir_list->is_label()) {

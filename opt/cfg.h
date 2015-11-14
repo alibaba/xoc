@@ -50,8 +50,6 @@ typedef enum {
     C_UNDEF = 0,
     C_SESE,    //single entry, single exit
     C_SEME,    //single entry, multi exit
-    C_MEME,    //multi entry, multi exit
-    C_MESE,    //multi entry, single exit
 } CFG_SHAPE;
 
 
@@ -72,7 +70,7 @@ protected:
     LI<BB> * m_loop_info; //Loop information
     List<BB*> * m_bb_list;
     Vector<LI<BB>*> m_map_bb2li;
-    List<BB*> m_entry_list; //CFG Graph ENTRY list
+    BB * m_entry; //CFG Graph entry.
     List<BB*> m_exit_list; //CFG Graph ENTRY list
     List<BB*> m_rpo_bblst; //record BB in reverse-post-order.
     SEQ_TYPE m_bb_sort_type;
@@ -82,9 +80,12 @@ protected:
     BYTE m_has_eh_edge:1;
 
 protected:
-    void compute_rpo_core(IN OUT BitSet & is_visited,
-                          IN Vertex * v,
-                          IN OUT INT & order);
+    //Collect loop info e.g: loop has call, loop has goto.
+    void collect_loop_info() { collect_loop_info_recur(m_loop_info); }
+
+    //Do clean before recompute loop info.
+    void clean_loop_info();
+    void compute_rpo_core(BitSet & is_visited, IN Vertex * v, OUT INT & order);
     inline void collect_loop_info_recur(LI<BB> * li);
 
     inline bool is_loop_head_recur(LI<BB> * li, BB * bb);
@@ -114,17 +115,17 @@ public:
         UINT vertex_hash_size = 16)
         : DGraph(edge_hash_size, vertex_hash_size)
     {
-        ASSERT0(bb_list);
+        ASSERT(bb_list, ("CFG need BB list"));
         m_bb_list = bb_list;
         m_loop_info = NULL;
         m_bs_mgr = NULL;
         m_li_count = 1;
+        m_entry = NULL; //entry will be computed during CFG::build().
         m_pool = smpoolCreate(sizeof(CFGEdgeInfo) * 4, MEM_COMM);
-        set_dense(true);
+        set_dense(true); //We think CFG is always dense graph.
     }
-
-    virtual ~CFG()
-    { smpoolDelete(m_pool); }
+    COPY_CONSTRUCTOR(CFG);
+    virtual ~CFG() { smpoolDelete(m_pool); }
 
     virtual void add_break_out_loop_node(BB * loop_head, BitSet & body_set);
     void rebuild(OptCTX & oc)
@@ -139,15 +140,14 @@ public:
         //disturb the computation of entry and exit.
     }
 
+    //Build the CFG accroding to BB list.
     void build(OptCTX & oc);
 
-    void clean_loop_info();
     bool computeDom(BitSet const* uni)
     {
-        ASSERT(m_entry_list.get_elem_count() == 1, ("ONLY support SESE or SEME"));
-        BB const* root = m_entry_list.get_head();
+        ASSERT(m_entry, ("Not found entry"));
         List<Vertex const*> vlst;
-        computeRpoNoRecursive(get_vertex(root->id), vlst);
+        computeRpoNoRecursive(get_vertex(m_entry->id), vlst);
         return DGraph::computeDom(&vlst, uni);
     }
 
@@ -157,9 +157,8 @@ public:
     {
         //ASSERT(m_exit_list.get_elem_count() == 1,
         //       ("ONLY support SESE or SEME"));
-        BB const* root = m_entry_list.get_head();
-        ASSERT0(root);
-        return DGraph::computePdomByRpo(get_vertex(root->id), uni);
+        ASSERT(m_entry, ("Not found entry"));
+        return DGraph::computePdomByRpo(get_vertex(m_entry->id), uni);
     }
 
     //Compute all reachable BBs start from 'startbb'.
@@ -222,13 +221,13 @@ public:
         }
     }
 
-    //Compute the entry bb.
-    //Only the function entry and try and catch entry BB can be CFG entry.
-    virtual void computeEntryAndExit(bool comp_entry, bool comp_exit)
+    //Compute and record exit BBs.
+    //Only the function entry can be CFG entry.
+    //Connect or handle try and catch BB before perform
+    //removing unreachable BB.
+    virtual void computeExitList()
     {
-        ASSERT0(comp_entry | comp_exit);
-        if (comp_entry) { m_entry_list.clean(); }
-        if (comp_exit) { m_exit_list.clean(); }
+        m_exit_list.clean();
 
         C<BB*> * ct;
         for (m_bb_list->get_head(&ct);
@@ -239,34 +238,20 @@ public:
             ASSERT(get_vertex(bb->id),
                    ("No vertex corresponds to BB%d", bb->id));
 
-            if (comp_entry && is_ru_entry(bb)) {
-                m_entry_list.append_tail(bb);
-            }
-
-            if (comp_exit &&
-                (is_ru_exit(bb) ||
-                 VERTEX_out_list(get_vertex(bb->id)) == NULL)) {
+            if (is_cfg_exit(bb->id)) {
                 m_exit_list.append_tail(bb);
             }
         }
     }
 
-    //Collecting loop info .e.g has-call, has-goto.
-    void collect_loop_info() { collect_loop_info_recur(m_loop_info); }
-
     void chain_pred_succ(UINT vid, bool is_single_pred_succ = false);
     void compute_rpo(OptCTX & oc);
     UINT count_mem() const
     {
-        UINT count = 0;
-        count += sizeof(m_loop_info);
-        count += sizeof(m_bb_list); //do NOT count up BBs in bb_list.
+        UINT count = sizeof(*this);
+        //count += m_bb_list.count_mem(); //do NOT count up BBs in bb_list.
         count += m_map_bb2li.count_mem();
-        count += m_entry_list.count_mem();
         count += m_exit_list.count_mem();
-        count += sizeof(BYTE);
-        count += sizeof(m_bb_sort_type);
-        count += sizeof(m_bs_mgr);
         return count;
     }
 
@@ -283,39 +268,21 @@ public:
 
     //Find the target bb list.
     //2th parameter indicates a list of bb have found.
-    virtual void findTargetBBOfMulticondBranch(IN XR *, OUT List<BB*> &)
-    { ASSERT(0, ("Target Dependent Code")); }
+    virtual void findTargetBBOfMulticondBranch(XR const*, OUT List<BB*> &) = 0;
 
     //Find the bb that referred given label.
-    virtual BB * findBBbyLabel(LabelInfo const*)
-    {
-        ASSERT(0, ("Target Dependent Code"));
-        return NULL;
-    }
+    virtual BB * findBBbyLabel(LabelInfo const*) = 0;
 
     //Find a list bb that referred labels which is the target of xr.
     //2th parameter indicates a list of bb have found.
-    virtual void findTargetBBOfIndirectBranch(IN XR *, OUT List<BB*> &)
-    { ASSERT(0, ("Target Dependent Code")); }
+    virtual void findTargetBBOfIndirectBranch(XR const*, OUT List<BB*> &) = 0;
 
     UINT get_loop_num() const { return m_li_count - 1; }
     void get_preds(IN OUT List<BB*> & preds, IN BB const* v);
     void get_succs(IN OUT List<BB*> & succs, IN BB const* v);
-    virtual List<BB*> * get_entry_list() { return &m_entry_list; }
-    virtual List<BB*> * get_exit_list() { return &m_exit_list; }
-
-    //Return the last operation of 'bb'.
-    virtual XR * get_last_xr(BB *) = 0;
-
-    virtual XR * get_first_xr(BB *)
-    {
-        ASSERT(0, ("Target Dependent Code"));
-        return NULL;
-    }
-
+    BB * get_entry() { return m_entry; }
+    List<BB*> * get_exit_list() { return &m_exit_list; }
     List<BB*> * get_bblist_in_rpo() { return &m_rpo_bblst; }
-    virtual BB * get_bb(UINT id) const = 0;
-
     virtual BB * get_fallthrough_bb(BB * bb)
     {
         ASSERT0(bb);
@@ -367,9 +334,19 @@ public:
     }
 
     LI<BB> * get_loop_info() { return m_loop_info; }
-    void get_if_three_kids(BB * bb, BB ** true_body,
-                           BB ** false_body, BB ** sibling);
+    void get_if_three_kids(
+            BB * bb,
+            BB ** true_body,
+            BB ** false_body,
+            BB ** sibling);
     void get_loop_two_kids(IN BB * bb, OUT BB ** sibling, OUT BB ** body_root);
+
+    //Return the last instruction of BB.
+    virtual XR * get_last_xr(BB *) = 0;
+
+    //Return the first instruction of BB.
+    virtual XR * get_first_xr(BB *) = 0;
+    virtual BB * get_bb(UINT id) const = 0;
 
     bool has_eh_edge() const { return m_has_eh_edge; }
 
@@ -379,47 +356,36 @@ public:
             IN OUT BitSet & loop,
             List<UINT> & tmp);
 
-    virtual bool is_cfg_entry(UINT bbid)
+    bool is_cfg_entry(UINT bbid)
     { return Graph::is_graph_entry(get_vertex(bbid)); }
 
     //Return true if bb is exit BB of CFG.
-    virtual bool is_cfg_exit(UINT bbid)
+    bool is_cfg_exit(UINT bbid)
     { return Graph::is_graph_exit(get_vertex(bbid)); }
 
     //Return true if bb is entry BB of function.
-    virtual bool is_ru_entry(BB *)
-    {
-        ASSERT(0, ("Target Dependent Code"));
-        return false;
-    }
+    //In some case, BB is not Region entry even if it is the CFG entry.
+    virtual bool is_ru_entry(BB *) = 0;
 
     //Return true if bb is exit BB of function.
-    virtual bool is_ru_exit(BB *)
-    {
-        ASSERT(0, ("Target Dependent Code"));
-        return false;
-    }
-
-    //Return true if bb may throw exception.
-    virtual bool is_exp_jumpo(BB const*) const
-    {
-        ASSERT(0, ("Target Dependent Code"));
-        return false;
-    }
+    //In some case, BB is not Region exit even if it is the CFG exit.
+    virtual bool is_ru_exit(BB *) = 0;
 
     virtual bool is_loop_head(BB * bb)
     { return is_loop_head_recur(m_loop_info, bb); }
 
-    virtual LI<BB> * map_bb2li(BB * bb) { return m_map_bb2li.get(bb->id); }
+    LI<BB> * mapBB2LabelInfo(BB * bb) { return m_map_bb2li.get(bb->id); }
+
+    //Move all Labels which attached on src BB to tgt BB.
+    virtual void moveLabels(BB * src, BB * tgt) = 0;
+    virtual void resetMapBetweenLabelAndBB(BB * bb) = 0;
 
     //Remove xr that in bb.
-    virtual void remove_xr(BB *, XR *) { ASSERT(0, ("Target Dependent Code")); }
+    virtual void remove_xr(BB *, XR *) = 0;
 
-    //Remove given bb.
-    virtual void remove_bb(BB *) { ASSERT(0, ("Target Dependent Code")); }
-
-    //Remove given bb.
-    virtual void remove_bb(C<BB*> *) { ASSERT(0, ("Target Dependent Code")); }
+    //You should clean the relation between Label and BB before remove BB.
+    virtual void remove_bb(BB * bb) = 0;
+    virtual void remove_bb(C<BB*> * bbcontainer) = 0;
 
     void removeEdge(BB * from, BB * to)
     {
@@ -455,10 +421,9 @@ public:
     //Entry node for computing of post-dominators of each node.
     void set_sese(BB * entry, BB * exit)
     {
-        ASSERT0(entry >= 0 && exit >= 0);
-        m_entry_list.clean();
+        ASSERT0(entry && exit);
+        m_entry = entry;
         m_exit_list.clean();
-        m_entry_list.append_head(entry);
         m_exit_list.append_head(exit);
     }
 
@@ -468,33 +433,18 @@ public:
         DGraph::set_bs_mgr(bs_mgr);
     }
 
-    virtual void set_rpo(BB * bb, INT order)
-    {
-        UNUSED(bb);
-        UNUSED(order);
-        ASSERT(0, ("Target Dependent Code"));
-    }
-
-    //Unify label list from srt BB to tgt BB.
-    virtual void unionLabels(BB * src, BB * tgt)
-    {
-        UNUSED(src);
-        UNUSED(tgt);
-        ASSERT(0, ("Target Dependent Code"));
-    }
+    //Set RPO for BB.
+    virtual void set_rpo(BB * bb, INT order) = 0;
 
     bool verify_rmbb(IN CDG * cdg, OptCTX & oc);
     bool verify()
     {
-        //The entry node must not have predecessors.
-        for (BB * bb = m_entry_list.get_head();
-             bb != NULL; bb = m_entry_list.get_next()) {
+        //The entry node can not have any predecessors.
+        ASSERT0(m_entry);
+        Vertex * vex = get_vertex(m_entry->id);
+        CK_USE(vex && get_in_degree(vex) == 0);
 
-            Vertex * vex = get_vertex(bb->id);
-            CK_USE(vex && get_in_degree(vex) == 0);
-        }
-
-        //The exit node must not have successors.
+        //The exit node can not have successors.
         for (BB * bb = m_exit_list.get_head();
              bb != NULL; bb = m_exit_list.get_next()) {
             Vertex * vex = get_vertex(bb->id);
@@ -518,7 +468,7 @@ void CFG<BB, XR>::get_loop_two_kids(
         OUT BB ** sibling,
         OUT BB ** body_root)
 {
-    LI<BB> * li = map_bb2li(bb);
+    LI<BB> * li = mapBB2LabelInfo(bb);
     ASSERT0(li != NULL && LI_loop_head(li) == bb);
     List<BB*> succs;
     get_succs(succs, bb);
@@ -719,6 +669,7 @@ bool CFG<BB, XR>::removeEmptyBB(OptCTX & oc)
                 if (bb->get_lab_list().get_elem_count() == 0 &&
                     !is_ru_exit(bb)) {
                     bb->removeSuccessorPhiOpnd(this);
+                    //resetMapBetweenLabelAndBB(bb); BB does not have Labels.
                     remove_bb(ct);
                     doit = true;
                 }
@@ -726,7 +677,7 @@ bool CFG<BB, XR>::removeEmptyBB(OptCTX & oc)
             }
 
             //Move labels of bb to next_bb.
-            unionLabels(bb, next_bb);
+            moveLabels(bb, next_bb);
 
             if (!is_cfg_valid) { continue; }
 
@@ -817,6 +768,8 @@ bool CFG<BB, XR>::removeEmptyBB(OptCTX & oc)
                 }
             } //end for each succ
 
+            //The map between bb and its Labels has changed.
+            //resetMapBetweenLabelAndBB(bb);
             remove_bb(bb);
             doit = true;
         } //end if
@@ -1132,13 +1085,9 @@ bool CFG<BB, XR>::removeUnreachBB()
     visited.bunion(m_bb_list->get_elem_count());
     visited.diff(m_bb_list->get_elem_count());
 
-    ASSERT(m_entry_list.get_elem_count() > 0,
-           ("call computeEntryAndExit first"));
-    ASSERT(m_entry_list.get_elem_count() == 1, ("Only support SEME"));
-
-    BB * entry = m_entry_list.get_head();
-    if (!visited.is_contain(entry->id)) {
-        remove_unreach_bb(entry->id, visited);
+    ASSERT0(m_entry);
+    if (!visited.is_contain(m_entry->id)) {
+        remove_unreach_bb(m_entry->id, visited);
     }
 
     C<BB*> * next_ct;
@@ -1149,9 +1098,11 @@ bool CFG<BB, XR>::removeUnreachBB()
         if (!visited.is_contain(bb->id)) {
             //EH may be redundant and can be removed.
             //ASSERT(!bb->is_exp_handling(),
-            // ("For conservative purpose, exception handler should be reserved."));
+            // ("For conservative purpose, "
+            //  "exception handler should be reserved."));
 
             bb->removeSuccessorPhiOpnd(this);
+            resetMapBetweenLabelAndBB(bb);
             remove_bb(ct);
             removed = true;
         }
@@ -1225,9 +1176,6 @@ void CFG<BB, XR>::get_preds(IN OUT List<BB*> & preds, IN BB const* v)
 template <class BB, class XR>
 void CFG<BB, XR>::build(OptCTX & oc)
 {
-    m_entry_list.clean();
-    m_exit_list.clean();
-
     ASSERT(m_bb_list, ("bb_list is emt"));
     C<BB*> * ct = NULL;
     C<BB*> * next_ct;
@@ -1242,10 +1190,10 @@ void CFG<BB, XR>::build(OptCTX & oc)
 
         XR * last = get_last_xr(bb);
         if (last == NULL) {
-            /* Remove empty bb after CFG done.
-            ASSERT(bb->is_bb_exit(), ("Should be removed!"));
-            Add fall-through edge.
-            The last bb may not terminated by 'return' stmt. */
+            //Remove empty bb after CFG done.
+            //ASSERT(bb->is_bb_exit(), ("Should be removed!"));
+            //Add fall-through edge.
+            //The last bb may not terminated by 'return' stmt.
             if (next != NULL && !next->is_unreachable()) {
                 addEdge(bb->id, next->id);
             } else {
@@ -1675,29 +1623,14 @@ void CFG<BB, XR>::compute_rpo(OptCTX & oc)
     #endif
 
     BitSet is_visited;
-    BB * entry = NULL;
-    C<BB*> * ct2;
-    for (m_entry_list.get_head(&ct2);
-         ct2 != m_entry_list.end(); ct2 = m_entry_list.get_next(ct2)) {
-        BB * e = ct2->val();
-        if (is_ru_entry(e)) {
-            ASSERT(entry == NULL, ("multiple func entry"));
-            entry = e;
-
-            #ifndef _DEBUG_
-            //We iterate each BB in entry list for verification
-            //only in DEBUG mode.
-            break;
-            #endif
-        }
-    }
+    ASSERT(m_entry, ("Not find entry"));
 
     #ifdef RECURSIVE_ALGO
     INT order = m_bb_list->get_elem_count();
-    compute_rpo_core(is_visited, get_vertex(entry->id), order);
+    compute_rpo_core(is_visited, get_vertex(m_entry->id), order);
     #else
     List<Vertex const*> vlst;
-    computeRpoNoRecursive(get_vertex(entry->id), vlst);
+    computeRpoNoRecursive(get_vertex(m_entry->id), vlst);
     #endif
 
     m_rpo_bblst.clean();

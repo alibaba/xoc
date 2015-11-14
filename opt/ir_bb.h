@@ -240,6 +240,9 @@ public:
 
     UINT count_mem() const;
 
+    //Clean attached label.
+    void cleanLabelInfoList() { get_lab_list().clean(); }
+
     void dump(Region * ru);
     void dupSuccessorPhiOpnd(CFG<IRBB, IR> * cfg, Region * ru, UINT opnd_pos);
 
@@ -424,19 +427,21 @@ public:
         return false;
     }
 
-    //Union all labels of 'src' to current bb.
-    inline void unionLabels(IRBB * src)
+    //Add all Labels attached on src BB to current BB.
+    inline void mergeLabeInfoList(IRBB * src)
     {
         for (LabelInfo const* li = src->get_lab_list().get_head();
              li != NULL; li = src->get_lab_list().get_next()) {
-            if (!lab_list.find(li)) {
-                lab_list.append_head(li);
-                if (LABEL_INFO_is_catch_start(li)) {
-                    BB_is_catch_start(this) = true;
-                }
-                if (LABEL_INFO_is_unreachable(li)) {
-                    BB_is_unreach(this) = true;
-                }
+            if (lab_list.find(li)) { continue; }
+            lab_list.append_head(li);
+
+            //Update current BB status accroding to the Label.
+            if (LABEL_INFO_is_catch_start(li)) {
+                BB_is_catch_start(this) = true;
+            }
+
+            if (LABEL_INFO_is_unreachable(li)) {
+                BB_is_unreach(this) = true;
             }
         }
     }

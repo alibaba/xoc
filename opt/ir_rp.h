@@ -117,7 +117,7 @@ protected:
     MDSystem * m_md_sys;
     MDSetMgr * m_mds_mgr;
     IR_CFG * m_cfg;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     IR_DU_MGR * m_du;
     IR_GVN * m_gvn;
     IR_SSA_MGR * m_ssamgr;
@@ -275,7 +275,7 @@ public:
         m_ru = ru;
         m_md_sys = ru->get_md_sys();
         m_cfg = ru->get_cfg();
-        m_dm = ru->get_type_mgr();
+        m_tm = ru->get_type_mgr();
         m_du = ru->get_du_mgr();
         m_mds_mgr = ru->get_mds_mgr();
         m_misc_bs_mgr = ru->getMiscBitSetMgr();
@@ -349,7 +349,7 @@ public:
     {
         ASSERT0(ir->is_memory_ref());
         //I think the reference that may throw is promotable.
-        return !IR_has_sideeffect(ir);
+        return !IR_has_sideeffect(ir) && !IR_no_move(ir);
     }
 
     virtual CHAR const* get_pass_name() const { return "Register Promotion"; }

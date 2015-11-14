@@ -677,6 +677,7 @@ bool aotDrGenCode(
 }
 #endif
 
+
 //Only used on debug mode and single thread, because the tricky usage
 //might lead to string allocated in this function overrided by other thread.
 CHAR const* debugAssemblyName(DexFile const* df, DexMethod const* dexm)

@@ -907,8 +907,8 @@ UINT IR_RP::analyzeIndirectAccessStatus(IR const* ref1, IR const* ref2)
     VN const* vn2 = m_gvn->mapIR2VN(base2);
     if (vn1 == NULL || vn2 == NULL) { return RP_UNKNOWN; }
 
-    UINT tysz1 = ref1->get_dtype_size(m_dm);
-    UINT tysz2 = ref2->get_dtype_size(m_dm);
+    UINT tysz1 = ref1->get_dtype_size(m_tm);
+    UINT tysz2 = ref2->get_dtype_size(m_tm);
     UINT ofst1 = ref1->get_offset();
     UINT ofst2 = ref2->get_offset();
     if ((((ofst1 + tysz1) <= ofst2) ||
@@ -1885,7 +1885,7 @@ bool IR_RP::promoteInexactAccess(
                             delegate2use, sbs_mgr, li);
      }
 
-    //dump_delegate_tab(delegate_tab, m_dm);
+    //dump_delegate_tab(delegate_tab, m_tm);
 
     if (delegate_tab.get_elem_count() == 0) { return false; }
 
@@ -2072,9 +2072,9 @@ bool IR_RP::tryPromote(
     }
 
     m_dont_promot.dump();
-    dump_access(exact_access, m_dm);
-    dump_occ_list(exact_occ_list, m_dm);
-    dump_access2(inexact_access, m_dm);
+    dump_access(exact_access, m_tm);
+    dump_occ_list(exact_occ_list, m_tm);
+    dump_access2(inexact_access, m_tm);
 
     IRBB * preheader = NULL;
     if (exact_access.get_elem_count() != 0 ||

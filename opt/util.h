@@ -35,17 +35,9 @@ author: Su Zhenyu
 #define __UTIL_H__
 
 #define MAX_BUF_LEN 1024
-#define ST_ERR  1
-#define ST_SUCC 0
-#define ST_EOF 2
-
-
-//Conveninent to those classes which has a member named id.
-template <class T> class ID_CK {
-public:
-    UINT compute_key(T t) const { return t->id; }
-};
-
+#define ST_ERR      1 //Status if error occur.
+#define ST_SUCC     0 //Status if successful.
+#define ST_EOF      2 //Status meet End-Of-File.
 
 #define NIL_START  100000
 template <class T, class Ttgt>

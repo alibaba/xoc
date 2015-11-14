@@ -35,32 +35,10 @@ author: Su Zhenyu
 #define __DEX_TO_IR_H__
 
 //Map from LIR to LABEL.
-typedef TMap<LIR*, List<LabelInfo*>*> LIR2LABS;
+typedef TMap<LIR*, List<LabelInfo*>*> LIR2LabelInfo;
 
 class DexRegion;
 class DexRegionMgr;
-
-class CatchInfo {
-public:
-    CatchInfo * prev;
-    CatchInfo * next;
-    LabelInfo * catch_start;
-    UINT kind; //record exception type.
-    CHAR const* kindname; //record exception type name.
-};
-
-
-class TryInfo {
-public:
-    TryInfo * prev;
-    TryInfo * next;
-    LabelInfo * try_start;
-    LabelInfo * try_end;
-    UINT try_start_pos;
-    UINT try_end_pos;
-    CatchInfo * catch_list;
-};
-
 
 typedef enum _CMP_KIND {
     CMP_UNDEF = 0,
@@ -92,14 +70,14 @@ class Dex2IR {
 protected:
     DexRegion * m_ru;
     DexRegionMgr * m_ru_mgr;
-    TypeMgr * m_dm;
+    TypeMgr * m_tm;
     DexFile * m_df;
     VarMgr * m_vm;
     LIRCode * m_lircode;
     TypeIndexRep const* m_tr;
     SMemPool * m_pool;
-    Var2UINT m_map_var2ofst;
-    LIR2LABS m_lir2labs;
+
+    LIR2LabelInfo m_lir2labs;
     Str2Type m_typename2type;
     Label2CatchInfo m_label2catchinfo;
     DbxVec const& m_dbxvec;
@@ -114,9 +92,10 @@ protected:
     TryInfo * m_ti;
     bool m_has_catch; //Set to true if region has catch block.
     List<LabelInfo*> m_last_try_end_lab_list;
+    Var2UINT * m_var2fieldid;
 
     void attachCatchInfo(IR * ir);
-    void attachCatchInfo(IR * ir, AttachInfo * ai);
+    void attachCatchInfo(IR * ir, AIContainer * ai);
 
     void markLIRLabel();
     void markTryLabel();
@@ -144,10 +123,7 @@ public:
     Vreg2PR m_v2pr; //map from dex register v to IR_PR node.
     Prno2Vreg m_pr2v; //map from dex register v to IR_PR node.
 
-    Dex2IR(IN Region * ru,
-           IN DexFile * df,
-           IN LIRCode * fu,
-           DbxVec const& dbxvec);
+    Dex2IR(Region * ru, DexFile * df, LIRCode * fu, DbxVec const& dbxvec);
     ~Dex2IR()
     {
         TMapIter<LIR*, List<LabelInfo*>*> iter;
@@ -220,7 +196,6 @@ public:
     Type const* getType(LIR * ir);
     Prno2Vreg * getPR2Vreg() { return &m_pr2v; }
     Vreg2PR * getVreg2PR() { return &m_v2pr; }
-    Var2UINT * getVAR2Ofst() { return &m_map_var2ofst; }
     TryInfo * getTryInfo() { return m_ti; }
     Label2CatchInfo const& getLabel2CatchInfo() const
     { return m_label2catchinfo; }
