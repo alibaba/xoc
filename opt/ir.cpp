@@ -344,7 +344,7 @@ bool verifyLowestForm(BBList * ir_bb_list, Region * ru)
          bb != NULL; bb = ir_bb_list->get_next()) {
         for (IR * ir = BB_first_ir(bb);
              ir != NULL; ir = BB_next_ir(bb)) {
-            ASSERT0(ru->is_lowest_heigh(ir));
+            ASSERT0(ru->isLowestHeight(ir));
         }
     }
     return true;
@@ -385,7 +385,7 @@ bool verify_irs(IR * ir, IRAddressHash * irh, Region const* ru)
 
 void dump_irs(IN List<IR*> & ir_list, TypeMgr const* dm)
 {
-    if (g_tfile == NULL) return;
+    if (g_tfile == NULL) { return; }
     fprintf(g_tfile, "\n==---- DUMP IR List ----==\n");
     ASSERT0(dm);
     for (IR * ir = ir_list.get_head();

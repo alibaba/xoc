@@ -294,8 +294,10 @@ void DexRegion::process()
         ssamgr->destructionInBBListOrder();
     }
 
-    //Destroy PassMgr.
-    destroyPassMgr();
+    if (!g_retain_pass_mgr_for_region) {
+        //Destroy PassMgr.
+        destroyPassMgr();
+    }
 
     if (!is_function()) { return; }
 

@@ -595,8 +595,8 @@ public:
     //e.g: tree a + b is lowest height , but a + b + c is not.
     //Note that if ARRAY or ILD still not be lowered at the moment, regarding
     //it as a whole node. e.g: a[1][2] + b is the lowest height.
-    bool is_lowest_heigh(IR const* ir) const;
-    bool is_lowest_heigh_exp(IR const* ir) const;
+    bool isLowestHeight(IR const* ir) const;
+    bool isLowestHeightExp(IR const* ir) const;
 
     //Return true if Region name is equivalent to 'n'.
     bool isRegionName(CHAR const* n) const
@@ -688,6 +688,7 @@ public:
     IR * simplifyArrayAddrExp(IR * ir, SimpCTX * cont);
     IR * simplifyArray(IR * ir, SimpCTX * cont);
     IR * simplifyExpression(IR * ir, SimpCTX * cont);
+    IR * simplifyBinAndUniExpression(IR * ir, SimpCTX * ctx);
     IR * simplifyStmt(IR * ir, SimpCTX * cont);
     IR * simplifyStmtList(IR * ir, SimpCTX * cont);
     void simplifyBB(IRBB * bb, SimpCTX * cont);

@@ -36,16 +36,10 @@ author: Su Zhenyu
 
 namespace xoc {
 
-bool Region::is_lowest_heigh_exp(IR const* ir) const
+
+static bool isBinAndUniExp(IR const* ir)
 {
-    ASSERT0(ir->is_exp());
-    if (ir->is_leaf()) return true;
-    switch (IR_code(ir)) {
-    case IR_LAND: //logical and &&
-    case IR_LOR: //logical or ||
-    case IR_LNOT: //logical not
-    case IR_ARRAY:
-        return false;
+    switch (ir->get_code()) {
     case IR_ILD:
     case IR_BAND: //inclusive and &
     case IR_BOR: //inclusive or  |
@@ -69,10 +63,58 @@ bool Region::is_lowest_heigh_exp(IR const* ir) const
     case IR_LSR:
     case IR_LSL:
     case IR_CVT: //data type convertion
+        return true;
+    default: break;
+    }
+    return false;
+}
+
+
+bool Region::isLowestHeightExp(IR const* ir) const
+{
+   if (ir->is_leaf()) { return true; }
+
+    switch (ir->get_code()) {
+    case IR_LAND:
+    case IR_LOR:
+    case IR_LNOT:
+    case IR_ARRAY:
+        return false;
+    case IR_ILD:
+    case IR_BAND:
+    case IR_BOR:
+    case IR_XOR:
+    case IR_BNOT:
+    case IR_NEG:
+    case IR_EQ:
+    case IR_NE:
+    case IR_LT:
+    case IR_GT:
+    case IR_GE:
+    case IR_LE:
+    case IR_ADD:
+    case IR_SUB:
+    case IR_MUL:
+    case IR_DIV:
+    case IR_REM:
+    case IR_MOD:
+    case IR_LABEL:
+    case IR_ASR:
+    case IR_LSR:
+    case IR_LSL:
+    case IR_CVT:
         {
-            for (UINT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
-                IR * x = ir->get_kid(i);
-                if (x != NULL && !x->is_leaf()) {
+            IR * p = IR_parent(ir);
+            if (p != NULL) {
+                if (!p->is_stmt() || //tree height is more than 2.
+
+                    //If parent is call, and ir is parameter,
+                    //then we always intend to reduce the height for
+                    //parameter even if its height is 2.
+                    p->is_calls_stmt() ||
+
+                    //If ir is base expression, lower it.
+                    (p->is_ist() && ir == IST_base(p))) {
                     return false;
                 }
             }
@@ -82,21 +124,24 @@ bool Region::is_lowest_heigh_exp(IR const* ir) const
     case IR_SELECT:
         {
             IR * x = SELECT_det(ir);
-            if (!is_lowest_heigh_exp(x)) { return false; }
+            if (!isLowestHeightExp(x)) { return false; }
+
             x = SELECT_trueexp(ir);
             if (x != NULL && !x->is_leaf()) { return false; }
+
             x = SELECT_falseexp(ir);
             if (x != NULL && !x->is_leaf()) { return false; }
+
             return true;
         }
-    default: ASSERT0(0); break;
-    } //end switch
+    default: ASSERT0(0);
+    }
 
     return true;
 }
 
 
-bool Region::is_lowest_heigh(IR const* ir) const
+bool Region::isLowestHeight(IR const* ir) const
 {
     ASSERT0(ir);
     ASSERT0(ir->is_stmt());
@@ -104,25 +149,25 @@ bool Region::is_lowest_heigh(IR const* ir) const
     case IR_CALL:
     case IR_ICALL:
         for (IR * p = CALL_param_list(ir); p != NULL; p = IR_next(p)) {
-            if (!is_lowest_heigh_exp(p)) {
+            if (!isLowestHeightExp(p)) {
                 return false;
             }
         }
         return true;
     case IR_ST:
-        return is_lowest_heigh_exp(ST_rhs(ir));
+        return isLowestHeightExp(ST_rhs(ir));
     case IR_STPR:
-        return is_lowest_heigh_exp(STPR_rhs(ir));
+        return isLowestHeightExp(STPR_rhs(ir));
     case IR_IST: //indirective store
-        if (!is_lowest_heigh_exp(IST_base(ir))) return false;
-        return is_lowest_heigh_exp(IST_rhs(ir));
+        if (!isLowestHeightExp(IST_base(ir))) { return false; }
+        return isLowestHeightExp(IST_rhs(ir));
     case IR_GOTO:
     case IR_LABEL:
     case IR_CASE:
         return true;
     case IR_RETURN:
         if (RET_exp(ir) != NULL) {
-            return is_lowest_heigh_exp(RET_exp(ir));
+            return isLowestHeightExp(RET_exp(ir));
         }
         return true;
     case IR_TRUEBR:
@@ -130,7 +175,7 @@ bool Region::is_lowest_heigh(IR const* ir) const
         {
             IR * e = BR_det(ir);
             ASSERT0(e);
-            return is_lowest_heigh_exp(e);
+            return isLowestHeightExp(e);
         }
     case IR_BREAK:
     case IR_CONTINUE:
@@ -870,7 +915,7 @@ IR * Region::simplifyKids(IR * ir, SimpCTX * ctx)
         if (kid == NULL) { continue; }
         IR * new_kid = simplifyExpression(kid, ctx);
 
-        if (SIMP_to_lowest_heigh(ctx) &&
+        if (SIMP_to_lowest_height(ctx) &&
             !IR_parent(ir)->is_stmt() &&
             !new_kid->is_leaf() &&
             IR_code(ir) != IR_SELECT) { //select's det must be judge.
@@ -1198,7 +1243,7 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCTX * ctx)
         ctx->union_bottomup_flag(ttcont);
     }
 
-    if (SIMP_to_lowest_heigh(ctx)) {
+    if (SIMP_to_lowest_height(ctx)) {
             //CASE: If IR_parent is NULL, the situation is
             //caller attempt to enforce simplification to array expression
             //whenever possible.
@@ -1250,11 +1295,58 @@ IR * Region::simplifyLda(IR * ir, SimpCTX * ctx)
 }
 
 
+IR * Region::simplifyBinAndUniExpression(IR * ir, SimpCTX * ctx)
+{
+    ASSERT0(ir && isBinAndUniExp(ir));
+
+    for (UINT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
+        IR * kid = ir->get_kid(i);
+        if (kid != NULL) {
+            IR * x = simplifyExpression(kid, ctx);
+            ir->set_kid(i, x);
+        }
+    }
+
+    if (!SIMP_to_lowest_height(ctx) || isLowestHeightExp(ir)) { return ir; }
+
+    //Do lowering.
+    for (UINT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
+        IR * k = ir->get_kid(i);
+        if (k == NULL) { continue; }
+
+        /* Lower ARRAY arith :
+            a[i] + b[i]
+            =>
+            t1 = a[i]
+            t2 = b[i]
+            t1 + t2 */
+        if (SIMP_array_to_pr_mode(ctx) && k->is_array()) {
+            IR * pr = buildPR(IR_dt(k));
+            allocRefForPR(pr);
+
+            IR * st = buildStorePR(PR_no(pr), IR_dt(pr), k);
+            copyDbx(st, k, this); //keep dbg info for new STMT.
+            ctx->append_irs(st);
+            ir->set_kid(i, pr);
+            SIMP_changed(ctx) = true;
+        }
+    }
+
+    IR * pr = buildPR(IR_dt(ir));
+    allocRefForPR(pr);
+    IR * st = buildStorePR(PR_no(pr), IR_dt(pr), ir);
+    copyDbx(st, ir, this); //keep dbg info for new STMT.
+    ctx->append_irs(st);
+    SIMP_changed(ctx) = true;
+    return pr;
+}
+
+
 //Return new generated expression's value.
 //'ir': ir may be in parameter list if its prev or next is not empty.
 IR * Region::simplifyExpression(IR * ir, SimpCTX * ctx)
 {
-    if (ir == NULL) return NULL;
+    if (ir == NULL) { return NULL; }
     ASSERT(ir->is_exp(), ("expect non-statement node"));
 
     //ir can not in list, or it may incur illegal result.
@@ -1306,62 +1398,7 @@ IR * Region::simplifyExpression(IR * ir, SimpCTX * ctx)
     case IR_LSR:
     case IR_LSL:
     case IR_CVT: //data type convertion
-        {
-            for (UINT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
-                IR * kid = ir->get_kid(i);
-                if (kid != NULL) {
-                    IR * x = simplifyExpression(kid, ctx);
-                    ir->set_kid(i, x);
-                }
-            }
-
-            bool doit = false; //indicate whether does the lowering.
-            IR * p = IR_parent(ir);
-            if (SIMP_to_lowest_heigh(ctx) && p != NULL) {
-                if (!p->is_stmt() || //tree height is more than 2.
-
-                    p->is_calls_stmt() || //parent is call, ir is the parameter.
-                    //We always reduce the height for parameter even if its height is 2.
-
-                    //ir is lhs expression, lower it.
-                    (p->is_ist() && ir == IST_base(p))) {
-                    doit = true;
-                }
-            }
-
-            if (doit) {
-                for (UINT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
-                    IR * k = ir->get_kid(i);
-                    if (k != NULL) {
-                        /* Lower ARRAY arith :
-                            a[i] + b[i]
-                            =>
-                            t1 = a[i]
-                            t2 = b[i]
-                            t1 + t2 */
-                        if (SIMP_array_to_pr_mode(ctx) &&
-                            k->is_array()) {
-                            IR * pr = buildPR(IR_dt(k));
-                            allocRefForPR(pr);
-                            IR * st = buildStorePR(PR_no(pr), IR_dt(pr), k);
-                            copyDbx(st, k, this); //keep dbg info for new STMT.
-                            ctx->append_irs(st);
-                            ir->set_kid(i, pr);
-                            SIMP_changed(ctx) = true;
-                        }
-                    }
-                }
-                IR * pr = buildPR(IR_dt(ir));
-                allocRefForPR(pr);
-                IR * st = buildStorePR(PR_no(pr), IR_dt(pr), ir);
-                copyDbx(st, ir, this); //keep dbg info for new STMT.
-                ctx->append_irs(st);
-                ir = pr;
-                SIMP_changed(ctx) = true;
-            }
-            return ir;
-        }
-        break;
+        return simplifyBinAndUniExpression(ir, ctx);
     case IR_PR:
         return ir;
     case IR_SELECT:
@@ -1414,7 +1451,7 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCTX * ctx)
                 }
             }
 
-            if (SIMP_to_lowest_heigh(ctx) &&
+            if (SIMP_to_lowest_height(ctx) &&
                 IR_parent(ir) != NULL && !IR_parent(ir)->is_stmt()) {
                 IR * pr = buildPR(IR_dt(ir));
                 allocRefForPR(pr);
@@ -1450,7 +1487,7 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCTX * ctx)
                     }
                 }
             }
-            if (SIMP_to_lowest_heigh(ctx) &&
+            if (SIMP_to_lowest_height(ctx) &&
                 IR_parent(ir) != NULL && !IR_parent(ir)->is_stmt()) {
                 IR * pr = buildPR(IR_dt(ir));
                 allocRefForPR(pr);
@@ -1476,7 +1513,7 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCTX * ctx)
                     ir->set_kid(i, simplifyExpression(kid, ctx));
                 }
             }
-            if (SIMP_to_lowest_heigh(ctx) && !IR_parent(ir)->is_stmt()) {
+            if (SIMP_to_lowest_height(ctx) && !IR_parent(ir)->is_stmt()) {
                 bool is_det = false;
                 if (IR_parent(ir)->is_select()) {
                     /* Check if det is lowest binary operation to COND_EXE,
@@ -1614,7 +1651,7 @@ IR * Region::simplifyArray(IR * ir, SimpCTX * ctx)
         return pr;
     }
 
-    if (SIMP_to_lowest_heigh(ctx)) {
+    if (SIMP_to_lowest_height(ctx)) {
         if (!array_addr->is_leaf()) {
             IR * pr = buildPR(IR_dt(array_addr));
             allocRefForPR(pr);
@@ -1648,7 +1685,7 @@ IR * Region::simplifyCall(IR * ir, SimpCTX * ctx)
     ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
     SIMP_ret_array_val(&tcont) = true;
 
-    bool origin_to_lowest_height = SIMP_to_lowest_heigh(&tcont);
+    bool origin_to_lowest_height = SIMP_to_lowest_height(&tcont);
 
     IR * newp = NULL;
     IR * last = NULL;
@@ -1673,12 +1710,12 @@ IR * Region::simplifyCall(IR * ir, SimpCTX * ctx)
                            ld (i32 'i')
                            intconst 24|0x18 (u32) id:14
             */
-            SIMP_to_lowest_heigh(&tcont) = true;
+            SIMP_to_lowest_height(&tcont) = true;
         }
 
         p = simplifyExpression(p, &tcont);
 
-        SIMP_to_lowest_heigh(&tcont) = origin_to_lowest_height;
+        SIMP_to_lowest_height(&tcont) = origin_to_lowest_height;
 
         add_next(&newp, &last, p);
 
@@ -1817,7 +1854,7 @@ IR * Region::simplifyIstore(IR * ir, SimpCTX * ctx)
         add_next(&ret_list, &last, SIMP_ir_stmt_list(&tcont2));
     }
 
-    if (SIMP_to_lowest_heigh(ctx) && IST_base(ir)->is_ild()) {
+    if (SIMP_to_lowest_height(ctx) && IST_base(ir)->is_ild()) {
         /* Simplify
             IST(ILD(PR1), ...)
         =>
@@ -2033,44 +2070,39 @@ IR * Region::simplifyStmt(IR * ir, SimpCTX * ctx)
 //Return new generated IR stmt.
 IR * Region::simplifyStmtList(IR * ir_list, SimpCTX * ctx)
 {
-    if (ir_list == NULL) return NULL;
-    IR * ret_list_header = NULL;
-    IR * last = NULL;
-    IR * next;
+    if (ir_list == NULL) { return NULL; }
+    IR * ret_list = NULL;
     ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
-    bool doit = true;
-    while (doit) {
-        doit = false;
-        while (ir_list != NULL) {
-            next = IR_next(ir_list);
-            IR_next(ir_list) = IR_prev(ir_list) = NULL;
-            IR * new_ir_lst = simplifyStmt(ir_list, ctx);
+    bool redo_simp = true;
+    while (redo_simp) {
+        redo_simp = false;
+        IR * last = NULL;
+
+        for (IR * stmt = removehead(&ir_list);
+             stmt != NULL; stmt = removehead(&ir_list)) {
+            IR * new_stmt_list = simplifyStmt(stmt, ctx);
             ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
-            if (SIMP_to_lowest_heigh(ctx)) {
-                IR * x = new_ir_lst;
-                while (x != NULL) {
-                    if (!is_lowest_heigh(x)) {
-                        doit = true;
+
+            if (SIMP_to_lowest_height(ctx)) {
+                //Check if new stmt still need to simplify.
+                for (IR * x = new_stmt_list; x != NULL; x = IR_next(x)) {
+                    if (!isLowestHeight(x)) {
+                        redo_simp = true;
                         break;
                     }
-                    x = IR_next(x);
                 }
             }
-            if (ret_list_header == NULL) {
-                //Record the header.
-                ret_list_header = new_ir_lst;
-            }
-            insertafter(&last, new_ir_lst);
-            last = get_last(new_ir_lst);
-            ir_list = next;
+
+            add_next(&ret_list, &last, new_stmt_list);
         }
 
-        if (doit) {
-            ir_list = ret_list_header;
-            ret_list_header = NULL;
+        if (redo_simp) {
+            ir_list = ret_list;
+            ret_list = NULL;
         }
     }
-    return ret_list_header;
+
+    return ret_list;
 }
 
 

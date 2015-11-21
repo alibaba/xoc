@@ -666,16 +666,16 @@ public:
     //Return true if ir is constant expression.
     inline bool is_const_exp() const;
 
-    /* Return true if ir is readonly expression.
-    This attribute indicate that the expression does not modify any
-    memory. Note it can only refer to expression. */
+    //Return true if ir is readonly expression.
+    //This attribute indicate that the expression does not modify any
+    //memory. Note it can only refer to expression.
     inline bool is_readonly_exp() const;
 
-    /* Return true if ir is readonly function call.
-    This function is a shortcut to access properties of call stmt.
-    This attribute indicate that if function does not modify any
-    global memory or any memory object that pass through pointer
-    arguments. */
+    //Return true if ir is readonly function call.
+    //This function is a shortcut to access properties of call stmt.
+    //This attribute indicate that if function does not modify any
+    //global memory or any memory object that pass through pointer
+    //arguments.
     inline bool is_readonly_call() const;
 
     bool is_undef() const { return IR_code(this) == IR_UNDEF; }
@@ -933,9 +933,10 @@ public:
     void set_ref_md(MD const* md, Region * ru);
     void set_ref_mds(MDSet const* mds, Region * ru);
 
-    /* Find and substitute 'newk' for 'oldk'.
-    Return true if replaced the 'oldk'.
-    'recur': set to true if function recusively perform replacement for 'oldk'. */
+    //Find and substitute 'newk' for 'oldk'.
+    //Return true if replaced the 'oldk'.
+    //'recur': set to true if function recusively perform
+    //replacement for 'oldk'.
     bool replaceKid(IR * oldk, IR * newk, bool recur)
     {
         for (UINT i = 0; i < IR_MAX_KID_NUM(this); i++) {
@@ -960,10 +961,10 @@ public:
         return false;
     }
 
-    /* Iterate IR tree to remove SSA du.
-        e.g: pr1 = ...
-                 = pr1 //S1
-    If S1 will be deleted, pr1 should be removed from its SSA_uses. */
+    //Iterate IR tree to remove SSA du.
+    //    e.g: pr1 = ...
+    //             = pr1 //S1
+    //If S1 will be deleted, pr1 should be removed from its SSA_uses.
     void removeSSAUse();
 
     bool verify(Region const* ru) const;
@@ -1092,10 +1093,9 @@ public:
 };
 
 
-/* This class represent temporary memory store operation.
-The temporary memory named pseudo register.
-
-usage: stpr(prno:1, val), will store val to PR1. */
+//This class represent temporary memory store operation.
+//The temporary memory named pseudo register.
+//usage: stpr(prno:1, val), will store val to PR1.
 #define STPR_bb(ir)         (((CStpr*)CK_IRT(ir, IR_STPR))->bb)
 #define STPR_no(ir)         (((CStpr*)CK_IRT(ir, IR_STPR))->prno)
 #define STPR_ssainfo(ir)    (((CStpr*)CK_IRT(ir, IR_STPR))->ssainfo)
@@ -1208,9 +1208,9 @@ public:
 };
 
 
-/* This class uses bits to describe attributes.
-Represents a direct function call.
-NOTE: 'opnd' must be the last member. */
+//This class uses bits to describe attributes.
+//Represents a direct function call.
+//NOTE: 'opnd' must be the last member.
 #define CALL_bb(ir)          (((CCall*)CK_IRT_CALL(ir))->bb)
 #define CALL_idinfo(ir)      (((CCall*)CK_IRT_ONLY_CALL(ir))->id_info)
 
@@ -1232,14 +1232,14 @@ NOTE: 'opnd' must be the last member. */
 #define CALL_is_not_bb_bound(ir) (((CCall*)CK_IRT_CALL(ir))->is_not_bb_bound)
 
 //True if this call does not modify any memory.
-#define CALL_is_readonly(ir)    (VAR_is_readonly(CALL_idinfo((CCall*)CK_IRT_CALL(ir))))
+#define CALL_is_readonly(ir)     (VAR_is_readonly(CALL_idinfo((CCall*)CK_IRT_CALL(ir))))
 
 //True if this call do allocate memory from heap. It always the function
 //like malloc or new.
-#define CALL_is_alloc_heap(ir)  (((CCall*)CK_IRT_CALL(ir))->is_alloc_heap)
+#define CALL_is_alloc_heap(ir)   (((CCall*)CK_IRT_CALL(ir))->is_alloc_heap)
 
 //Record MD DU information.
-#define CALL_du(ir)             (((CCall*)CK_IRT_CALL(ir))->du)
+#define CALL_du(ir)              (((CCall*)CK_IRT_CALL(ir))->du)
 
 //Parameter list of call.
 #define CALL_param_list(ir)      (((CCall*)ir)->opnd[CKID_CALL(ir, 0)])
@@ -1294,10 +1294,10 @@ public:
 };
 
 
-/* Represents a indirect function call.
-This class uses macro operations of CCall.
-Expression to compute the target function address.
-NOTE: 'opnd_pad' must be the first member. */
+//Represents a indirect function call.
+//This class uses macro operations of CCall.
+//Expression to compute the target function address.
+//NOTE: 'opnd_pad' must be the first member.
 
 //Indicate the callee function pointer.
 #define ICALL_callee(ir)      (((CICall*)ir)->opnd[CKID_TY(ir, IR_ICALL, 0)])
@@ -1344,11 +1344,10 @@ public:
 };
 
 
-/* This class represent indirect goto operation,
-the control flow will unconditional jump to one target label of a list of
-label which determined by value-exp.
-
-usage: igoto (value-exp) case_list */
+//This class represent indirect goto operation,
+//the control flow will unconditional jump to one target label of a list of
+//label which determined by value-exp.
+//usage: igoto (value-exp) case_list.
 #define IGOTO_bb(ir)        (((CIGoto*)CK_IRT(ir, IR_IGOTO))->bb)
 
 //Value expression.

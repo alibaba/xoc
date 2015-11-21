@@ -529,7 +529,10 @@ static void handleRegion(
     func_ru->getPrno2Vreg()->copy(*func_ru->getDex2IR()->getPR2Vreg());
     #endif
 
-    convertIR2LIR(func_ru, df, lircode);
+    if (!g_retain_pass_mgr_for_region) {
+        //TODO: support convert LIR from IRBB list.
+        convertIR2LIR(func_ru, df, lircode);
+    }
 FIN:
     if (dbxpool != NULL && !g_do_ipa) {
         smpoolDelete(dbxpool); //delete the pool local used.

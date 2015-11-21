@@ -53,7 +53,7 @@ class CfsMgr;
 #define SIMP_logical_not(s)           (s)->prop_top_down.simp_logcial_not
 #define SIMP_to_pr_mode(s)            (s)->prop_top_down.simp_to_pr_mode
 #define SIMP_array_to_pr_mode(s)      (s)->prop_top_down.simp_array_to_pr_mode
-#define SIMP_to_lowest_heigh(s)       (s)->prop_top_down.simp_to_lowest_heigh
+#define SIMP_to_lowest_height(s)       (s)->prop_top_down.simp_to_lowest_height
 #define SIMP_ret_array_val(s)         (s)->prop_top_down.simp_to_get_array_value
 #define SIMP_is_record_cfs(s)         (s)->prop_top_down.is_record_cfs
 #define SIMP_ir_stmt_list(s)          (s)->ir_stmt_list
@@ -87,7 +87,7 @@ public:
             st(id, add(ld(v2), ld(v3)))
             ADD is non-leaf IR, its children can not be non-leaf also.
         */
-        UINT simp_to_lowest_heigh:1;
+        UINT simp_to_lowest_height:1;
 
         /*
         Propagate info top down.
@@ -256,7 +256,7 @@ public:
     regarding it as a whole node.
     e.g: a[1][2] + b is the lowest height. */
     void set_simp_to_lowest_heigh()
-    { SIMP_to_lowest_heigh(this) = true; }
+    { SIMP_to_lowest_height(this) = true; }
 
     /* Reduce the tree heigh to lowest and load value to PR to
     perform operation for IR_LD, IR_ILD, IR_ARRAY.
@@ -271,7 +271,7 @@ public:
     void set_simp_to_pr_mode()
     {
         SIMP_to_pr_mode(this) = true;
-        SIMP_to_lowest_heigh(this) = true;
+        SIMP_to_lowest_height(this) = true;
     }
 };
 
