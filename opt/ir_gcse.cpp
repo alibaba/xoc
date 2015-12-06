@@ -534,7 +534,7 @@ bool IR_GCSE::doPropVN(IRBB * bb, UINT entry_id)
 bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
 {
     livexp.clean();
-    DefDBitSetCore * x = m_du->get_availin_expr(BB_id(bb));
+    DefDBitSetCore * x = m_du->getAvailInExpr(BB_id(bb));
     SEGIter * st = NULL;
     for (INT i = x->get_first(&st); i != -1; i = x->get_next(i, &st)) {
         IR * y = m_ru->get_ir(i);
@@ -679,7 +679,7 @@ bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
 }
 
 
-bool IR_GCSE::perform(OptCTX & oc)
+bool IR_GCSE::perform(OptCtx & oc)
 {
     START_TIMER_AFTER();
     if (m_gvn != NULL) {

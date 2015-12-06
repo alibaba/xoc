@@ -1410,7 +1410,7 @@ where IR list should be splitted into :
     BB5:
     L2:
     a = pr */
-bool Region::reconstructBBlist(OptCTX & oc)
+bool Region::reconstructBBlist(OptCtx & oc)
 {
     START_TIMER("Reconstruct IRBB list");
     ASSERT(get_cfg(), ("CFG is not available"));
@@ -2336,7 +2336,7 @@ void Region::process()
 
     if (g_opt_level == NO_OPT) { return; }
 
-    OptCTX oc;
+    OptCtx oc;
 
     START_TIMER("PreScan");
     prescan(get_ir_list());
@@ -2352,7 +2352,7 @@ void Region::process()
 
     if (bbl->get_elem_count() == 0) { return; }
 
-    SimpCTX simp;
+    SimpCtx simp;
     simp.set_simp_cf();
     simp.set_simp_array();
     simp.set_simp_select();
@@ -2383,7 +2383,7 @@ void Region::process()
     }
 
     ASSERT0(verifyIRandBB(bbl, this));
-    RefineCTX rf;
+    RefineCtx rf;
     refineBBlist(bbl, rf);
     ASSERT0(verifyIRandBB(bbl, this));
 
@@ -2543,7 +2543,7 @@ void Region::dumpVARInRegion(INT indent)
 }
 
 
-void Region::checkValidAndRecompute(OptCTX * oc, ...)
+void Region::checkValidAndRecompute(OptCtx * oc, ...)
 {
     BitSet opts;
     UINT num = 0;
@@ -2644,7 +2644,11 @@ void Region::checkValidAndRecompute(OptCTX * oc, ...)
 
     if (opts.is_contain(PASS_DU_CHAIN) && !OC_is_du_chain_valid(*oc)) {
         ASSERT(dumgr, ("Alias Analysis is not enable"));
-        dumgr->computeMDDUChain(*oc);
+        if (opts.is_contain(PASS_REACH_DEF)) {
+            dumgr->computeMDDUChain(*oc, true);
+        } else {
+            dumgr->computeMDDUChain(*oc, false);
+        }
     }
 
     if (opts.is_contain(PASS_EXPR_TAB) && !OC_is_expr_tab_valid(*oc)) {

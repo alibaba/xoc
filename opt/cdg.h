@@ -48,8 +48,8 @@ public:
     bool is_only_cd_self(UINT id);
     bool is_cd(UINT a, UINT b);
     void dump();
-    void build(IN OUT OptCTX & oc, DGraph & cfg);
-    void rebuild(IN OUT OptCTX & oc, DGraph & cfg);
+    void build(IN OUT OptCtx & oc, DGraph & cfg);
+    void rebuild(IN OUT OptCtx & oc, DGraph & cfg);
 };
 
 } //namespace xoc

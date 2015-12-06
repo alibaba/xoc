@@ -60,7 +60,7 @@ protected:
 protected:
     bool is_64bit(IR const* ir)
     { return get_type_mgr()->get_bytesize(ir->get_type())== 8; }
-    void HighProcessImpl(OptCTX & oc);
+    void HighProcessImpl(OptCtx & oc);
 
 public:
     CHAR const* m_functype;
@@ -95,8 +95,8 @@ public:
     DexPassMgr * getDexPassMgr() { return (DexPassMgr*)get_pass_mgr(); }
     Var2UINT * getVAR2Fieldid() { return &m_var2fieldid; }
 
-    virtual bool HighProcess(OptCTX & oc);
-    virtual bool MiddleProcess(OptCTX & oc);
+    virtual bool HighProcess(OptCtx & oc);
+    virtual bool MiddleProcess(OptCtx & oc);
 
     virtual PassMgr * allocPassMgr();
     virtual IR_AA * allocAliasAnalysis();

@@ -68,7 +68,7 @@ void PassMgr::destroyPass()
 Pass * PassMgr::allocCopyProp()
 {
     Pass * pass = new IR_CP(m_ru);
-    SimpCTX * simp = (SimpCTX*)xmalloc(sizeof(SimpCTX));
+    SimpCtx * simp = (SimpCtx*)xmalloc(sizeof(SimpCtx));
     simp->init();
     pass->set_simp_cont(simp);
     return pass;
@@ -284,11 +284,11 @@ Pass * PassMgr::registerPass(PASS_TYPE opty)
 }
 
 
-void PassMgr::performScalarOpt(OptCTX & oc)
+void PassMgr::performScalarOpt(OptCtx & oc)
 {
     TTab<Pass*> opt_tab;
     List<Pass*> passlist;
-    SimpCTX simp;
+    SimpCtx simp;
     if (g_do_gvn) { registerPass(PASS_GVN); }
 
     if (g_do_pre) {
@@ -384,7 +384,7 @@ void PassMgr::performScalarOpt(OptCTX & oc)
                 ASSERT0(verifyIRandBB(bbl, m_ru));
                 ASSERT0(cfg->verify());
             }
-            RefineCTX rc;
+            RefineCtx rc;
             m_ru->refineBBlist(bbl, rc);
         }
         count++;

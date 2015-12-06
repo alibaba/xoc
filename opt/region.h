@@ -332,7 +332,7 @@ public:
     HOST_INT calcIntVal(IR_TYPE ty, HOST_INT v0, HOST_INT v1);
     double calcFloatVal(IR_TYPE ty, double v0, double v1);
     UINT count_mem();
-    void checkValidAndRecompute(OptCTX * oc, ...);
+    void checkValidAndRecompute(OptCtx * oc, ...);
 
     virtual void destroy();
     void destroyPassMgr();
@@ -568,7 +568,7 @@ public:
     }
 
     //Perform high level optmizations.
-    virtual bool HighProcess(OptCTX & oc);
+    virtual bool HighProcess(OptCtx & oc);
 
     //Initialze Region.
     void init(REGION_TYPE rt, RegionMgr * rm);
@@ -611,7 +611,7 @@ public:
 
     //Perform middle level IR optimizations which are implemented
     //accroding to control flow info and data flow info.
-    virtual bool MiddleProcess(OptCTX & oc);
+    virtual bool MiddleProcess(OptCtx & oc);
 
     //Map from prno to related VAR.
     VAR * mapPR2Var(UINT prno)
@@ -626,82 +626,82 @@ public:
     //Peephole optimizations.
     IR * refineBand(IR * ir, bool & change);
     IR * refineBor(IR * ir, bool & change);
-    IR * refineCvt(IR * ir, bool & change, RefineCTX & rc);
+    IR * refineCvt(IR * ir, bool & change, RefineCtx & rc);
     IR * refineLand(IR * ir, bool & change);
     IR * refineLor(IR * ir, bool & change);
     IR * refineXor(IR * ir, bool & change);
     IR * refineAdd(IR * ir, bool & change);
     IR * refineSub(IR * ir, bool & change);
-    IR * refineMul(IR * ir, bool & change, RefineCTX & rc);
+    IR * refineMul(IR * ir, bool & change, RefineCtx & rc);
     IR * refineRem(IR * ir, bool & change);
-    IR * refineDiv(IR * ir, bool & change, RefineCTX & rc);
-    IR * refineNe(IR * ir, bool & change, RefineCTX & rc);
-    IR * refineEq(IR * ir, bool & change, RefineCTX & rc);
+    IR * refineDiv(IR * ir, bool & change, RefineCtx & rc);
+    IR * refineNe(IR * ir, bool & change, RefineCtx & rc);
+    IR * refineEq(IR * ir, bool & change, RefineCtx & rc);
     IR * refineMod(IR * ir, bool & change);
-    IR * refineCall(IR * ir, bool & change, RefineCTX & rc);
-    IR * refineIcall(IR * ir, bool & change, RefineCTX & rc);
-    IR * refineSwitch(IR * ir, bool & change, RefineCTX & rc);
-    IR * refineReturn(IR * ir, bool & change, RefineCTX & rc);
-    IR * refinePhi(IR * ir, bool & change, RefineCTX & rc);
-    IR * refineBr(IR * ir, bool & change, RefineCTX & rc);
-    IR * refineSelect(IR * ir, bool & change, RefineCTX & rc);
+    IR * refineCall(IR * ir, bool & change, RefineCtx & rc);
+    IR * refineIcall(IR * ir, bool & change, RefineCtx & rc);
+    IR * refineSwitch(IR * ir, bool & change, RefineCtx & rc);
+    IR * refineReturn(IR * ir, bool & change, RefineCtx & rc);
+    IR * refinePhi(IR * ir, bool & change, RefineCtx & rc);
+    IR * refineBr(IR * ir, bool & change, RefineCtx & rc);
+    IR * refineSelect(IR * ir, bool & change, RefineCtx & rc);
     IR * refineBranch(IR * ir);
-    IR * refineArray(IR * ir, bool & change, RefineCTX & rc);
+    IR * refineArray(IR * ir, bool & change, RefineCtx & rc);
     IR * refineNeg(IR * ir, bool & change);
-    IR * refineNot(IR * ir, bool & change, RefineCTX & rc);
-    IR * refineBinaryOp(IR * ir, bool & change, RefineCTX & rc);
-    IR * refineLda(IR * ir, bool & change, RefineCTX & rc);
+    IR * refineNot(IR * ir, bool & change, RefineCtx & rc);
+    IR * refineBinaryOp(IR * ir, bool & change, RefineCtx & rc);
+    IR * refineLda(IR * ir, bool & change, RefineCtx & rc);
     IR * refineLoad(IR * ir);
     IR * refineIload1(IR * ir, bool & change);
     IR * refineIload2(IR * ir, bool & change);
-    IR * refineIload(IR * ir, bool & change, RefineCTX & rc);
+    IR * refineIload(IR * ir, bool & change, RefineCtx & rc);
     IR * refineDetViaSSAdu(IR * ir, bool & change);
-    IR * refineDet(IR * ir_list, bool & change, RefineCTX & rc);
-    IR * refineStore(IR * ir, bool & change, RefineCTX & rc);
-    IR * refineStoreArray(IR * ir, bool & change, RefineCTX & rc);
-    IR * refineIstore(IR * ir, bool & change, RefineCTX & rc);
-    IR * refineIR(IR * ir, bool & change, RefineCTX & rc);
-    IR * refineIRlist(IR * ir_list, bool & change, RefineCTX & rc);
-    bool refineStmtList(IN OUT BBIRList & ir_list, RefineCTX & rc);
-    bool refineBBlist(IN OUT BBList * ir_bb_list, RefineCTX & rc);
+    IR * refineDet(IR * ir_list, bool & change, RefineCtx & rc);
+    IR * refineStore(IR * ir, bool & change, RefineCtx & rc);
+    IR * refineStoreArray(IR * ir, bool & change, RefineCtx & rc);
+    IR * refineIstore(IR * ir, bool & change, RefineCtx & rc);
+    IR * refineIR(IR * ir, bool & change, RefineCtx & rc);
+    IR * refineIRlist(IR * ir_list, bool & change, RefineCtx & rc);
+    bool refineStmtList(IN OUT BBIRList & ir_list, RefineCtx & rc);
+    bool refineBBlist(IN OUT BBList * ir_bb_list, RefineCtx & rc);
     IR * reassociation(IR * ir, bool & change);
-    bool reconstructBBlist(OptCTX & oc);
+    bool reconstructBBlist(OptCtx & oc);
 
     C<IRBB*> * splitIRlistIntoBB(IR * irs, BBList * bbl, C<IRBB*> * ctbb);
-    IR * simplifyKids(IR * ir, SimpCTX * cont);
-    IR * simplifyStore(IR * ir, SimpCTX * cont);
-    IR * simplifyStorePR(IR * ir, SimpCTX * cont);
-    IR * simplifyStoreArray(IR * ir, SimpCTX * ctx);
-    IR * simplifySetelem(IR * ir, SimpCTX * ctx);
-    IR * simplifyGetelem(IR * ir, SimpCTX * ctx);
-    IR * simplifyIstore(IR * ir, SimpCTX * cont);
-    IR * simplifyCall(IR * ir, SimpCTX * cont);
-    IR * simplifyIf (IR * ir, SimpCTX * cont);
-    IR * simplifyWhileDo(IR * ir, SimpCTX * cont);
-    IR * simplifyDoWhile (IR * ir, SimpCTX * cont);
-    IR * simplifyDoLoop(IR * ir, SimpCTX * cont);
-    IR * simplifyDet(IR * ir, SimpCTX * cont);
-    IR * simplifyJudgeDet(IR * ir, SimpCTX * cont);
-    IR * simplifySelect(IR * ir, SimpCTX * cont);
-    IR * simplifySwitch (IR * ir, SimpCTX * cont);
-    IR * simplifyIgoto(IR * ir, SimpCTX * cont);
-    IR * simplifyArrayAddrExp(IR * ir, SimpCTX * cont);
-    IR * simplifyArray(IR * ir, SimpCTX * cont);
-    IR * simplifyExpression(IR * ir, SimpCTX * cont);
-    IR * simplifyBinAndUniExpression(IR * ir, SimpCTX * ctx);
-    IR * simplifyStmt(IR * ir, SimpCTX * cont);
-    IR * simplifyStmtList(IR * ir, SimpCTX * cont);
-    void simplifyBB(IRBB * bb, SimpCTX * cont);
-    void simplifyBBlist(BBList * bbl, SimpCTX * cont);
-    IR * simplifyLogicalNot(IN IR * ir, SimpCTX * cont);
+    IR * simplifyKids(IR * ir, SimpCtx * cont);
+    IR * simplifyStore(IR * ir, SimpCtx * cont);
+    IR * simplifyStorePR(IR * ir, SimpCtx * cont);
+    IR * simplifyStoreArray(IR * ir, SimpCtx * ctx);
+    IR * simplifySetelem(IR * ir, SimpCtx * ctx);
+    IR * simplifyGetelem(IR * ir, SimpCtx * ctx);
+    IR * simplifyIstore(IR * ir, SimpCtx * cont);
+    IR * simplifyCall(IR * ir, SimpCtx * cont);
+    IR * simplifyIf (IR * ir, SimpCtx * cont);
+    IR * simplifyWhileDo(IR * ir, SimpCtx * cont);
+    IR * simplifyDoWhile (IR * ir, SimpCtx * cont);
+    IR * simplifyDoLoop(IR * ir, SimpCtx * cont);
+    IR * simplifyDet(IR * ir, SimpCtx * cont);
+    IR * simplifyJudgeDet(IR * ir, SimpCtx * cont);
+    IR * simplifySelect(IR * ir, SimpCtx * cont);
+    IR * simplifySwitch (IR * ir, SimpCtx * cont);
+    IR * simplifyIgoto(IR * ir, SimpCtx * cont);
+    IR * simplifyArrayAddrExp(IR * ir, SimpCtx * cont);
+    IR * simplifyArray(IR * ir, SimpCtx * cont);
+    IR * simplifyExpression(IR * ir, SimpCtx * cont);
+    IR * simplifyBinAndUniExpression(IR * ir, SimpCtx * ctx);
+    IR * simplifyStmt(IR * ir, SimpCtx * cont);
+    IR * simplifyStmtList(IR * ir, SimpCtx * cont);
+    void simplifyBB(IRBB * bb, SimpCtx * cont);
+    void simplifyBBlist(BBList * bbl, SimpCtx * cont);
+    IR * simplifyLogicalNot(IN IR * ir, SimpCtx * cont);
     IR * simplifyLogicalOrAtFalsebr(IN IR * ir, LabelInfo const* tgt_label);
     IR * simplifyLogicalOrAtTruebr(IN IR * ir, LabelInfo const* tgt_label);
-    IR * simplifyLogicalOr(IN IR * ir, SimpCTX * cont);
+    IR * simplifyLogicalOr(IN IR * ir, SimpCtx * cont);
     IR * simplifyLogicalAndAtTruebr(IN IR * ir, LabelInfo const* tgt_label);
     IR * simplifyLogicalAndAtFalsebr(IN IR * ir, LabelInfo const* tgt_label);
-    IR * simplifyLogicalAnd(IN IR * ir, SimpCTX * cont);
-    IR * simplifyLogicalDet(IR * ir, SimpCTX * cont);
-    IR * simplifyLda(IR * ir, SimpCTX * cont);
+    IR * simplifyLogicalAnd(IN IR * ir, SimpCtx * cont);
+    IR * simplifyLogicalDet(IR * ir, SimpCtx * cont);
+    IR * simplifyLda(IR * ir, SimpCtx * cont);
     void set_irt_size(IR * ir, UINT)
     {
         #ifdef CONST_IRT_SZ
@@ -719,7 +719,7 @@ public:
     IR * StrengthReduce(IN OUT IR * ir, IN OUT bool & change);
     void scanCallList(OUT List<IR const*> & call_list);
 
-    void lowerIRTreeToLowestHeight(OptCTX & oc);
+    void lowerIRTreeToLowestHeight(OptCtx & oc);
 
     void prescan(IR const* ir);
     bool partitionRegion();

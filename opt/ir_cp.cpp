@@ -256,7 +256,7 @@ bool IR_CP::is_available(IR const* def_ir, IR const* occ, IR * use_ir)
     }
 
     ASSERT0(use_ir->is_stmt());
-    DefDBitSetCore const* availin_expr = m_du->get_availin_expr(BB_id(usebb));
+    DefDBitSetCore const* availin_expr = m_du->getAvailInExpr(BB_id(usebb));
     ASSERT0(availin_expr);
 
     if (availin_expr->is_contain(IR_id(occ))) {
@@ -431,7 +431,7 @@ bool IR_CP::doProp(IN IRBB * bb, Vector<IR*> & usevec)
                 is_next = true;
             }
 
-            RefineCTX rf;
+            RefineCtx rf;
             use_stmt = m_ru->refineIR(use_stmt, change, rf);
             if (use_stmt == NULL && is_next) {
                 //use_stmt has been optimized and removed by refineIR().
@@ -458,13 +458,13 @@ bool IR_CP::doProp(IN IRBB * bb, Vector<IR*> & usevec)
 
 void IR_CP::doFinalRefine()
 {
-    RefineCTX rf;
+    RefineCtx rf;
     RC_insert_cvt(rf) = false;
     m_ru->refineBBlist(m_ru->get_bb_list(), rf);
 }
 
 
-bool IR_CP::perform(OptCTX & oc)
+bool IR_CP::perform(OptCtx & oc)
 {
     START_TIMER_AFTER();
     ASSERT0(OC_is_cfg_valid(oc));

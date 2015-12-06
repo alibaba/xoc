@@ -597,7 +597,7 @@ void IR_EXPR_TAB::encode_bb(IRBB * bb)
 }
 
 
-void IR_EXPR_TAB::reperform(IN OUT OptCTX & oc)
+void IR_EXPR_TAB::reperform(IN OUT OptCtx & oc)
 {
     clean_occ_list();
     perform(oc);
@@ -608,7 +608,7 @@ void IR_EXPR_TAB::reperform(IN OUT OptCTX & oc)
 Scan IR statement literally, and encoding it for generating
 the unique id for each individual expressions, and update
 the 'GEN-SET' and 'KILL-SET' of IR-EXPR for BB as well as. */
-bool IR_EXPR_TAB::perform(IN OUT OptCTX & oc)
+bool IR_EXPR_TAB::perform(IN OUT OptCtx & oc)
 {
     BBList * bbl = m_ru->get_bb_list();
     C<IRBB*> * cb;

@@ -307,7 +307,7 @@ void PRDF::computeGlobal()
 }
 
 
-bool PRDF::perform(OptCTX & oc)
+bool PRDF::perform(OptCtx & oc)
 {
     START_TIMER_AFTER();
     m_ru->checkValidAndRecompute(&oc, PASS_RPO, PASS_UNDEF);

@@ -64,7 +64,7 @@ Pass * DexPassMgr::allocDCE()
 Pass * DexPassMgr::allocCopyProp()
 {
     Pass * pass = new DEX_CP(m_ru);
-    SimpCTX simp;
+    SimpCtx simp;
     pass->set_simp_cont(&simp);
     return pass;
 }
@@ -78,7 +78,7 @@ Pass * DexPassMgr::allocRP()
 
 
 int xtime = 1;
-void DexPassMgr::performScalarOpt(OptCTX & oc)
+void DexPassMgr::performScalarOpt(OptCtx & oc)
 {
     List<Pass*> passlist; //A list of optimization.
     IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)registerPass(PASS_SSA_MGR);

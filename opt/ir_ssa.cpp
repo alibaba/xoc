@@ -1752,7 +1752,7 @@ void IR_SSA_MGR::constructMDDUChainForPR()
 }
 
 
-void IR_SSA_MGR::construction(OptCTX & oc)
+void IR_SSA_MGR::construction(OptCtx & oc)
 {
     reinit();
     m_ru->checkValidAndRecompute(&oc, PASS_DOM, PASS_UNDEF);

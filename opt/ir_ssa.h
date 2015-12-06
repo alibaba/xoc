@@ -258,7 +258,7 @@ public:
     CHAR * dump_vp(IN VP * v, OUT CHAR * buf);
     void dump_ssa_graph(CHAR * name = NULL);
 
-    void construction(OptCTX & oc);
+    void construction(OptCtx & oc);
     void construction(DomTree & domtree);
     UINT count_mem();
 

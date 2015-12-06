@@ -130,7 +130,7 @@ void IR_CFG::cf_opt()
 
 
 //Do early control flow optimization.
-void IR_CFG::initCfg(OptCTX & oc)
+void IR_CFG::initCfg(OptCtx & oc)
 {
     //cfg->removeEmptyBB();
     build(oc);
@@ -336,7 +336,7 @@ void IR_CFG::findTargetBBOfIndirectBranch(IR const* ir, OUT List<IRBB*> & tgtlst
 
 
 //Find natural loop and scan loop body to find call and early exit, etc.
-void IR_CFG::LoopAnalysis(OptCTX & oc)
+void IR_CFG::LoopAnalysis(OptCtx & oc)
 {
     m_ru->checkValidAndRecompute(&oc, PASS_DOM, PASS_UNDEF);
     find_loop();
@@ -1126,7 +1126,7 @@ void IR_CFG::dump_vcg(CHAR const* name, bool detail, bool dump_eh)
 }
 
 
-void IR_CFG::computeDomAndIdom(IN OUT OptCTX & oc, BitSet const* uni)
+void IR_CFG::computeDomAndIdom(IN OUT OptCtx & oc, BitSet const* uni)
 {
     UNUSED(uni);
     START_TIMER_AFTER();
@@ -1159,7 +1159,7 @@ void IR_CFG::computeDomAndIdom(IN OUT OptCTX & oc, BitSet const* uni)
 }
 
 
-void IR_CFG::computePdomAndIpdom(IN OUT OptCTX & oc, BitSet const* uni)
+void IR_CFG::computePdomAndIpdom(IN OUT OptCtx & oc, BitSet const* uni)
 {
     START_TIMER("Compute PDom,IPDom");
     ASSERT0(OC_is_cfg_valid(oc));
@@ -1207,7 +1207,7 @@ void IR_CFG::remove_xr(IRBB * bb, IR * ir)
 Include removing dead bb which is unreachable, removing empty bb as many
 as possible, simplify and remove the branch like "if (x==x)", removing
 the trampolin branch. */
-bool IR_CFG::performMiscOpt(OptCTX & oc)
+bool IR_CFG::performMiscOpt(OptCtx & oc)
 {
     START_TIMER_AFTER();
 

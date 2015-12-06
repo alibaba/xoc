@@ -41,6 +41,10 @@ bool g_is_opt_float = true;
 //Lower IR tree to simplest form.
 bool g_is_lower_to_simplest = false;
 
+//Enable XOC support dynamic type.
+//That means the type of IR_ST may be VOID.
+bool g_is_support_dynamic_type = false;
+
 //If true to hoist short type to integer type.
 bool g_is_hoist_type = false;
 

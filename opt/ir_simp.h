@@ -62,7 +62,7 @@ class CfsMgr;
 #define SIMP_changed(s)               (s)->prop_bottom_up.something_has_changed
 #define SIMP_need_recon_bblist(s)     (s)->prop_bottom_up.need_to_reconstruct_bb_list
 #define SIMP_cfs_mgr(s)               (s)->cfs_mgr
-class SimpCTX {
+class SimpCtx {
 public:
     struct {
         //Propagate these flags top down to simplify IR.
@@ -165,25 +165,25 @@ public:
     //--
 
 public:
-    SimpCTX() { init(); }
-    SimpCTX(SimpCTX const& s)
+    SimpCtx() { init(); }
+    SimpCtx(SimpCtx const& s)
     {
         *this = s;
         SIMP_ir_stmt_list(this) = NULL;
     }
 
-    void copy(SimpCTX const& s)
+    void copy(SimpCtx const& s)
     {
         *this = s;
         SIMP_ir_stmt_list(this) = NULL;
     }
 
     void init()
-    { memset(this, 0, sizeof(SimpCTX)); }
+    { memset(this, 0, sizeof(SimpCtx)); }
 
     //Append irs to current simplification context and
     //return back to up level.
-    void append_irs(SimpCTX & c)
+    void append_irs(SimpCtx & c)
     { add_next(&SIMP_ir_stmt_list(this), SIMP_ir_stmt_list(&c)); }
 
     //Append irs to current simplification context and
@@ -193,17 +193,17 @@ public:
 
     //Unify the actions which propagated top down
     //during processing IR tree.
-    void copy_topdown_flag(SimpCTX & c)
+    void copy_topdown_flag(SimpCtx & c)
     { prop_top_down = c.prop_top_down; }
 
     //Copy the actions which propagated bottom up
     //during processing IR tree.
-    void copy_bottomup_flag(SimpCTX & c)
+    void copy_bottomup_flag(SimpCtx & c)
     { prop_bottom_up = c.prop_bottom_up; }
 
     //Unify the actions which propagated bottom up
     //during processing IR tree.
-    void union_bottomup_flag(SimpCTX & c)
+    void union_bottomup_flag(SimpCtx & c)
     {
         SIMP_changed(this) |= SIMP_changed(&c);
         SIMP_need_recon_bblist(this) |= SIMP_need_recon_bblist(&c);

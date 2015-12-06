@@ -1402,7 +1402,7 @@ bool IR_GVN::calcCondMustVal(IR const* ir, bool & must_true, bool & must_false)
 }
 
 
-bool IR_GVN::reperform(OptCTX & oc)
+bool IR_GVN::reperform(OptCtx & oc)
 {
     clean();
     return perform(oc);
@@ -1410,7 +1410,7 @@ bool IR_GVN::reperform(OptCTX & oc)
 
 
 //GVN try to assign a value numbers to expressions.
-bool IR_GVN::perform(OptCTX & oc)
+bool IR_GVN::perform(OptCtx & oc)
 {
     BBList * bbl = m_ru->get_bb_list();
     if (bbl->get_elem_count() == 0) { return false; }

@@ -560,9 +560,9 @@ public:
     void set_valid(bool valid) { m_is_valid = valid; }
     void setComputeIloadVNviaDU(bool doit) { m_is_comp_ild_vn_by_du = doit; }
 
-    bool reperform(OptCTX & oc);
+    bool reperform(OptCtx & oc);
     bool verify();
-    virtual bool perform(OptCTX & oc);
+    virtual bool perform(OptCtx & oc);
 };
 
 } //namespace xoc

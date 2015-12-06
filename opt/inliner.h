@@ -105,7 +105,7 @@ public:
             IR * caller_call,
             IR * new_irs,
             InlineInfo * ii);
-    virtual bool perform(OptCTX & oc);
+    virtual bool perform(OptCtx & oc);
 };
 
 } //namespace xoc

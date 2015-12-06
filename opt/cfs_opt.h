@@ -56,13 +56,13 @@ public:
 
     virtual CHAR const* get_pass_name() const { return "IR_CFS_OPT"; }
 
-    bool perform_cfs_optimization(IN OUT IR ** ir_list, IN SimpCTX const& sc);
-    virtual bool perform(OptCTX &)
+    bool perform_cfs_optimization(IN OUT IR ** ir_list, IN SimpCtx const& sc);
+    virtual bool perform(OptCtx &)
     {
         ASSERT0(0);
         return false;
     }
-    virtual bool perform(IN SimpCTX const& simp);
+    virtual bool perform(IN SimpCtx const& simp);
 };
 
 } //namespace xoc

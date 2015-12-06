@@ -352,7 +352,7 @@ bool verifyLowestForm(BBList * ir_bb_list, Region * ru)
 
 
 //Function to verify stmt info after IR simplified.
-bool verify_simp(IR * ir_list, SimpCTX & simp)
+bool verify_simp(IR * ir_list, SimpCtx & simp)
 {
     if (simp.is_simp_cfg()) {
         for (IR * p = ir_list; p != NULL; p = IR_next(p)) {
@@ -504,8 +504,8 @@ void dump_ir(IR const* ir,
     static CHAR buf2[MAX_BUF_LEN];
     buf[0] = 0;
     buf2[0] = 0;
-    if (g_dbg_mgr != NULL && dump_src_line) {
-        g_dbg_mgr->printSrcLine(ir);
+    if (g_dbx_mgr != NULL && dump_src_line) {
+        g_dbx_mgr->printSrcLine(ir);
     }
 
     Type const* d = NULL;

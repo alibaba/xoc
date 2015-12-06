@@ -131,7 +131,7 @@ public:
 
     PASS_TYPE get_pass_type() const { return PASS_GCSE; }
 
-    bool perform(OptCTX & oc);
+    bool perform(OptCtx & oc);
 };
 
 } //namespace xoc

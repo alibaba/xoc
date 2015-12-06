@@ -35,7 +35,7 @@ author: Su Zhenyu
 
 namespace xoc {
 
-DbxMgr * g_dbg_mgr = NULL;
+DbxMgr * g_dbx_mgr = NULL;
 
 void set_lineno(IR * ir, UINT lineno, Region * ru)
 {
@@ -64,7 +64,7 @@ void set_lineno(IR * ir, UINT lineno, Region * ru)
 }
 
 
-//Line number of source code that corresponding to the IR.
+//Get line number in source code that corresponding to the IR.
 UINT get_lineno(IR const* ir)
 {
     if (IR_ai(ir) == NULL || !IR_ai(ir)->is_init()) { return 0; }
@@ -72,6 +72,13 @@ UINT get_lineno(IR const* ir)
     if (da == NULL) { return 0; }
 
     return DBX_lineno(&da->dbx);
+}
+
+
+//Get line number in source code.
+UINT get_lineno(Dbx const& dbx)
+{
+    return DBX_lineno(&dbx);
 }
 
 
@@ -94,7 +101,8 @@ void copyDbx(IR * tgt, IR const* src, Region * ru)
 
     DbxAttachInfo * tgt_da = (DbxAttachInfo*)IR_ai(tgt)->get(AI_DBX);
     if (tgt_da == NULL) {
-        tgt_da = (DbxAttachInfo*)smpoolMalloc(sizeof(DbxAttachInfo), ru->get_pool());
+        tgt_da = (DbxAttachInfo*)smpoolMalloc(
+                    sizeof(DbxAttachInfo), ru->get_pool());
         ASSERT0(tgt_da);
         tgt_da->init();
         IR_ai(tgt)->set((BaseAttachInfo*)tgt_da);
@@ -110,5 +118,20 @@ Dbx * get_dbx(IR const* ir)
     if (da == NULL) { return NULL; }
     return &da->dbx;
 }
+
+
+//
+//START DbxMgr
+//
+void DbxMgr::printSrcLine(IR const* ir)
+{
+    if (g_tfile == NULL) { return; }
+    if (!ir->is_stmt()) { return; }
+    Dbx * dbx = ::get_dbx(ir);
+    if (dbx != NULL) {
+        printSrcLine(*dbx);
+    }
+}
+//END DbxMgr
 
 } //namespace xoc

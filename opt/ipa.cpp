@@ -41,7 +41,7 @@ namespace xoc {
 //
 //NOTE: IPA should only be performed in top level region,
 //since it might incur the memory blow up.
-bool IPA::perform(OptCTX & oc)
+bool IPA::perform(OptCtx & oc)
 {
     UNUSED(oc);
     ASSERT0(OC_is_callg_valid(oc));

@@ -146,10 +146,15 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
         if (HAVE_FLAG(flag, CALLG_DUMP_IR) && CN_ru(cn) != NULL) {
             g_indent = 0;
             IR * irs = CN_ru(cn)->get_ir_list();
-            for (; irs != NULL; irs = IR_next(irs)) {
-                //fprintf(h, "%s\n", dump_ir_buf(ir, buf));
-                //TODO: implement dump_ir_buf();
-                dump_ir(irs, m_tm, NULL, true, false);
+            BBList * bblst = CN_ru(cn)->get_bb_list();
+            if (irs != NULL) {
+                for (; irs != NULL; irs = IR_next(irs)) {
+                    //fprintf(h, "%s\n", dump_ir_buf(ir, buf));
+                    //TODO: implement dump_ir_buf();
+                    dump_ir(irs, m_tm, NULL, true, false);
+                }
+            } else {
+                dumpBBList(bblst, CN_ru(cn));
             }
         }
         //

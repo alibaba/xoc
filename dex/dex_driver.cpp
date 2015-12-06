@@ -243,7 +243,7 @@ static void do_opt(IR * ir_list, DexRegion * func_ru)
 
     bool change;
 
-    RefineCTX rf;
+    RefineCtx rf;
 
     //Do not insert cvt for DEX code to avoid smash the code sanity.
     RC_insert_cvt(rf) = false;

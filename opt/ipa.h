@@ -60,7 +60,7 @@ public:
     virtual ~IPA() { smpoolDelete(m_pool); }
     virtual CHAR const* get_pass_name() const { return "IPA"; }
     virtual PASS_TYPE get_pass_type() const { return PASS_IPA; }
-    virtual bool perform(OptCTX & oc);
+    virtual bool perform(OptCtx & oc);
 };
 
 } //namespace xoc

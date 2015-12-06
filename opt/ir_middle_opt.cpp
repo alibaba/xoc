@@ -36,9 +36,9 @@ author: Su Zhenyu
 
 namespace xoc {
 
-void Region::lowerIRTreeToLowestHeight(OptCTX & oc)
+void Region::lowerIRTreeToLowestHeight(OptCtx & oc)
 {
-    SimpCTX simp;
+    SimpCtx simp;
     if (g_is_lower_to_simplest) {
         simp.set_simp_cf();
         simp.set_simp_array();
@@ -122,7 +122,7 @@ Optimizations to be performed:
         references into scalar references that can be optimized
         using the standard scalar passes.
 */
-bool Region::MiddleProcess(OptCTX & oc)
+bool Region::MiddleProcess(OptCtx & oc)
 {
     if (g_opt_level == NO_OPT) { return false; }
     g_indent = 0;

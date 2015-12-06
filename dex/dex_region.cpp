@@ -62,13 +62,13 @@ IR_AA * DexRegion::allocAliasAnalysis()
 }
 
 
-bool DexRegion::MiddleProcess(OptCTX & oc)
+bool DexRegion::MiddleProcess(OptCtx & oc)
 {
    return Region::MiddleProcess(oc);
 }
 
 
-void DexRegion::HighProcessImpl(OptCTX & oc)
+void DexRegion::HighProcessImpl(OptCtx & oc)
 {
     PassMgr * passmgr = get_pass_mgr();
     ASSERT0(passmgr);
@@ -120,11 +120,11 @@ void DexRegion::HighProcessImpl(OptCTX & oc)
 }
 
 
-bool DexRegion::HighProcess(OptCTX & oc)
+bool DexRegion::HighProcess(OptCtx & oc)
 {
     CHAR const* ru_name = get_ru_name();
     g_indent = 0;
-    SimpCTX simp;
+    SimpCtx simp;
     SIMP_if(&simp) = 1;
     SIMP_do_loop(&simp) = 1;
     SIMP_do_while(&simp) = 1;
@@ -222,7 +222,7 @@ void DexRegion::processSimply()
     LOG("DexRegion::processSimply %s", get_ru_name());
     if (get_ir_list() == NULL) { return ; }
 
-    OptCTX oc;
+    OptCtx oc;
     OC_show_comp_time(oc) = g_show_comp_time;
 
     CHAR const* ru_name = get_ru_name();
@@ -270,7 +270,7 @@ static void addCatchTypeName(DexRegion * ru)
 void DexRegion::process()
 {
     if (get_ir_list() == NULL) { return; }
-    OptCTX oc;
+    OptCtx oc;
     OC_show_comp_time(oc) = g_show_comp_time;
 
     g_indent = 0;
@@ -310,7 +310,7 @@ void DexRegion::process()
 
     ASSERT0(verifyIRandBB(bbl, this));
 
-    RefineCTX rf;
+    RefineCtx rf;
     RC_insert_cvt(rf) = false; //Do not insert cvt for DEX code.
     refineBBlist(bbl, rf);
     ASSERT0(verifyIRandBB(bbl, this));

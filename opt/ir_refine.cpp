@@ -134,7 +134,7 @@ IR * Region::refineIload2(IR * ir, bool & change)
 }
 
 
-IR * Region::refineIload(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineIload(IR * ir, bool & change, RefineCtx & rc)
 {
     ASSERT0(ir->is_ild());
     ASSERT(IR_next(ir) == NULL && IR_prev(ir) == NULL, ("TODO"));
@@ -175,7 +175,7 @@ IR * Region::refineIload(IR * ir, bool & change, RefineCTX & rc)
 
 
 //NOTE: the function may change IR stmt.
-IR * Region::refineLda(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineLda(IR * ir, bool & change, RefineCtx & rc)
 {
     ASSERT0(ir->is_lda());
     ASSERT(IR_next(ir) == NULL && IR_prev(ir) == NULL, ("TODO"));
@@ -216,7 +216,7 @@ IR * Region::refineLda(IR * ir, bool & change, RefineCTX & rc)
 }
 
 
-IR * Region::refineIstore(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineIstore(IR * ir, bool & change, RefineCtx & rc)
 {
     ASSERT0(ir->is_ist());
     bool t = false;
@@ -338,7 +338,7 @@ static inline bool is_redundant_cvt(IR * ir)
 #endif
 
 
-IR * Region::refineStore(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineStore(IR * ir, bool & change, RefineCtx & rc)
 {
     ASSERT0(ir->is_st() || ir->is_stpr());
 
@@ -415,7 +415,7 @@ IR * Region::refineStore(IR * ir, bool & change, RefineCTX & rc)
 }
 
 
-IR * Region::refineCall(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineCall(IR * ir, bool & change, RefineCtx & rc)
 {
     bool lchange = false;
     if (CALL_param_list(ir) != NULL) {
@@ -446,7 +446,7 @@ IR * Region::refineCall(IR * ir, bool & change, RefineCTX & rc)
 }
 
 
-IR * Region::refineIcall(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineIcall(IR * ir, bool & change, RefineCtx & rc)
 {
     if (ICALL_callee(ir)->is_lda() && LDA_base(ICALL_callee(ir))->is_id()) {
         ASSERT0(0); //Obsolete code and removed.
@@ -469,7 +469,7 @@ IR * Region::refineIcall(IR * ir, bool & change, RefineCTX & rc)
 }
 
 
-IR * Region::refineSwitch(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineSwitch(IR * ir, bool & change, RefineCtx & rc)
 {
     bool l = false;
     SWITCH_vexp(ir) = refineIR(SWITCH_vexp(ir), l, rc);
@@ -488,7 +488,7 @@ IR * Region::refineSwitch(IR * ir, bool & change, RefineCTX & rc)
 }
 
 
-IR * Region::refineBr(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineBr(IR * ir, bool & change, RefineCtx & rc)
 {
     ASSERT0(ir->is_cond_br());
     bool l = false;
@@ -504,7 +504,7 @@ IR * Region::refineBr(IR * ir, bool & change, RefineCTX & rc)
 }
 
 
-IR * Region::refineReturn(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineReturn(IR * ir, bool & change, RefineCtx & rc)
 {
     if (RET_exp(ir) == NULL) { return ir; }
 
@@ -523,7 +523,7 @@ IR * Region::refineReturn(IR * ir, bool & change, RefineCTX & rc)
 
 
 //IR already has built ssa info.
-IR * Region::refinePhi(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refinePhi(IR * ir, bool & change, RefineCtx & rc)
 {
     //phi(1, 1, ...) => 1
     bool all_be_same_const = true;
@@ -627,7 +627,7 @@ static inline IR * hoistSelectToLnot(IR * ir, Region * ru)
 }
 
 
-IR * Region::refineSelect(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineSelect(IR * ir, bool & change, RefineCtx & rc)
 {
     ASSERT0(ir->is_select());
     SELECT_det(ir) = refineDet(SELECT_det(ir), change, rc);
@@ -717,7 +717,7 @@ IR * Region::refineNeg(IR * ir, bool & change)
 
 //Logic not: !(0001) = 0000
 //Bitwise not: !(0001) = 1110
-IR * Region::refineNot(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineNot(IR * ir, bool & change, RefineCtx & rc)
 {
     ASSERT0(ir->is_lnot() || ir->is_bnot());
     UNA_opnd0(ir) = refineIR(UNA_opnd0(ir), change, rc);
@@ -755,7 +755,7 @@ IR * Region::refineNot(IR * ir, bool & change, RefineCTX & rc)
 
 //If the value of opnd0 is not a multiple of opnd1,
 //((opnd0 div opnd1) mul opnd1) may not equal to opnd0.
-IR * Region::refineDiv(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineDiv(IR * ir, bool & change, RefineCtx & rc)
 {
     ASSERT0(ir->is_div());
     IR * op1 = BIN_opnd1(ir);
@@ -896,7 +896,7 @@ IR * Region::refineAdd(IR * ir, bool & change)
 }
 
 
-IR * Region::refineMul(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineMul(IR * ir, bool & change, RefineCtx & rc)
 {
     ASSERT0(ir->is_mul());
     IR * op0 = BIN_opnd0(ir);
@@ -1089,7 +1089,7 @@ IR * Region::refineXor(IR * ir, bool & change)
 }
 
 
-IR * Region::refineEq(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineEq(IR * ir, bool & change, RefineCtx & rc)
 {
     ASSERT0(ir->is_eq());
 
@@ -1114,7 +1114,7 @@ IR * Region::refineEq(IR * ir, bool & change, RefineCTX & rc)
 }
 
 
-IR * Region::refineNe(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineNe(IR * ir, bool & change, RefineCtx & rc)
 {
     ASSERT0(ir->is_ne());
 
@@ -1181,7 +1181,7 @@ IR * Region::reassociation(IR * ir, bool & change)
 
 
 //Refine binary operations.
-IR * Region::refineBinaryOp(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineBinaryOp(IR * ir, bool & change, RefineCtx & rc)
 {
     ASSERT0(BIN_opnd0(ir) != NULL && BIN_opnd1(ir) != NULL);
     BIN_opnd0(ir) = refineIR(BIN_opnd0(ir), change, rc);
@@ -1303,7 +1303,7 @@ IR * Region::refineBinaryOp(IR * ir, bool & change, RefineCTX & rc)
 }
 
 
-IR * Region::refineStoreArray(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineStoreArray(IR * ir, bool & change, RefineCtx & rc)
 {
     IR * newir = refineArray(ir, change, rc);
     CK_USE(newir == ir);
@@ -1346,7 +1346,7 @@ IR * Region::refineStoreArray(IR * ir, bool & change, RefineCTX & rc)
 }
 
 
-IR * Region::refineArray(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineArray(IR * ir, bool & change, RefineCtx & rc)
 {
     IR * newbase = refineIR(ARR_base(ir), change, rc);
     if (newbase != ARR_base(ir)) {
@@ -1400,7 +1400,7 @@ IR * Region::refineLoad(IR * ir)
 }
 
 
-IR * Region::refineCvt(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineCvt(IR * ir, bool & change, RefineCtx & rc)
 {
     ASSERT0(ir->is_cvt());
     CVT_exp(ir) = refineIR(CVT_exp(ir), change, rc);
@@ -1495,7 +1495,7 @@ IR * Region::refineDetViaSSAdu(IR * ir, bool & change)
 /* Perform peephole optimizations.
 This function also responsible for normalizing IR and reassociation.
 NOTE: This function do NOT generate new STMT. */
-IR * Region::refineIR(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineIR(IR * ir, bool & change, RefineCtx & rc)
 {
     if (!g_do_refine) return ir;
     if (ir == NULL) return NULL;
@@ -1562,7 +1562,7 @@ IR * Region::refineIR(IR * ir, bool & change, RefineCTX & rc)
         e.g: If NE(1, 0) => 1, one should generate NE(1, 0) again,
         because of TRUEBR/FALSEBR do not accept IR_CONST. */
         {
-            RefineCTX t(rc);
+            RefineCtx t(rc);
             RC_do_fold_const(t) = false;
             ir = refineBinaryOp(ir, tmpc, t);
             if (!ir->is_const()) {
@@ -1636,7 +1636,7 @@ IR * Region::refineIR(IR * ir, bool & change, RefineCTX & rc)
 
 //Reshaping determinate expression.
 //Only the last non-stmt expression can be reserved to perform determinating.
-IR * Region::refineDet(IR * ir, bool & change, RefineCTX & rc)
+IR * Region::refineDet(IR * ir, bool & change, RefineCtx & rc)
 {
     ASSERT0(ir);
     ir = refineIR(ir, change, rc);
@@ -1669,7 +1669,7 @@ convertion in order to generate legal IR tree.
 NOTICE:
     While this function completed, IR's parent-pointer would be
     overrided, setParentPointer() should be invoked at all. */
-IR * Region::refineIRlist(IR * ir_list, bool & change, RefineCTX & rc)
+IR * Region::refineIRlist(IR * ir_list, bool & change, RefineCtx & rc)
 {
     bool lchange = true; //local flag
     while (lchange) {
@@ -1688,7 +1688,7 @@ IR * Region::refineIRlist(IR * ir_list, bool & change, RefineCTX & rc)
 }
 
 
-bool Region::refineStmtList(IN OUT BBIRList & ir_list, RefineCTX & rc)
+bool Region::refineStmtList(IN OUT BBIRList & ir_list, RefineCtx & rc)
 {
     if (!g_do_refine) return false;
     bool change = false;
@@ -1722,7 +1722,7 @@ bool Region::refineStmtList(IN OUT BBIRList & ir_list, RefineCTX & rc)
 }
 
 
-bool Region::refineBBlist(IN OUT BBList * ir_bb_list, RefineCTX & rc)
+bool Region::refineBBlist(IN OUT BBList * ir_bb_list, RefineCtx & rc)
 {
     if (!g_do_refine) { return false; }
     START_TIMER("Refine IRBB list");

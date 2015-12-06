@@ -1438,17 +1438,16 @@ public:
 
 
 /* Single Linked List Core.
-
 Encapsulate most operations for single list.
-
-Note the single linked list is different with dual linked list.
-the dual linked list does not use mempool to hold the container.
-Compared to dual linked list, single linked list allocate containers
-in a const size pool.
-
-Before going to the destructor, even if the containers have
-been allocated in memory pool, you should free all of them
-back to a free list to reuse them. */
+Note:
+  1. You must invoke init() if the SListCore allocated in mempool.
+  2. The single linked list is different with dual linked list.
+     the dual linked list does not use mempool to hold the container.
+     Compared to dual linked list, single linked list allocate containers
+     in a const size pool.
+  3. Before going to the destructor, even if the containers have
+     been allocated in memory pool, you should invoke clean() to free
+     all of them back to a free list to reuse them. */
 template <class T> class SListCore {
 protected:
     UINT m_elem_count; //list elements counter.
@@ -1521,9 +1520,9 @@ public:
     COPY_CONSTRUCTOR(SListCore);
     ~SListCore()
     {
-        //Note: Before going to the destructor, even if the containers have
-        //been allocated in memory pool, you should free all of them
-        //back to a free list to reuse them.
+        //Note: Before invoked the destructor, even if the containers have
+        //been allocated in memory pool, you should invoke clean() to
+        //free all of them back to a free list to reuse them.
     }
 
     void init()
@@ -1714,12 +1713,15 @@ public:
 NOTICE:
     The following operations are the key points which you should attention to:
 
-    1. If you REMOVE one element, its container will be collect by FREE-List.
+    1. You must invoke init() if the SList allocated in mempool.
+    2. Before going to the destructor, even if the containers have
+       been allocated in memory pool, you should invoke clean() to free
+       all of them back to a free list to reuse them.
+    3. If you REMOVE one element, its container will be collect by FREE-List.
        So if you need a new container, please check the FREE-List first,
        accordingly, you should first invoke 'get_free_list' which get free
        containers out from 'm_free_list'.
-
-    2. If you want to invoke APPEND, please call 'newXXX' first to
+    4. If you want to invoke APPEND, please call 'newXXX' first to
        allocate a new container memory space, record your elements into
        the container, then APPEND it at list.
        newXXX such as:
@@ -1730,37 +1732,37 @@ NOTICE:
                 T_type(c) = type;
                 return t;
             }
-
-    3. The single linked list is different with dual linked list.
+    5. The single linked list is different with dual linked list.
        the dual linked list does not use mempool to hold the container.
        Compared to dual linked list, single linked list allocate containers
        in a const size pool.
        Invoke init() to do initialization if you allocate SList by malloc().
-
-    4. Compare the iterator with end() to determine if meeting the end of list.
-*/
+    6. Compare the iterator with end() to determine if meeting the end of list. */
 template <class T> class SList : public SListCore<T> {
 protected:
     SMemPool * m_free_list_pool;
     SC<T> * m_free_list; //Hold for available containers
 
 public:
-    SList(SMemPool * pool = NULL) { set_pool(pool); }
+    SList(SMemPool * pool = NULL)
+    {
+        //Invoke init() explicitly if SList is allocated from mempool.
+        set_pool(pool);
+    }
     COPY_CONSTRUCTOR(SList);
     ~SList()
     {
-        //It seem destroy() do the same things as the parent class's destructor.
+        //destroy() do the same things as the parent class's destructor.
         //So it is not necessary to double call destroy().
-
         //Note: Before going to the destructor, even if the containers have
-        //been allocated in memory pool, you should free all of them
-        //back to a free list to reuse them.
+        //been allocated in memory pool, you should invoke clean() to
+        //free all of them back to a free list to reuse them.
     }
 
     void set_pool(SMemPool * pool)
     {
-        ASSERT(pool == NULL ||
-                MEMPOOL_type(pool) == MEM_CONST_SIZE, ("need const size pool"));
+        ASSERT(pool == NULL || MEMPOOL_type(pool) == MEM_CONST_SIZE,
+               ("need const size pool"));
         m_free_list_pool = pool;
         m_free_list = NULL;
     }

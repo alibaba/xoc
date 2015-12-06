@@ -2146,7 +2146,7 @@ bool IR_RP::EvaluableScalarReplacement(List<LI<IRBB> const*> & worklst)
 
 
 //Perform scalar replacement of aggregates and array.
-bool IR_RP::perform(OptCTX & oc)
+bool IR_RP::perform(OptCtx & oc)
 {
     START_TIMER_AFTER();
     m_ru->checkValidAndRecompute(&oc, PASS_DU_CHAIN, PASS_LOOP_INFO,

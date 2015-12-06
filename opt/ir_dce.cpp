@@ -570,7 +570,7 @@ void IR_DCE::revise_successor(IRBB * bb, C<IRBB*> * bbct, BBList * bbl)
 
 
 //An aggressive algo will be used if cdg is avaliable.
-bool IR_DCE::perform(OptCTX & oc)
+bool IR_DCE::perform(OptCtx & oc)
 {
     START_TIMER_AFTER();
     if (m_is_elim_cfs) {

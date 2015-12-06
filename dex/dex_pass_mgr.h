@@ -44,7 +44,7 @@ public:
     virtual Pass * allocCopyProp();
     virtual Pass * allocRP();
 
-    virtual void performScalarOpt(OptCTX & oc);
+    virtual void performScalarOpt(OptCtx & oc);
 };
 
 #endif

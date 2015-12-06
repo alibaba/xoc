@@ -42,10 +42,6 @@ author: Su Zhenyu
 #include "d2d_comm.h"
 #include "dex.h"
 #include "gra.h"
-#ifdef _CODE_ANA_
-#include "auxsym.h"
-#include "warnmgr.h"
-#endif
 #include "dex_hook.h"
 #include "dex_util.h"
 

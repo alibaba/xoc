@@ -271,7 +271,7 @@ bool Inliner::can_be_cand(Region * ru)
 }
 
 
-bool Inliner::perform(OptCTX & oc)
+bool Inliner::perform(OptCtx & oc)
 {
     UNUSED(oc);
     ASSERT0(OC_is_callg_valid(oc));

@@ -36,19 +36,22 @@ author: Su Zhenyu
 
 namespace xoc {
 
-#define IV_INIT_VAL_IS_INT    0
-#define IV_INIT_VAL_IS_VAR    1
+#define IV_INIT_VAL_IS_CONST    1
+#define IV_INIT_VAL_IS_VAR      0
+
 
 //IV INFO.
-#define IV_iv(d)            ((d)->iv)
-#define IV_li(d)            ((d)->li)
-#define IV_iv_def(d)        ((d)->iv_def)
-#define IV_iv_occ(d)        ((d)->iv_occ)
+#define IV_iv(d)              ((d)->iv)
+#define IV_li(d)              ((d)->li)
+#define IV_iv_def(d)          ((d)->iv_def)
+#define IV_iv_occ(d)          ((d)->iv_occ)
 #define IV_step(d)            ((d)->step)
-#define IV_initv_i(d)        ((d)->u1.init_val_int)
+#define IV_initv_stmt(d)      ((d)->init_val_stmt)
+#define IV_initv_i(d)         ((d)->u1.init_val_int)
 #define IV_initv_md(d)        ((d)->u1.init_val_md)
-#define IV_initv_type(d)    ((d)->init_val_type)
-#define IV_is_inc(d)        ((d)->is_inc)
+#define IV_initv_data_type(d) ((d)->init_val_data_type)
+#define IV_initv_type(d)      ((d)->init_val_type)
+#define IV_is_inc(d)          ((d)->is_inc)
 class IV {
 public:
     LI<IRBB> const* li;
@@ -56,12 +59,25 @@ public:
     IR * iv_def; //the unique stmt that defined iv in loop body.
     IR * iv_occ; //occrrence of iv in loop body.
     LONGLONG step; //step during each iteration, may be negative.
+    Type const* init_val_data_type; //record the Type of init value.
+    IR const* init_val_stmt; //the unique stmt that initialize
+                             //the IV outside the loop.
     union {
         LONGLONG * init_val_int; //integer initial value.
         MD const* init_val_md; //initial value is variable.
     } u1;
     BYTE is_inc:1; //true if iv is increment, or false means iv is decrement.
     BYTE init_val_type:1; //initial value may be integer or variable.
+
+public:
+    bool has_init_val() const { return IV_initv_i(this) != NULL; }
+
+    //Return true if initial value is const.
+    bool isInitConst() const
+    { return IV_initv_type(this) == IV_INIT_VAL_IS_CONST; }
+
+    Type const* getInitValType() const { return IV_initv_data_type(this); }
+    IR const* getInitValStmt() const { return IV_initv_stmt(this); }
 };
 
 
@@ -81,19 +97,33 @@ protected:
     Vector<SList<IV*>*> m_li2bivlst;
     Vector<SList<IR const*>*> m_li2divlst;
 
+    //True if this pass only find BIV and DIV for exact MD IR.
+    //Note if IR_ST, IR_LD, IR_PR, IR_STPR are VOID, the MD is inexact.
+    bool m_is_only_handle_exact_md;
+
+    //Map from a Def and Occ of basic induction var to its IV info.
+    //This field will supply fast accessing to IV when giving an IR.
+    TMap<IR const*, IV*> m_ir2iv;
+protected:
     void addDIVList(LI<IRBB> const* li, IR const* e);
-    IR const* computeDomDef(IR const* exp, IR const* exp_stmt,
-                           SList<IR const*> * defs, bool omit_self);
+    IR const* computeDomDef(
+            IR const* exp,
+            IR const* exp_stmt,
+            SList<IR const*> * defs,
+            bool omit_self);
     bool computeInitVal(IR const* ir, IV * iv);
 
-    void findBIV(LI<IRBB> const* li, BitSet & tmp,
-                  Vector<UINT> & map_md2defcount,
-                  UINT2IR & map_md2defir);
-    void findDIV(IN LI<IRBB> const* li, IN SList<IV*> const& bivlst,
-                  BitSet & tmp);
+    void findBIV(LI<IRBB> const* li,
+                 BitSet & tmp,
+                 Vector<UINT> & map_md2defcount,
+                 UINT2IR & map_md2defir);
+    void findDIV(LI<IRBB> const* li, SList<IV*> const& bivlst, BitSet & tmp);
+
+    //Find initialze value of IV, if found return true,
+    //otherwise return false.
     bool findInitVal(IV * iv);
 
-    inline IV * newIV() { return (IV*)xmalloc(sizeof(IV)); }
+    inline IV * allocIV() { return (IV*)xmalloc(sizeof(IV)); }
 
     void _dump(LI<IRBB> * li, UINT indent);
     void * xmalloc(size_t size)
@@ -115,6 +145,7 @@ public:
         m_tm = ru->get_type_mgr();
         m_pool = smpoolCreate(sizeof(IV) * 4, MEM_COMM);
         m_sc_pool = smpoolCreate(sizeof(SC<IV*>) * 4, MEM_CONST_SIZE);
+        m_is_only_handle_exact_md = true;
     }
     COPY_CONSTRUCTOR(IR_IVR);
     virtual ~IR_IVR()
@@ -125,8 +156,12 @@ public:
 
     void clean();
     void dump();
-    Vector<SList<IV*>*> const* get_li2bivlst_map() const
-    { return &m_li2bivlst; }
+
+    //Given loop id, return the BIV list.
+    SList<IV*> const* getBIVList(UINT loopid) const
+    { return m_li2bivlst.get(loopid); }
+
+    IV const* getIV(IR const* ir) { return m_ir2iv.get(ir); }
 
     virtual CHAR const* get_pass_name() const
     { return "Induction Variable Recogization"; }
@@ -134,7 +169,10 @@ public:
     PASS_TYPE get_pass_type() const { return PASS_IVR; }
 
     bool is_loop_invariant(LI<IRBB> const* li, IR const* ir);
-    virtual bool perform(OptCTX & oc);
+
+    void setOnlyHandleExactMD(bool doit) { m_is_only_handle_exact_md = doit; }
+
+    virtual bool perform(OptCtx & oc);
 };
 
 } //namespace xoc

@@ -36,7 +36,7 @@ author: Su Zhenyu
 
 namespace xoc {
 
-class SimpCTX;
+class SimpCtx;
 class IRBB;
 class DU;
 class SSAInfo;
@@ -1633,6 +1633,17 @@ public:
 class CCvt : public IR {
 public:
     IR * opnd[1]; //expression to be converted.
+
+    //Get the leaf expression.
+    //e.g: cvt:i32(cvt:u8(x)), this function will return x;
+    IR * get_leaf_exp()
+    {
+        ASSERT0(get_code() == IR_CVT);
+        IR * v;
+        for (v = this; v->get_code() == IR_CVT; v = CVT_exp(v));
+        ASSERT0(v);
+        return v;
+    }
 };
 
 
@@ -1796,13 +1807,13 @@ IR * IR::get_rhs() const
 UINT IR::get_prno() const
 {
     switch (IR_code(this)) {
-    case IR_PR: return PR_no(this);
-    case IR_STPR: return STPR_no(this);
-    case IR_GETELEM: return GETELEM_prno(this);
-    case IR_SETELEM: return SETELEM_prno(this);
+    case IR_PR: ASSERT0(PR_no(this) != 0); return PR_no(this);
+    case IR_STPR: ASSERT0(STPR_no(this) != 0); return STPR_no(this);
+    case IR_GETELEM: ASSERT0(GETELEM_prno(this) != 0); return GETELEM_prno(this);
+    case IR_SETELEM: ASSERT0(SETELEM_prno(this) != 0); return SETELEM_prno(this);
     case IR_CALL:
-    case IR_ICALL: return CALL_prno(this);
-    case IR_PHI: return PHI_prno(this);
+    case IR_ICALL: ASSERT0(CALL_prno(this) != 0); return CALL_prno(this);
+    case IR_PHI: ASSERT0(PHI_prno(this) != 0); return PHI_prno(this);
     default: ASSERT0(0);
     }
     return 0;
@@ -2479,7 +2490,7 @@ void dump_irs(IRList & ir_list, TypeMgr const* tm);
 void dump_irs(List<IR*> & ir_list, TypeMgr const* tm);
 bool verify_irs(IR * ir, IRAddressHash * irh, Region const* ru);
 bool verifyIRandBB(BBList * ir_bb_list, Region const* ru);
-bool verify_simp(IR * ir, SimpCTX & simp);
+bool verify_simp(IR * ir, SimpCtx & simp);
 bool verifyLowestForm(BBList * ir_bb_list, Region * ru);
 
 
@@ -2619,10 +2630,10 @@ inline IR * iterInit(IN IR * ir, OUT IRIter & ii)
 }
 
 
-/* Iterative access the ir tree.
-This funtion return the next IR node accroding to 'ii'.
-'ii': iterator.
-Note this function is NOT readonly, the returnd IR may be modified. */
+//Iterative access the ir tree.
+//This funtion return the next IR node accroding to 'ii'.
+//'ii': iterator.
+//Note this function is NOT readonly, the returnd IR may be modified.
 inline IR * iterNext(IN OUT IRIter & ii)
 {
     IR * ir = ii.remove_head();

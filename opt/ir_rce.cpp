@@ -263,7 +263,7 @@ bool IR_RCE::performSimplyRCE(IN OUT bool & cfg_mod)
 }
 
 
-bool IR_RCE::perform(OptCTX & oc)
+bool IR_RCE::perform(OptCtx & oc)
 {
     START_TIMER_AFTER();
     m_ru->checkValidAndRecompute(&oc, PASS_CFG, PASS_DU_REF, PASS_DU_CHAIN,

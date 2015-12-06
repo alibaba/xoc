@@ -203,11 +203,11 @@ bool Region::isLowestHeight(IR const* ir) const
     FALSE-BODY-STMT-List;
     ...
     IF_END: */
-IR * Region::simplifyIf(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyIf(IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) return NULL;
     ASSERT(ir->is_if(), ("expect IR_IF node"));
-    SimpCTX tcont(*ctx);
+    SimpCtx tcont(*ctx);
     SIMP_ret_array_val(&tcont) = 1;
 
     //Det exp.
@@ -275,10 +275,10 @@ IR * Region::simplifyIf(IR * ir, SimpCTX * ctx)
     BODY-STMT
     GOTO start
     LABEL: L1 */
-IR * Region::simplifyWhileDo(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyWhileDo(IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) return NULL;
-    SimpCTX local;
+    SimpCtx local;
     local.copy_topdown_flag(*ctx);
     IR * ret_list = NULL;
     ASSERT(ir->is_whiledo(), ("expect IR_WHILE_DO node"));
@@ -288,7 +288,7 @@ IR * Region::simplifyWhileDo(IR * ir, SimpCTX * ctx)
     //When we first lowering CFS,
     //det-expression should not be TRUEBR/FASLEBR.
     ASSERT0(LOOP_det(ir)->is_judge());
-    SimpCTX tcont(*ctx);
+    SimpCtx tcont(*ctx);
     SIMP_ret_array_val(&tcont) = 1;
     IR * det = simplifyDet(LOOP_det(ir), &tcont);
     IR * last  = removetail(&det);
@@ -336,10 +336,10 @@ IR * Region::simplifyWhileDo(IR * ir, SimpCTX * ctx)
     LABEL: det_start
     DO-WHILE-DET
     TRUEBR start */
-IR * Region::simplifyDoWhile (IR * ir, SimpCTX * ctx)
+IR * Region::simplifyDoWhile (IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) return NULL;
-    SimpCTX local;
+    SimpCtx local;
     local.copy_topdown_flag(*ctx);
     IR * ret_list = NULL;
     ASSERT(ir->is_dowhile(), ("expect IR_DO_WHILE node"));
@@ -351,7 +351,7 @@ IR * Region::simplifyDoWhile (IR * ir, SimpCTX * ctx)
     //det exp
     //When we first lowering CFS, det-expression should not be TRUEBR/FASLEBR.
     ASSERT0(LOOP_det(ir)->is_judge());
-    SimpCTX tcont(*ctx);
+    SimpCtx tcont(*ctx);
     SIMP_ret_array_val(&tcont) = 1;
     IR * det = simplifyDet(LOOP_det(ir), &tcont);
     IR * last  = removetail(&det);
@@ -403,10 +403,10 @@ IR * Region::simplifyDoWhile (IR * ir, SimpCTX * ctx)
     STEP
     GOTO start
     LABEL: L1 */
-IR * Region::simplifyDoLoop(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyDoLoop(IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) return NULL;
-    SimpCTX local;
+    SimpCtx local;
     local.copy_topdown_flag(*ctx);
     IR * ret_list = NULL;
     ASSERT(ir->is_doloop(), ("expect IR_DO_LOOP node"));
@@ -416,7 +416,7 @@ IR * Region::simplifyDoLoop(IR * ir, SimpCTX * ctx)
     //det exp
     //When we first lowering CFS, det-expression should not be TRUEBR/FASLEBR.
     ASSERT0(LOOP_det(ir)->is_judge());
-    SimpCTX tcont(*ctx);
+    SimpCtx tcont(*ctx);
     SIMP_ret_array_val(&tcont) = 1;
     IR * det = simplifyDet(LOOP_det(ir), &tcont);
     IR * last  = removetail(&det);
@@ -467,7 +467,7 @@ IR * Region::simplifyDoLoop(IR * ir, SimpCTX * ctx)
 
 
 //Simplify determination of Control Flow Structure.
-IR * Region::simplifyDet(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyDet(IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) return NULL;
     IR * ret_exp_list = NULL;
@@ -476,7 +476,7 @@ IR * Region::simplifyDet(IR * ir, SimpCTX * ctx)
         next = IR_next(ir);
         IR_next(ir) = IR_prev(ir) = NULL;
         if (ir->is_stmt()) {
-            SimpCTX tcont(*ctx);
+            SimpCtx tcont(*ctx);
             IR * new_stmt_list = simplifyStmt(ir, &tcont);
             ctx->union_bottomup_flag(tcont);
 
@@ -489,7 +489,7 @@ IR * Region::simplifyDet(IR * ir, SimpCTX * ctx)
             #endif
             ctx->append_irs(new_stmt_list);
         } else if (ir->is_exp()) {
-            SimpCTX tcont(*ctx);
+            SimpCtx tcont(*ctx);
             IR * new_exp = simplifyJudgeDet(ir, &tcont);
             ASSERT0(new_exp->is_exp());
             add_next(&ret_exp_list, new_exp);
@@ -519,7 +519,7 @@ e.g: a = !(exp), where rhs would be translated to:
     ----------
     a = pr
 In the case, return 'pr'. */
-IR * Region::simplifyLogicalNot(IN IR * ir, SimpCTX * ctx)
+IR * Region::simplifyLogicalNot(IN IR * ir, SimpCtx * ctx)
 {
     ASSERT0(ir->is_lnot());
     LabelInfo * label1 = genIlabel();
@@ -586,7 +586,7 @@ e.g: a = b&&c, where rhs would be translated to:
     ----------
     a = pr
 In the case, return 'pr'. */
-IR * Region::simplifyLogicalAnd(IN IR * ir, SimpCTX * ctx)
+IR * Region::simplifyLogicalAnd(IN IR * ir, SimpCtx * ctx)
 {
     ASSERT0(ir->is_land());
     LabelInfo * label1 = genIlabel();
@@ -810,7 +810,7 @@ or
     a = pr
 
 In the case, return 'pr'. */
-IR * Region::simplifyLogicalOr(IN IR * ir, SimpCTX * ctx)
+IR * Region::simplifyLogicalOr(IN IR * ir, SimpCtx * ctx)
 {
     ASSERT0(ir->is_lor());
     LabelInfo * label1 = genIlabel();
@@ -845,7 +845,7 @@ IR * Region::simplifyLogicalOr(IN IR * ir, SimpCTX * ctx)
 
 //Simplify logical OR, logical AND operations into comparision operations.
 //Return generate IR stmts.
-IR * Region::simplifyLogicalDet(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyLogicalDet(IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) { return NULL; }
     ASSERT0(ir->is_cond_br());
@@ -906,7 +906,7 @@ IR * Region::simplifyLogicalDet(IR * ir, SimpCTX * ctx)
 
 
 //Simplify kids of ir.
-IR * Region::simplifyKids(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyKids(IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) { return NULL; }
     ASSERT0(ir->is_exp());
@@ -936,7 +936,7 @@ IR * Region::simplifyKids(IR * ir, SimpCTX * ctx)
 
 
 //Generate comparision and branch.
-IR * Region::simplifySelect(IR * ir, SimpCTX * ctx)
+IR * Region::simplifySelect(IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) { return NULL; }
     ASSERT(ir->is_select(), ("expect select node"));
@@ -951,7 +951,7 @@ IR * Region::simplifySelect(IR * ir, SimpCTX * ctx)
         ELSE_START:
         res = false_exp
         END: */
-    SimpCTX tcont(*ctx);
+    SimpCtx tcont(*ctx);
     SIMP_ret_array_val(&tcont) = 1;
 
     //det exp
@@ -971,7 +971,7 @@ IR * Region::simplifySelect(IR * ir, SimpCTX * ctx)
     IR * res = buildPR(IR_dt(SELECT_trueexp(ir)));
     allocRefForPR(res);
     //Simp true exp.
-    SimpCTX tcont2(*ctx);
+    SimpCtx tcont2(*ctx);
     SIMP_ret_array_val(&tcont2) = true;
     IR * true_exp = simplifyExpression(SELECT_trueexp(ir), &tcont2);
     ctx->append_irs(tcont2);
@@ -991,7 +991,7 @@ IR * Region::simplifySelect(IR * ir, SimpCTX * ctx)
     add_next(&newdet, buildLabel(BR_lab(falsebr)));
 
     //simplify false expression
-    SimpCTX tcont3(*ctx);
+    SimpCtx tcont3(*ctx);
     SIMP_ret_array_val(&tcont3) = true;
     IR * else_exp = simplifyExpression(SELECT_falseexp(ir), &tcont3);
     ctx->append_irs(tcont3);
@@ -1024,7 +1024,7 @@ IR * Region::simplifySelect(IR * ir, SimpCTX * ctx)
 }
 
 
-IR * Region::simplifyIgoto(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyIgoto(IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) { return NULL; }
     ASSERT(ir->is_igoto(), ("expect igoto"));
@@ -1034,7 +1034,7 @@ IR * Region::simplifyIgoto(IR * ir, SimpCTX * ctx)
 }
 
 
-IR * Region::simplifySwitch(IR * ir, SimpCTX * ctx)
+IR * Region::simplifySwitch(IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) { return NULL; }
     ASSERT(ir->is_switch(), ("expect switch node"));
@@ -1085,7 +1085,7 @@ IR * Region::simplifySwitch(IR * ir, SimpCTX * ctx)
         LabelInfo * switch_endlab = genIlabel();
         add_next(&prev_ir_tree, buildLabel(switch_endlab));
 
-        SimpCTX tctx(*ctx);
+        SimpCtx tctx(*ctx);
         SIMP_break_label(&tctx) = switch_endlab;
         prev_ir_tree = simplifyStmtList(prev_ir_tree, &tctx);
     }
@@ -1124,7 +1124,7 @@ dereference of pointer,
 
 So, p[] must be converted already to *p via replacing IR_ARRAY with IR_ILD
 before go into this function. */
-IR * Region::simplifyArrayAddrExp(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyArrayAddrExp(IR * ir, SimpCtx * ctx)
 {
     ASSERT0(ir && SIMP_array(ctx) && ir->is_array_op());
     ASSERT0(ARR_sub_list(ir));
@@ -1142,7 +1142,7 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCTX * ctx)
     TMWORD const* elemnumbuf = ARR_elem_num_buf(ir);
     IR * s = removehead(&ARR_sub_list(ir));
     for (; s != NULL; dim++) {
-        SimpCTX tcont(*ctx);
+        SimpCtx tcont(*ctx);
         SIMP_ret_array_val(&tcont) = true;
         IR * news = simplifyExpression(s, &tcont);
         ctx->append_irs(tcont);
@@ -1215,7 +1215,7 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCTX * ctx)
     }
 
     ASSERT0(ARR_base(ir) && ARR_base(ir)->is_ptr());
-    SimpCTX tcont(*ctx);
+    SimpCtx tcont(*ctx);
     SIMP_ret_array_val(&tcont) = false;
     IR * newbase = simplifyExpression(ARR_base(ir), &tcont);
     ctx->append_irs(tcont);
@@ -1235,7 +1235,7 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCTX * ctx)
                         newbase,
                         ofst_exp);
     if (SIMP_to_pr_mode(ctx) && !array_addr->is_pr()) {
-        SimpCTX ttcont(*ctx);
+        SimpCtx ttcont(*ctx);
         SIMP_ret_array_val(&ttcont) = true;
         array_addr->setParentPointer(true);
         array_addr = simplifyExpression(array_addr, &ttcont);
@@ -1247,7 +1247,7 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCTX * ctx)
             //CASE: If IR_parent is NULL, the situation is
             //caller attempt to enforce simplification to array expression
             //whenever possible.
-            SimpCTX ttcont(*ctx);
+            SimpCtx ttcont(*ctx);
             SIMP_ret_array_val(&ttcont) = true;
             array_addr = simplifyExpression(array_addr, &ttcont);
             ctx->append_irs(ttcont);
@@ -1266,14 +1266,14 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCTX * ctx)
 
 
 //Simplify IR_LDA.
-IR * Region::simplifyLda(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyLda(IR * ir, SimpCtx * ctx)
 {
     ASSERT0(ir->is_lda());
     IR * lda_base = LDA_base(ir);
     ASSERT0(lda_base != NULL);
 
     if (lda_base->is_array()) {
-        SimpCTX tc(*ctx);
+        SimpCtx tc(*ctx);
         SIMP_array(&tc) = true;
         return simplifyArrayAddrExp(lda_base, &tc);
     }
@@ -1295,7 +1295,7 @@ IR * Region::simplifyLda(IR * ir, SimpCTX * ctx)
 }
 
 
-IR * Region::simplifyBinAndUniExpression(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyBinAndUniExpression(IR * ir, SimpCtx * ctx)
 {
     ASSERT0(ir && isBinAndUniExp(ir));
 
@@ -1344,7 +1344,7 @@ IR * Region::simplifyBinAndUniExpression(IR * ir, SimpCTX * ctx)
 
 //Return new generated expression's value.
 //'ir': ir may be in parameter list if its prev or next is not empty.
-IR * Region::simplifyExpression(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyExpression(IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) { return NULL; }
     ASSERT(ir->is_exp(), ("expect non-statement node"));
@@ -1415,7 +1415,7 @@ IR * Region::simplifyExpression(IR * ir, SimpCTX * ctx)
 
 
 //Return new generated expression's value.
-IR * Region::simplifyJudgeDet(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyJudgeDet(IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) return NULL;
     ASSERT0(ir->is_judge());
@@ -1425,7 +1425,7 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCTX * ctx)
     case IR_LOR: //logical or ||
         {
             if (SIMP_logical_or_and(ctx)) {
-                SimpCTX tcont(*ctx);
+                SimpCtx tcont(*ctx);
                 SIMP_ret_array_val(&tcont) = true;
                 IR * newir = NULL;
                 if (ir->is_lor()) {
@@ -1438,7 +1438,7 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCTX * ctx)
                 ASSERT0(newir->is_exp());
                 IR * lst = SIMP_ir_stmt_list(&tcont);
                 ASSERT0(newir != ir);
-                SimpCTX t_tcont(tcont);
+                SimpCtx t_tcont(tcont);
                 lst = simplifyStmtList(lst, &t_tcont);
                 ctx->append_irs(lst);
                 ir = newir;
@@ -1466,7 +1466,7 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCTX * ctx)
     case IR_LNOT: //logical not
         {
             if (SIMP_logical_not(ctx)) {
-                SimpCTX tcont(*ctx);
+                SimpCtx tcont(*ctx);
                 SIMP_ret_array_val(&tcont) = true;
                 IR * newir = simplifyLogicalNot(ir, &tcont);
                 ASSERT0(newir->is_exp());
@@ -1474,7 +1474,7 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCTX * ctx)
                 ASSERT(newir->is_pr(),
                        ("For now, newir will fairly be IR_PR. But it is not "
                         "certain in the future."));
-                SimpCTX t_tcont(tcont);
+                SimpCtx t_tcont(tcont);
                 lst = simplifyStmtList(lst, &t_tcont);
                 ctx->append_irs(lst);
                 ir = newir;
@@ -1558,7 +1558,7 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCTX * ctx)
 }
 
 
-IR * Region::simplifyStoreArray(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyStoreArray(IR * ir, SimpCtx * ctx)
 {
     ASSERT0(ir->is_starray());
     ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
@@ -1568,7 +1568,7 @@ IR * Region::simplifyStoreArray(IR * ir, SimpCTX * ctx)
     Type const* type = IR_dt(ir);
 
     //Simplify rhs.
-    SimpCTX tcont2(*ctx);
+    SimpCtx tcont2(*ctx);
     SIMP_ret_array_val(&tcont2) = true;
     IR * rhsval = simplifyExpression(STARR_rhs(ir), &tcont2);
     if (SIMP_changed(&tcont2)) {
@@ -1582,7 +1582,7 @@ IR * Region::simplifyStoreArray(IR * ir, SimpCTX * ctx)
         add_next(&ret_list, &last, SIMP_ir_stmt_list(&tcont2));
     }
 
-    SimpCTX tcont(*ctx);
+    SimpCtx tcont(*ctx);
     IR * array_addr = NULL;
 
     if (!SIMP_array(ctx)) { goto FIN; }
@@ -1610,7 +1610,7 @@ FIN:
 
 
 //Simplify array operator.
-IR * Region::simplifyArray(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyArray(IR * ir, SimpCtx * ctx)
 {
     if (!SIMP_array(ctx)) { return ir; }
 
@@ -1678,10 +1678,10 @@ IR * Region::simplifyArray(IR * ir, SimpCTX * ctx)
 }
 
 
-IR * Region::simplifyCall(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyCall(IR * ir, SimpCtx * ctx)
 {
     ASSERT0(ir->is_calls_stmt());
-    SimpCTX tcont(*ctx);
+    SimpCtx tcont(*ctx);
     ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
     SIMP_ret_array_val(&tcont) = true;
 
@@ -1741,13 +1741,13 @@ IR * Region::simplifyCall(IR * ir, SimpCTX * ctx)
 }
 
 
-IR * Region::simplifyStorePR(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyStorePR(IR * ir, SimpCtx * ctx)
 {
     ASSERT0(ir->is_stpr());
 
     ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
 
-    SimpCTX tcont(*ctx);
+    SimpCtx tcont(*ctx);
     ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
     SIMP_ret_array_val(&tcont) = true;
     STPR_rhs(ir) = simplifyExpression(STPR_rhs(ir), &tcont);
@@ -1764,13 +1764,13 @@ IR * Region::simplifyStorePR(IR * ir, SimpCTX * ctx)
 }
 
 
-IR * Region::simplifySetelem(IR * ir, SimpCTX * ctx)
+IR * Region::simplifySetelem(IR * ir, SimpCtx * ctx)
 {
     ASSERT0(ir->is_setelem());
 
     ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
 
-    SimpCTX tcont(*ctx);
+    SimpCtx tcont(*ctx);
     ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
     SIMP_ret_array_val(&tcont) = true;
     SETELEM_rhs(ir) = simplifyExpression(SETELEM_rhs(ir), &tcont);
@@ -1800,14 +1800,14 @@ IR * Region::simplifySetelem(IR * ir, SimpCTX * ctx)
 }
 
 
-IR * Region::simplifyGetelem(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyGetelem(IR * ir, SimpCtx * ctx)
 {
     ASSERT0(ir->is_getelem());
 
     ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
 
     //Process base.
-    SimpCTX tcont(*ctx);
+    SimpCtx tcont(*ctx);
     ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
     SIMP_ret_array_val(&tcont) = true;
     GETELEM_base(ir) = simplifyExpression(GETELEM_base(ir), &tcont);
@@ -1838,14 +1838,14 @@ IR * Region::simplifyGetelem(IR * ir, SimpCTX * ctx)
 }
 
 
-IR * Region::simplifyIstore(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyIstore(IR * ir, SimpCtx * ctx)
 {
     ASSERT0(ir->is_ist());
     IR * ret_list = NULL;
     IR * last = NULL;
     ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
 
-    SimpCTX tcont2(*ctx);
+    SimpCtx tcont2(*ctx);
     SIMP_ret_array_val(&tcont2) = true;
     IST_base(ir) = simplifyExpression(IST_base(ir), &tcont2);
     IR_parent(IST_base(ir)) = ir;
@@ -1871,7 +1871,7 @@ IR * Region::simplifyIstore(IR * ir, SimpCTX * ctx)
         SIMP_changed(ctx) = true;
     }
 
-    SimpCTX tcont(*ctx);
+    SimpCtx tcont(*ctx);
     ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
     SIMP_ret_array_val(&tcont) = true;
     IST_rhs(ir) = simplifyExpression(IST_rhs(ir), &tcont);
@@ -1886,13 +1886,13 @@ IR * Region::simplifyIstore(IR * ir, SimpCTX * ctx)
 }
 
 
-IR * Region::simplifyStore(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyStore(IR * ir, SimpCtx * ctx)
 {
     ASSERT0(ir->is_st());
 
     ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
 
-    SimpCTX tcont(*ctx);
+    SimpCtx tcont(*ctx);
     ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
     SIMP_ret_array_val(&tcont) = true;
     ST_rhs(ir) = simplifyExpression(ST_rhs(ir), &tcont);
@@ -1912,7 +1912,7 @@ IR * Region::simplifyStore(IR * ir, SimpCTX * ctx)
 //Simply IR and its kids.
 //Remember copy Dbx info for new STMT to conveninent to dump use.
 //Return new ir stmt-list.
-IR * Region::simplifyStmt(IR * ir, SimpCTX * ctx)
+IR * Region::simplifyStmt(IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) { return NULL; }
     ASSERT(IR_prev(ir) == NULL && IR_next(ir) == NULL,
@@ -1951,7 +1951,7 @@ IR * Region::simplifyStmt(IR * ir, SimpCTX * ctx)
     case IR_CASE:
     case IR_RETURN:
         {
-            SimpCTX tcont(*ctx);
+            SimpCtx tcont(*ctx);
             ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
             SIMP_ret_array_val(&tcont) = true;
             for (INT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
@@ -1971,7 +1971,7 @@ IR * Region::simplifyStmt(IR * ir, SimpCTX * ctx)
     case IR_TRUEBR:
     case IR_FALSEBR:
         {
-            SimpCTX tcont(*ctx);
+            SimpCtx tcont(*ctx);
             ASSERT0(SIMP_ir_stmt_list(ctx) == NULL);
             SIMP_ret_array_val(&tcont) = true;
 
@@ -2068,7 +2068,7 @@ IR * Region::simplifyStmt(IR * ir, SimpCTX * ctx)
 
 
 //Return new generated IR stmt.
-IR * Region::simplifyStmtList(IR * ir_list, SimpCTX * ctx)
+IR * Region::simplifyStmtList(IR * ir_list, SimpCtx * ctx)
 {
     if (ir_list == NULL) { return NULL; }
     IR * ret_list = NULL;
@@ -2107,7 +2107,7 @@ IR * Region::simplifyStmtList(IR * ir_list, SimpCTX * ctx)
 
 
 //NOTE: simplification should not generate indirect memory operation.
-void Region::simplifyBB(IRBB * bb, SimpCTX * ctx)
+void Region::simplifyBB(IRBB * bb, SimpCtx * ctx)
 {
     List<IR*> new_ir_list;
     C<IR*> * ct;
@@ -2129,7 +2129,7 @@ void Region::simplifyBB(IRBB * bb, SimpCTX * ctx)
 
 
 //NOTE: simplification should not generate indirect memory operation.
-void Region::simplifyBBlist(BBList * bbl, SimpCTX * ctx)
+void Region::simplifyBBlist(BBList * bbl, SimpCtx * ctx)
 {
     START_TIMER("Simplify IRBB list");
     C<IRBB*> * ct;

@@ -711,7 +711,7 @@ bool IR_LICM::doLoopTree(LI<IRBB> * li,
 }
 
 
-bool IR_LICM::perform(OptCTX & oc)
+bool IR_LICM::perform(OptCtx & oc)
 {
     START_TIMER_AFTER();
     m_ru->checkValidAndRecompute(&oc, PASS_DOM, PASS_DU_REF, PASS_LOOP_INFO,

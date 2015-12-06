@@ -621,7 +621,7 @@ bool IR_LCSE::processDef(IN IRBB * bb, IN IR * ir,
 }
 
 
-bool IR_LCSE::perform(OptCTX & oc)
+bool IR_LCSE::perform(OptCtx & oc)
 {
     START_TIMER_AFTER();
     m_ru->checkValidAndRecompute(&oc, PASS_DU_REF, PASS_DU_CHAIN,

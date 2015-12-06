@@ -180,7 +180,8 @@ UINT GLT::computeNumOfOcc(GltMgr & gltm)
 void GLT::set_local_usable(GltMgr & gltm)
 {
     SEGIter * sc = NULL;
-    for (INT j = livebbs->get_first(&sc); j >= 0; j = livebbs->get_next(j, &sc)) {
+    for (INT j = livebbs->get_first(&sc);
+         j >= 0; j = livebbs->get_next(j, &sc)) {
         LTMgr * ltm = gltm.get_ltm(j);
         if (ltm == NULL) { continue; }
         LT * l = ltm->map_pr2lt(prno);
@@ -448,6 +449,7 @@ void RSC::comp_call_fmt(IR const* ir)
     if (ir->is_icall()) {
         comp_ir_fmt(ICALL_callee(ir));
     }
+
     if (ir->is_call() && CALL_is_intrinsic(ir)) {
         VAR const* v = CALL_idinfo(ir);
         ASSERT0(v);
@@ -1225,10 +1227,8 @@ LTMgr * GltMgr::map_bb2ltm(IRBB * bb)
 }
 
 
-/*
-Every OR which refering sr must be assigned to same cluster, therefore
-the only time to record cluster information is the first meeting with sr.
-*/
+//Every OR which refering sr must be assigned to same cluster, therefore
+//the only time to record cluster information is the first meeting with sr.
 GLT * GltMgr::new_glt(UINT prno)
 {
     GLT * glt = (GLT*)xmalloc(sizeof(GLT));
@@ -1685,8 +1685,7 @@ LTMgr::LTMgr(IRBB * bb, PRDF * prdf, GltMgr * gltm, SMemPool * pool)
 }
 
 
-/*
-Generate spill instruction at 'pos',
+/* Generate spill instruction at 'pos',
 pos may be the liveout/livein pos.
 
 Spilling for Def.
@@ -1701,8 +1700,7 @@ Spilling for Def.
 NOTICE:
     1. Each of spilling code generated are executed unconditionally.
        Allow to spill unallocated 'lt'.
-    2. position in LT should be updated.
-*/
+    2. position in LT should be updated. */
 IR * LTMgr::genSpill(LT * lt, INT pos)
 {
     IR * spill_loc = m_ru->buildPR(m_tm->getSimplexType(D_I32));
@@ -1734,8 +1732,7 @@ IR * LTMgr::genSpill(LT * lt, INT pos)
 }
 
 
-/*
-Generate spill instruction after 'marker' and swap pr.
+/* Generate spill instruction after 'marker' and swap pr.
 Return spill location.
 'stpr': indicate the result register to be spilled.
     It is also stmt marker to indicate where the spill instruction insert.
@@ -1745,8 +1742,7 @@ Return spill location.
 e.g: pr1 = pr2 + 3
     =>
      [spill_loc] = pr2 + 3
-     pr1 = [spill_loc]
-*/
+     pr1 = [spill_loc] */
 IR * LTMgr::genSpillSwap(IR * stmt, UINT prno, Type const* prty, IR * spill_loc)
 {
     ASSERT0(stmt && (stmt->is_stpr() || stmt->is_calls_stmt()) && prty);
@@ -1777,8 +1773,7 @@ Return spill location.
 e.g: pr1 = pr2 + 3
     =>
      pr1 = pr2 + 3
-     [spill_loc] = pr1
-*/
+     [spill_loc] = pr1 */
 IR * LTMgr::genSpill(UINT prno, Type const* type, IR * marker, IR * spill_loc)
 {
     ASSERT0(prno > 0 && type && marker && marker->is_stmt());
@@ -1896,10 +1891,8 @@ IR * LTMgr::genReloadSwap(IR * orgpr, IR * marker)
 }
 
 
-/*
-Every OR which refering sr must be assigned to same cluster, therefore
-the only time to record cluster information is the first meeting with sr.
-*/
+//Every OR which refering sr must be assigned to same cluster, therefore
+//the only time to record cluster information is the first meeting with sr.
 LT * LTMgr::newLT(UINT prno)
 {
     ASSERT(m_max_lt_len > 0, ("Life time length is overrange."));
@@ -1920,17 +1913,13 @@ LT * LTMgr::newLT(UINT prno)
 }
 
 
-/*
-Life times which got same physical register with 'sr' must
-record the current occurrence.
-*/
+//Life times which got same physical register with 'sr' must
+//record the current occurrence.
 void LTMgr::recordPhyRegOcc(LT * lt, UINT pos, IN BitSet & lived_lt)
 {
     if (lt->has_allocated()) {
-        /*
-        Record the occurrence before the lived life-time be
-        removed out of 'lived_lt'.
-        */
+        //Record the occurrence before the lived life-time be
+        //removed out of 'lived_lt'.
         for (INT i = lived_lt.get_first(); i >= 0; i = lived_lt.get_next(i)) {
             LT * lived = get_lt(i);
             ASSERT0(lived);
@@ -2193,8 +2182,11 @@ void LTMgr::process_rg(LT * lt)
 }
 
 
-void LTMgr::processResult(IN IR * ir, INT pos, IN OUT BitSet & lived_lt,
-                      bool group_part)
+void LTMgr::processResult(
+        IN IR * ir,
+        INT pos,
+        IN OUT BitSet & lived_lt,
+        bool group_part)
 {
     ASSERT0(ir->is_stmt());
 
@@ -2260,8 +2252,12 @@ void LTMgr::processResult(IN IR * ir, INT pos, IN OUT BitSet & lived_lt,
 
 //'group_part': set to true if user is going to scan and handle
 //group register info.
-void LTMgr::processUse(IN IR * ir, ConstIRIter & cii, INT pos,
-                      IN OUT BitSet & lived_lt, bool group_part)
+void LTMgr::processUse(
+        IN IR * ir,
+        ConstIRIter & cii,
+        INT pos,
+        IN OUT BitSet & lived_lt,
+        bool group_part)
 {
     ASSERT0(ir->is_stmt());
 
@@ -2321,10 +2317,11 @@ IR * LTMgr::genDedicatePR(UINT phy)
 
 
 //Process the function/region exit BB.
-void LTMgr::processExitBB(IN OUT List<LT*> * liveout_exitbb,
-                               IN OUT BitSet & lived_lt,
-                               BitSet const& retval_regset,
-                               UINT pos)
+void LTMgr::processExitBB(
+        IN OUT List<LT*> * liveout_exitbb,
+        IN OUT BitSet & lived_lt,
+        BitSet const& retval_regset,
+        UINT pos)
 {
     ASSERT0(liveout_exitbb);
     for (INT phy = retval_regset.get_first();
@@ -2347,8 +2344,10 @@ void LTMgr::processExitBB(IN OUT List<LT*> * liveout_exitbb,
 //Process the live in sr.
 //'always_consider_glt': true if build local lt for global lt
 //        even if glt has not assigned register.
-void LTMgr::processLivein(OUT BitSet & lived_lt, UINT pos,
-                         bool always_consider_glt)
+void LTMgr::processLivein(
+        OUT BitSet & lived_lt,
+        UINT pos,
+        bool always_consider_glt)
 {
     DefSBitSetCore * livein = m_prdf->get_livein(BB_id(m_bb));
     SEGIter * cur = NULL;
@@ -2382,8 +2381,10 @@ void LTMgr::processLivein(OUT BitSet & lived_lt, UINT pos,
 }
 
 
-void LTMgr::processLiveout(IN OUT BitSet & lived_lt, UINT pos,
-                          bool always_consider_glt)
+void LTMgr::processLiveout(
+        IN OUT BitSet & lived_lt,
+        UINT pos,
+        bool always_consider_glt)
 {
     DefSBitSetCore * liveout = m_prdf->get_liveout(BB_id(m_bb));
 
@@ -2435,15 +2436,12 @@ void LTMgr::buildGroup(ConstIRIter & cii)
 }
 
 
-/*
-'consider_glt': if true to build local life time for unallocated glt.
-'lived_lt': for tmp use.
-'liveout_exitbb_lts': record life times which lived out of the function exit BB.
-'tmp': for tmp use.
-
-NOTE: If bb is empty, we also need to generate lifetime for live in/out
-    global pr.
-*/
+//'consider_glt': if true to build local life time for unallocated glt.
+//'lived_lt': for tmp use.
+//'liveout_exitbb_lts': record life times which lived out of the function exit BB.
+//'tmp': for tmp use.
+//NOTE: If bb is empty, we also need to generate lifetime for live in/out
+//    global pr.
 void LTMgr::build(
         bool consider_glt,
         List<LT*> * liveout_exitbb_lts,
@@ -2500,8 +2498,7 @@ void LTMgr::build(
         LT * lt = m_lt_vec.get(i);
         if (lt == NULL) { continue; }
         if (!LT_is_global(lt) && !lt->has_allocated()) {
-            /*
-            For the sake of the weak implementation of Code Expansion Phase,
+            /* For the sake of the weak implementation of Code Expansion Phase,
             do not check the existence of the first def-point for local SR,
             even if it does not have in some case. Because, Code Expansion
             Phase might generate redundant SR reference.
@@ -2509,14 +2506,14 @@ void LTMgr::build(
             time should be able to represent that register.
 
             ASSERT(LT_pos(lt)->get_first() > get_first_pos(),
-                    ("Local life time has not live in point"));
-            */
+                   ("Local life time has not live in point")); */
             ASSERT(LT_range(lt)->get_first() <
-                    (INT)(m_max_lt_len - 1),
-                    ("Local life time has not live in point"));
+                   (INT)(m_max_lt_len - 1),
+                   ("Local life time has not live in point"));
         }
     }
     #endif
+
     //lt in liveout_exitbb_lts may be removed.
     revise_special_lt(liveout_exitbb_lts);
     m_gltm->get_bs_mgr()->free(lived_lt);
@@ -2559,24 +2556,20 @@ void LTMgr::revise_special_lt(List<LT*> * lts)
         if (lt == NULL) { continue; }
         if (!LT_is_global(lt) &&
             LT_range(lt)->get_first() == firstpos) {
-            /*
-            Local PR has occurred at LT_FIRST_POS!
+            /* Local PR has occurred at LT_FIRST_POS!
             lt might be assigned register already. Apart from that,
             there are followed reasons for the situation at present:
             CASE 1: Local PR that only has USE point. That becasuse Code
                 Generation Phase might generate redundant PR reference code,
-                or the DEF of local PR is conditional execution.
-            */
+                or the DEF of local PR is conditional execution. */
             revise_lt_case_1(lt);
         } //end if
     } //end for
 
-    /*
-    Remove lt which live-through exit bb that neither have any
+    /* Remove lt which live-through exit bb that neither have any
     use/def occurrence nor live-in the exit bb.
     So far, we only found this case in exit bb. Any else?
-    For the sake of that, we only check exit bb for speeding up compiling.
-    */
+    For the sake of that, we only check exit bb for speeding up compiling. */
     if (BB_is_exit(m_bb) && lts != NULL) {
         for (LT * lt = lts->get_head(); lt != NULL; lt = lts->get_next()) {
             if (!is_livein(LT_prno(lt)) &&
@@ -3182,8 +3175,7 @@ BBRA::BBRA(IRBB * bb, RA * ra)
 }
 
 
-/*
-Compute priority list and sort life times with descending order of priorities.
+/* Compute priority list and sort life times with descending order of priorities.
 
 'lts': list of LT.
 'prios': list of LT, which elements are sorted in descending order of priority.
@@ -3196,8 +3188,7 @@ priorities of each of life times:
     3. Life time whose usable registers are fewer, the priority is higher.
 
     TO BE ESTIMATED:
-        Longer life time has higher priority.
-*/
+        Longer life time has higher priority. */
 void BBRA::buildPrioList(IN List<LT*> const& lts, OUT List<LT*> & prios)
 {
     C<LT*> * ct;
@@ -3446,10 +3437,8 @@ bool BBRA::get_max_hole(OUT INT * startpos, OUT INT * endpos, LT const* lt)
 }
 
 
-/*
-Calculate the number of lifetimes which only living in the 'hole'.
-Only compute the longest hole for each of life times.
-*/
+//Calculate the number of lifetimes which only living in the 'hole'.
+//Only compute the longest hole for each of life times.
 void BBRA::computeLTResideInHole(OUT List<LT*> & reside_in, LT const* lt)
 {
     INT hole_startpos, hole_endpos;
@@ -3644,12 +3633,13 @@ LT * BBRA::computeSplitCand(LT * lt, bool & has_hole, List<LT*> * tmp,
 }
 
 
-/*
-Return true if there is hole in lifetime of 'owner' that
-'inner' can be lived in, and 'startpos','endpos' represented the hole.
-*/
-bool BBRA::find_hole(OUT INT & startpos, OUT INT & endpos,
-                     LT const* owner, LT const* inner)
+//Return true if there is hole in lifetime of 'owner' that
+//'inner' can be lived in, and 'startpos','endpos' represented the hole.
+bool BBRA::find_hole(
+        OUT INT & startpos,
+        OUT INT & endpos,
+        LT const* owner,
+        LT const* inner)
 {
     startpos = 0;
     endpos = 0;
@@ -3857,11 +3847,9 @@ void BBRA::selectReasonableSplitPos(
 }
 
 
-/* Return true if ir is the one of operands of 'ir' ,
-and is also the result.
-
-'prno': can be NULL. And if it is NULL, we only try to
-get the index-info of the same opnd and result. */
+//Return true if ir is the one of operands of 'ir' , and is also the result.
+//'prno': can be NULL. And if it is NULL, we only try to
+//get the index-info of the same opnd and result.
 bool BBRA::isOpndSameWithResult(IR *)
 {
     ASSERT0(0);
@@ -3885,9 +3873,9 @@ void BBRA::renameOpnd(IR *, UINT old_prno, IR * newpr)
 }
 
 
-/* Rename opnds in between 'start' and 'end' occurrencens within lifetime.
-'start': start pos in lifetime, can NOT be the livein pos.
-'end': end pos in lifetime, can NOT be the liveout pos. */
+//Rename opnds in between 'start' and 'end' occurrencens within lifetime.
+//'start': start pos in lifetime, can NOT be the livein pos.
+//'end': end pos in lifetime, can NOT be the liveout pos.
 void BBRA::renameOpndInRange(LT * lt, IR * newpr, INT start, INT end)
 {
     ASSERT0(lt && newpr && newpr->is_pr());
@@ -3921,15 +3909,16 @@ void BBRA::renameOpndInRange(LT * lt, IR * newpr, INT start, INT end)
 }
 
 
-/* Generate spilling and reloading code at position 'start' and 'end' of life time
-'lt' respectively.
-
-'lt': split candidate, may be local and global lifetimes.
-
-NOTICE:
-    Neglact 'start' if it equals -1, and similar for 'end'. */
-void BBRA::splitLTAt(INT start, INT end, bool is_start_spill,
-                       bool is_end_spill, LT * lt)
+//Generate spilling and reloading code at position 'start' and 'end'
+//of life time 'lt' respectively.
+//'lt': split candidate, may be local and global lifetimes.
+//NOTICE: Neglact 'start' if it equals -1, and similar for 'end'.
+void BBRA::splitLTAt(
+        INT start,
+        INT end,
+        bool is_start_spill,
+        bool is_end_spill,
+        LT * lt)
 {
     ASSERT0(lt);
     INT firstpos = m_ltm->get_first_pos();
@@ -4022,7 +4011,7 @@ bool BBRA::split(LT * lt)
     /*
     bool has_hole = false;
     LifeTime * cand =
-        compute_best_spill_candidate(lt, ig, mgr, true, &has_hole);
+        computeBestSpillCand(lt, ig, mgr, true, &has_hole);
 
     INT hole_startpos, hole_endpos;
     bool split_hole = false;
@@ -4209,8 +4198,7 @@ void RA::allocLocalSpec(List<UINT> & nis)
         need_to_alloc.clean();
         UINT idx = 0;
         bool need_rebuild = false;
-        for (IR * k = iterInit(lastir, m_ii);
-             k != NULL; k = iterNext(m_ii)) {
+        for (IR * k = iterInit(lastir, m_ii); k != NULL; k = iterNext(m_ii)) {
             if (!k->is_pr()) { continue; }
 
             LT * l = ltm->map_pr2lt(PR_no(k));
@@ -4383,12 +4371,10 @@ void RA::diffLocalNeighbourUsed(GLT * g, List<UINT> & nis, BitSet * unusable)
 }
 
 
-/* Return true if allocation was successful, otherwise return false.
-When register assigned to 'g', it must be deducted from
-the usable_register_set of all its neighbors.
-
-'unusable': for tmp use.
-*/
+//Return true if allocation was successful, otherwise return false.
+//When register assigned to 'g', it must be deducted from
+//the usable_register_set of all its neighbors.
+//'unusable': for tmp use.
 bool RA::assignRegister(GLT * g, List<UINT> & nis, List<UINT> & nis2)
 {
     BitSet const* usable = GLT_usable(g);
@@ -5004,13 +4990,17 @@ bool RA::overlapParam(LT const* l) const
 }
 
 
-/* Try to compute the maximum number of registers that
-satisfied register group constrains when range starts at 'rangestart'.
-'occupied': phy that has assigned to neighbours of ltg member.
-'assigend': phy that has assigned to ltg member. */
-UINT RA::computeSatisfiedNumRegister(UINT rangestart, LTG const* ltg, UINT rgsz,
-                             BitSet const& occupied, BitSet const& assigned,
-                             BitSet const& liveout_phy)
+//Try to compute the maximum number of registers that
+//satisfied register group constrains when range starts at 'rangestart'.
+//'occupied': phy that has assigned to neighbours of ltg member.
+//'assigend': phy that has assigned to ltg member.
+UINT RA::computeSatisfiedNumRegister(
+        UINT rangestart,
+        LTG const* ltg,
+        UINT rgsz,
+        BitSet const& occupied,
+        BitSet const& assigned,
+        BitSet const& liveout_phy)
 {
     UNUSED(liveout_phy);
 
@@ -5040,9 +5030,9 @@ UINT RA::computeSatisfiedNumRegister(UINT rangestart, LTG const* ltg, UINT rgsz,
 
         if (occupied.is_contain(rangestart) ||
             assigned.is_contain(rangestart)) {
-            /* 'l' can not obtained the expect one.
-            The tryrange must not contain the
-            phy which has assigned to ltg member. */
+            //'l' can not obtained the expect one.
+            //The tryrange must not contain the
+            //phy which has assigned to ltg member.
             return 0;
         }
 
@@ -5073,9 +5063,13 @@ UINT RA::computeSatisfiedNumRegister(UINT rangestart, LTG const* ltg, UINT rgsz,
 //group constrains when range starts at 'rangestart'.
 //NOTE: This function must find a legal range even if
 //inserting move.
-UINT RA::computeNumRegister(UINT rangestart, UINT rangeend, LTG const* ltg,
-                   BitSet const& occupied, BitSet const& assigned,
-                   BitSet const& liveout_phy)
+UINT RA::computeNumRegister(
+        UINT rangestart,
+        UINT rangeend,
+        LTG const* ltg,
+        BitSet const& occupied,
+        BitSet const& assigned,
+        BitSet const& liveout_phy)
 {
     UNUSED(liveout_phy);
 
@@ -5104,10 +5098,8 @@ UINT RA::computeNumRegister(UINT rangestart, UINT rangeend, LTG const* ltg,
                 return 0;
             }
             if (assigned.is_contain(rangestart)) {
-                /*
-                The tryrange can not contain the
-                phy which has assigned to ltg member.
-                */
+                //The tryrange can not contain the
+                //phy which has assigned to ltg member.
                 return 0;
             }
             if (LT_rg_sz(l) > 1) {
@@ -5134,12 +5126,10 @@ UINT RA::computeNumRegister(UINT rangestart, UINT rangeend, LTG const* ltg,
 }
 
 
-/* Return true if the range of register overlapped with
-live out phy.
-e.g: liveout registers are r0,r1,r10, reigster range is r7~r11,
-that is overlap. */
-bool RA::is_cross_liveout_phy(UINT reg_start, UINT rgsz,
-                              BitSet const& liveout_phy)
+//Return true if the range of register overlapped with live out phy.
+//e.g: liveout registers are r0,r1,r10, reigster range is r7~r11,
+//that is overlap.
+bool RA::is_cross_liveout_phy(UINT reg_start, UINT rgsz, BitSet const& liveout_phy)
 {
     for (UINT i = reg_start; i < rgsz; i++) {
         if (liveout_phy.is_contain(i)) {
@@ -5151,8 +5141,11 @@ bool RA::is_cross_liveout_phy(UINT reg_start, UINT rgsz,
 
 
 //Try to find a properly range from those lts which has assigned register.
-INT RA::tryReuseAppeared(LTG const* ltg, BitSet const& occupied,
-                           BitSet const& assigned, BitSet const& liveout_phy)
+INT RA::tryReuseAppeared(
+        LTG const* ltg,
+        BitSet const& occupied,
+        BitSet const& assigned,
+        BitSet const& liveout_phy)
 {
     UINT best_nsat = 0; //The most number of satisfied.
     INT best_range_start = -1;
@@ -5207,8 +5200,11 @@ INT RA::tryReuseAppeared(LTG const* ltg, BitSet const& occupied,
 }
 
 
-INT RA::tryExtend(LTG const* ltg, BitSet const& occupied,
-                   BitSet const& liveout_phy, BitSet const& assigned)
+INT RA::tryExtend(
+        LTG const* ltg,
+        BitSet const& occupied,
+        BitSet const& liveout_phy,
+        BitSet const& assigned)
 {
     //There is not any properly range can be allocated.
     UINT tryrangestart = m_param_reg_start + m_param_num;
@@ -5233,13 +5229,11 @@ INT RA::tryExtend(LTG const* ltg, BitSet const& occupied,
 }
 
 
-/* Insert move before ir, and replace origial kid 'src'
-in 'stmt' with new kid.
-Return the new kid.
-'stmt': stmt of source operand.
-'src': source operand of move, after the replacement, this
-    operand will be freed.
-*/
+//Insert move before ir, and replace origial kid 'src' in 'stmt' with new kid.
+//Return the new kid.
+//'stmt': stmt of source operand.
+//'src': source operand of move, after the replacement, this
+//operand will be freed.
 IR * RA::insertMoveBefore(IR * stmt, IR * src)
 {
     ASSERT0(stmt->is_kids(src));
@@ -5257,13 +5251,18 @@ IR * RA::insertMoveBefore(IR * stmt, IR * src)
 }
 
 
-/* Check if the phy of ltg member is continuous, and
-insert move if necessary.
-Assign phy if there are members are not assigned.
-'visited': for tmp use
-'nis': for tmp use. */
-void RA::remedyLTG(LTG * ltg, IR * ir, LTMgr * ltm,
-                    DefSBitSet & nis, BitSet & visited, UINT rangestart)
+//Check if the phy of ltg member is continuous, and
+//insert move if necessary.
+//Assign phy if there are members are not assigned.
+//'visited': for tmp use
+//'nis': for tmp use.
+void RA::remedyLTG(
+        LTG * ltg,
+        IR * ir,
+        LTMgr * ltm,
+        DefSBitSet & nis,
+        BitSet & visited,
+        UINT rangestart)
 {
     IR * param = CALL_param_list(ir);
     ASSERT0(param);
@@ -5310,10 +5309,8 @@ void RA::remedyLTG(LTG * ltg, IR * ir, LTMgr * ltm,
             continue;
         }
 
-        /*
-        If l has allocated, it may be the same pr with previous parameter,
-        which case incurred by copy propagtion.
-        */
+        //If l has allocated, it may be the same pr with previous parameter,
+        //which case incurred by copy propagtion.
         bool need_move = false;
         if (l->has_allocated()) {
             #ifdef _DEBUG_
@@ -5572,11 +5569,10 @@ void RA::assignLTG(LTG * ltg, IR * ir)
 }
 
 
-/* Verify lt's phy satisfied the constrains of occ.
-Note
-  * This function should be invoked after all lts has allocated.
-  * This function does not check LT's usable set, only check instructions.
-*/
+//Verify lt's phy satisfied the constrains of occ.
+//Note
+//  * This function should be invoked after all lts has allocated.
+//  * This function does not check LT's usable set, only check instructions.
 bool RA::verify_rsc()
 {
     BBList * bbl = m_ru->get_bb_list();
@@ -5725,11 +5721,9 @@ void RA::buildLocalIG()
 }
 
 
-/*
-Verify live point for global lt.
-Verify occurrence for local lt.
-Verify each pr should correspond to individual lt.
-*/
+//Verify live point for global lt.
+//Verify occurrence for local lt.
+//Verify each pr should correspond to individual lt.
 bool RA::verify_lt_occ()
 {
     Vector<GLT*> * gltv = m_gltm.get_gltvec();
@@ -5942,7 +5936,7 @@ void RA::allocGlobal(List<UINT> & nis, List<UINT> & nis2)
 }
 
 
-bool RA::perform(OptCTX & oc)
+bool RA::perform(OptCtx & oc)
 {
     bool omit_constrain = true;
     //Antutu4.4.1

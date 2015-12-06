@@ -39,7 +39,7 @@ namespace xoc {
 //Basis Class of pass.
 class Pass {
 protected:
-    SimpCTX * m_simp;
+    SimpCtx * m_simp;
 public:
     Pass() { m_simp = NULL; }
     virtual ~Pass() {}
@@ -57,9 +57,9 @@ public:
         return PASS_UNDEF;
     }
 
-    void set_simp_cont(SimpCTX * simp) { m_simp = simp; }
+    void set_simp_cont(SimpCtx * simp) { m_simp = simp; }
 
-    virtual bool perform(OptCTX &)
+    virtual bool perform(OptCtx &)
     {
         ASSERT(0, ("Optimization Dependent Code"));
         return false;

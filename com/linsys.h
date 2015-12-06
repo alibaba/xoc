@@ -125,10 +125,9 @@ public:
                              UINT rhs_idx,
                              RMat const& p,
                              UINT sub_var);
-    /* Represent variable, forms as
-        ak*xk <= const + F(x) + a0x0 + a1x1 + ... + a(k-1)x(k-1) +
-                    a(k+1)x(k+1) + ... + anxn.
-    */
+    //Represent variable, forms as
+    //    ak*xk <= const + F(x) + a0x0 + a1x1 + ... + a(k-1)x(k-1) +
+    //             a(k+1)x(k+1) + ... + anxn.
     void formatBound(UINT u, OUT RMat & ineqt_of_u);
     bool calcBound(IN OUT List<RMat*> & limits);
 

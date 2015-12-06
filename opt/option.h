@@ -61,7 +61,7 @@ class PassMgr;
 #define OC_is_loopinfo_valid(o)         ((o).u1.s1.is_loopinfo_valid)
 #define OC_is_callg_valid(o)            ((o).u1.s1.is_callg_valid)
 #define OC_show_comp_time(o)            ((o).u2.s1.show_compile_time)
-class OptCTX {
+class OptCtx {
 public:
     union {
         UINT int1;
@@ -100,7 +100,7 @@ public:
     } u2;
 
 public:
-    OptCTX()
+    OptCtx()
     {
         set_all_invalid();
         u2.int1 = 0;
@@ -162,6 +162,7 @@ typedef enum _PASS_TYPE {
     PASS_DU_REF,
     PASS_LIVE_EXPR,
     PASS_AVAIL_REACH_DEF,
+    PASS_REACH_DEF,
     PASS_DU_CHAIN,
     PASS_EXPR_TAB,
     PASS_LOOP_INFO,
@@ -194,6 +195,11 @@ extern bool g_do_inline;
 extern UINT g_inline_threshold;
 extern bool g_is_opt_float; //Optimize float point operation.
 extern bool g_is_lower_to_simplest; //Lower IR to simplest form.
+
+//Enable XOC support dynamic type.
+//That means the type of IR_ST, IR_LD, IR_STPR, IR_PR may be VOID.
+extern bool g_is_support_dynamic_type;
+
 extern bool g_do_ssa; //Do optimization in SSA.
 extern bool g_do_cfg;
 extern bool g_do_rpo;

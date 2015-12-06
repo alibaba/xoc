@@ -50,12 +50,12 @@ Optimizations to be performed:
     4. Loop tiling
     5. Loop fusion
     6. Loop unrolling */
-bool Region::HighProcess(OptCTX & oc)
+bool Region::HighProcess(OptCtx & oc)
 {
     g_indent = 0;
     note("\n\n==== Region:%s HIGHEST LEVEL FARMAT ====\n\n", get_ru_name());
 
-    SimpCTX simp;
+    SimpCtx simp;
     if (g_do_cfs_opt) {
         IR_CFS_OPT co(this);
         co.perform(simp);

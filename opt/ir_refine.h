@@ -45,7 +45,7 @@ namespace xoc {
 #define RC_insert_cvt(r)             ((r).u1.s1.insertCvt)
 #define RC_refine_stmt(r)            ((r).u1.s1.refine_stmt)
 #define RC_stmt_removed(r)           ((r).u1.s1.stmt_has_been_removed)
-class RefineCTX {
+class RefineCtx {
 public:
     union {
         struct {
@@ -80,7 +80,7 @@ public:
     } u1;
 
 public:
-    RefineCTX()
+    RefineCtx()
     {
         RC_refine_div_const(*this) = true;
         RC_refine_mul_const(*this) = true;

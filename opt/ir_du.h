@@ -213,7 +213,7 @@ protected:
     BitSet * m_is_init;
     MDId2IRlist * m_md2irs;
 
-    OptCTX * m_oc;
+    OptCtx * m_oc;
 
     /* Available reach-def computes the definitions
     which must be the last definition of result variable,
@@ -336,7 +336,6 @@ protected:
     void solve(DefDBitSetCore const* expr_universe, UINT const flag);
     void resetLocalAuxSet(bool cleanMember);
     void resetGlobalSet(bool cleanMember);
-    void resetReachDefInSet(bool cleanMember);
     void resetReachDefOutSet(bool cleanMember);
     void updateDef(IR * ir);
     void updateRegion(IR * ir);
@@ -377,7 +376,7 @@ public:
     void computeAuxSetForExpression(
             OUT DefDBitSetCore * expr_universe,
             Vector<MDSet*> const* maydefmds);
-    void computeMDDUChain(IN OUT OptCTX & oc);
+    void computeMDDUChain(IN OUT OptCtx & oc, bool retain_reach_def = false);
     void computeRegionMDDU(
             Vector<MDSet*> const* mustdefmds,
             Vector<MDSet*> const* maydefmds,
@@ -577,16 +576,16 @@ public:
     void destroy();
     void dumpMemUsageForEachSet();
     void dumpMemUsageForMDRef();
-    void dump_set(bool is_bs = false);
-    void dump_ir_ref(IN IR * ir, UINT indent);
-    void dump_ir_list_ref(IN IR * ir, UINT indent);
-    void dump_bb_ref(IN IRBB * bb, UINT indent);
-    void dump_ref(UINT indent = 4);
-    void dump_du_chain();
-    void dump_du_chain2();
-    void dump_bb_du_chain2(UINT bbid);
-    void dump_bb_du_chain2(IRBB * bb);
-    void dump_du_graph(CHAR const* name = NULL, bool detail = true);
+    void dumpSet(bool is_bs = false);
+    void dumpIRRef(IN IR * ir, UINT indent);
+    void dumpIRListRef(IN IR * ir, UINT indent);
+    void dumpBBRef(IN IRBB * bb, UINT indent);
+    void dumpRef(UINT indent = 4);
+    void dumpDUChain();
+    void dumpDUChainDetail();
+    void dumpBBDUChainDetail(UINT bbid);
+    void dumpBBDUChainDetail(IRBB * bb);
+    void dumpDUGraph(CHAR const* name = NULL, bool detail = true);
 
     virtual CHAR const* get_pass_name() const { return "DU Manager"; }
     virtual PASS_TYPE get_pass_type() const { return PASS_DU_MGR; }
@@ -594,19 +593,19 @@ public:
     //DU chain operation.
     DUSet * getAndAllocDUSet(IR * ir);
 
-    //Get set to BB.
-    DefDBitSetCore * get_may_gen_def(UINT bbid);
-    DefDBitSetCore * get_must_gen_def(UINT bbid);
-    DefDBitSetCore * get_avail_in_reach_def(UINT bbid);
-    DefDBitSetCore * get_avail_out_reach_def(UINT bbid);
-    DefDBitSetCore * get_in_reach_def(UINT bbid);
-    DefDBitSetCore * get_out_reach_def(UINT bbid);
-    DefDBitSetCore * get_must_killed_def(UINT bbid);
-    DefDBitSetCore * get_may_killed_def(UINT bbid);
-    DefDBitSetCore * get_gen_ir_expr(UINT bbid);
-    DefDBitSetCore * get_killed_ir_expr(UINT bbid);
-    DefDBitSetCore * get_availin_expr(UINT bbid);
-    DefDBitSetCore * get_availout_expr(UINT bbid);
+    //Get information set to BB.
+    DefDBitSetCore * getMayGenDef(UINT bbid);
+    DefDBitSetCore * getMustGenDef(UINT bbid);
+    DefDBitSetCore * getAvailInReachDef(UINT bbid);
+    DefDBitSetCore * getAvailOutReachDef(UINT bbid);
+    DefDBitSetCore * getInReachDef(UINT bbid);
+    DefDBitSetCore * getOutReachDef(UINT bbid);
+    DefDBitSetCore * getMustKilledDef(UINT bbid);
+    DefDBitSetCore * getMayKilledDef(UINT bbid);
+    DefDBitSetCore * getGenIRExpr(UINT bbid);
+    DefDBitSetCore * getKilledIRExpr(UINT bbid);
+    DefDBitSetCore * getAvailInExpr(UINT bbid);
+    DefDBitSetCore * getAvailOutExpr(UINT bbid);
 
     DefMiscBitSetMgr * getMiscBitSetMgr() { return m_misc_bs_mgr; }
 
@@ -690,7 +689,7 @@ public:
     IR * findDomDef(
             IR const* exp,
             IR const* exp_stmt,
-            DUSet const* expdu,
+            DUSet const* expdefset,
             bool omit_self);
     IR const* findKillingLocalDef(
             IR const* stmt,
@@ -701,9 +700,9 @@ public:
     void setComputePRDU(bool compute)
     { m_is_compute_pr_du_chain = (BYTE)compute; }
 
-    /* DU chain operations.
-    Set 'use' to be USE of 'stmt'.
-    e.g: given stmt->{u1, u2}, the result will be stmt->{u1, u2, use} */
+    //DU chain operations.
+    //Set 'use' to be USE of 'stmt'.
+    //e.g: given stmt->{u1, u2}, the result will be stmt->{u1, u2, use}
     inline void unionUse(IR * stmt, IN IR * use)
     {
         ASSERT0(stmt && stmt->is_stmt());
@@ -712,10 +711,10 @@ public:
         getAndAllocDUSet(stmt)->add_use(use, *m_misc_bs_mgr);
     }
 
-    /* DU chain operations.
-    Set 'exp' to be USE of stmt which is held in 'stmtset'.
-    e.g: given stmt and its use chain is {u1, u2}, the result will be
-    stmt->{u1, u2, exp} */
+    //DU chain operations.
+    //Set 'exp' to be USE of stmt which is held in 'stmtset'.
+    //e.g: given stmt and its use chain is {u1, u2}, the result will be
+    //stmt->{u1, u2, exp}
     inline void unionUse(DUSet const* stmtset, IR * exp)
     {
         ASSERT0(stmtset && exp && exp->is_exp());
@@ -728,11 +727,10 @@ public:
         }
     }
 
-    /* DU chain operation.
-    Set element in 'set' as USE to stmt.
-    e.g: given set is {u3, u4}, and stmt->{u1},
-    =>
-    stmt->{u1, u1, u2} */
+    //DU chain operation.
+    //Set element in 'set' as USE to stmt.
+    //e.g: given set is {u3, u4}, and stmt->{u1},
+    //=> stmt->{u1, u1, u2}
     inline void unionUseSet(IR * stmt, IN DefSBitSetCore const* set)
     {
         ASSERT0(stmt->is_stmt());
@@ -740,11 +738,10 @@ public:
         getAndAllocDUSet(stmt)->bunion(*set, *m_misc_bs_mgr);
     }
 
-    /* DU chain operation.
-    Set element in 'set' as DEF to ir.
-    e.g: given set is {d1, d2}, and {d3}->ir,
-    =>
-    {d1, d2, d3}->ir */
+    //DU chain operation.
+    //Set element in 'set' as DEF to ir.
+    //e.g: given set is {d1, d2}, and {d3}->ir,
+    //=>{d1, d2, d3}->ir
     inline void unionDefSet(IR * ir, IN DefSBitSetCore const* set)
     {
         ASSERT0(ir->is_exp());
@@ -752,10 +749,10 @@ public:
         getAndAllocDUSet(ir)->bunion(*set, *m_misc_bs_mgr);
     }
 
-    /* DU chain operation.
-    Set 'def' to be DEF of 'ir'.
-    e.g: given def is d1, and {d2}->ir,
-    the result will be {d1, d2}->ir */
+    //DU chain operation.
+    //Set 'def' to be DEF of 'ir'.
+    //e.g: given def is d1, and {d2}->ir,
+    //the result will be {d1, d2}->ir
     inline void unionDef(IR * ir, IN IR * def)
     {
         ASSERT0(ir->is_exp());
@@ -765,10 +762,10 @@ public:
     }
 
 
-    /* DU chain operations.
-    Set 'stmt' to be DEF of each expressions which is held in 'expset'.
-    e.g: given stmt and its use-chain is {u1, u2}, the result will be
-    stmt->{u1, u2, use} */
+    //DU chain operations.
+    //Set 'stmt' to be DEF of each expressions which is held in 'expset'.
+    //e.g: given stmt and its use-chain is {u1, u2}, the result will be
+    //stmt->{u1, u2, use}
     inline void unionDef(DUSet const* expset, IR * stmt)
     {
         ASSERT0(expset && stmt && stmt->is_stmt());
@@ -781,9 +778,9 @@ public:
         }
     }
 
-    /* DU chain operation.
-    Cut off the chain bewteen 'def' and 'use'.
-    The related function is buildDUChain(). */
+    //DU chain operation.
+    //Cut off the chain bewteen 'def' and 'use'.
+    //The related function is buildDUChain().
     inline void removeDUChain(IR const* def, IR const* use)
     {
         ASSERT0(def->is_stmt() && use->is_exp());
@@ -803,18 +800,19 @@ public:
     void removeUseOutFromDefset(IR * stmt);
     void removeDefOutFromUseset(IR * def);
     void removeIROutFromDUMgr(IR * ir);
+    void resetReachDefInSet(bool cleanMember);
 
     bool verifyMDRef();
     bool verifyMDDUChain();
     bool verifyMDDUChainForIR(IR const* ir);
     bool verifyLiveinExp();
 
-    virtual bool perform(OptCTX &)
+    virtual bool perform(OptCtx &)
     {
         ASSERT0(0);
         return false;
     }
-    bool perform(IN OUT OptCTX & oc,
+    bool perform(IN OUT OptCtx & oc,
                  UINT flag = SOL_AVAIL_REACH_DEF|
                              SOL_AVAIL_EXPR|
                              SOL_REACH_DEF|

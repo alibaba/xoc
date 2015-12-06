@@ -123,7 +123,7 @@ public:
     void set_elim_cfs(bool doit) { m_is_elim_cfs = doit; }
     void set_use_md_du(bool use_md_du) { m_is_use_md_du = use_md_du; }
 
-    virtual bool perform(OptCTX & oc);
+    virtual bool perform(OptCtx & oc);
 };
 
 } //namespace xoc

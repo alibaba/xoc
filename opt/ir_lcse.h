@@ -89,7 +89,7 @@ public:
     PASS_TYPE get_pass_type() const { return PASS_LCSE; }
 
     inline void set_enable_filter(bool is_enable) { m_enable_filter = is_enable; }
-    bool perform(OptCTX & oc);
+    bool perform(OptCtx & oc);
 };
 
 } //namespace xoc

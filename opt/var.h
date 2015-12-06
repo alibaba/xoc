@@ -129,6 +129,9 @@ class RegionMgr;
 //Variable is parameter of this region.
 #define VAR_is_formal_param(v)   ((v)->u2.u2s1.is_formal_param)
 
+//Record the parameter position.
+#define VAR_formal_param_pos(v)  ((v)->u1.formal_parameter_pos)
+
 //Variable is spill location.
 #define VAR_is_spill(v)          ((v)->u2.u2s1.is_spill)
 
@@ -161,7 +164,12 @@ public:
         //This value is 0 if no initial value.
         //Record constant content if VAR has constant initial value.
         UINT init_val_id;
+
+        //Record the formal parameter position if VAR is parameter.
+        //Start from 0.
+        UINT formal_parameter_pos;
     } u1;
+
     union {
         UINT flag; //Record variant properties of VAR.
         struct {
@@ -232,13 +240,16 @@ public:
                 dm->get_bytesize(VAR_type(this));
     }
 
-    virtual CHAR * dumpVARDecl(CHAR*, UINT) { return NULL; }
-    virtual void dump(FILE * h, TypeMgr const* dm);
-    virtual CHAR * dump(CHAR * buf, TypeMgr const* dm);
+    virtual CHAR * dumpVARDecl(CHAR*, UINT) const { return NULL; }
+    virtual void dump(FILE * h, TypeMgr const* dm) const;
+
+    //You must make sure this function will not change any field of VAR.
+    virtual CHAR * dump(CHAR * buf, TypeMgr const* dm) const;
 };
 //END VAR
 
 typedef TabIter<VAR*> VarTabIter;
+typedef TabIter<VAR const*> ConstVarTabIter;
 
 class CompareVar {
 public:
@@ -263,6 +274,21 @@ public:
         ASSERT0(dm);
         VarTabIter iter;
         for (VAR * v = get_first(iter); v != NULL; v = get_next(iter)) {
+            v->dump(g_tfile, dm);
+        }
+    }
+};
+
+
+class ConstVarTab : public TTab<VAR const*, CompareConstVar> {
+public:
+    void dump(TypeMgr * dm)
+    {
+        if (g_tfile == NULL) { return; }
+
+        ASSERT0(dm);
+        ConstVarTabIter iter;
+        for (VAR const* v = get_first(iter); v != NULL; v = get_next(iter)) {
             v->dump(g_tfile, dm);
         }
     }

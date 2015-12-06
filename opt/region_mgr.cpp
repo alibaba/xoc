@@ -276,7 +276,7 @@ void RegionMgr::processProgramRegion(Region * program)
     ASSERT0(program);
     registerGlobalMDS();
     ASSERT(program->is_program(), ("TODO: support more operation."));
-    OptCTX oc;
+    OptCtx oc;
     if (g_do_inline) {
         //Need to scan call-list.
         CallGraph * callg = initCallGraph(program, true);
@@ -291,7 +291,6 @@ void RegionMgr::processProgramRegion(Region * program)
 
     //Test mem leak.
     //test_ru(this);
-
     for (IR * ir = program->get_ir_list(); ir != NULL; ir = IR_next(ir)) {
         if (ir->is_region()) {
             processFuncRegion(REGION_ru(ir));

@@ -120,14 +120,14 @@ void CDG::get_cd_succs(UINT id, OUT List<Vertex*> & lst)
 }
 
 
-void CDG::rebuild(IN OUT OptCTX & oc, DGraph & cfg)
+void CDG::rebuild(IN OUT OptCtx & oc, DGraph & cfg)
 {
     erase();
     build(oc, cfg);
 }
 
 
-void CDG::build(IN OUT OptCTX & oc, DGraph & cfg)
+void CDG::build(IN OUT OptCtx & oc, DGraph & cfg)
 {
     if (cfg.get_vertex_num() == 0) { return; }
     START_TIMER("CDG");

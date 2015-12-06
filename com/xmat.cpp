@@ -819,9 +819,9 @@ void INTMat::copy(RMat const& r)
 }
 
 
-/* Invering of Integer Matrix will be transformed to Rational
-Matrix, and one exception will be thrown if there are some
-element's denomiator is not '1'. */
+//Invering of Integer Matrix will be transformed to Rational
+//Matrix, and one exception will be thrown if there are some
+//element's denomiator is not '1'.
 bool INTMat::inv(OUT INTMat & e)
 {
     ASSERT(m_is_init, ("not yet initialize."));
@@ -841,9 +841,9 @@ bool INTMat::inv(OUT INTMat & e)
 }
 
 
-/* Determinant of Integer Matrix will be transformed to Rational
-Matrix, and one exception will be thrown if there are some
-element's denomiator is not '1'. */
+//Determinant of Integer Matrix will be transformed to Rational
+//Matrix, and one exception will be thrown if there are some
+//element's denomiator is not '1'.
 INT INTMat::det()
 {
     ASSERT(m_is_init, ("not yet initialize."));
@@ -1037,12 +1037,10 @@ void INTMat::gcd()
 }
 
 
-/* Find maximum convex hull of a set of 2-dimension points.(Graham scan)
-
-'c': coordinates of a set of points.
-'idx': 1*n matrix, indices of coordinates of convex hull.
-
-Note 'this' is a n*2 matrix that each row indicate one coordinate as (x,y). */
+//Find maximum convex hull of a set of 2-dimension points.(Graham scan)
+//'c': coordinates of a set of points.
+//'idx': 1*n matrix, indices of coordinates of convex hull.
+//Note 'this' is a n*2 matrix that each row indicate one coordinate as (x,y).
 void INTMat::cvexhull(OUT INTMat & hull)
 {
     ASSERT(m_is_init, ("not yet initialize."));
@@ -1111,14 +1109,14 @@ void INTMat::cvexhull(OUT INTMat & hull)
                 if (inserted) {
                     break;
                 }
-            }//end else ...
-        }//end for
+            } //end else ...
+        } //end for
 
         if (!inserted) {
             ASSERT(idx == 0, ("illegal list"));
             order.append_tail(i + 1); //The first index in list starting at '1'.
         }
-    }//end for
+    } //end for
 
     Stack<INT> s;
     s.push(p0_idx + 1);
@@ -1430,11 +1428,11 @@ void FloatMat::destroy()
 }
 
 
-/* Set value of elements one by one.
-'num': indicate the number of variant parameters.
-NOTICE:
-    Pamaters after 'num' must be float/double.
-    e.g: sete(NUM, 2.0, 3.0...) */
+//Set value of elements one by one.
+//'num': indicate the number of variant parameters.
+//NOTICE:
+// Pamaters after 'num' must be float/double.
+// e.g: sete(NUM, 2.0, 3.0...)
 void FloatMat::sete(UINT num, ...)
 {
     ASSERT(m_is_init, ("not yet initialize."));
@@ -1460,11 +1458,11 @@ void FloatMat::sete(UINT num, ...)
 }
 
 
-/* Set value of elements one by one.
-'num': indicate the number of variant parameters.
-NOTICE:
-    Pamaters after 'num' must be integer.
-    e.g: setie(NUM, 2, 3...) */
+//Set value of elements one by one.
+//'num': indicate the number of variant parameters.
+//NOTICE:
+//  Pamaters after 'num' must be integer.
+//  e.g: setie(NUM, 2, 3...)
 void FloatMat::setie(UINT num, ...)
 {
     ASSERT(m_is_init, ("not yet initialize."));

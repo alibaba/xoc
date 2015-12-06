@@ -132,7 +132,7 @@ public:
 
     PASS_TYPE get_pass_type() const { return PASS_LICM; }
 
-    virtual bool perform(OptCTX & oc);
+    virtual bool perform(OptCtx & oc);
 };
 
 } //namespace xoc

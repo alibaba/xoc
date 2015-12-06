@@ -2058,8 +2058,9 @@ Int32 transformCode(LIRCode const* code, DexCode* nCode)
    nCode->insnsSize = cbsGetSize(regIns) / 2;
 
    //Try/Catch buf will be added.
-   // Fix: Trycatched should be 4-byte aligned.
-   // And then the code_item will also be 4-byte aligned. whenever tries size is zero or not.
+   //Fix: Trycatched should be 4-byte aligned.
+   //And then the code_item will also be 4-byte aligned.
+   //whenever tries size is zero or not.
    if (nCode->insnsSize & 0x01){
      cbsWrite16(regIns, (UInt16)0);
    }
@@ -2150,7 +2151,8 @@ static Int32 writeCodeItem_orig(D2Dpool* pool, CBSHandle cbsCode, DexCode* nCode
     return writeSize;
 }
 
-DexCode * writeCodeItem(D2Dpool* pool, CBSHandle cbsCode,
+DexCode * writeCodeItem(D2Dpool* pool,
+                        CBSHandle cbsCode,
                         UInt16 registersSize,
                         UInt16 insSize,
                         UInt16 outsSize,

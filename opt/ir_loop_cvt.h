@@ -86,7 +86,7 @@ public:
     virtual CHAR const* get_pass_name() const { return "Loop Convertion"; }
     PASS_TYPE get_pass_type() const { return PASS_LOOP_CVT; }
 
-    virtual bool perform(OptCTX & oc);
+    virtual bool perform(OptCtx & oc);
 };
 
 } //namespace xoc

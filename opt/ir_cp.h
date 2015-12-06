@@ -154,7 +154,7 @@ public:
 
     void set_prop_kind(UINT kind) { m_prop_kind = kind; }
 
-    virtual bool perform(OptCTX & oc);
+    virtual bool perform(OptCtx & oc);
 };
 
 } //namespace xoc

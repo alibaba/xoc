@@ -131,7 +131,7 @@ IR_AA::IR_AA(Region * ru)
 
 IR_AA::~IR_AA()
 {
-    OptCTX oc;
+    OptCtx oc;
     destroyContext(oc);
     smpoolDelete(m_pool);
 }
@@ -188,7 +188,7 @@ UINT IR_AA::countMD2MDSetMemory()
 /* Destroy all context data structure.
 DU and another info do not need these info.
 If you query sideeffect md or mdset, these data structure must be recomputed. */
-void IR_AA::destroyContext(OptCTX & oc)
+void IR_AA::destroyContext(OptCtx & oc)
 {
     for (INT i = 0; i <= m_md2mds_vec.get_last_idx(); i++) {
         MD2MDSet * mx = m_md2mds_vec.get((UINT)i);
@@ -200,7 +200,7 @@ void IR_AA::destroyContext(OptCTX & oc)
 
 
 //Clean but not destory context data structures.
-void IR_AA::cleanContext(OptCTX & oc)
+void IR_AA::cleanContext(OptCtx & oc)
 {
     for (INT i = 0; i <= m_md2mds_vec.get_last_idx(); i++) {
         MD2MDSet * mx = m_md2mds_vec.get((UINT)i);
@@ -224,7 +224,7 @@ void IR_AA::clean()
         m_unique_md2mds.clean();
     }
 
-    OptCTX oc;
+    OptCtx oc;
     cleanContext(oc);
     m_id2heap_md_map.clean();
 }
@@ -316,7 +316,7 @@ bool IR_AA::isValidStmtToAA(IR * ir)
 void IR_AA::processLda(
         IR * ir,
         IN OUT MDSet & mds,
-        IN OUT AACTX * ic,
+        IN OUT AACtx * ic,
         IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_lda() && ir->is_ptr());
@@ -370,7 +370,7 @@ void IR_AA::processLda(
 void IR_AA::processArrayLdabase(
         IR * ir,
         IN OUT MDSet & mds,
-        IN OUT AACTX * ic,
+        IN OUT AACtx * ic,
         IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_lda() && ir->is_ptr());
@@ -419,7 +419,7 @@ e.g: int a; char b;
 void IR_AA::processCvt(
         IR const* ir,
         IN OUT MDSet & mds,
-        OUT AACTX * ic,
+        OUT AACtx * ic,
         OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_cvt());
@@ -502,7 +502,7 @@ void IR_AA::computeMayPointTo(IR * pointer, IN MD2MDSet * mx, OUT MDSet & mds)
     ASSERT0(pointer && pointer->is_ptr() && mx);
 
     if (pointer->is_lda()) {
-        AACTX ic;
+        AACtx ic;
         AC_comp_pt(&ic) = true;
         MDSet tmp;
         processLda(pointer, tmp, &ic, mx);
@@ -547,12 +547,12 @@ void IR_AA::inferArrayExpBase(
         UINT ofst,
         OUT MDSet & mds,
         OUT bool mds_is_may_pt,
-        IN OUT AACTX * ic,
+        IN OUT AACtx * ic,
         IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_array_op() && array_base->is_ptr());
     MDSet tmp;
-    AACTX tic;
+    AACtx tic;
     tic.copyTopDownFlag(*ic);
 
     //Compute point-to set at this function scope,
@@ -638,11 +638,11 @@ void IR_AA::inferArrayLdabase(
         bool is_ofst_pred,
         UINT ofst,
         OUT MDSet & mds,
-        IN OUT AACTX * ic,
+        IN OUT AACtx * ic,
         IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_array_op() && array_base->is_lda());
-    AACTX tic(*ic);
+    AACtx tic(*ic);
     processArrayLdabase(array_base, mds, &tic, mx);
     //inferExpression(array_base, mds, &tic, mx);
 
@@ -696,14 +696,14 @@ void IR_AA::inferArrayLdabase(
 void IR_AA::processArray(
         IR * ir,
         IN OUT MDSet & mds,
-        IN OUT AACTX * ic,
+        IN OUT AACtx * ic,
         IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_array_op());
 
     //Scan subscript expression and infer the offset of array element.
     for (IR * s = ARR_sub_list(ir); s != NULL; s = IR_next(s)) {
-        AACTX tic;
+        AACtx tic;
         tic.copyTopDownFlag(*ic);
         AC_comp_pt(&tic) = false;
         inferExpression(s, mds, &tic, mx);
@@ -715,7 +715,7 @@ void IR_AA::processArray(
     UINT ofst_val = 0;
     bool is_ofst_predicable = ir->calcArrayOffset(&ofst_val, m_tm);
     bool mds_is_may_pt = false;
-    AACTX tic;
+    AACtx tic;
     tic.copyTopDownFlag(*ic);
     AC_comp_pt(&tic) = false;
 
@@ -974,7 +974,7 @@ void IR_AA::inferPtArith(
         IR const* ir,
         IN OUT MDSet & mds,
         IN OUT MDSet & opnd0_mds,
-        IN OUT AACTX * opnd0_ic,
+        IN OUT AACtx * opnd0_ic,
         IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_add() || ir->is_sub());
@@ -1028,7 +1028,7 @@ void IR_AA::inferPtArith(
         }
     } else {
         //Generate MD expression for opnd1.
-        AACTX opnd1_tic(*opnd0_ic);
+        AACtx opnd1_tic(*opnd0_ic);
         opnd1_tic.cleanBottomUpFlag();
         inferExpression(opnd1, mds, &opnd1_tic, mx);
         //Do not copy bottom-up flag of opnd1.
@@ -1072,7 +1072,7 @@ void IR_AA::inferPtArith(
 void IR_AA::processPointerArith(
         IR * ir,
         IN OUT MDSet & mds,
-        IN OUT AACTX * ic,
+        IN OUT AACtx * ic,
         IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_add() || ir->is_sub());
@@ -1081,7 +1081,7 @@ void IR_AA::processPointerArith(
     ir->cleanRef();
 
     //ic may have been set comp_pt to true.
-    AACTX tic(*ic);
+    AACtx tic(*ic);
     tic.cleanBottomUpFlag();
     MDSet tmp;
     inferExpression(opnd0, tmp, &tic, mx); //Generate MDS of opnd0.
@@ -1121,7 +1121,7 @@ void IR_AA::processPointerArith(
             inferPtArith(ir, mds, tmp, &tic, mx);
         } else {
             //Scan and generate MDS of opnd1.
-            AACTX tic(*ic);
+            AACtx tic(*ic);
             tic.cleanBottomUpFlag();
             inferExpression(opnd1, mds, &tic, mx);
             mds.clean(*m_misc_bs_mgr); //Do not remove this code.
@@ -1137,7 +1137,7 @@ void IR_AA::processPointerArith(
 MD const* IR_AA::assignPRMD(
         IR * ir,
         IN OUT MDSet * mds,
-        IN OUT AACTX * ic,
+        IN OUT AACtx * ic,
         IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_pr());
@@ -1189,7 +1189,7 @@ MD const* IR_AA::assignPRMD(
 MD const* IR_AA::assignLoadMD(
         IR * ir,
         IN OUT MDSet * mds,
-        IN OUT AACTX * ic,
+        IN OUT AACtx * ic,
         IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_ld());
@@ -1243,7 +1243,7 @@ MD const* IR_AA::assignLoadMD(
 MD const* IR_AA::assignIdMD(
         IR * ir,
         IN OUT MDSet * mds,
-        IN OUT AACTX * ic)
+        IN OUT AACtx * ic)
 {
     ASSERT0(ir->is_id());
     ASSERT0(ic && mds);
@@ -1341,14 +1341,14 @@ MD const* IR_AA::allocStringMD(IR * ir)
 void IR_AA::processIld(
         IR * ir,
         IN OUT MDSet & mds,
-        IN OUT AACTX * ic,
+        IN OUT AACtx * ic,
         IN OUT MD2MDSet * mx)
 {
     ASSERT0(ir->is_ild());
     ASSERT0(ILD_base(ir)->is_ptr());
 
     //... = *q, if q->x, set ir's MD to be 'x'.
-    AACTX tic(*ic);
+    AACtx tic(*ic);
 
     //Compute the address that ILD described.
     AC_comp_pt(&tic) = true;
@@ -1449,7 +1449,7 @@ p = q, for any x : if q -> x, add p -> x.
 MD const* IR_AA::assignStringConst(
         IR * ir,
         IN OUT MDSet * mds,
-        IN OUT AACTX * ic)
+        IN OUT AACtx * ic)
 {
     ASSERT0(ir->is_str());
     ASSERT0(mds && ic);
@@ -1497,15 +1497,14 @@ MD const* IR_AA::assignStringConst(
 }
 
 
-/* 'ir' describes memory address of identifer that indicate a string.
-Add a new VAR to describe the string.
-p = q, for any x : if q -> x, add p -> x.
-
-'mds' : record memory descriptor of 'ir'. */
+//'ir' describes memory address of identifer that indicate a string.
+//Add a new VAR to describe the string.
+//p = q, for any x : if q -> x, add p -> x.
+//'mds' : record memory descriptor of 'ir'.
 MD const* IR_AA::assignStringIdentifier(
         IR * ir,
         IN OUT MDSet * mds,
-        IN OUT AACTX * ic)
+        IN OUT AACtx * ic)
 {
     ASSERT0(ir->is_id() && ID_info(ir)->is_string());
     ASSERT0(mds && ic);
@@ -1545,7 +1544,7 @@ MD const* IR_AA::assignStringIdentifier(
 void IR_AA::processConst(
         IR * ir,
         IN OUT MDSet & mds,
-        IN OUT AACTX * ic)
+        IN OUT AACtx * ic)
 {
     if (ir->is_str()) {
         assignStringConst(ir, &mds, ic);
@@ -1560,7 +1559,7 @@ void IR_AA::inferStoreValue(
         IN IR * ir,
         IR * rhs,
         MD const* lhs_md,
-        IN AACTX * ic,
+        IN AACtx * ic,
         IN MD2MDSet * mx)
 {
     ASSERT0(ir->is_st() || ir->is_stpr() || ir->is_setelem());
@@ -1572,15 +1571,19 @@ void IR_AA::inferStoreValue(
             e.g: p=ILD(q), if q->a->w, then p->w.
         3. Propagate the MDSet that RHS pointed to.
             e.g: p=q, if q->a, then p->a. */
-    ASSERT0(lhs_md && lhs_md->is_exact());
+    ASSERT0(lhs_md);
+    if (!g_is_support_dynamic_type) {
+        //lhs of IR_ST may be inexact because IR_ST may be VOID.
+        ASSERT0(lhs_md->is_exact());
+    }
 
-    /* 1. p = q, q is pointer, if q->x, add p->x.
-    2. p = q, q is array base (e.g:q[100]), add p->q.
-    3. p = &q, add p->q.
-    4. p = (&q)+n+m, add p->q. */
+    //1. p = q, q is pointer, if q->x, add p->x.
+    //2. p = q, q is array base (e.g:q[100]), add p->q.
+    //3. p = &q, add p->q.
+    //4. p = (&q)+n+m, add p->q.
     MDSet tmp;
     MDSet * pts = &tmp;
-    AACTX rhsic(*ic);
+    AACtx rhsic(*ic);
     if (ir->is_ptr()) {
         AC_comp_pt(&rhsic) = true;
     }
@@ -1598,9 +1601,9 @@ void IR_AA::inferStoreValue(
     //Update POINT-TO of LHS.
     ASSERT0(pts);
     if (AC_has_comp_lda(&rhsic) || AC_comp_pt(&rhsic)) {
-        /* 2. p = q, q is array base (e.g:q[100]), add p->q.
-        3. p = &q, add p->q.
-        4. p = (&q)+n+m, add p->q. */
+        //p = q, q is array base (e.g:q[100]), add p->q.
+        //p = &q, add p->q.
+        //p = (&q)+n+m, add p->q.
         if (AC_has_comp_lda(&rhsic)) {
             ASSERT0(pts->get_elem_count() == 1);
 
@@ -1681,7 +1684,7 @@ void IR_AA::processStore(IN IR * ir, IN MD2MDSet * mx)
         t = get_must_addr(ir);
     }
 
-    AACTX ic;
+    AACtx ic;
     inferStoreValue(ir, ST_rhs(ir), t, &ic, mx);
 }
 
@@ -1705,7 +1708,7 @@ void IR_AA::processStorePR(IN IR * ir, IN MD2MDSet * mx)
         t = get_must_addr(ir);
     }
 
-    AACTX ic;
+    AACtx ic;
     inferStoreValue(ir, STPR_rhs(ir), t, &ic, mx);
 }
 
@@ -1722,7 +1725,7 @@ void IR_AA::processSetelem(IR * ir, IN MD2MDSet * mx)
         t = get_must_addr(ir);
     }
 
-    AACTX ic;
+    AACtx ic;
     inferStoreValue(ir, SETELEM_rhs(ir), t, &ic, mx);
 
     if (!SETELEM_ofst(ir)->is_const()) {
@@ -1746,7 +1749,7 @@ void IR_AA::processGetelem(IR * ir, IN MD2MDSet * mx)
     }
 
     //Process base field, it must refer to memory object.
-    AACTX ic;
+    AACtx ic;
     MDSet tmp;
     inferExpression(GETELEM_base(ir), tmp, &ic, mx);
 
@@ -1768,7 +1771,7 @@ void IR_AA::processPhi(IN IR * ir, IN MD2MDSet * mx)
         phi_res_md = get_must_addr(ir);
     }
 
-    AACTX ic;
+    AACtx ic;
     if (ir->is_ptr()) {
         AC_comp_pt(&ic) = true;
     }
@@ -1805,7 +1808,7 @@ void IR_AA::processPhi(IN IR * ir, IN MD2MDSet * mx)
 }
 
 
-void IR_AA::inferIstoreValue(IN IR * ir, IN AACTX * ic, IN MD2MDSet * mx)
+void IR_AA::inferIstoreValue(IN IR * ir, IN AACtx * ic, IN MD2MDSet * mx)
 {
     ASSERT0(ir->is_ist());
     MDSet const* ist_mayaddr = get_may_addr(ir);
@@ -1820,7 +1823,7 @@ void IR_AA::inferIstoreValue(IN IR * ir, IN AACTX * ic, IN MD2MDSet * mx)
             e.g: *p=ILD(q), and p->x,q->a,a->w, then x->w,
         3. Propagate the MDSet that RHS pointed to the LHS.
             e.g: *p=q, and p->x,q->a, then x->a. */
-    AACTX tic(*ic);
+    AACtx tic(*ic);
     if (ir->is_ptr()) {
         AC_comp_pt(&tic) = true;
     }
@@ -1923,7 +1926,7 @@ void IR_AA::inferIstoreValue(IN IR * ir, IN AACTX * ic, IN MD2MDSet * mx)
 }
 
 
-void IR_AA::inferStoreArrayValue(IN IR * ir, IN AACTX * ic, IN MD2MDSet * mx)
+void IR_AA::inferStoreArrayValue(IN IR * ir, IN AACtx * ic, IN MD2MDSet * mx)
 {
     ASSERT0(ir->is_starray());
     MDSet const* lhs_mayaddr = get_may_addr(ir);
@@ -1934,7 +1937,7 @@ void IR_AA::inferStoreArrayValue(IN IR * ir, IN AACTX * ic, IN MD2MDSet * mx)
 
     //Propagate the MDSet that RHS pointed to the LHS.
     //e.g: a[x]=q, and q->a, then a[x]->a.
-    AACTX tic(*ic);
+    AACtx tic(*ic);
     if (ir->is_ptr()) {
         AC_comp_pt(&tic) = true;
     }
@@ -2043,7 +2046,7 @@ void IR_AA::processStoreArray(IN IR * ir, IN MD2MDSet * mx)
     ASSERT0(ir->is_starray());
     //mem location may pointed to set.
     MDSet mayaddr;
-    AACTX ic;
+    AACtx ic;
     AC_comp_pt(&ic) = false; //Here we just need to compute the may address.
 
     //Compute where array element may point to.
@@ -2129,7 +2132,7 @@ void IR_AA::processIst(IN IR * ir, IN MD2MDSet * mx)
 
     //mem location may pointed to set.
     MDSet ml_may_pt;
-    AACTX ic;
+    AACtx ic;
     AC_comp_pt(&ic) = true;
 
     //Compute where IST_base may point to.
@@ -2144,7 +2147,7 @@ void IR_AA::processIst(IN IR * ir, IN MD2MDSet * mx)
         ir->cleanRefMD();
         set_may_addr(ir, m_hashed_maypts);
 
-        AACTX ic2;
+        AACtx ic2;
         inferIstoreValue(ir, &ic2, mx);
         return;
     }
@@ -2194,7 +2197,7 @@ void IR_AA::processIst(IN IR * ir, IN MD2MDSet * mx)
         set_may_addr(ir, m_mds_hash->append(ml_may_pt));
     }
 
-    AACTX ic2;
+    AACtx ic2;
     inferIstoreValue(ir, &ic2, mx);
     ml_may_pt.clean(*m_misc_bs_mgr);
 }
@@ -2261,7 +2264,7 @@ void IR_AA::processReturn(IN IR * ir, IN MD2MDSet * mx)
     ASSERT0(ir->is_return());
     if (RET_exp(ir) != NULL) {
         MDSet tmp;
-        AACTX tic;
+        AACtx tic;
         inferExpression(RET_exp(ir), tmp, &tic, mx);
         tmp.clean(*m_misc_bs_mgr);
     }
@@ -2349,7 +2352,7 @@ void IR_AA::processCall(IN IR * ir, IN MD2MDSet * mx)
 
     MDSet tmp;
     if (ir->is_icall()) {
-        AACTX tic;
+        AACtx tic;
         inferExpression(ICALL_callee(ir), tmp, &tic, mx);
     }
 
@@ -2358,7 +2361,7 @@ void IR_AA::processCall(IN IR * ir, IN MD2MDSet * mx)
     bool by_addr = false;
     MDSet by_addr_mds;
     while (param != NULL) {
-        AACTX tic;
+        AACtx tic;
         inferExpression(param, tmp, &tic, mx);
         if (AC_has_comp_lda(&tic)) {
             by_addr = true;
@@ -2438,7 +2441,7 @@ and compute the MDSet for 'expr'.
 void IR_AA::inferExpression(
         IR * expr,
         IN OUT MDSet & mds,
-        IN OUT AACTX * ic,
+        IN OUT AACtx * ic,
         IN OUT MD2MDSet * mx)
 {
     switch (IR_code(expr)) {
@@ -2485,7 +2488,7 @@ void IR_AA::inferExpression(
         {
             ASSERT(!BIN_opnd0(expr)->is_ptr(),
                     ("illegal, left operand can not be pointer type"));
-            AACTX tic(*ic);
+            AACtx tic(*ic);
             AC_comp_pt(&tic) = false;
             inferExpression(BIN_opnd1(expr), mds, &tic, mx);
 
@@ -2508,7 +2511,7 @@ void IR_AA::inferExpression(
         {
             ASSERT(!UNA_opnd0(expr)->is_ptr(),
                     ("Illegal, left operand can not be pointer type"));
-            AACTX tic(*ic);
+            AACtx tic(*ic);
             AC_comp_pt(&tic) = false;
             inferExpression(UNA_opnd0(expr), mds, &tic, mx);
 
@@ -2530,7 +2533,7 @@ void IR_AA::inferExpression(
     case IR_EQ:
     case IR_NE:
         {
-            AACTX tic(*ic);
+            AACtx tic(*ic);
             AC_comp_pt(&tic) = false;
             inferExpression(BIN_opnd0(expr), mds, &tic, mx);
 
@@ -2546,7 +2549,7 @@ void IR_AA::inferExpression(
     case IR_LABEL: return;
     case IR_SELECT:
         {
-            AACTX tic(*ic);
+            AACtx tic(*ic);
             AC_comp_pt(&tic) = false;
 
             inferExpression(SELECT_det(expr), mds, &tic, mx);
@@ -3345,7 +3348,7 @@ void IR_AA::computeStmt(IRBB const* bb, IN OUT MD2MDSet * mx)
             {
                 ASSERT0(ir == BB_last_ir(readonly_bb));
                 MDSet tmp;
-                AACTX ic;
+                AACtx ic;
                 inferExpression(IGOTO_vexp(ir), tmp, &ic, mx);
                 tmp.clean(*m_misc_bs_mgr);
             }
@@ -3361,7 +3364,7 @@ void IR_AA::computeStmt(IRBB const* bb, IN OUT MD2MDSet * mx)
             {
                 ASSERT0(ir == BB_last_ir(readonly_bb));
                 MDSet tmp;
-                AACTX ic;
+                AACtx ic;
                 inferExpression(BR_det(ir), tmp, &ic, mx);
                 tmp.clean(*m_misc_bs_mgr);;
             }
@@ -3374,7 +3377,7 @@ void IR_AA::computeStmt(IRBB const* bb, IN OUT MD2MDSet * mx)
             {
                 ASSERT0(ir == BB_last_ir(readonly_bb));
                 MDSet tmp;
-                AACTX ic;
+                AACtx ic;
                 inferExpression(SWITCH_vexp(ir), tmp, &ic, mx);
                 tmp.clean(*m_misc_bs_mgr);
             }
@@ -3812,7 +3815,7 @@ void IR_AA::initAliasAnalysis()
 
 
 //Calculate point-to set.
-bool IR_AA::perform(IN OUT OptCTX & oc)
+bool IR_AA::perform(IN OUT OptCtx & oc)
 {
     ASSERT(m_hashed_maypts, ("Not initialize may point-to set."));
 

@@ -1860,11 +1860,10 @@ FIN:
 }
 
 
-/* Full rank-decomposition
-
-'f': m*r full rank matrix
-'g': r*n full rank matrix
-Let A is m*n matrix, rank is r, and A,f,g satisfied A=f*g. */
+//Full rank-decomposition
+//'f': m*r full rank matrix
+//'g': r*n full rank matrix
+//Let A is m*n matrix, rank is r, and A,f,g satisfied A=f*g.
 template <class T>
 void Matrix<T>::frd(OUT Matrix<T> & f, OUT Matrix<T> & g)
 {

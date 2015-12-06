@@ -59,7 +59,7 @@ VAR::VAR()
 }
 
 
-void VAR::dump(FILE * h, TypeMgr const* dm)
+void VAR::dump(FILE * h, TypeMgr const* dm) const
 {
     CHAR buf[MAX_BUF_LEN];
     buf[0] = 0;
@@ -72,7 +72,8 @@ void VAR::dump(FILE * h, TypeMgr const* dm)
 }
 
 
-CHAR * VAR::dump(CHAR * buf, TypeMgr const* dm)
+//You must make sure this function will not change any field of VAR.
+CHAR * VAR::dump(CHAR * buf, TypeMgr const* dm) const
 {
     CHAR * tb = buf;
     CHAR * name = SYM_name(VAR_name(this));

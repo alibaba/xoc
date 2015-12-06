@@ -546,6 +546,10 @@ public:
     Type const* getU32() const { return m_u32; }
     Type const* getU64() const { return m_u64; }
     Type const* getU128() const { return m_u128; }
+    Type const* getF32() const { return m_f32; }
+    Type const* getF64() const { return m_f64; }
+    Type const* getF80() const { return m_f80; }
+    Type const* getF128() const { return m_f128; }
     Type const* getString() const { return m_str; }
     Type const* getVoid() const { return m_void; }
 

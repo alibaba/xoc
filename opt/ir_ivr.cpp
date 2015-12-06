@@ -45,18 +45,22 @@ bool IR_IVR::computeInitVal(IR const* ir, IV * iv)
         return false;
     }
 
-    IR const* v = ST_rhs(ir);
+    IV_initv_stmt(iv) = ir;
+
+    IR const* v = ST_rhs(ir); //v is the initial value.
     if (v->is_cvt()) {
         //You should have performed refineIR to optimize cvt.
-        v = CVT_exp(v);
+        v = ((CCvt*)v)->get_leaf_exp();
     }
+
+    IV_initv_data_type(iv) = v->get_type();
 
     if (v->is_const() && v->is_int()) {
         if (IV_initv_i(iv) == NULL) {
             IV_initv_i(iv) = (LONGLONG*)xmalloc(sizeof(LONGLONG));
         }
         *IV_initv_i(iv) = CONST_int_val(v);
-        IV_initv_type(iv) = IV_INIT_VAL_IS_INT;
+        IV_initv_type(iv) = IV_INIT_VAL_IS_CONST;
         return true;
     }
 
@@ -66,24 +70,36 @@ bool IR_IVR::computeInitVal(IR const* ir, IV * iv)
         IV_initv_type(iv) = IV_INIT_VAL_IS_VAR;
         return true;
     }
+
     IV_initv_i(iv) = NULL;
     return false;
 }
 
 
+//Find initialze value of IV, if found return true,
+//otherwise return false.
 bool IR_IVR::findInitVal(IV * iv)
 {
-    IR const* def = IV_iv_def(iv);
-    ASSERT0(def->is_stmt());
-    DUSet const* defs = def->get_duset_c();
+    DUSet const* defs = IV_iv_occ(iv)->get_duset_c();
     ASSERT0(defs);
-    IR const* domdef = m_du->findDomDef(IV_iv_occ(iv), def, defs, true);
+    ASSERT0(IV_iv_occ(iv)->is_exp());
+    ASSERT0(IV_iv_def(iv)->is_stmt());
+    IR const* domdef = m_du->findDomDef(IV_iv_occ(iv),
+                                        IV_iv_def(iv),
+                                        defs, true);
     if (domdef == NULL) { return false; }
 
-    MD const* md = domdef->get_exact_ref();
-    if (md == NULL || md != IV_iv(iv)) {
+    MD const* emd = NULL;
+    if (m_is_only_handle_exact_md) {
+        emd = domdef->get_exact_ref();
+    } else {
+        emd = domdef->get_effect_ref();
+    }
+
+    if (emd == NULL || emd != IV_iv(iv)) {
         return false;
     }
+
     LI<IRBB> const* li = IV_li(iv);
     ASSERT0(li);
     IRBB * dbb = domdef->get_bb();
@@ -94,16 +110,18 @@ bool IR_IVR::findInitVal(IV * iv)
 }
 
 
-/* Find all iv.
-'map_md2defcount': record the number of definitions to MD.
-'map_md2defir': map MD to define stmt. */
-void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
-                      Vector<UINT> & map_md2defcount,
-                      UINT2IR & map_md2defir)
+//Find Basic IV.
+//'map_md2defcount': record the number of definitions to MD.
+//'map_md2defir': map MD to define stmt.
+void IR_IVR::findBIV(
+        LI<IRBB> const* li,
+        BitSet & tmp,
+        Vector<UINT> & map_md2defcount,
+        UINT2IR & map_md2defir)
 {
     IRBB * head = LI_loop_head(li);
     UINT headi = BB_id(head);
-    tmp.clean(); //tmp is used to record exact MD which be modified.
+    tmp.clean(); //tmp is used to record exact/effect MD which be modified.
     map_md2defir.clean();
     map_md2defcount.clean();
     for (INT i = LI_bb_set(li)->get_first();
@@ -111,50 +129,64 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
         //if ((UINT)i == headi) { continue; }
         IRBB * bb = m_cfg->get_bb(i);
         ASSERT0(bb && m_cfg->get_vertex(BB_id(bb)));
-        for (IR * ir = BB_first_ir(bb);
-             ir != NULL; ir = BB_next_ir(bb)) {
+        for (IR * ir = BB_first_ir(bb); ir != NULL; ir = BB_next_ir(bb)) {
             if (!ir->is_st() && !ir->is_ist() && !ir->is_calls_stmt()) {
                 continue;
             }
 
-            MD const* exact_md = m_du->get_must_def(ir);
-            if (exact_md != NULL) {
-                if (exact_md->is_exact()) {
-                    tmp.bunion(MD_id(exact_md));
-                    UINT c = map_md2defcount.get(MD_id(exact_md)) + 1;
-                    map_md2defcount.set(MD_id(exact_md), c);
+            MD const* emd = m_du->get_must_def(ir);
+            if (emd != NULL) {
+                //Only handle Must-Def stmt.
+                if (!m_is_only_handle_exact_md ||
+                    (m_is_only_handle_exact_md && emd->is_exact())) {
+                    UINT emdid = MD_id(emd);
+                    tmp.bunion(emdid);
+                    UINT c = map_md2defcount.get(emdid) + 1;
+                    map_md2defcount.set(emdid, c);
                     if (c == 1) {
-                        map_md2defir.set(MD_id(exact_md), ir);
+                        ASSERT0(map_md2defir.get(emdid) == NULL);
+                        map_md2defir.setAlways(emdid, ir);
+                        map_md2defcount.set(emdid, 1);
                     } else {
-                        map_md2defir.setAlways(MD_id(exact_md), NULL);
-                        tmp.diff(MD_id(exact_md));
+                        //For performance, we do not remove the TN of TMap.
+                        //Just the mapped value to be NULL.
+                        map_md2defir.setAlways(emdid, NULL);
+                        tmp.diff(emdid);
                     }
                 }
             }
 
-            //May kill other definitions.
+            //The stmt may-kill other definitions for same MD.
             MDSet const* maydef = m_du->get_may_def(ir);
             if (maydef == NULL) { continue; }
 
             for (INT i = tmp.get_first(); i != -1; i = tmp.get_next(i)) {
                 MD const* md = m_md_sys->get_md(i);
-                ASSERT0(md->is_exact());
+                ASSERT0(!m_is_only_handle_exact_md || md->is_exact());
                 if (maydef->is_contain(md)) {
                     map_md2defcount.set(i, 0);
+
+                    //For performance, we do not remove the TN of TMap.
+                    //Just the mapped value to be NULL.
+                    map_md2defir.setAlways(i, NULL);
                     tmp.diff(i);
                 }
             }
-        } //end for
-    }
+        } //end for each IR.
+    } //for each IRBB.
 
-    //Find biv.
+    //Find BIV.
+
+    //First, find the stmt that is single def-stmt of exact/effect MD.
     bool find = false;
     List<MD*> sdlst; //single def md lst.
     for (INT i = tmp.get_first(); i != -1; i = tmp.get_next(i)) {
         if (map_md2defcount.get(i) != 1) { continue; }
         IR * def = map_md2defir.get(i);
         ASSERT0(def);
-        if (m_du->get_avail_in_reach_def(headi)->is_contain(IR_id(def))) {
+
+        //def stmt is reach-in of loop head.
+        if (m_du->getInReachDef(headi)->is_contain(IR_id(def))) {
             //MD i is biv.
             sdlst.append_head(m_md_sys->get_md(i));
             find = true;
@@ -162,6 +194,7 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
     }
     if (!find) { return; }
 
+    //Find induction operation from the stmt list.
     for (MD * biv = sdlst.get_head(); biv != NULL; biv = sdlst.get_next()) {
         IR * def = map_md2defir.get(MD_id(biv));
         ASSERT0(def);
@@ -195,13 +228,19 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
         //Make sure self modify stmt is monotonic.
         IR * op0 = BIN_opnd0(stv);
         IR * op1 = BIN_opnd1(stv);
-        if (!op1->is_int()) { continue; }
+        if (op1->is_int()) {;}
+        else if (g_is_support_dynamic_type && op1->is_const()) {
+            //TODO: support dynamic const type as the addend of ADD/SUB.
+            continue;
+        } else { continue; }
 
-        MD const* op0md = op0->get_exact_ref();
-        if (op0md == NULL || op0md != biv) { continue; }
+        if (m_is_only_handle_exact_md) {
+            MD const* op0md = op0->get_exact_ref();
+            if (op0md == NULL || op0md != biv) { continue; }
+        }
 
         //Work out IV.
-        IV * x = newIV();
+        IV * x = allocIV();
         IV_iv(x) = biv;
         IV_li(x) = li;
         IV_iv_occ(x) = op0;
@@ -213,9 +252,14 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
             IV_is_inc(x) = false;
         }
         findInitVal(x);
+
+        m_ir2iv.set(op0, x);
+        m_ir2iv.set(def, x);
+
         SList<IV*> * ivlst = m_li2bivlst.get(LI_id(li));
         if (ivlst == NULL) {
             ivlst = (SList<IV*>*)xmalloc(sizeof(SList<IV*>));
+            ivlst->init();
             ivlst->set_pool(m_sc_pool);
             m_li2bivlst.set(LI_id(li), ivlst);
         }
@@ -248,7 +292,7 @@ bool IR_IVR::is_loop_invariant(LI<IRBB> const* li, IR const* ir)
 bool IR_IVR::scanExp(IR const* ir, LI<IRBB> const* li, BitSet const& ivmds)
 {
     ASSERT0(ir->is_exp());
-    switch (IR_code(ir)) {
+    switch (ir->get_code()) {
     case IR_CONST:
     case IR_LDA:
         return true;
@@ -287,12 +331,13 @@ bool IR_IVR::scanExp(IR const* ir, LI<IRBB> const* li, BitSet const& ivmds)
 }
 
 
-//Try to add iv expresion into div list if 'ive' do not exist in the list.
+//Try to add IV expresion into div list if 'e' do not exist in the list.
 void IR_IVR::addDIVList(LI<IRBB> const* li, IR const* e)
 {
     SList<IR const*> * divlst = m_li2divlst.get(LI_id(li));
     if (divlst == NULL) {
         divlst = (SList<IR const*>*)xmalloc(sizeof(SList<IR const*>));
+        divlst->init();
         divlst->set_pool(m_sc_pool);
         m_li2divlst.set(LI_id(li), divlst);
     }
@@ -312,8 +357,7 @@ void IR_IVR::addDIVList(LI<IRBB> const* li, IR const* e)
 }
 
 
-void IR_IVR::findDIV(IN LI<IRBB> const* li, IN SList<IV*> const& bivlst,
-                      BitSet & tmp)
+void IR_IVR::findDIV(LI<IRBB> const* li, SList<IV*> const& bivlst, BitSet & tmp)
 {
     if (bivlst.get_elem_count() == 0) { return; }
 
@@ -329,9 +373,8 @@ void IR_IVR::findDIV(IN LI<IRBB> const* li, IN SList<IV*> const& bivlst,
          i != -1; i = LI_bb_set(li)->get_next(i)) {
         IRBB * bb = m_cfg->get_bb(i);
         ASSERT0(bb && m_cfg->get_vertex(BB_id(bb)));
-        for (IR * ir = BB_first_ir(bb);
-             ir != NULL; ir = BB_next_ir(bb)) {
-            switch (IR_code(ir)) {
+        for (IR * ir = BB_first_ir(bb); ir != NULL; ir = BB_next_ir(bb)) {
+            switch (ir->get_code()) {
             case IR_ST:
             case IR_STPR:
             case IR_IST:
@@ -382,42 +425,67 @@ void IR_IVR::_dump(LI<IRBB> * li, UINT indent)
                  sc != bivlst->end(); sc = bivlst->get_next(sc)) {
                 IV * iv = sc->val();
                 ASSERT0(iv);
-
                 fprintf(g_tfile, "\n");
                 for (UINT i = 0; i < indent; i++) { fprintf(g_tfile, " "); }
                 fprintf(g_tfile, "BIV(md%d", MD_id(IV_iv(iv)));
+
                 if (IV_is_inc(iv)) {
                     fprintf(g_tfile, ",step=%lld", IV_step(iv));
                 } else {
                     fprintf(g_tfile, ",step=-%lld", IV_step(iv));
                 }
-                if (IV_initv_i(iv) != NULL) {
-                    if (IV_initv_type(iv) == IV_INIT_VAL_IS_INT) {
+
+                if (iv->has_init_val()) {
+                    if (iv->isInitConst()) {
                         fprintf(g_tfile, ",init=%lld", *IV_initv_i(iv));
                     } else {
-                        ASSERT0(IV_initv_type(iv) == IV_INIT_VAL_IS_VAR);
                         fprintf(g_tfile, ",init=md%d", MD_id(IV_initv_md(iv)));
                     }
                 }
                 fprintf(g_tfile, ")");
+
+                //Dump IV's def-stmt.
+                fprintf(g_tfile, "\n");
+                for (UINT i = 0; i < indent; i++) { fprintf(g_tfile, " "); }
+                fprintf(g_tfile, "Def-Stmt:");
+                ASSERT0(IV_iv_def(iv));
+                g_indent = indent + 2;
+                dump_ir(IV_iv_def(iv), m_tm, "", true, false, false);
+
+                //Dump IV's occ-exp.
+                fprintf(g_tfile, "\n");
+                for (UINT i = 0; i < indent; i++) { fprintf(g_tfile, " "); }
+                fprintf(g_tfile, "Occ-Exp:");
+                ASSERT0(IV_iv_occ(iv));
+                g_indent = indent + 2;
+                dump_ir(IV_iv_occ(iv), m_tm, "", true, false, false);
+
+                //Dump IV's init-stmt.
+                if (iv->getInitValStmt() != NULL) {
+                    fprintf(g_tfile, "\n");
+                    for (UINT i = 0; i < indent; i++) { fprintf(g_tfile, " "); }
+                    fprintf(g_tfile, "Init-Stmt:");
+                    g_indent = indent + 2;
+                    dump_ir(iv->getInitValStmt(), m_tm, "", true, false, false);
+                }
             }
-        }
+        } else { fprintf(g_tfile, "(NO BIV)"); }
 
         SList<IR const*> * divlst = m_li2divlst.get(LI_id(li));
         if (divlst != NULL) {
             if (divlst->get_elem_count() > 0) {
                 fprintf(g_tfile, "\n");
                 for (UINT i = 0; i < indent; i++) { fprintf(g_tfile, " "); }
+                fprintf(g_tfile, "DIV:");
             }
             for (SC<IR const*> * sc = divlst->get_head();
                  sc != divlst->end(); sc = divlst->get_next(sc)) {
                 IR const* iv = sc->val();
                 ASSERT0(iv);
-                fprintf(g_tfile, "\n");
-                g_indent = indent;
-                dump_ir(iv, m_tm);
+                g_indent = indent + 2;
+                dump_ir(iv, m_tm, "", true, false, false);
             }
-        }
+        } else { fprintf(g_tfile, "(NO DIV)"); }
 
         _dump(LI_inner_list(li), indent + 2);
         li = LI_next(li);
@@ -452,15 +520,17 @@ void IR_IVR::clean()
 }
 
 
-bool IR_IVR::perform(OptCTX & oc)
+bool IR_IVR::perform(OptCtx & oc)
 {
     START_TIMER_AFTER();
     UINT n = m_ru->get_bb_list()->get_elem_count();
     if (n == 0) { return false; }
 
-    m_ru->checkValidAndRecompute(&oc, PASS_AVAIL_REACH_DEF, PASS_DU_REF,
-                                    PASS_DOM, PASS_LOOP_INFO, PASS_DU_CHAIN,
-                                    PASS_RPO, PASS_UNDEF);
+    m_ru->checkValidAndRecompute(&oc, PASS_REACH_DEF, PASS_DU_REF,
+                                 PASS_DOM, PASS_LOOP_INFO, PASS_DU_CHAIN,
+                                 PASS_RPO, PASS_UNDEF);
+    IR_DU_MGR * dumgr = (IR_DU_MGR*)m_ru->get_pass_mgr()->queryPass(PASS_DU_MGR);
+    dumgr->dumpDUChainDetail();
 
     LI<IRBB> const* li = m_cfg->get_loop_info();
     clean();

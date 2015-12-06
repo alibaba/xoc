@@ -355,7 +355,7 @@ public:
     virtual CHAR const* get_pass_name() const { return "Register Promotion"; }
     PASS_TYPE get_pass_type() const { return PASS_RP; }
 
-    virtual bool perform(OptCTX & oc);
+    virtual bool perform(OptCtx & oc);
 };
 
 } //namespace xoc

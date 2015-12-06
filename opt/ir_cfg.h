@@ -191,8 +191,8 @@ public:
     }
 
     virtual void cf_opt();
-    void computeDomAndIdom(IN OUT OptCTX & oc, BitSet const* uni = NULL);
-    void computePdomAndIpdom(IN OUT OptCTX & oc, BitSet const* uni = NULL);
+    void computeDomAndIdom(IN OUT OptCtx & oc, BitSet const* uni = NULL);
+    void computePdomAndIpdom(IN OUT OptCtx & oc, BitSet const* uni = NULL);
 
     //Record the Exit BB here.
     virtual void computeExitList()
@@ -244,7 +244,7 @@ public:
     void findAllTryRegions(OUT BitSet & trybbs);
 
     //Allocate and initialize control flow graph.
-    void initCfg(OptCTX & oc);
+    void initCfg(OptCtx & oc);
     virtual bool if_opt(IRBB * bb);
     bool is_ru_entry(IRBB * bb) { return BB_is_entry(bb); }
     bool is_ru_exit(IRBB * bb) { return BB_is_exit(bb); }
@@ -279,7 +279,7 @@ public:
     virtual PASS_TYPE get_pass_type() const { return PASS_CFG; }
 
     //Find natural loop and scan loop body to find call and early exit, etc.
-    void LoopAnalysis(OptCTX & oc);
+    void LoopAnalysis(OptCtx & oc);
 
     //Compute which predecessor is pred to bb.
     //e.g: If pred is the first predecessor, return 0.
@@ -333,13 +333,13 @@ public:
 
     virtual void moveLabels(IRBB * src, IRBB * tgt);
 
-    virtual bool perform(OptCTX & oc) { UNUSED(oc); return false; }
+    virtual bool perform(OptCtx & oc) { UNUSED(oc); return false; }
 
     //Perform miscellaneous control flow optimizations.
     //Include remove dead bb which is unreachable, remove empty bb as many
     //as possible, simplify and remove the branch like "if (x==x)", remove
     //the trampolin branch.
-    bool performMiscOpt(OptCTX & oc);
+    bool performMiscOpt(OptCtx & oc);
 };
 
 } //namespace xoc

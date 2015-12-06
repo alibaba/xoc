@@ -69,7 +69,7 @@ template <class BB, class XR> class CFG : public DGraph {
 protected:
     LI<BB> * m_loop_info; //Loop information
     List<BB*> * m_bb_list;
-    Vector<LI<BB>*> m_map_bb2li;
+    Vector<LI<BB>*> m_map_bb2li; //map bb to LI if bb is loop header.
     BB * m_entry; //CFG Graph entry.
     List<BB*> m_exit_list; //CFG Graph ENTRY list
     List<BB*> m_rpo_bblst; //record BB in reverse-post-order.
@@ -84,7 +84,7 @@ protected:
     void collect_loop_info() { collect_loop_info_recur(m_loop_info); }
 
     //Do clean before recompute loop info.
-    void clean_loop_info();
+    void clean_loop_info(bool access_li_by_scan_bb = false);
     void compute_rpo_core(BitSet & is_visited, IN Vertex * v, OUT INT & order);
     inline void collect_loop_info_recur(LI<BB> * li);
 
@@ -128,7 +128,7 @@ public:
     virtual ~CFG() { smpoolDelete(m_pool); }
 
     virtual void add_break_out_loop_node(BB * loop_head, BitSet & body_set);
-    void rebuild(OptCTX & oc)
+    void rebuild(OptCtx & oc)
     {
         erase();
         UINT newsz = MAX(16, getNearestPowerOf2(m_bb_list->get_elem_count()));
@@ -141,7 +141,7 @@ public:
     }
 
     //Build the CFG accroding to BB list.
-    void build(OptCTX & oc);
+    void build(OptCtx & oc);
 
     bool computeDom(BitSet const* uni)
     {
@@ -244,8 +244,8 @@ public:
         }
     }
 
-    void chain_pred_succ(UINT vid, bool is_single_pred_succ = false);
-    void compute_rpo(OptCTX & oc);
+    void chainPredAndSucc(UINT vid, bool is_single_pred_succ = false);
+    void compute_rpo(OptCtx & oc);
     UINT count_mem() const
     {
         UINT count = sizeof(*this);
@@ -394,7 +394,7 @@ public:
         Graph::removeEdge(e);
     }
 
-    bool removeEmptyBB(OptCTX & oc);
+    bool removeEmptyBB(OptCtx & oc);
     bool removeUnreachBB();
     bool removeRedundantBranch();
 
@@ -436,7 +436,7 @@ public:
     //Set RPO for BB.
     virtual void set_rpo(BB * bb, INT order) = 0;
 
-    bool verify_rmbb(IN CDG * cdg, OptCTX & oc);
+    bool verify_rmbb(IN CDG * cdg, OptCtx & oc);
     bool verify()
     {
         //The entry node can not have any predecessors.
@@ -567,7 +567,7 @@ void CFG<BB, XR>::dump_loop_tree(LI<BB> * looplist, UINT indent, FILE * h)
 
 
 template <class BB, class XR>
-bool CFG<BB, XR>::verify_rmbb(IN CDG * cdg, OptCTX & oc)
+bool CFG<BB, XR>::verify_rmbb(IN CDG * cdg, OptCtx & oc)
 {
     ASSERT(cdg, ("DEBUG: verify need cdg."));
     C<BB*> * ct, * next_ct;
@@ -625,7 +625,7 @@ bool CFG<BB, XR>::verify_rmbb(IN CDG * cdg, OptCTX & oc)
 
 //Remove empty bb, and merger label info.
 template <class BB, class XR>
-bool CFG<BB, XR>::removeEmptyBB(OptCTX & oc)
+bool CFG<BB, XR>::removeEmptyBB(OptCtx & oc)
 {
     START_TIMER("Remove Empty BB");
     C<BB*> * ct, * next_ct;
@@ -1115,7 +1115,7 @@ bool CFG<BB, XR>::removeUnreachBB()
 
 //Connect each predessors to each successors.
 template <class BB, class XR>
-void CFG<BB, XR>::chain_pred_succ(UINT vid, bool is_single_pred_succ)
+void CFG<BB, XR>::chainPredAndSucc(UINT vid, bool is_single_pred_succ)
 {
     Vertex * v = get_vertex(vid);
     ASSERT0(v);
@@ -1174,7 +1174,7 @@ void CFG<BB, XR>::get_preds(IN OUT List<BB*> & preds, IN BB const* v)
 //Construct cfg.
 //Append exit bb if necessary when cfg is constructed.
 template <class BB, class XR>
-void CFG<BB, XR>::build(OptCTX & oc)
+void CFG<BB, XR>::build(OptCtx & oc)
 {
     ASSERT(m_bb_list, ("bb_list is emt"));
     C<BB*> * ct = NULL;
@@ -1370,17 +1370,46 @@ void CFG<BB, XR>::add_break_out_loop_node(BB * loop_head, BitSet & body_set)
 }
 
 
+//access_li_by_scan_bb: if true this function will clean loop info
+//via scanning BB list.
 template <class BB, class XR>
-void CFG<BB, XR>::clean_loop_info()
+void CFG<BB, XR>::clean_loop_info(bool access_li_by_scan_bb)
 {
-    C<BB*> * ct;
-    for (m_bb_list->get_head(&ct);
-         ct != m_bb_list->end(); ct = m_bb_list->get_next(ct)) {
-        BB * bb = ct->val();
-        LI<BB> * li = m_map_bb2li.get(bb->id);
-        if (li != NULL) {
-            m_bs_mgr->free(LI_bb_set(li));
-            m_map_bb2li.set(bb->id, NULL);
+    if (access_li_by_scan_bb) {
+        C<BB*> * ct;
+        for (m_bb_list->get_head(&ct);
+             ct != m_bb_list->end(); ct = m_bb_list->get_next(ct)) {
+            BB * bb = ct->val();
+            LI<BB> * li = m_map_bb2li.get(bb->id);
+            if (li != NULL) {
+                m_bs_mgr->free(LI_bb_set(li));
+                m_map_bb2li.set(bb->id, NULL);
+            }
+        }
+        m_loop_info = NULL;
+        return;
+    }
+
+    LI<IRBB> * li = get_loop_info();
+    if (li == NULL) { return; }
+
+    List<LI<IRBB>*> worklst;
+    for (; li != NULL; li = LI_next(li)) {
+        worklst.append_tail(li);
+    }
+
+    while (worklst.get_elem_count() > 0) {
+        LI<IRBB> * x = worklst.remove_head();
+
+        UINT id = LI_loop_head(x)->id;
+        LI<BB> * li = m_map_bb2li.get(id);
+        ASSERT(li, ("No any BB correspond to current loop info."));
+
+        m_bs_mgr->free(LI_bb_set(li));
+        m_map_bb2li.set(id, NULL);
+
+        for (LI<IRBB> * y = LI_inner_list(x); y != NULL; y = LI_next(y)) {
+            worklst.append_tail(x);
         }
     }
     m_loop_info = NULL;
@@ -1609,7 +1638,7 @@ void CFG<BB, XR>::compute_rpo_core(
 
 //Compute rev-post-order.
 template <class BB, class XR>
-void CFG<BB, XR>::compute_rpo(OptCTX & oc)
+void CFG<BB, XR>::compute_rpo(OptCtx & oc)
 {
     START_TIMER("Compute Rpo");
     if (m_bb_list->get_elem_count() == 0) { return; }

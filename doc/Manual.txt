@@ -279,6 +279,10 @@ Programming Guides
     node have NEXT and PREV pointers which link them together.
     Statment can not be kid of other statement, and expression can be kid of
     both expression and statement.
+    In a simple word, statements have side effects, and can be reordered only
+    if dependencies preserved. Expressions do not have side effect, expression
+    trees hung from statement, and they contain only uses and can be
+    aggressively optimized.
 
     ¡ñ IR_ID
         Identifier, represents a memory variable, namely, VAR.

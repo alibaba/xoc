@@ -126,7 +126,7 @@ public:
         return m_registered_pass.get(opty);
     }
 
-    virtual void performScalarOpt(OptCTX & oc);
+    virtual void performScalarOpt(OptCtx & oc);
 };
 
 } //namespace xoc

@@ -213,7 +213,7 @@ public:
     void setPRToBeLiveout(IRBB * bb, UINT prno)
     { get_liveout(BB_id(bb))->bunion(prno, m_sbs_mgr); }
 
-    virtual bool perform(OptCTX & oc);
+    virtual bool perform(OptCtx & oc);
 };
 
 } //namespace xoc

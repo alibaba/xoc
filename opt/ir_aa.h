@@ -190,12 +190,11 @@ public:
 };
 
 
-//IRAA_CTX
 #define AC_is_mds_mod(c)        ((c)->u1.s1.is_mds_modify)
 #define AC_is_lda_base(c)       ((c)->u1.s1.is_lda_base)
 #define AC_has_comp_lda(c)      ((c)->u1.s1.has_comp_lda)
 #define AC_comp_pt(c)           ((c)->u1.s1.comp_pt)
-class AACTX {
+class AACtx {
 public:
     union {
         struct {
@@ -229,13 +228,13 @@ public:
         UINT i1;
     } u1;
 
-    AACTX() { clean(); }
-    AACTX(AACTX const& ic) { copy(ic); }
+    AACtx() { clean(); }
+    AACtx(AACtx const& ic) { copy(ic); }
 
-    inline void copy(AACTX const& ic) { u1.i1 = ic.u1.i1; }
+    inline void copy(AACtx const& ic) { u1.i1 = ic.u1.i1; }
 
     //Only copy top down flag.
-    inline void copyTopDownFlag(AACTX const& ic)
+    inline void copyTopDownFlag(AACtx const& ic)
     {
         AC_comp_pt(this) = AC_comp_pt(&ic);
         AC_is_lda_base(this) = AC_is_lda_base(&ic);
@@ -252,7 +251,7 @@ public:
 
     //Collect the bottom-up flag and use them to direct parent action.
     //Clean these flag when processing each individiual IR trees.
-    inline void copyBottomUpFlag(AACTX const& ic)
+    inline void copyBottomUpFlag(AACtx const& ic)
     {
         AC_has_comp_lda(this) = AC_has_comp_lda(&ic);
         AC_is_mds_mod(this) = AC_is_mds_mod(&ic);
@@ -317,24 +316,24 @@ protected:
     MD const* assignStringConst(
                     IN IR * ir,
                     IN OUT MDSet * mds,
-                    IN OUT AACTX * ic);
+                    IN OUT AACtx * ic);
     MD const* assignStringIdentifier(
                     IN IR * ir,
                     IN OUT MDSet * mds,
-                    IN OUT AACTX * ic);
+                    IN OUT AACtx * ic);
     MD const* assignIdMD(
                     IN IR * ir,
                     IN OUT MDSet * mds,
-                    IN OUT AACTX * ic);
+                    IN OUT AACtx * ic);
     MD const* assignLoadMD(
                     IN IR * ir,
                     IN OUT MDSet * mds,
-                    IN OUT AACTX * ic,
+                    IN OUT AACtx * ic,
                     IN OUT MD2MDSet * mx);
     MD const* assignPRMD(
                     IN IR * ir,
                     IN OUT MDSet * mds,
-                    IN OUT AACTX * ic,
+                    IN OUT AACtx * ic,
                     IN OUT MD2MDSet * mx);
     MD const* allocIdMD(IR * ir);
     MD const* allocLoadMD(IR * ir);
@@ -366,16 +365,16 @@ protected:
     void inferPtArith(
             IR const* ir, IN OUT MDSet & mds,
             IN OUT MDSet & opnd0_mds,
-            IN OUT AACTX * opnd0_ic,
+            IN OUT AACtx * opnd0_ic,
             IN OUT MD2MDSet * mx);
     void inferStoreValue(
             IN IR * ir,
             IN IR * rhs,
             MD const* lhs_md,
-            IN AACTX * ic,
+            IN AACtx * ic,
             IN MD2MDSet * mx);
-    void inferStoreArrayValue(IN IR * ir, IN AACTX * ic, IN MD2MDSet * mx);
-    void inferIstoreValue(IN IR * ir, IN AACTX * ic, IN MD2MDSet * mx);
+    void inferStoreArrayValue(IN IR * ir, IN AACtx * ic, IN MD2MDSet * mx);
+    void inferIstoreValue(IN IR * ir, IN AACtx * ic, IN MD2MDSet * mx);
     void inferArrayInfinite(
             INT ofst,
             bool is_ofst_pred,
@@ -388,55 +387,55 @@ protected:
             bool is_ofst_pred,
             UINT ofst,
             OUT MDSet & mds,
-            IN OUT AACTX * ic,
+            IN OUT AACtx * ic,
             IN OUT MD2MDSet * mx);
     void inferExpression(
             IR * ir,
             IN OUT MDSet & mds,
-            IN OUT AACTX * ic,
+            IN OUT AACtx * ic,
             IN OUT MD2MDSet * mx);
 
     void processLda(
             IR * ir,
             IN OUT MDSet & mds,
-            IN OUT AACTX * ic,
+            IN OUT AACtx * ic,
             IN OUT MD2MDSet * mx);
     void processArrayLdabase(
             IR * ir,
             IN OUT MDSet & mds,
-            IN OUT AACTX * ic,
+            IN OUT AACtx * ic,
             IN OUT MD2MDSet * mx);
     void processCvt(
             IR const* ir,
             IN OUT MDSet & mds,
-            IN OUT AACTX * ic,
+            IN OUT AACtx * ic,
             IN OUT MD2MDSet * mx);
     void processGetelem(
             IR * ir,
             IN OUT MDSet & mds,
-            IN OUT AACTX * ic,
+            IN OUT AACtx * ic,
             IN OUT MD2MDSet * mx);
     void processGetelem(IR * ir, IN MD2MDSet * mx);
     void processSetelem(IR * ir, IN MD2MDSet * mx);
     void processIld(
             IR * ir,
             IN OUT MDSet & mds,
-            IN OUT AACTX * ic,
+            IN OUT AACtx * ic,
             IN OUT MD2MDSet * mx);
     void processPointerArith(
             IR * ir,
             IN OUT MDSet & mds,
-            IN OUT AACTX * ic,
+            IN OUT AACtx * ic,
             IN OUT MD2MDSet * mx);
     void processArray(
             IR * ir,
             IN OUT MDSet & mds,
-            IN OUT AACTX * ic,
+            IN OUT AACtx * ic,
             IN OUT MD2MDSet * mx);
     void processConst(
             IR * ir,
             IN OUT MDSet & mds,
-            IN OUT AACTX * ic);
+            IN OUT AACtx * ic);
     void processStore(IN IR * ir, IN OUT MD2MDSet * mx);
     void processStorePR(IN IR * ir, IN MD2MDSet * mx);
     void processIst(IN IR * ir, IN OUT MD2MDSet * mx);
@@ -457,7 +456,7 @@ protected:
             UINT ofst,
             OUT MDSet & mds,
             OUT bool mds_is_may_pt,
-            IN OUT AACTX * ic,
+            IN OUT AACtx * ic,
             IN OUT MD2MDSet * mx);
 
     void reviseMDsize(IN OUT MDSet & mds, UINT size);
@@ -564,8 +563,8 @@ public:
     bool isPRUniqueForSameNo() const { return m_is_pr_unique_for_same_no; }
     void initMayPointToSet();
 
-    void cleanContext(OptCTX & oc);
-    void destroyContext(OptCTX & oc);
+    void cleanContext(OptCtx & oc);
+    void destroyContext(OptCtx & oc);
 
     void set_must_addr(IR * ir, MD const* md)
     {
@@ -686,7 +685,7 @@ public:
     void markMayAlias(IN IRBB * bb, IN MD2MDSet * mx);
     bool verifyIR(IR * ir);
     bool verify();
-    bool perform(OptCTX & oc);
+    bool perform(OptCtx & oc);
 };
 
 } //namespace xoc

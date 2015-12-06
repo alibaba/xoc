@@ -77,7 +77,7 @@ void DexRegionMgr::processProgramRegion(Region * program)
     #ifdef _CODE_ANA_
     LockScan ls(this);
     ls.set_program(program);
-    OptCTX oc;
+    OptCtx oc;
     ls.perform(oc);
     m_warnmgr.report();
     #endif

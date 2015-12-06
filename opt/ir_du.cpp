@@ -304,7 +304,7 @@ IR * IR_DU_MGR::get_ir(UINT irid)
 
 
 //Return IR stmt-id set.
-DefDBitSetCore * IR_DU_MGR::get_may_gen_def(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getMayGenDef(UINT bbid)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_may_gen_def.get(bbid);
@@ -317,7 +317,7 @@ DefDBitSetCore * IR_DU_MGR::get_may_gen_def(UINT bbid)
 }
 
 
-DefDBitSetCore * IR_DU_MGR::get_must_gen_def(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getMustGenDef(UINT bbid)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_must_gen_def.get(bbid);
@@ -330,7 +330,7 @@ DefDBitSetCore * IR_DU_MGR::get_must_gen_def(UINT bbid)
 }
 
 
-DefDBitSetCore * IR_DU_MGR::get_avail_in_reach_def(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getAvailInReachDef(UINT bbid)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_avail_in_reach_def.get(bbid);
@@ -343,7 +343,7 @@ DefDBitSetCore * IR_DU_MGR::get_avail_in_reach_def(UINT bbid)
 }
 
 
-DefDBitSetCore * IR_DU_MGR::get_avail_out_reach_def(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getAvailOutReachDef(UINT bbid)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_avail_out_reach_def.get(bbid);
@@ -356,7 +356,7 @@ DefDBitSetCore * IR_DU_MGR::get_avail_out_reach_def(UINT bbid)
 }
 
 
-DefDBitSetCore * IR_DU_MGR::get_in_reach_def(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getInReachDef(UINT bbid)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_in_reach_def.get(bbid);
@@ -369,7 +369,7 @@ DefDBitSetCore * IR_DU_MGR::get_in_reach_def(UINT bbid)
 }
 
 
-DefDBitSetCore * IR_DU_MGR::get_out_reach_def(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getOutReachDef(UINT bbid)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_out_reach_def.get(bbid);
@@ -382,7 +382,7 @@ DefDBitSetCore * IR_DU_MGR::get_out_reach_def(UINT bbid)
 }
 
 
-DefDBitSetCore * IR_DU_MGR::get_must_killed_def(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getMustKilledDef(UINT bbid)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_must_killed_def.get(bbid);
@@ -395,7 +395,7 @@ DefDBitSetCore * IR_DU_MGR::get_must_killed_def(UINT bbid)
 }
 
 
-DefDBitSetCore * IR_DU_MGR::get_may_killed_def(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getMayKilledDef(UINT bbid)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_may_killed_def.get(bbid);
@@ -409,7 +409,7 @@ DefDBitSetCore * IR_DU_MGR::get_may_killed_def(UINT bbid)
 
 
 //Return IR expression-id set.
-DefDBitSetCore * IR_DU_MGR::get_gen_ir_expr(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getGenIRExpr(UINT bbid)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_gen_ir_expr.get(bbid);
@@ -423,7 +423,7 @@ DefDBitSetCore * IR_DU_MGR::get_gen_ir_expr(UINT bbid)
 
 
 //Return IR expression-id set.
-DefDBitSetCore * IR_DU_MGR::get_killed_ir_expr(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getKilledIRExpr(UINT bbid)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_killed_ir_expr.get(bbid);
@@ -437,7 +437,7 @@ DefDBitSetCore * IR_DU_MGR::get_killed_ir_expr(UINT bbid)
 
 
 //Return livein set for IR expression. Each element in the set is IR id.
-DefDBitSetCore * IR_DU_MGR::get_availin_expr(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getAvailInExpr(UINT bbid)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_availin_ir_expr.get(bbid);
@@ -451,7 +451,7 @@ DefDBitSetCore * IR_DU_MGR::get_availin_expr(UINT bbid)
 
 
 //Return liveout set for IR expression. Each element in the set is IR id.
-DefDBitSetCore * IR_DU_MGR::get_availout_expr(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getAvailOutExpr(UINT bbid)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_availout_ir_expr.get(bbid);
@@ -848,12 +848,15 @@ void IR_DU_MGR::computeExpression(IR * ir, OUT MDSet * ret_mds, UINT flag)
         if (HAVE_FLAG(flag, COMP_EXP_RECOMPUTE)) {
             //The result of ref info should be avaiable.
             ASSERT0(ir->get_ref_md());
-            ASSERT0(ir->get_ref_mds() == NULL);
 
-            /* e.g: struct {int a;} s;
-            s = ...
-            s.a = ...
-            Where s and s.a is overlapped. */
+            if (!ir->is_void()) {
+                ASSERT0(ir->get_ref_mds() == NULL);
+            }
+
+            //e.g: struct {int a;} s;
+            //s = ...
+            //s.a = ...
+            //Where s and s.a is overlapped.
             computeOverlapUseMDSet(ir, false);
         } else if (HAVE_FLAG(flag, COMP_EXP_COLLECT_MUST_USE)) {
             MD const* t = ir->get_ref_md();
@@ -954,7 +957,7 @@ void IR_DU_MGR::computeExpression(IR * ir, OUT MDSet * ret_mds, UINT flag)
 }
 
 
-void IR_DU_MGR::dump_du_graph(CHAR const* name, bool detail)
+void IR_DU_MGR::dumpDUGraph(CHAR const* name, bool detail)
 {
     if (g_tfile == NULL) { return; }
     Graph dug;
@@ -1324,7 +1327,7 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
 
 //Dump Region's IR BB list.
 //DUMP ALL BBList DEF/USE/OVERLAP_DEF/OVERLAP_USE"
-void IR_DU_MGR::dump_ref(UINT indent)
+void IR_DU_MGR::dumpRef(UINT indent)
 {
     if (g_tfile == NULL) return;
     fprintf(g_tfile, "\n\n==---- DUMP '%s' IR_DU_MGR : DU Reference ----==\n",
@@ -1336,29 +1339,29 @@ void IR_DU_MGR::dump_ref(UINT indent)
     }
     for (IRBB * bb = bbs->get_head(); bb != NULL; bb = bbs->get_next()) {
         fprintf(g_tfile, "\n--- BB%d ---", BB_id(bb));
-        dump_bb_ref(bb, indent);
+        dumpBBRef(bb, indent);
     }
 }
 
 
-void IR_DU_MGR::dump_bb_ref(IN IRBB * bb, UINT indent)
+void IR_DU_MGR::dumpBBRef(IN IRBB * bb, UINT indent)
 {
     for (IR * ir = BB_first_ir(bb); ir != NULL; ir = BB_next_ir(bb)) {
-        dump_ir_ref(ir, indent);
+        dumpIRRef(ir, indent);
     }
 }
 
 
-void IR_DU_MGR::dump_ir_list_ref(IN IR * ir, UINT indent)
+void IR_DU_MGR::dumpIRListRef(IN IR * ir, UINT indent)
 {
     for (; ir != NULL; ir = IR_next(ir)) {
-        dump_ir_ref(ir, indent);
+        dumpIRRef(ir, indent);
     }
 }
 
 
 //Dump IR tree's MD reference, where ir may be stmt or exp.
-void IR_DU_MGR::dump_ir_ref(IN IR * ir, UINT indent)
+void IR_DU_MGR::dumpIRRef(IN IR * ir, UINT indent)
 {
     if (ir == NULL || g_tfile == NULL || ir->is_const()) { return; }
 
@@ -1416,20 +1419,20 @@ void IR_DU_MGR::dump_ir_ref(IN IR * ir, UINT indent)
 
     for (UINT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
         if (ir->get_kid(i) != NULL) {
-            dump_ir_list_ref(ir->get_kid(i), indent + 4);
+            dumpIRListRef(ir->get_kid(i), indent + 4);
         }
     }
     fflush(g_tfile);
 }
 
 
-void IR_DU_MGR::dump_bb_du_chain2(UINT bbid)
+void IR_DU_MGR::dumpBBDUChainDetail(UINT bbid)
 {
-    dump_bb_du_chain2(m_cfg->get_bb(bbid));
+    dumpBBDUChainDetail(m_cfg->get_bb(bbid));
 }
 
 
-void IR_DU_MGR::dump_bb_du_chain2(IRBB * bb)
+void IR_DU_MGR::dumpBBDUChainDetail(IRBB * bb)
 {
     ASSERT0(bb);
     fprintf(g_tfile, "\n--- BB%d ---", BB_id(bb));
@@ -1542,25 +1545,27 @@ void IR_DU_MGR::dump_bb_du_chain2(IRBB * bb)
 }
 
 
-//Dump du chain for each memory reference.
-void IR_DU_MGR::dump_du_chain2()
+//The difference between this function and dumpDUChain is this function
+//will dump du chain for each memory reference.
+void IR_DU_MGR::dumpDUChainDetail()
 {
     if (g_tfile == NULL) return;
-    fprintf(g_tfile, "\n\n==---- DUMP '%s' DU_CHAIN2 ----==\n",
+    fprintf(g_tfile, "\n\n==---- DUMP '%s' DU_CHAIN Detail ----==\n",
             m_ru->get_ru_name());
     g_indent = 0;
     BBList * bbl = m_ru->get_bb_list();
     for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
-        dump_bb_du_chain2(bb);
+        dumpBBDUChainDetail(bb);
     } //end for each BB
     fflush(g_tfile);
 }
 
 
-//Dump du chain for stmt.
-//Collect must and may use MDs and regard stmt as a whole.
-//So this function do not distingwish individual memory operand.
-void IR_DU_MGR::dump_du_chain()
+//Dump du chain only for stmt.
+//This function collects must and may USE of MD and regard stmt as a whole.
+//So this function does not distingwish individual memory operand inside the
+//stmt, but if you want, please invoke dumpDUChainDetail().
+void IR_DU_MGR::dumpDUChain()
 {
     if (g_tfile == NULL) return;
     fprintf(g_tfile, "\n\n==---- DUMP '%s' DU_CHAIN ----==\n",
@@ -1666,7 +1671,7 @@ void IR_DU_MGR::dump_du_chain()
 
 
 //'is_bs': true to dump bitset info.
-void IR_DU_MGR::dump_set(bool is_bs)
+void IR_DU_MGR::dumpSet(bool is_bs)
 {
     if (g_tfile == NULL) return;
     fprintf(g_tfile, "\n\n==---- DUMP %s() IR_DU_MGR : SET ----==\n",
@@ -1679,18 +1684,18 @@ void IR_DU_MGR::dump_set(bool is_bs)
 
         UINT bbid = BB_id(bb);
         fprintf(g_tfile, "\n---- BB%d ----", bbid);
-        DefDBitSetCore * def_in = get_in_reach_def(bbid);
-        DefDBitSetCore * def_out = get_out_reach_def(bbid);
-        DefDBitSetCore * avail_def_in = get_avail_in_reach_def(bbid);
-        DefDBitSetCore * avail_def_out = get_avail_out_reach_def(bbid);
-        DefDBitSetCore * may_def_gen = get_may_gen_def(bbid);
-        DefDBitSetCore * must_def_gen = get_must_gen_def(bbid);
-        DefDBitSetCore * must_def_kill = get_must_killed_def(bbid);
-        DefDBitSetCore * may_def_kill = get_may_killed_def(bbid);
-        DefDBitSetCore * gen_ir = get_gen_ir_expr(bbid);
-        DefDBitSetCore * kill_ir = get_killed_ir_expr(bbid);
-        DefDBitSetCore * livein_ir = get_availin_expr(bbid);
-        DefDBitSetCore * liveout_ir = get_availout_expr(bbid);
+        DefDBitSetCore * def_in = getInReachDef(bbid);
+        DefDBitSetCore * def_out = getOutReachDef(bbid);
+        DefDBitSetCore * avail_def_in = getAvailInReachDef(bbid);
+        DefDBitSetCore * avail_def_out = getAvailOutReachDef(bbid);
+        DefDBitSetCore * may_def_gen = getMayGenDef(bbid);
+        DefDBitSetCore * must_def_gen = getMustGenDef(bbid);
+        DefDBitSetCore * must_def_kill = getMustKilledDef(bbid);
+        DefDBitSetCore * may_def_kill = getMayKilledDef(bbid);
+        DefDBitSetCore * gen_ir = getGenIRExpr(bbid);
+        DefDBitSetCore * kill_ir = getKilledIRExpr(bbid);
+        DefDBitSetCore * livein_ir = getAvailInExpr(bbid);
+        DefDBitSetCore * liveout_ir = getAvailOutExpr(bbid);
 
         INT i;
 
@@ -2489,9 +2494,9 @@ void IR_DU_MGR::inferCall(IR * ir, IN MD2MDSet * mx)
     while (param != NULL) {
         //Compute USE mdset.
         if (param->is_ptr()) {
-            /* e.g: foo(p); where p->{a, b} then foo may use p, a, b.
-            Note that point-to information is only avaiable for the
-            last stmt of BB. The call is just in the situation. */
+            //e.g: foo(p); where p->{a, b} then foo may use p, a, b.
+            //Note that point-to information is only avaiable for the
+            //last stmt of BB. The call is just in the situation.
             m_aa->computeMayPointTo(param, mx, maydefuse);
         }
         computeExpression(param, NULL, COMP_EXP_RECOMPUTE);
@@ -2939,13 +2944,13 @@ void IR_DU_MGR::computeMustDef_MayDef_MayUse(
         UINT bbid = BB_id(bb);
         if (mustdefmds != NULL) {
             bb_mustdefmds = mustdefmds->get(bbid);
-            mustgen_stmt = get_must_gen_def(bbid);
+            mustgen_stmt = getMustGenDef(bbid);
             mustgen_stmt->clean(*m_misc_bs_mgr);
         }
 
         if (maydefmds != NULL) {
             bb_maydefmds = maydefmds->get(bbid);
-            maygen_stmt = get_may_gen_def(bbid);
+            maygen_stmt = getMayGenDef(bbid);
             maygen_stmt->clean(*m_misc_bs_mgr);
         }
 
@@ -2983,8 +2988,8 @@ void IR_DU_MGR::computeMustDef_MayDef_MayUse(
 }
 
 
-/* Compute Defined, Used md-set, Generated ir-stmt-set, and
-MayDefined md-set for each IR. */
+//Compute Defined, Used md-set, Generated ir-stmt-set, and
+//MayDefined md-set for each IR.
 void IR_DU_MGR::computeMDRef()
 {
     m_cached_overlap_mdset.clean();
@@ -3082,7 +3087,7 @@ void IR_DU_MGR::computeKillSet(
     for (ir_bb_list->get_head(&ct);
          ct != ir_bb_list->end(); ct = ir_bb_list->get_next(ct)) {
         IRBB * bb = ct->val();
-        univers.bunion(*get_may_gen_def(BB_id(bb)), *m_misc_bs_mgr);
+        univers.bunion(*getMayGenDef(BB_id(bb)), *m_misc_bs_mgr);
     }
 
     DefDBitSetCore xtmp;
@@ -3092,7 +3097,7 @@ void IR_DU_MGR::computeKillSet(
         IRBB * bb = ct->val();
 
         UINT bbid = BB_id(bb);
-        DefDBitSetCore const* maygendef = get_may_gen_def(bbid);
+        DefDBitSetCore const* maygendef = getMayGenDef(bbid);
         DefDBitSetCore * must_killed_set = NULL;
         DefDBitSetCore * may_killed_set = NULL;
 
@@ -3102,7 +3107,7 @@ void IR_DU_MGR::computeKillSet(
             bb_mustdef_mds = mustdefmds->get(bbid);
             if (bb_mustdef_mds != NULL && !bb_mustdef_mds->is_empty()) {
                 comp_must = true;
-                must_killed_set = get_must_killed_def(bbid);
+                must_killed_set = getMustKilledDef(bbid);
                 must_killed_set->clean(*m_misc_bs_mgr);
             }
         }
@@ -3114,7 +3119,7 @@ void IR_DU_MGR::computeKillSet(
             bb_maydef_mds = maydefmds->get(bbid);
             if (bb_maydef_mds != NULL && !bb_maydef_mds->is_empty()) {
                 comp_may = true;
-                may_killed_set = get_may_killed_def(bbid);
+                may_killed_set = getMayKilledDef(bbid);
                 may_killed_set->clean(*m_misc_bs_mgr);
             }
         }
@@ -3202,7 +3207,7 @@ void IR_DU_MGR::computeGenForBB(
         IN OUT DefDBitSetCore & expr_univers,
         MDSet & tmp)
 {
-    DefDBitSetCore * gen_ir_exprs = get_gen_ir_expr(BB_id(bb));
+    DefDBitSetCore * gen_ir_exprs = getGenIRExpr(BB_id(bb));
     gen_ir_exprs->clean(*m_misc_bs_mgr);
     C<IR*> * ct;
     for (BB_irlist(bb).get_head(&ct);
@@ -3457,7 +3462,7 @@ void IR_DU_MGR::computeAuxSetForExpression(
         ASSERT0(bb_maydef != NULL);
 
         //Get killed IR EXPR set.
-        DefDBitSetCore * killed_set = get_killed_ir_expr(BB_id(bb));
+        DefDBitSetCore * killed_set = getKilledIRExpr(BB_id(bb));
         killed_set->clean(*m_misc_bs_mgr);
 
         SEGIter * st = NULL;
@@ -3493,7 +3498,7 @@ bool IR_DU_MGR::ForAvailReachDef(
     bool change = false;
     DefDBitSetCore * news = m_misc_bs_mgr->create_dbitsetc();
     news->set_sparse(SOL_SET_IS_SPARSE);
-    DefDBitSetCore * in = get_avail_in_reach_def(bbid);
+    DefDBitSetCore * in = getAvailInReachDef(bbid);
     bool first = true;
     C<IRBB*> * ct;
     for (preds.get_head(&ct); ct != preds.end(); ct = preds.get_next(ct)) {
@@ -3501,18 +3506,18 @@ bool IR_DU_MGR::ForAvailReachDef(
         //Intersect
         if (first) {
             first = false;
-            in->copy(*get_avail_out_reach_def(BB_id(p)), *m_misc_bs_mgr);
+            in->copy(*getAvailOutReachDef(BB_id(p)), *m_misc_bs_mgr);
         } else {
-            in->intersect(*get_avail_out_reach_def(BB_id(p)), *m_misc_bs_mgr);
-            //in->bunion(*get_avail_out_reach_def(BB_id(p)), *m_misc_bs_mgr);
+            in->intersect(*getAvailOutReachDef(BB_id(p)), *m_misc_bs_mgr);
+            //in->bunion(*getAvailOutReachDef(BB_id(p)), *m_misc_bs_mgr);
         }
     }
 
     news->copy(*in, *m_misc_bs_mgr);
-    news->diff(*get_may_killed_def(bbid), *m_misc_bs_mgr);
-    news->bunion(*get_must_gen_def(bbid), *m_misc_bs_mgr);
+    news->diff(*getMayKilledDef(bbid), *m_misc_bs_mgr);
+    news->bunion(*getMustGenDef(bbid), *m_misc_bs_mgr);
 
-    DefDBitSetCore * out = get_avail_out_reach_def(bbid);
+    DefDBitSetCore * out = getAvailOutReachDef(bbid);
     if (!out->is_equal(*news)) {
         out->copy(*news, *m_misc_bs_mgr);
         change = true;
@@ -3541,7 +3546,7 @@ bool IR_DU_MGR::ForReachDef(
 {
     UNUSED(lst);
     bool change = false;
-    DefDBitSetCore * in_reach_def = get_in_reach_def(bbid);
+    DefDBitSetCore * in_reach_def = getInReachDef(bbid);
     DefDBitSetCore * news = m_misc_bs_mgr->create_dbitsetc();
     news->set_sparse(SOL_SET_IS_SPARSE);
     bool first = true;
@@ -3549,10 +3554,10 @@ bool IR_DU_MGR::ForReachDef(
     for (preds.get_head(&ct); ct != preds.end(); ct = preds.get_next(ct)) {
         IRBB * p = ct->val();
         if (first) {
-            in_reach_def->copy(*get_out_reach_def(BB_id(p)), *m_misc_bs_mgr);
+            in_reach_def->copy(*getOutReachDef(BB_id(p)), *m_misc_bs_mgr);
             first = false;
         } else {
-            in_reach_def->bunion(*get_out_reach_def(BB_id(p)), *m_misc_bs_mgr);
+            in_reach_def->bunion(*getOutReachDef(BB_id(p)), *m_misc_bs_mgr);
         }
     }
     if (first) {
@@ -3561,10 +3566,10 @@ bool IR_DU_MGR::ForReachDef(
     }
 
     news->copy(*in_reach_def, *m_misc_bs_mgr);
-    news->diff(*get_must_killed_def(bbid), *m_misc_bs_mgr);
-    news->bunion(*get_may_gen_def(bbid), *m_misc_bs_mgr);
+    news->diff(*getMustKilledDef(bbid), *m_misc_bs_mgr);
+    news->bunion(*getMayGenDef(bbid), *m_misc_bs_mgr);
 
-    DefDBitSetCore * out_reach_def = get_out_reach_def(bbid);
+    DefDBitSetCore * out_reach_def = getOutReachDef(bbid);
     if (!out_reach_def->is_equal(*news)) {
         out_reach_def->copy(*news, *m_misc_bs_mgr);
         change = true;
@@ -3598,11 +3603,11 @@ bool IR_DU_MGR::ForAvailExpression(
     news->set_sparse(SOL_SET_IS_SPARSE);
 
     bool first = true;
-    DefDBitSetCore * in = get_availin_expr(bbid);
+    DefDBitSetCore * in = getAvailInExpr(bbid);
     C<IRBB*> * ct;
     for (preds.get_head(&ct); ct != preds.end(); ct = preds.get_next(ct)) {
         IRBB * p = ct->val();
-        DefDBitSetCore * liveout = get_availout_expr(BB_id(p));
+        DefDBitSetCore * liveout = getAvailOutExpr(BB_id(p));
         if (first) {
             first = false;
             in->copy(*liveout, *m_misc_bs_mgr);
@@ -3612,9 +3617,9 @@ bool IR_DU_MGR::ForAvailExpression(
     }
 
     news->copy(*in, *m_misc_bs_mgr);
-    news->diff(*get_killed_ir_expr(bbid), *m_misc_bs_mgr);
-    news->bunion(*get_gen_ir_expr(bbid), *m_misc_bs_mgr);
-    DefDBitSetCore * out = get_availout_expr(bbid);
+    news->diff(*getKilledIRExpr(bbid), *m_misc_bs_mgr);
+    news->bunion(*getGenIRExpr(bbid), *m_misc_bs_mgr);
+    DefDBitSetCore * out = getAvailOutExpr(bbid);
     if (!out->is_equal(*news)) {
         out->copy(*news, *m_misc_bs_mgr);
         change = true;
@@ -3647,22 +3652,22 @@ void IR_DU_MGR::solve(DefDBitSetCore const* expr_univers, UINT const flag)
         UINT bbid = BB_id(bb);
         if (HAVE_FLAG(flag, SOL_REACH_DEF)) {
             //Initialize reach-def IN, reach-def OUT.
-            get_out_reach_def(bbid)->clean(*m_misc_bs_mgr);
-            get_in_reach_def(bbid)->clean(*m_misc_bs_mgr);
+            getOutReachDef(bbid)->clean(*m_misc_bs_mgr);
+            getInReachDef(bbid)->clean(*m_misc_bs_mgr);
         }
         if (HAVE_FLAG(flag, SOL_AVAIL_REACH_DEF)) {
-            get_avail_out_reach_def(bbid)->clean(*m_misc_bs_mgr);
-            get_avail_in_reach_def(bbid)->clean(*m_misc_bs_mgr);
+            getAvailOutReachDef(bbid)->clean(*m_misc_bs_mgr);
+            getAvailInReachDef(bbid)->clean(*m_misc_bs_mgr);
         }
         if (HAVE_FLAG(flag, SOL_AVAIL_EXPR)) {
             //Initialize available in, available out expression.
             //IN-SET of BB must be universal of all IR-expressions.
-            DefDBitSetCore * availin = get_availin_expr(bbid);
+            DefDBitSetCore * availin = getAvailInExpr(bbid);
             availin->copy(*expr_univers, *m_misc_bs_mgr);
-            DefDBitSetCore * liveout = get_availout_expr(bbid);
+            DefDBitSetCore * liveout = getAvailOutExpr(bbid);
             liveout->copy(*availin, *m_misc_bs_mgr);
-            liveout->diff(*get_killed_ir_expr(bbid), *m_misc_bs_mgr);
-            liveout->bunion(*get_gen_ir_expr(bbid), *m_misc_bs_mgr);
+            liveout->diff(*getKilledIRExpr(bbid), *m_misc_bs_mgr);
+            liveout->bunion(*getGenIRExpr(bbid), *m_misc_bs_mgr);
         }
     }
 
@@ -4117,7 +4122,7 @@ UINT IR_DU_MGR::checkIsNonLocalKillingDef(IR const* stmt, IR const* exp)
         = *t
     */
     DefDBitSetCore const* lived_in_expr =
-                get_availin_expr(BB_id(exp->get_stmt()->get_bb()));
+                getAvailInExpr(BB_id(exp->get_stmt()->get_bb()));
     if (!lived_in_expr->is_contain(IR_id(t2))) { return CK_UNKNOWN; }
 
     UINT exptysz = exp->get_dtype_size(m_tm);
@@ -4423,7 +4428,7 @@ void IR_DU_MGR::updateDef(IR * ir)
 //Initialize md2maydef_irs for each bb.
 void IR_DU_MGR::initMD2IRList(IRBB * bb)
 {
-    DefDBitSetCore * reach_def_irs = get_in_reach_def(BB_id(bb));
+    DefDBitSetCore * reach_def_irs = getInReachDef(BB_id(bb));
     m_md2irs->clean();
 
     //Record DEF IR STMT for each MD.
@@ -4497,7 +4502,7 @@ bool IR_DU_MGR::verifyLiveinExp()
         IRBB * bb = ct->val();
 
         SEGIter * st = NULL;
-        DefDBitSetCore * x = get_availin_expr(BB_id(bb));
+        DefDBitSetCore * x = getAvailInExpr(BB_id(bb));
         for (INT i = x->get_first(&st); i != -1; i = x->get_next(i, &st)) {
             ASSERT0(m_ru->get_ir(i) && m_ru->get_ir(i)->is_exp());
         }
@@ -4652,8 +4657,17 @@ bool IR_DU_MGR::verifyMDRef()
                     ASSERT0(get_may_use(t) == NULL);
                     break;
                 case IR_LD:
-                    ASSERT0(t->get_exact_ref());
-                    ASSERT0(!MD_is_pr(t->get_exact_ref()));
+                    if (g_is_support_dynamic_type) {
+                        ASSERT(t->get_effect_ref(),
+                               ("type is at least effect"));
+                        ASSERT(!MD_is_pr(t->get_effect_ref()),
+                               ("MD can not present a PR."));
+                    } else {
+                        ASSERT(t->get_exact_ref(), ("type must be exact"));
+                        ASSERT(!MD_is_pr(t->get_exact_ref()),
+                               ("MD can not present a PR."));
+                    }
+
                     /* MayUse of ld may not empty.
                     e.g: cvt(ld(id(x,i8)), i32) x has exact md4(size=1), and
                     an overlapped md5(size=4). */
@@ -4663,8 +4677,17 @@ bool IR_DU_MGR::verifyMDRef()
                     }
                     break;
                 case IR_PR:
-                    ASSERT0(t->get_exact_ref());
-                    ASSERT0(MD_is_pr(t->get_exact_ref()));
+                    if (g_is_support_dynamic_type) {
+                        ASSERT(t->get_effect_ref(),
+                               ("type is at least effect"));
+                        ASSERT(MD_is_pr(t->get_effect_ref()),
+                               ("MD must present a PR."));
+                    } else {
+                        ASSERT(t->get_exact_ref(), ("type must be exact"));
+                        ASSERT(!MD_is_pr(t->get_exact_ref()),
+                               ("MD must present a PR."));
+                    }
+
                     if (isPRUniqueForSameNo()) {
                         ASSERT0(get_may_use(t) == NULL);
                     } else {
@@ -4733,16 +4756,32 @@ bool IR_DU_MGR::verifyMDRef()
                     }
                     break;
                 case IR_ST:
-                    ASSERT0(t->get_exact_ref() &&
-                             !MD_is_pr(t->get_exact_ref()));
+                    if (g_is_support_dynamic_type) {
+                        ASSERT(t->get_effect_ref(),
+                               ("type is at least effect"));
+                        ASSERT(!MD_is_pr(t->get_effect_ref()),
+                               ("MD can not present a PR."));
+                    } else {
+                        ASSERT(t->get_exact_ref(), ("type must be exact"));
+                        ASSERT(!MD_is_pr(t->get_exact_ref()),
+                               ("MD can not present a PR."));
+                    }
                     //ST may modify overlapped memory object.
                     if (t->get_ref_mds() != NULL) {
                         ASSERT0(m_mds_hash->find(*t->get_ref_mds()));
                     }
                     break;
                 case IR_STPR:
-                    ASSERT0(t->get_exact_ref() &&
-                             MD_is_pr(t->get_exact_ref()));
+                    if (g_is_support_dynamic_type) {
+                        ASSERT(t->get_effect_ref(),
+                               ("type is at least effect"));
+                        ASSERT(MD_is_pr(t->get_effect_ref()),
+                               ("MD must present a PR."));
+                    } else {
+                        ASSERT(t->get_exact_ref(), ("type must be exact"));
+                        ASSERT(!MD_is_pr(t->get_exact_ref()),
+                               ("MD must present a PR."));
+                    }
 
                     if (isPRUniqueForSameNo()) {
                         ASSERT0(get_may_def(t) == NULL);
@@ -5010,30 +5049,33 @@ NOTE: RPO of bb of stmt must be available.
 IR * IR_DU_MGR::findDomDef(
         IR const* exp,
         IR const* exp_stmt,
-        DUSet const* expdu,
+        DUSet const* expdefset,
         bool omit_self)
 {
     ASSERT0(const_cast<IR_DU_MGR*>(this)->get_may_use(exp) != NULL ||
-             const_cast<IR_DU_MGR*>(this)->get_must_use(exp) != NULL);
+            const_cast<IR_DU_MGR*>(this)->get_must_use(exp) != NULL);
     IR * last = NULL;
     INT lastrpo = -1;
     DUIter di = NULL;
-    for (INT i = expdu->get_first(&di);
-         i >= 0; i = expdu->get_next(i, &di)) {
+    for (INT i = expdefset->get_first(&di);
+         i >= 0; i = expdefset->get_next(i, &di)) {
         IR * d = m_ru->get_ir(i);
         ASSERT0(d->is_stmt());
         if (!is_may_def(d, exp, false)) {
             continue;
         }
+
         if (omit_self && d == exp_stmt) {
             continue;
         }
+
         if (last == NULL) {
             last = d;
             lastrpo = BB_rpo(d->get_bb());
             ASSERT0(lastrpo >= 0);
             continue;
         }
+
         IRBB * dbb = d->get_bb();
         ASSERT0(dbb);
         ASSERT0(BB_rpo(dbb) >= 0);
@@ -5161,7 +5203,7 @@ UINT IR_DU_MGR::count_mem_local_data(
 
 
 //Compute all DEF,USE MD, MD-set, bb related IR-set info.
-bool IR_DU_MGR::perform(IN OUT OptCTX & oc, UINT flag)
+bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
 {
     if (flag == 0) { return true; }
 
@@ -5342,8 +5384,8 @@ bool IR_DU_MGR::perform(IN OUT OptCTX & oc, UINT flag)
     }
 
 #if    0
-    dump_ref(2);
-    dump_set(true);
+    dumpRef(2);
+    dumpSet(true);
     //dumpMemUsageForMDRef();
     //dumpMemUsageForEachSet();
 #endif
@@ -5371,7 +5413,8 @@ bool IR_DU_MGR::perform(IN OUT OptCTX & oc, UINT flag)
 //Construct inexactly Du, Ud chain.
 //NOTICE: Reach-Definition and Must-Def, May-Def,
 //May-Use must be avaliable.
-void IR_DU_MGR::computeMDDUChain(IN OUT OptCTX & oc)
+//retain_reach_def: true to reserve reach-def stmt set.
+void IR_DU_MGR::computeMDDUChain(IN OUT OptCtx & oc, bool retain_reach_def)
 {
     START_TIMER("Build DU-CHAIN");
 
@@ -5424,18 +5467,20 @@ void IR_DU_MGR::computeMDDUChain(IN OUT OptCTX & oc)
     delete m_is_init;
     m_is_init = NULL;
 
-    OC_is_du_chain_valid(oc) = true;
-
-    //Reach def info will be cleaned.
-    resetReachDefInSet(true);
     m_tmp_mds.clean(*m_misc_bs_mgr);
 
-    OC_is_reach_def_valid(oc) = false;
+    if (!retain_reach_def) {
+        //Reach def info will be cleaned.
+        resetReachDefInSet(true);
+        OC_is_reach_def_valid(oc) = false;
+    }
+
+    OC_is_du_chain_valid(oc) = true;
 
     //m_md_sys->dumpAllMD();
     //dumpBBList(bbl, m_ru);
-    //dump_du_chain();
-    //dump_du_chain2();
+    //dumpDUChain();
+    //dumpDUChainDetail();
     ASSERT0(verifyMDDUChain());
     END_TIMER();
 }
