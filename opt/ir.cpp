@@ -182,7 +182,7 @@ INT checkKidNumValidArray(IR const* ir, UINT n, CHAR const* filename, INT line)
 
 
 INT checkKidNumIRtype(IR const* ir, UINT n, IR_TYPE irty,
-                    CHAR const* filename, INT line)
+                      CHAR const* filename, INT line)
 {
     UINT x = IR_MAX_KID_NUM(ir);
     ASSERTL(n < x, filename, line,

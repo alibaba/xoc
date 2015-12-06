@@ -1300,7 +1300,7 @@ public:
 //NOTE: 'opnd_pad' must be the first member.
 
 //Indicate the callee function pointer.
-#define ICALL_callee(ir)      (((CICall*)ir)->opnd[CKID_TY(ir, IR_ICALL, 0)])
+#define ICALL_callee(ir)      (((CICall*)ir)->opnd[CKID_TY(ir, IR_ICALL, 1)])
 
 //True if current call is readonly.
 #define ICALL_is_readonly(ir) (((CICall*)CK_IRT_ONLY_ICALL(ir))->is_readonly)
