@@ -81,6 +81,9 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
     FILE * h = fopen(name, "a+");
     ASSERT(h != NULL, ("%s create failed!!!",name));
 
+    bool dump_src_line = HAVE_FLAG(flag, CALLG_DUMP_SRC_LINE);
+    bool dump_ir_detail = HAVE_FLAG(flag, CALLG_DUMP_IR);
+
     //Print comment
     fprintf(h, "\n/*");
     FILE * old = g_tfile;
@@ -125,7 +128,7 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
               "node.bordercolor: blue\n"
               "edge.color: darkgreen\n");
 
-    //Print node
+    //Dump graph vertex.
     old = g_tfile;
     g_tfile = h;
     INT c;
@@ -137,13 +140,11 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
         fprintf(h, "\nnode: { title:\"%d\" shape:box color:gold "
                    "fontname:\"courB\" label:\"", id);
         fprintf(h, "FUNC(%d):%s\n",
-                CN_id(cn),
-                CN_sym(cn) != NULL ?
-                    SYM_name(CN_sym(cn)) : "IndirectCallNode");
+                CN_id(cn), CN_sym(cn) != NULL ?
+                           SYM_name(CN_sym(cn)) : "IndirectCallNode");
 
-        //
         fprintf(h, "\n");
-        if (HAVE_FLAG(flag, CALLG_DUMP_IR) && CN_ru(cn) != NULL) {
+        if (dump_ir_detail && CN_ru(cn) != NULL) {
             g_indent = 0;
             IR * irs = CN_ru(cn)->get_ir_list();
             BBList * bblst = CN_ru(cn)->get_bb_list();
@@ -151,18 +152,16 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
                 for (; irs != NULL; irs = IR_next(irs)) {
                     //fprintf(h, "%s\n", dump_ir_buf(ir, buf));
                     //TODO: implement dump_ir_buf();
-                    dump_ir(irs, m_tm, NULL, true, false);
+                    dump_ir(irs, m_tm, NULL, dump_src_line, false);
                 }
             } else {
                 dumpBBList(bblst, CN_ru(cn));
             }
         }
-        //
-
         fprintf(h, "\"}");
     }
 
-    //Print edge
+    //Dump graph edge
     for (Edge * e = m_edges.get_first(c); e != NULL; e = m_edges.get_next(c)) {
         Vertex * from = EDGE_from(e);
         Vertex * to = EDGE_to(e);
@@ -172,7 +171,6 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
     g_tfile = old;
     fprintf(h, "\n}\n");
     fclose(h);
-
 }
 
 

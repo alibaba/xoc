@@ -56,8 +56,8 @@ IR_CFG::IR_CFG(CFG_SHAPE cs, BBList * bbl, Region * ru,
          bb != NULL; bb = m_bb_list->get_prev()) {
         m_bb_vec.set(BB_id(bb), bb);
         addVertex(BB_id(bb));
-        for (LabelInfo const* li = bb->get_lab_list().get_head();
-             li != NULL; li = bb->get_lab_list().get_next()) {
+        for (LabelInfo const* li = bb->getLabelList().get_head();
+             li != NULL; li = bb->getLabelList().get_next()) {
             m_lab2bb.set(li, bb);
             if (LABEL_INFO_is_catch_start(li)) {
                 BB_is_catch_start(bb) = true;
@@ -322,8 +322,8 @@ void IR_CFG::findTargetBBOfIndirectBranch(IR const* ir, OUT List<IRBB*> & tgtlst
 
         #ifdef _DEBUG_
         bool find = false;
-        for (LabelInfo const* li = bb->get_lab_list().get_head();
-             li != NULL; li = bb->get_lab_list().get_next()) {
+        for (LabelInfo const* li = bb->getLabelList().get_head();
+             li != NULL; li = bb->getLabelList().get_next()) {
             if (isSameLabel(CASE_lab(c), li)) {
                 find = true;
                 break;
@@ -353,8 +353,8 @@ IRBB * IR_CFG::findBBbyLabel(LabelInfo const* lab)
 
     #ifdef _DEBUG_
     bool find = false;
-    for (LabelInfo const* li = bb->get_lab_list().get_head();
-         li != NULL; li = bb->get_lab_list().get_next()) {
+    for (LabelInfo const* li = bb->getLabelList().get_head();
+         li != NULL; li = bb->getLabelList().get_next()) {
         if (isSameLabel(lab, li)) {
             find = true;
             break;
@@ -461,8 +461,8 @@ void IR_CFG::moveLabels(IRBB * src, IRBB * tgt)
     tgt->mergeLabeInfoList(src);
 
     //Set label2bb map.
-    for (LabelInfo const* li = tgt->get_lab_list().get_head();
-         li != NULL; li = tgt->get_lab_list().get_next()) {
+    for (LabelInfo const* li = tgt->getLabelList().get_head();
+         li != NULL; li = tgt->getLabelList().get_next()) {
         m_lab2bb.setAlways(li, tgt);
     }
 
@@ -474,8 +474,8 @@ void IR_CFG::moveLabels(IRBB * src, IRBB * tgt)
 //Cut off the mapping relation bwteen Labels and BB.
 void IR_CFG::resetMapBetweenLabelAndBB(IRBB * bb)
 {
-    for (LabelInfo const* li = bb->get_lab_list().get_head();
-         li != NULL; li = bb->get_lab_list().get_next()) {
+    for (LabelInfo const* li = bb->getLabelList().get_head();
+         li != NULL; li = bb->getLabelList().get_next()) {
         m_lab2bb.setAlways(li, NULL);
     }
     bb->cleanLabelInfoList();
@@ -998,7 +998,7 @@ void IR_CFG::dump_node(FILE * h, bool detail)
 
             IRBB * bb = get_bb(id);
             ASSERT0(bb != NULL);
-            dumpBBLabel(bb->get_lab_list(), h);
+            dumpBBLabel(bb->getLabelList(), h);
             fprintf(h, "\n");
             for (IR * ir = BB_first_ir(bb);
                  ir != NULL; ir = BB_next_ir(bb)) {

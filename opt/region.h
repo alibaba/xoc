@@ -61,6 +61,7 @@ public:
     IR * m_ir_list;
 
     List<IR const*> * m_call_list; //record CALL/ICALL in region.
+    List<IR const*> * m_return_list; //record RETURN in region.
 
     RegionMgr * m_ru_mgr; //Region manager.
     PassMgr * m_pass_mgr; //PASS manager.
@@ -357,6 +358,7 @@ public:
     IR * foldConstIntUnary(IR * ir, bool & change);
     IR * foldConstIntBinary(IR * ir, bool & change);
     IR * foldConst(IR * ir, bool & change);
+    void findFormalParam(OUT List<VAR const*> & varlst, bool in_decl_order);
 
     UINT get_irt_size(IR * ir)
     {
@@ -458,6 +460,16 @@ public:
                                         new List<IR const*>();
         }
         return REGION_analysis_instrument(this)->m_call_list;
+    }
+
+    //Allocate and return a list of IR_RETURN in current Region.
+    inline List<IR const*> * get_return_list()
+    {
+        if (REGION_analysis_instrument(this)->m_return_list == NULL) {
+            REGION_analysis_instrument(this)->m_return_list =
+                                        new List<IR const*>();
+        }
+        return REGION_analysis_instrument(this)->m_return_list;
     }
 
     //Compute the most conservative MD reference information.

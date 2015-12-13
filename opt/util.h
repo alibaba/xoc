@@ -34,14 +34,12 @@ author: Su Zhenyu
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
-#define MAX_BUF_LEN 1024
-#define ST_ERR      1 //Status if error occur.
-#define ST_SUCC     0 //Status if successful.
-#define ST_EOF      2 //Status meet End-Of-File.
+namespace xoc {
 
 #define NIL_START  100000
 template <class T, class Ttgt>
-void dump_rbt(RBT<T, Ttgt> & rbt, CHAR const* name = NULL,
+void dump_rbt(RBT<T, Ttgt> & rbt,
+              CHAR const* name = NULL,
               UINT nil_count = NIL_START)
 {
     typedef RBTNode<T, Ttgt> TN;
@@ -181,17 +179,37 @@ void dump_rbt(RBT<T, Ttgt> & rbt, CHAR const* name = NULL,
 }
 
 //Exported Variables
-extern FILE * g_tfile;
+extern FILE * g_tfile; //Only for dump.
 extern INT g_indent; //Only for dump.
 extern bool g_prt_carriage_return_for_dot; //Only for dump.
 
-void dump_vec(Vector<UINT> & v);
+//Exported Functions.
+void dumpIntVector(Vector<UINT> & v);
+
+//Get temporary memory pool handler.
+SMemPool * get_tmp_pool();
+
+//Initialze dump file.
 void initdump(CHAR const* f, bool is_del);
-void interwarn(CHAR const* format, ...);
+
+//Finalize dump file.
 void finidump();
-void scr(CHAR const* format , ...) ;
+
+//Report internal warning.
+void interwarn(CHAR const* format, ...);
+
+//Print message to screen.
+void scr(CHAR const* format, ...);
+
+//Allocate memory from temporary memory pool.
 void * tlloc(LONG size);
+
+//Free whole temporary memory pool.
 void tfree();
+
+//Dump formatted string to g_tfile.
+//This function indents blank space indicated by g_indent.
 void note(CHAR const* format, ...);
-INT prt(CHAR const* format , ...);
+
+} //namespace xoc
 #endif

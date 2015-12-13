@@ -64,7 +64,7 @@ class RegionMgr;
 #define VAR_VOLATILE             0x10 //var is volatile
 #define VAR_HAS_INIT_VAL         0x20 //var with initialied value.
 #define VAR_FAKE                 0x40 //var is fake
-#define VAR_FUNC_UNIT            0x80 //var is function unit.
+//0x80 is reversed               0x80
 #define VAR_FUNC_DECL            0x100 //var is function declaration.
 #define VAR_IS_ARRAY             0x200 //var is array.
 #define VAR_IS_FORMAL_PARAM      0x400 //var is formal parameter.
@@ -109,9 +109,6 @@ class RegionMgr;
 
 //Variable has initial value.
 #define VAR_has_init_val(v)      (VAR_init_val_id(v) != 0)
-
-//Variable is region.
-#define VAR_is_func_unit(v)      ((v)->u2.u2s1.is_func_unit)
 
 //Variable is region.
 #define VAR_is_func_decl(v)      ((v)->u2.u2s1.is_func_decl)
@@ -173,21 +170,21 @@ public:
     union {
         UINT flag; //Record variant properties of VAR.
         struct {
-            UINT is_global:1;         //VAR can be seen all program.
-            UINT is_local:1;         //VAR only can be seen in region.
-            UINT is_static:1;         //VAR only can be seen in file.
-            UINT is_readonly:1;         //VAR is readonly.
+            UINT is_global:1;       //VAR can be seen all program.
+            UINT is_local:1;        //VAR only can be seen in region.
+            UINT is_static:1;       //VAR only can be seen in file.
+            UINT is_readonly:1;     //VAR is readonly.
             UINT is_volatile:1;     //VAR is volatile.
-            UINT has_init_val:1;     //VAR has initial value.
+            UINT has_init_val:1;    //VAR has initial value.
             UINT is_fake:1;         //VAR is fake.
-            UINT is_func_unit:1;     //VAR is function unit with body defined.
+            UINT reversed:1;
             UINT is_func_decl:1;    //VAR is function unit declaration.
-            UINT is_array:1;         //VAR is array
+            UINT is_array:1;        //VAR is array
             UINT is_formal_param:1; //VAR is formal parameter.
-            UINT is_spill:1;         //VAR is spill location in function.
-            UINT is_addr_taken:1;     //VAR has been taken address.
-            UINT is_pr:1;             //VAR is pr.
-            UINT is_restrict:1;        //VAR is restrict.
+            UINT is_spill:1;        //VAR is spill location in function.
+            UINT is_addr_taken:1;   //VAR has been taken address.
+            UINT is_pr:1;           //VAR is pr.
+            UINT is_restrict:1;     //VAR is restrict.
 
             //True if var should be allocate on memory or
             //false indicate it is only being a placeholder and do not

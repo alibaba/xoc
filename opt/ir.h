@@ -60,15 +60,15 @@ typedef enum {
                         //taken address, and can be look like both
                         //register and memory.
     IR_ARRAY =      6,  //Array operation, include base and ofst.
-    IR_ST =         7,    //Store to variable.
-    IR_STPR =       8,    //Store to PR.
+    IR_ST =         7,  //Store to variable.
+    IR_STPR =       8,  //Store to PR.
     IR_STARRAY =    9,  //Store to array.
-    IR_IST =        10,    //Indirect store.
+    IR_IST =        10, //Indirect store.
     IR_SETELEM =    11, //Set element of PR, where PR is memory chunk or vector.
     IR_GETELEM =    12, //Get element of PR, where PR is memory chunk or vector.
     IR_CALL =       13, //Direct call.
     IR_ICALL =      14, //Indirect call.
-    IR_LDA =        15,    //Move variable's address to a register.
+    IR_LDA =        15, //Move variable's address to a register.
     IR_ADD =        16, //Addition.
     IR_SUB =        17, //Substraction.
     IR_MUL =        18, //Multiplication.
@@ -96,7 +96,7 @@ typedef enum {
     IR_GOTO =       40, //Goto definitely label.
     IR_IGOTO =      41, //Indirect Goto a list of definitely label.
     IR_DO_WHILE =   42, //Do-While loop struct.
-    IR_WHILE_DO =   43,    //While-Do loop struct.
+    IR_WHILE_DO =   43, //While-Do loop struct.
     IR_DO_LOOP =    44, //A kind of loop with plainly definition of
                         //INIT(low bound), HIGH bound, LOOP-BODY and STEP
                         //of IV.
@@ -1271,6 +1271,9 @@ public:
     //NOTE: 'opnd' must be the last member.
     IR * opnd[1];
 
+public:
+    VAR const* get_callee_var() const { return CALL_idinfo(this); }
+    IR const* get_param_list() const { return CALL_param_list(this); }
     CHAR const* get_callee_name() const
     { return SYM_name(VAR_name(CALL_idinfo(this))); }
 
@@ -1312,6 +1315,9 @@ public:
 
     //True if current call is readonly.
     BYTE is_readonly:1;
+
+public:
+    IR const* get_callee_exp() const { return ICALL_callee(this); }
 };
 
 
@@ -1751,6 +1757,9 @@ public:
     UINT prno; //PR number.
     SSAInfo * ssainfo; //Present ssa def and use set.
     IR * opnd[1];
+
+public:
+    IR const* get_opnd_list() const { return PHI_opnd_list(this); }
 
     inline void removeOpnd(IR * opnd)
     {
@@ -2481,8 +2490,11 @@ bool IR::isConstIntValueEqualTo(HOST_INT value) const
 
 
 //Exported Functions.
-void dump_ir(IR const* ir, TypeMgr const* tm, CHAR * attr = NULL,
-             bool dump_kid = true, bool dump_src_line = true,
+void dump_ir(IR const* ir,
+             TypeMgr const* tm,
+             CHAR * attr = NULL,
+             bool dump_kid = true,
+             bool dump_src_line = true,
              bool dump_addr = false);
 void dump_irs_h(IR * ir_list , TypeMgr const* tm);
 void dump_irs(IR * ir_list, TypeMgr const* tm, CHAR * attr = NULL);
@@ -2494,10 +2506,10 @@ bool verify_simp(IR * ir, SimpCtx & simp);
 bool verifyLowestForm(BBList * ir_bb_list, Region * ru);
 
 
-/* Iterative access ir tree. This funtion initialize the iterator.
-'ir': the root ir of the tree.
-'ii': iterator.
-Readonly function. */
+//Iterative access ir tree. This funtion initialize the iterator.
+//'ir': the root ir of the tree.
+//'ii': iterator.
+//Readonly function.
 inline IR const* iterInitC(IR const* ir, OUT ConstIRIter & ii)
 {
     if (ir == NULL) { return NULL; }
@@ -2513,10 +2525,10 @@ inline IR const* iterInitC(IR const* ir, OUT ConstIRIter & ii)
 }
 
 
-/* Iterative access ir tree.
-This function return the next IR node accroding to 'ii'.
-'ii': iterator.
-Readonly function. */
+//Iterative access ir tree.
+//This function return the next IR node accroding to 'ii'.
+//'ii': iterator.
+//Readonly function.
 inline IR const* iterNextC(IN OUT ConstIRIter & ii)
 {
     IR const* ir = ii.remove_head();
@@ -2533,14 +2545,12 @@ inline IR const* iterNextC(IN OUT ConstIRIter & ii)
 }
 
 
-/* Iterative access the right-hand-side expression of stmt.
-This funtion initialize the iterator.
-'ir': the root ir of the tree, it must be stmt.
-'ii': iterator.
-
-This function is a readonly function.
-
-Use iterRhsNextC to iter next IR. */
+//Iterative access the right-hand-side expression of stmt.
+//This funtion initialize the iterator.
+//'ir': the root ir of the tree, it must be stmt.
+//'ii': iterator.
+//This function is a readonly function.
+//Use iterRhsNextC to iter next IR.
 inline IR const* iterRhsInitC(IR const* ir, OUT ConstIRIter & ii)
 {
     if (ir == NULL) { return NULL; }
@@ -2600,21 +2610,21 @@ inline IR const* iterExpInitC(IR const* ir, OUT ConstIRIter & ii)
 }
 
 
-/* Iterative access the right-hand-side expression of stmt.
-This function return the next IR node accroding to 'ii'.
-'ii': iterator.
-Readonly function. */
+//Iterative access the right-hand-side expression of stmt.
+//This function return the next IR node accroding to 'ii'.
+//'ii': iterator.
+//Readonly function.
 inline IR const* iterRhsNextC(IN OUT ConstIRIter & ii)
 {
     return iterNextC(ii);
 }
 
 
-/* Iterative access the ir tree that start with 'ir'.
-This funtion initialize the iterator.
-'ir': the root ir of the tree, it may be either stmt or expression.
-'ii': iterator.
-Note this function is NOT readonly, the returnd IR may be modified. */
+//Iterative access the ir tree that start with 'ir'.
+//This funtion initialize the iterator.
+//'ir': the root ir of the tree, it may be either stmt or expression.
+//'ii': iterator.
+//Note this function is NOT readonly, the returnd IR may be modified.
 inline IR * iterInit(IN IR * ir, OUT IRIter & ii)
 {
     if (ir == NULL) { return NULL; }
@@ -2650,12 +2660,11 @@ inline IR * iterNext(IN OUT IRIter & ii)
 }
 
 
-/* Iterative access the right-hand-side expression of stmt.
-This funtion initialize the iterator.
-'ir': the root ir of the tree, it must be stmt.
-'ii': iterator.
-
-Use iterRhsNextC to iter next IR. */
+//Iterative access the right-hand-side expression of stmt.
+//This funtion initialize the iterator.
+//'ir': the root ir of the tree, it must be stmt.
+//'ii': iterator.
+//Use iterRhsNextC to iter next IR.
 inline IR * iterRhsInit(IR * ir, OUT IRIter & ii)
 {
     if (ir == NULL) { return NULL; }

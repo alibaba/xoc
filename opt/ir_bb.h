@@ -217,7 +217,7 @@ public:
     inline void addLabel(LabelInfo const* li)
     {
         ASSERT0(li != NULL);
-        if (!get_lab_list().find(li)) {
+        if (!getLabelList().find(li)) {
             if (LABEL_INFO_is_catch_start(li)) {
                 BB_is_catch_start(this) = true;
             }
@@ -234,20 +234,20 @@ public:
                 BB_is_unreach(this) = true;
 
             }
-            get_lab_list().append_tail(li);
+            getLabelList().append_tail(li);
         }
     }
 
     UINT count_mem() const;
 
     //Clean attached label.
-    void cleanLabelInfoList() { get_lab_list().clean(); }
+    void cleanLabelInfoList() { getLabelList().clean(); }
 
     void dump(Region * ru);
     void dupSuccessorPhiOpnd(CFG<IRBB, IR> * cfg, Region * ru, UINT opnd_pos);
 
-    List<LabelInfo const*> & get_lab_list() { return lab_list; }
-    List<LabelInfo const*> const& get_lab_list_c() const { return lab_list; }
+    List<LabelInfo const*> & getLabelList() { return lab_list; }
+    List<LabelInfo const*> const& getLabelListConst() const { return lab_list; }
     UINT getNumOfIR() const { return BB_irlist(this).get_elem_count(); }
 
     //For some aggressive optimized purposes, call node is not looked as
@@ -284,8 +284,8 @@ public:
      #ifdef _DEBUG_
         bool find = false;
         IRBB * pthis = const_cast<IRBB*>(this);
-        for (LabelInfo const* li = pthis->get_lab_list().get_head();
-             li != NULL; li = pthis->get_lab_list().get_next()) {
+        for (LabelInfo const* li = pthis->getLabelList().get_head();
+             li != NULL; li = pthis->getLabelList().get_next()) {
             if (LABEL_INFO_is_try_start(li)) {
                 find = true;
                 break;
@@ -303,8 +303,8 @@ public:
  #ifdef _DEBUG_
         bool find = false;
         IRBB * pthis = const_cast<IRBB*>(this);
-        for (LabelInfo const* li = pthis->get_lab_list().get_head();
-             li != NULL; li = pthis->get_lab_list().get_next()) {
+        for (LabelInfo const* li = pthis->getLabelList().get_head();
+             li != NULL; li = pthis->getLabelList().get_next()) {
             if (LABEL_INFO_is_try_end(li)) {
                 find = true;
                 break;
@@ -322,8 +322,8 @@ public:
         #ifdef _DEBUG_
         bool find = false;
         IRBB * pthis = const_cast<IRBB*>(this);
-        for (LabelInfo const* li = pthis->get_lab_list().get_head();
-             li != NULL; li = pthis->get_lab_list().get_next()) {
+        for (LabelInfo const* li = pthis->getLabelList().get_head();
+             li != NULL; li = pthis->getLabelList().get_next()) {
             if (LABEL_INFO_is_catch_start(li)) {
                 find = true;
                 break;
@@ -341,8 +341,8 @@ public:
         #ifdef _DEBUG_
         bool find = false;
         IRBB * pthis = const_cast<IRBB*>(this);
-        for (LabelInfo const* li = pthis->get_lab_list().get_head();
-             li != NULL; li = pthis->get_lab_list().get_next()) {
+        for (LabelInfo const* li = pthis->getLabelList().get_head();
+             li != NULL; li = pthis->getLabelList().get_next()) {
             if (LABEL_INFO_is_unreachable(li)) {
                 find = true;
                 break;
@@ -368,8 +368,8 @@ public:
     //Is bb containing such label carried by 'lir'.
     inline bool is_bb_has_label(LabelInfo const* lab)
     {
-        for (LabelInfo const* li = get_lab_list().get_head();
-             li != NULL; li = get_lab_list().get_next()) {
+        for (LabelInfo const* li = getLabelList().get_head();
+             li != NULL; li = getLabelList().get_next()) {
             if (isSameLabel(li, lab)) {
                 return true;
             }
@@ -379,8 +379,8 @@ public:
 
     inline bool is_attach_dedicated_lab()
     {
-        for (LabelInfo const* li = get_lab_list().get_head();
-             li != NULL; li = get_lab_list().get_next()) {
+        for (LabelInfo const* li = getLabelList().get_head();
+             li != NULL; li = getLabelList().get_next()) {
             if (LABEL_INFO_is_catch_start(li) ||
                 LABEL_INFO_is_try_start(li) ||
                 LABEL_INFO_is_try_end(li) ||
@@ -430,8 +430,8 @@ public:
     //Add all Labels attached on src BB to current BB.
     inline void mergeLabeInfoList(IRBB * src)
     {
-        for (LabelInfo const* li = src->get_lab_list().get_head();
-             li != NULL; li = src->get_lab_list().get_next()) {
+        for (LabelInfo const* li = src->getLabelList().get_head();
+             li != NULL; li = src->getLabelList().get_next()) {
             if (lab_list.find(li)) { continue; }
             lab_list.append_head(li);
 

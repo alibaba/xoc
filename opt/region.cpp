@@ -45,6 +45,7 @@ AnalysisInstrument::AnalysisInstrument(Region * ru) :
     m_ru = ru;
     m_ru_mgr = NULL;
     m_call_list = NULL;
+    m_return_list = NULL;
     m_ir_list = NULL;
     m_pass_mgr = NULL;
 
@@ -1018,14 +1019,14 @@ IR * Region::buildIf(IR * det, IR * true_body, IR * false_body)
 }
 
 
-/* Build SWITCH multi-select stmt.
-'vexp': expression to determine which case entry will be target.
-'case_list': case entry list. case entry is consist of expression and label.
-    Note that case list is optional.
-'body': stmt list.
-'default_lab': label indicates the default choice, the label is optional.
-
-NOTE: Do not set parent for stmt in 'body'. */
+//Build SWITCH multi-select stmt.
+//'vexp': expression to determine which case entry will be target.
+//'case_list': case entry list. case entry is consist of expression and label.
+//    Note that case list is optional.
+//'body': stmt list.
+//'default_lab': label indicates the default choice, the label is optional.
+//
+//NOTE: Do not set parent for stmt in 'body'.
 IR * Region::buildSwitch(
         IR * vexp,
         IR * case_list,
@@ -1178,12 +1179,11 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
         }
         ASSERT(0, ("can not get here."));
     } else if (lchild->is_ptr() && !rchild->is_ptr()) {
-        /* Result is pointer type.
-        CASE:
-            int * p;
-            p + 4 => t1 = p + (4 * sizeof(BASE_TYPE_OF(p)))
-            p - 4 => t1 = p - (4 * sizeof(BASE_TYPE_OF(p)))
-        */
+        //Result is pointer type.
+        //CASE:
+        //    int * p;
+        //    p + 4 => t1 = p + (4 * sizeof(BASE_TYPE_OF(p)))
+        //    p - 4 => t1 = p - (4 * sizeof(BASE_TYPE_OF(p)))
         switch (irt) {
         case IR_ADD:
         case IR_SUB:
@@ -1230,10 +1230,11 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
 //Helper function.
 //Det-expression should be a relation-operation,
 //so we create a node comparing with ZERO by NE node.
+//e.g: output is (exp != 0).
 IR * Region::buildJudge(IR * exp)
 {
     ASSERT0(!exp->is_judge());
-    Type const* type = IR_dt(exp);
+    Type const* type = exp->get_type();
     TypeMgr * dm = get_type_mgr();
     if (exp->is_ptr()) {
         type = dm->getSimplexTypeEx(dm->getPointerSizeDtype());
@@ -1337,10 +1338,10 @@ IR * Region::buildBinaryOp(
 }
 
 
-/* Split list of ir into basic block.
-'irs': a list of ir.
-'bbl': a list of bb.
-'ctbb': marker current bb container. */
+//Split list of ir into basic block.
+//'irs': a list of ir.
+//'bbl': a list of bb.
+//'ctbb': marker current bb container.
 C<IRBB*> * Region::splitIRlistIntoBB(IR * irs, BBList * bbl, C<IRBB*> * ctbb)
 {
     IR_CFG * cfg = get_cfg();
@@ -1489,9 +1490,9 @@ IR * Region::constructIRlist(bool clean_ir_list)
          ct = get_bb_list()->get_next(ct)) {
         IRBB * bb = ct->val();
         C<LabelInfo const*> * lct;
-        for (bb->get_lab_list().get_head(&lct);
-             lct != bb->get_lab_list().end();
-             lct = bb->get_lab_list().get_next(lct)) {
+        for (bb->getLabelList().get_head(&lct);
+             lct != bb->getLabelList().end();
+             lct = bb->getLabelList().get_next(lct)) {
             LabelInfo const* li = lct->val();
             //insertbefore_one(&ret_list, ret_list, buildLabel(li));
             add_next(&ret_list, &last, buildLabel(li));
@@ -1547,10 +1548,10 @@ void Region::constructIRBBlist()
                 break;
             case IR_IGOTO:
             case IR_GOTO:
-                /* We have no knowledge about whether target BB of GOTO/IGOTO
-                will be followed subsequently on current BB.
-                Leave this problem to CFG builder, and the related
-                attribute should be set at that time. */
+                //We have no knowledge about whether target BB of GOTO/IGOTO
+                //will be followed subsequently on current BB.
+                //Leave this problem to CFG builder, and the related
+                //attribute should be set at that time.
                 break;
             case IR_RETURN:
                 //Succeed stmt of 'ir' may be DEAD code
@@ -1638,10 +1639,10 @@ bool Region::isSafeToOptimize(IR const* ir)
 }
 
 
-/* This function is just generate conservative memory reference
-information of Region as a default setting. User should supply
-more accurate referrence information via various analysis, since
-the information will affect optimizations. */
+//This function is just generate conservative memory reference
+//information of Region as a default setting. User should supply
+//more accurate referrence information via various analysis, since
+//the information will affect optimizations.
 void Region::genDefaultRefInfo()
 {
     //For conservative, current region may modify all outer regions variables.
@@ -1756,12 +1757,12 @@ CHAR const* Region::get_ru_name() const
 }
 
 
-/* Free ir, ir's sibling, and all its kids.
-We can only utilizing the function to free the IR
-which allocated by 'allocIR'.
-
-NOTICE: If ir's sibling is not NULL, that means the IR is
-a high level type. IRBB consists of only middle/low level IR. */
+//Free ir, ir's sibling, and all its kids.
+//We can only utilizing the function to free the IR
+//which allocated by 'allocIR'.
+//
+//NOTICE: If ir's sibling is not NULL, that means the IR is
+//a high level type. IRBB consists of only middle/low level IR.
 void Region::freeIRTreeList(IR * ir)
 {
     if (ir == NULL) return;
@@ -1808,6 +1809,48 @@ void Region::freeIRTree(IR * ir)
         }
     }
     freeIR(ir);
+}
+
+
+//This function iterate VAR table of current region to
+//find all VAR which are formal parameter.
+//in_decl_order: if it is true, this function will sort the formal
+//parameters in the Left to Right order according to their declaration.
+//e.g: foo(a, b, c), varlst will be {a, b, c}.
+void Region::findFormalParam(OUT List<VAR const*> & varlst, bool in_decl_order)
+{
+    VarTabIter c;
+    VarTab * vt = get_var_tab();
+    ASSERT0(vt);
+
+    if (in_decl_order)  {
+        for (VAR const* v = vt->get_first(c); v != NULL; v = vt->get_next(c)) {
+            if (!VAR_is_formal_param(v)) { continue; }
+
+            C<VAR const*> * ctp;
+            bool find = false;
+            for (VAR const* p = varlst.get_head(&ctp);
+                 p != NULL; p = varlst.get_next(&ctp)) {
+                if (VAR_formal_param_pos(v) < VAR_formal_param_pos(p)) {
+                    varlst.insert_before(v, ctp);
+                    find = true;
+                    break;
+                }
+            }
+
+            if (!find) {
+                varlst.append_tail(v);
+            }
+        }
+        return;
+    }
+
+    //Unordered
+    for (VAR const* v = vt->get_first(c); v != NULL; v = vt->get_next(c)) {
+        if (VAR_is_formal_param(v)) {
+            varlst.append_tail(v);
+        }
+    }
 }
 
 
@@ -2123,6 +2166,21 @@ void Region::prescan(IR const* ir)
         case IR_PHI:
         case IR_REGION:
             break;
+        case IR_RETURN:
+            if (g_do_call_graph) {
+                List<IR const*> * cl = get_return_list();
+                ASSERT0(cl);
+                cl->append_tail(ir);
+            }
+
+            for (UINT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
+                IR * k = ir->get_kid(i);
+                if (k != NULL) {
+                    ASSERT0(IR_parent(k) == ir);
+                    prescan(k);
+                }
+            }
+             break;
         default:
             for (UINT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
                 IR * k = ir->get_kid(i);
@@ -2415,8 +2473,8 @@ bool Region::verifyBBlist(BBList & bbl)
 {
     LAB2BB lab2bb;
     for (IRBB * bb = bbl.get_head(); bb != NULL; bb = bbl.get_next()) {
-        for (LabelInfo const* li = bb->get_lab_list().get_head();
-             li != NULL; li = bb->get_lab_list().get_next()) {
+        for (LabelInfo const* li = bb->getLabelList().get_head();
+             li != NULL; li = bb->getLabelList().get_next()) {
             lab2bb.set(li, bb);
         }
     }
@@ -2565,8 +2623,8 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
     ASSERT(passmgr, ("PassMgr is not enable"));
 
     IR_CFG * cfg = (IR_CFG*)passmgr->queryPass(PASS_CFG);
-    IR_AA * aa = (IR_AA*)passmgr->queryPass(PASS_AA);
-    IR_DU_MGR * dumgr = (IR_DU_MGR*)passmgr->queryPass(PASS_DU_MGR);
+    IR_AA * aa = NULL;
+    IR_DU_MGR * dumgr = NULL;
 
     if (opts.is_contain(PASS_CFG) && !OC_is_cfg_valid(*oc)) {
         ASSERT(cfg, ("CFG is not enable"));
@@ -2578,7 +2636,13 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
 
     if (opts.is_contain(PASS_CDG) && !OC_is_aa_valid(*oc)) {
         ASSERT(cfg, ("CFG is not enable"));
-        ASSERT(aa, ("Alias Analysis is not enable"));
+        if (aa == NULL) {
+            aa = (IR_AA*)passmgr->registerPass(PASS_AA);
+            if (!aa->is_init()) {
+                aa->initAliasAnalysis();
+            }
+        }
+
         ASSERT0(OC_is_cfg_valid(*oc));
         aa->perform(*oc);
     }
@@ -2627,12 +2691,21 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
 
     if ((HAVE_FLAG(f, SOL_REF) || opts.is_contain(PASS_AA)) &&
         !OC_is_aa_valid(*oc)) {
-        ASSERT(aa, ("Alias Analysis is not enable"));
+        if (aa == NULL) {
+            aa = (IR_AA*)passmgr->registerPass(PASS_AA);
+            if (!aa->is_init()) {
+                aa->initAliasAnalysis();
+            }
+        }
+
         aa->perform(*oc);
     }
 
     if (f != 0) {
-        ASSERT(dumgr, ("Alias Analysis is not enable"));
+        if (dumgr == NULL) {
+            dumgr = (IR_DU_MGR*)passmgr->registerPass(PASS_DU_MGR);
+        }
+
         dumgr->perform(*oc, f);
         if (HAVE_FLAG(f, SOL_REF)) {
             ASSERT0(dumgr->verifyMDRef());
@@ -2643,7 +2716,10 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
     }
 
     if (opts.is_contain(PASS_DU_CHAIN) && !OC_is_du_chain_valid(*oc)) {
-        ASSERT(dumgr, ("Alias Analysis is not enable"));
+        if (dumgr == NULL) {
+            dumgr = (IR_DU_MGR*)passmgr->registerPass(PASS_DU_MGR);
+        }
+
         if (opts.is_contain(PASS_REACH_DEF)) {
             dumgr->computeMDDUChain(*oc, true);
         } else {
@@ -2669,7 +2745,7 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
             cfg->compute_rpo(*oc);
         } else {
             ASSERT0(cfg->get_bblist_in_rpo()->get_elem_count() ==
-                     get_bb_list()->get_elem_count());
+                    get_bb_list()->get_elem_count());
         }
     }
 }
@@ -2741,11 +2817,11 @@ bool Region::partitionRegion()
     REGION_ru(ir_ru)->process();
     dump_irs(get_ir_list(), get_type_mgr());
 
-    /* Merger IR list in inner-region to outer region.
-    remove(&REGION_analysis_instrument(this)->m_ir_list, ir_ru);
-    IR * head = inner_ru->constructIRlist();
-    insertafter(&split_pos, dupIRTreeList(head));
-    dump_irs(get_ir_list()); */
+    //Merger IR list in inner-region to outer region.
+    //remove(&REGION_analysis_instrument(this)->m_ir_list, ir_ru);
+    //IR * head = inner_ru->constructIRlist();
+    //insertafter(&split_pos, dupIRTreeList(head));
+    //dump_irs(get_ir_list());
 
     delete inner_ru;
     return false;

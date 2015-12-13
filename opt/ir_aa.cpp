@@ -3786,6 +3786,7 @@ void IR_AA::initMayPointToSet()
             break;
         }
     }
+
     tmp.bunion(MD_GLOBAL_MEM, *m_misc_bs_mgr);
     m_hashed_maypts = m_mds_hash->append(tmp);
     tmp.clean(*m_misc_bs_mgr);
@@ -3809,6 +3810,7 @@ void IR_AA::computeFlowInsensitive()
 //Initialize alias analysis.
 void IR_AA::initAliasAnalysis()
 {
+    ASSERT(!is_init(), ("already initialized"));
     initMayPointToSet();
     set_flow_sensitive(true);
 }
@@ -3817,7 +3819,7 @@ void IR_AA::initAliasAnalysis()
 //Calculate point-to set.
 bool IR_AA::perform(IN OUT OptCtx & oc)
 {
-    ASSERT(m_hashed_maypts, ("Not initialize may point-to set."));
+    ASSERT(m_hashed_maypts, ("Should invoke initAliasAnalysis() first."));
 
     START_TIMER_AFTER();
 

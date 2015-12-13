@@ -1141,7 +1141,7 @@ void IR_GVN::dump_bb(UINT bbid)
 
     ConstIRIter ii;
     fprintf(g_tfile, "\n-- BB%d ", BB_id(bb));
-    dumpBBLabel(bb->get_lab_list(), g_tfile);
+    dumpBBLabel(bb->getLabelList(), g_tfile);
     fprintf(g_tfile, "\n");
     for (IR * ir = BB_first_ir(bb);
          ir != NULL; ir = BB_next_ir(bb)) {

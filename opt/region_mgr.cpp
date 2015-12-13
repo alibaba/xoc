@@ -101,14 +101,13 @@ void RegionMgr::registerGlobalMDS()
     ID2VAR * varvec = m_var_mgr->get_var_vec();
     for (INT i = 0; i <= varvec->get_last_idx(); i++) {
         VAR * v = varvec->get(i);
-        if (v == NULL) { continue; }
-
-        if (VAR_is_fake(v) ||
+        if (v == NULL ||
+            VAR_is_fake(v) ||
             VAR_is_local(v) ||
-            VAR_is_func_unit(v) ||
             VAR_is_func_decl(v)) {
             continue;
         }
+
         ASSERT0(VAR_is_global(v) && VAR_allocable(v));
         if (v->is_string() && getDedicateStrMD() != NULL) {
             continue;

@@ -81,9 +81,9 @@ void IRBB::dump(Region * ru)
     g_indent = 0;
 
     fprintf(g_tfile, "\n----- BB%d ------", BB_id(this));
-    if (get_lab_list().get_elem_count() > 0) {
+    if (getLabelList().get_elem_count() > 0) {
         fprintf(g_tfile, "\nLABEL:");
-        dumpBBLabel(get_lab_list(), g_tfile);
+        dumpBBLabel(getLabelList(), g_tfile);
     }
 
     //Attributes

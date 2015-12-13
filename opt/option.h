@@ -191,6 +191,7 @@ extern bool g_is_hoist_type; //Hoist data type from less than INT to INT.
 extern bool g_do_ipa;
 extern bool g_do_call_graph; //Build call graph.
 extern bool g_show_comp_time;
+extern bool g_show_memory_usage; //Show the memory usage to dump file.
 extern bool g_do_inline;
 extern UINT g_inline_threshold;
 extern bool g_is_opt_float; //Optimize float point operation.

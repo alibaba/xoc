@@ -41,7 +41,7 @@ namespace xoc {
 2. Construct your data structure to be attached.
 3. Set the AIContainer type and the data structure.
 
-e.T2IRCtx:
+e.g:
     IR * ir = ...; Given IR.
     IR_ai(ir) = region->allocAIContainer();
     Dbx * dbx = getDbx();
@@ -167,7 +167,7 @@ public:
         case AI_PROF: return "Prof";
         case AI_TBAA: return "Tbaa";
         case AI_EH_LABEL: return "EH";
-        case AI_USER_DEF: return "User";
+        case AI_USER_DEF: return "UserDef";
         case AI_LAST:;
         default: ASSERT0(0);
         }

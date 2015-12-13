@@ -666,7 +666,7 @@ bool CFG<BB, XR>::removeEmptyBB(OptCtx & oc)
             if (next_bb == NULL) {
                 //bb is the last empty bb.
                 ASSERT0(next_ct == NULL);
-                if (bb->get_lab_list().get_elem_count() == 0 &&
+                if (bb->getLabelList().get_elem_count() == 0 &&
                     !is_ru_exit(bb)) {
                     bb->removeSuccessorPhiOpnd(this);
                     //resetMapBetweenLabelAndBB(bb); BB does not have Labels.
@@ -846,7 +846,7 @@ bool CFG<BB, XR>::removeRedundantBranch()
             //which may have dedicated usage. Do not remove it for
             //convservative purpose.
             ASSERT(is_cfg_entry(bb->id) || is_cfg_exit(bb->id) ||
-                   bb->get_lab_list().get_elem_count() != 0,
+                   bb->getLabelList().get_elem_count() != 0,
                    ("should call removeEmptyBB() first."));
             continue;
         }
@@ -1390,16 +1390,16 @@ void CFG<BB, XR>::clean_loop_info(bool access_li_by_scan_bb)
         return;
     }
 
-    LI<IRBB> * li = get_loop_info();
+    LI<BB> * li = get_loop_info();
     if (li == NULL) { return; }
 
-    List<LI<IRBB>*> worklst;
+    List<LI<BB>*> worklst;
     for (; li != NULL; li = LI_next(li)) {
         worklst.append_tail(li);
     }
 
     while (worklst.get_elem_count() > 0) {
-        LI<IRBB> * x = worklst.remove_head();
+        LI<BB> * x = worklst.remove_head();
 
         UINT id = LI_loop_head(x)->id;
         LI<BB> * li = m_map_bb2li.get(id);
@@ -1408,7 +1408,7 @@ void CFG<BB, XR>::clean_loop_info(bool access_li_by_scan_bb)
         m_bs_mgr->free(LI_bb_set(li));
         m_map_bb2li.set(id, NULL);
 
-        for (LI<IRBB> * y = LI_inner_list(x); y != NULL; y = LI_next(y)) {
+        for (LI<BB> * y = LI_inner_list(x); y != NULL; y = LI_next(y)) {
             worklst.append_tail(x);
         }
     }

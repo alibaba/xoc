@@ -88,7 +88,7 @@ static bool create_dump_file(UINT argc, CHAR const* argv[], IN OUT UINT & i)
     i += 2;
     if (dumpfile == NULL) { return false; }
 
-    initdump(dumpfile, false);
+    xoc::initdump(dumpfile, false);
     return true;
 }
 

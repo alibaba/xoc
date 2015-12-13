@@ -468,8 +468,8 @@ void IR_DCE::fix_control_flow(List<IRBB*> & bblst, List<C<IRBB*>*> & ctlst)
 
                 //Find a normal label as target.
                 LabelInfo const* li;
-                for (li = tgt->get_lab_list().get_head();
-                     li != NULL; li = tgt->get_lab_list().get_next()) {
+                for (li = tgt->getLabelList().get_head();
+                     li != NULL; li = tgt->getLabelList().get_next()) {
                     if (LABEL_INFO_is_catch_start(li) ||
                         LABEL_INFO_is_try_start(li) ||
                         LABEL_INFO_is_try_end(li) ||

@@ -34,10 +34,12 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace xcom;
 
+#include "util.h"
+using namespace xoc;
+
 #ifdef _DEBUG_
 void bs_test()
 {
-    extern FILE * g_tfile;
     SegMgr<BITS_PER_SEG> sm;
 
     DBitSet<BITS_PER_SEG> a(&sm);
@@ -120,7 +122,6 @@ void bs_test()
 
 void bs_test2()
 {
-    extern FILE * g_tfile;
     SegMgr<BITS_PER_SEG> sm;
     SBitSet<BITS_PER_SEG> a(&sm),b(&sm);
     a.bunion(8);
@@ -158,7 +159,6 @@ void bs_test2()
 
 void bs_test3()
 {
-    extern FILE * g_tfile;
     if (g_tfile == NULL) { return; }
     fprintf(g_tfile, "\n===");
     MiscBitSetMgr<33> mbsm;
@@ -181,7 +181,6 @@ void bs_test3()
 
 
 #ifdef DEBUG_SEG
-extern FILE * g_tfile;
 template <UINT BitsPerSeg>
 void dump_segmgr(SegMgr<BitsPerSeg> & m)
 {

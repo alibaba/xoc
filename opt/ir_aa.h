@@ -548,6 +548,9 @@ public:
     MD2MDSet * get_unique_md2mds() { return &m_unique_md2mds; }
 
     void initAliasAnalysis();
+
+    //Return true if Alias Analysis has initialized.
+    bool is_init() const { return m_hashed_maypts != NULL; }
     bool is_flow_sensitive() const { return m_flow_sensitive; }
     bool isValidStmtToAA(IR * ir);
 

@@ -29,68 +29,38 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-author: GongKai, JinYue
+author: Su Zhenyu
 @*/
-#include <stdio.h>
-#include <malloc.h>
-#include <errno.h>
+#ifndef __COMMONINC_H__
+#define __COMMONINC_H__
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+//Common included files
+#include "stdlib.h"
+#include "stdarg.h"
+#include "stdio.h"
+#include "string.h"
+#include "ltype.h"
+#include "math.h"
 
-#include "trace/ctrace.h"
-#include "d2d_main.h"
+//libxcom
+#include "comf.h"
+#include "smempool.h"
+#include "sstl.h"
+#include "matt.h"
+#include "bs.h"
+#include "sbs.h"
+#include "sgraph.h"
+#include "rational.h"
+#include "flty.h"
+#include "xmat.h"
 
-#include "cominc.h"
-#include "cmdline.h"
-#include "dex.h"
+using namespace xcom;
 
-//#define DEBUG_D2D
-#ifdef DEBUG_D2D
-int main(int argcc, char * argvc[])
-{
-    UNUSED(argcc);
-    UNUSED(argvc);
+#include "option.h"
+#include "targ_const_info.h"
+#include "util.h"
+#include "symtab.h"
+#include "label.h"
+#include "cdg.h"
 
-    CHAR * argv[] = {
-        "d2d.exe",
-        //"test.apk",
-        "-o", "output.dex",
-    };
-    int argc = sizeof(argv)/sizeof(argv[0]);
-#else
-int main(int argc, char const* argv[])
-{
 #endif
-    int locerrno = 0; //0 indicates no error.
-    long filelen;
-    if (!processCommandLine(argc, argv)) {
-        locerrno = -1;
-        goto FIN;
-    }
-
-    if (g_tfile != NULL && g_dump_dex_file_path) {
-        fprintf(g_tfile, "\n==---- %s ----==\n", g_dex_file_path);
-    }
-
-    if (d2dEntry(g_source_file_handler, g_output_file_handler,
-                 &filelen, false, g_dex_file_path) != 0) {
-        locerrno = errno;
-        LOGE("error: perform dexpro failed.\n");
-    }
-
-FIN:
-    if (g_source_file_handler >= 0) {
-        close(g_source_file_handler);
-    }
-
-    if (g_output_file_handler >= 0) {
-        close(g_output_file_handler);
-    }
-
-    xoc::finidump();
-
-    return locerrno; //success.
-}
-

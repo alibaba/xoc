@@ -69,7 +69,7 @@ public:
     COPY_CONSTRUCTOR(PassMgr);
     virtual ~PassMgr()
     {
-        destroyPass();
+        destroyAllPass();
         smpoolDelete(m_pool);
     }
 
@@ -102,7 +102,10 @@ public:
     virtual Pass * allocExprTab();
     virtual Pass * allocCfsMgr();
 
-    void destroyPass();
+    void destroyAllPass();
+    void destroyPass(Pass * pass);
+    void destroyPass(PASS_TYPE passtype);
+
     void dump_pass_time_info()
     {
         if (g_tfile == NULL) { return; }

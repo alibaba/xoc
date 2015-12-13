@@ -140,7 +140,7 @@ void CDG::build(IN OUT OptCtx & oc, DGraph & cfg)
 
     Vector<UINT> top_order;
     pdom_tree.sortInToplogOrder(top_order, false);
-    //dump_vec(top_order);
+    //dumpIntVector(top_order);
 
     BitSetMgr bs_mgr;
     Vector<BitSet*> cd_set;

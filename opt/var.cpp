@@ -115,10 +115,6 @@ CHAR * VAR::dump(CHAR * buf, TypeMgr const* dm) const
         strcat(buf, ",has_init_val");
     }
 
-    if (HAVE_FLAG(VAR_flag(this), VAR_FUNC_UNIT)) {
-        strcat(buf, ",func_unit");
-    }
-
     if (HAVE_FLAG(VAR_flag(this), VAR_FUNC_DECL)) {
         strcat(buf, ",func_decl");
     }
@@ -185,7 +181,6 @@ CHAR * VAR::dump(CHAR * buf, TypeMgr const* dm) const
     REMOVE_FLAG(tmpf, VAR_READONLY);
     REMOVE_FLAG(tmpf, VAR_VOLATILE);
     REMOVE_FLAG(tmpf, VAR_HAS_INIT_VAL);
-    REMOVE_FLAG(tmpf, VAR_FUNC_UNIT);
     REMOVE_FLAG(tmpf, VAR_FUNC_DECL);
     REMOVE_FLAG(tmpf, VAR_FAKE);
     REMOVE_FLAG(tmpf, VAR_IS_ARRAY);

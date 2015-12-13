@@ -40,17 +40,19 @@ using namespace xcom;
 
 #include "errno.h"
 #include "util.h"
+using namespace xoc;
+
+namespace xoc {
 
 #define ERR_BUF_LEN 1024
 
-INT g_indent = 0;
-CHAR * g_indent_chars = (CHAR*)" ";
-SMemPool * g_pool_tmp_used = NULL;
-FILE * g_tfile = NULL;
 
 //Print \l as the Carriage Return.
 bool g_prt_carriage_return_for_dot = false;
-
+INT g_indent = 0;
+CHAR * g_indent_chars = (CHAR*)" ";
+FILE * g_tfile = NULL;
+static SMemPool * g_pool_tmp_used = NULL;
 
 void interwarn(CHAR const* format, ...)
 {
@@ -67,34 +69,11 @@ void interwarn(CHAR const* format, ...)
 }
 
 
-//Print string.
-INT prt(CHAR const* format, ...)
-{
-    if (format == NULL) return 0;
-    CHAR buf[MAX_BUF_LEN];
-    if (strlen(format) > MAX_BUF_LEN) {
-        ASSERT(0, ("prt message is too long to print"));
-    }
-    //CHAR * arg = (CHAR*)((CHAR*)(&format) + sizeof(CHAR*));
-    va_list arg;
-    va_start(arg, format);
-    vsprintf(buf, format, arg);
-    if (g_tfile != NULL) {
-        fprintf(g_tfile, "%s", buf);
-        fflush(g_tfile);
-    } else {
-        fprintf(stdout, "%s", buf);
-    }
-    va_end(arg);
-    return 0;
-}
-
-
+//Print message to screen.
 //NOTE: message should not exceed MAX_BUF_LEN.
 void scr(CHAR const* format, ...)
 {
     UNUSED(format);
-#ifdef _DEBUG_
     //CHAR * arg = (CHAR*)((CHAR*)(&format) + sizeof(CHAR*));
     va_list arg;
     va_start(arg, format);
@@ -102,7 +81,6 @@ void scr(CHAR const* format, ...)
     vsprintf(buf, format, arg);
     fprintf(stdout, "\n%s", buf);
     va_end(arg);
-#endif
 }
 
 
@@ -112,6 +90,12 @@ void finidump()
         fclose(g_tfile);
         g_tfile = NULL;
     }
+}
+
+
+SMemPool * get_tmp_pool()
+{
+    return g_pool_tmp_used;
 }
 
 
@@ -205,7 +189,7 @@ void tfree()
 }
 
 
-void dump_vec(Vector<UINT> & v)
+void dumpIntVector(Vector<UINT> & v)
 {
     if (g_tfile == NULL) return;
     fprintf(g_tfile, "\n");
@@ -362,3 +346,5 @@ void test_rbt()
     test1();
     test2();
 }
+
+} //namespace xoc

@@ -450,7 +450,7 @@ void IR_IVR::_dump(LI<IRBB> * li, UINT indent)
                 fprintf(g_tfile, "Def-Stmt:");
                 ASSERT0(IV_iv_def(iv));
                 g_indent = indent + 2;
-                dump_ir(IV_iv_def(iv), m_tm, "", true, false, false);
+                dump_ir(IV_iv_def(iv), m_tm, NULL, true, false, false);
 
                 //Dump IV's occ-exp.
                 fprintf(g_tfile, "\n");
@@ -458,7 +458,7 @@ void IR_IVR::_dump(LI<IRBB> * li, UINT indent)
                 fprintf(g_tfile, "Occ-Exp:");
                 ASSERT0(IV_iv_occ(iv));
                 g_indent = indent + 2;
-                dump_ir(IV_iv_occ(iv), m_tm, "", true, false, false);
+                dump_ir(IV_iv_occ(iv), m_tm, NULL, true, false, false);
 
                 //Dump IV's init-stmt.
                 if (iv->getInitValStmt() != NULL) {
@@ -466,7 +466,7 @@ void IR_IVR::_dump(LI<IRBB> * li, UINT indent)
                     for (UINT i = 0; i < indent; i++) { fprintf(g_tfile, " "); }
                     fprintf(g_tfile, "Init-Stmt:");
                     g_indent = indent + 2;
-                    dump_ir(iv->getInitValStmt(), m_tm, "", true, false, false);
+                    dump_ir(iv->getInitValStmt(), m_tm, NULL, true, false, false);
                 }
             }
         } else { fprintf(g_tfile, "(NO BIV)"); }
@@ -483,7 +483,7 @@ void IR_IVR::_dump(LI<IRBB> * li, UINT indent)
                 IR const* iv = sc->val();
                 ASSERT0(iv);
                 g_indent = indent + 2;
-                dump_ir(iv, m_tm, "", true, false, false);
+                dump_ir(iv, m_tm, NULL, true, false, false);
             }
         } else { fprintf(g_tfile, "(NO DIV)"); }
 
@@ -516,7 +516,7 @@ void IR_IVR::clean()
         if (ivlst == NULL) { continue; }
         ivlst->clean();
     }
-
+    m_ir2iv.clean();
 }
 
 
@@ -529,8 +529,7 @@ bool IR_IVR::perform(OptCtx & oc)
     m_ru->checkValidAndRecompute(&oc, PASS_REACH_DEF, PASS_DU_REF,
                                  PASS_DOM, PASS_LOOP_INFO, PASS_DU_CHAIN,
                                  PASS_RPO, PASS_UNDEF);
-    IR_DU_MGR * dumgr = (IR_DU_MGR*)m_ru->get_pass_mgr()->queryPass(PASS_DU_MGR);
-    dumgr->dumpDUChainDetail();
+    m_du = (IR_DU_MGR*)m_ru->get_pass_mgr()->queryPass(PASS_DU_MGR);
 
     LI<IRBB> const* li = m_cfg->get_loop_info();
     clean();

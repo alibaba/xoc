@@ -36,6 +36,8 @@ author: Su Zhenyu
 
 namespace xoc {
 
+class SimpCtx;
+
 //Basis Class of pass.
 class Pass {
 protected:

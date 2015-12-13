@@ -258,25 +258,25 @@ UINT checkStArrayDimension(IR const* ir, UINT n)
 
 
 //Dump ir list with a clause header.
-void dump_irs_h(IR * ir_list , TypeMgr const* dm)
+void dump_irs_h(IR * ir_list , TypeMgr const* tm)
 {
     if (g_tfile == NULL) { return; }
     fprintf(g_tfile, "\n==---- DUMP IR List ----==\n");
-    dump_irs(ir_list, dm, NULL);
+    dump_irs(ir_list, tm, NULL);
 }
 
 
 //Dump IR, and both its kids and siblings.
-void dump_irs(IR * ir_list, TypeMgr const* dm, CHAR * attr)
+void dump_irs(IR * ir_list, TypeMgr const* tm, CHAR * attr)
 {
     if (g_tfile == NULL) { return; }
     bool first_one = true;
     while (ir_list != NULL) {
         if (first_one) {
             first_one = false;
-            dump_ir(ir_list, dm, attr);
+            dump_ir(ir_list, tm, attr);
         } else {
-            dump_ir(ir_list, dm);
+            dump_ir(ir_list, tm);
         }
         ir_list = IR_next(ir_list);
     }
@@ -383,23 +383,23 @@ bool verify_irs(IR * ir, IRAddressHash * irh, Region const* ru)
 }
 
 
-void dump_irs(IN List<IR*> & ir_list, TypeMgr const* dm)
+void dump_irs(IN List<IR*> & ir_list, TypeMgr const* tm)
 {
     if (g_tfile == NULL) { return; }
     fprintf(g_tfile, "\n==---- DUMP IR List ----==\n");
-    ASSERT0(dm);
+    ASSERT0(tm);
     for (IR * ir = ir_list.get_head();
          ir != NULL; ir = ir_list.get_next()) {
         ASSERT0(IR_next(ir) == NULL && IR_prev(ir) == NULL);
-        dump_ir(ir, dm);
+        dump_ir(ir, tm);
     }
     fflush(g_tfile);
 }
 
 
-void dump_irs(IRList & ir_list, TypeMgr const* dm)
+void dump_irs(IRList & ir_list, TypeMgr const* tm)
 {
-    dump_irs((List<IR*>&)ir_list, dm);
+    dump_irs((List<IR*>&)ir_list, tm);
 }
 
 
@@ -449,7 +449,7 @@ static void dump_ai(OUT CHAR * buf, IR const* ir)
 //Dump IR and all of its kids.
 //'attr': miscellaneous string which following 'ir'.
 void dump_ir(IR const* ir,
-             TypeMgr const* dm,
+             TypeMgr const* tm,
              IN CHAR * attr,
              bool dump_kid,
              bool dump_src_line,
@@ -459,10 +459,10 @@ void dump_ir(IR const* ir,
     UNUSED(dump_src_line);
     UNUSED(dump_kid);
     UNUSED(attr);
-    UNUSED(dm);
+    UNUSED(tm);
     UNUSED(ir);
 
-    ASSERT0(dm);
+    ASSERT0(tm);
     UINT dn = 4;
     if (g_tfile == NULL || ir == NULL) { return; }
 
@@ -513,7 +513,7 @@ void dump_ir(IR const* ir,
         d = ir->get_type();
     }
 
-    TypeMgr * xdm = const_cast<TypeMgr*>(dm);
+    TypeMgr * xdm = const_cast<TypeMgr*>(tm);
     switch (IR_code(ir)) {
     case IR_ST:
         {
@@ -541,7 +541,7 @@ void dump_ir(IR const* ir,
 
             if (dump_kid) {
                 g_indent += dn;
-                dump_irs(ST_rhs(ir), dm);
+                dump_irs(ST_rhs(ir), tm);
                 g_indent -= dn;
             }
         }
@@ -553,7 +553,7 @@ void dump_ir(IR const* ir,
 
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(STPR_rhs(ir), dm);
+            dump_irs(STPR_rhs(ir), tm);
             g_indent -= dn;
         }
         break;
@@ -594,15 +594,15 @@ void dump_ir(IR const* ir,
             for (IR const* sub = ARR_sub_list(ir);
                  sub != NULL; sub = IR_next(sub)) {
                 sprintf(tt, " dim%d", dim);
-                dump_ir(sub, dm, (CHAR*)tt);
+                dump_ir(sub, tm, (CHAR*)tt);
                 dim++;
             }
             g_indent -= dn;
         }
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(ARR_base(ir), dm, (CHAR*)" array_base");
-            dump_irs(STARR_rhs(ir), dm, (CHAR*)" rhs");
+            dump_irs(ARR_base(ir), tm, (CHAR*)" array_base");
+            dump_irs(STARR_rhs(ir), tm, (CHAR*)" rhs");
             g_indent -= dn;
         }
         break;
@@ -619,8 +619,8 @@ void dump_ir(IR const* ir,
 
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(IST_base(ir), dm, (CHAR*)" base");
-            dump_irs(IST_rhs(ir), dm);
+            dump_irs(IST_base(ir), tm, (CHAR*)" base");
+            dump_irs(IST_rhs(ir), tm);
             g_indent -= dn;
         }
         break;
@@ -662,7 +662,7 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(ILD_base(ir), dm);
+            dump_irs(ILD_base(ir), tm);
             g_indent -= dn;
         }
         break;
@@ -736,7 +736,7 @@ void dump_ir(IR const* ir,
                  CONST_int_val(ir),
                  CONST_int_val(ir));
             //ASSERT(0, ("unsupport immediate value DATA_TYPE:%d",
-            //        ir->get_dtype(dm)));
+            //        ir->get_dtype(tm)));
         }
         PADDR(ir);
         fprintf(g_tfile, "%s", attr);
@@ -766,8 +766,8 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(BIN_opnd0(ir), dm);
-            dump_irs(BIN_opnd1(ir), dm);
+            dump_irs(BIN_opnd0(ir), tm);
+            dump_irs(BIN_opnd1(ir), tm);
             g_indent -= dn;
         }
         break;
@@ -777,12 +777,12 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(IF_det(ir), dm);
+            dump_irs(IF_det(ir), tm);
             g_indent -= dn;
 
             note("\n{");
             g_indent += dn;
-            dump_irs(IF_truebody(ir), dm);
+            dump_irs(IF_truebody(ir), tm);
             g_indent -= dn;
             note("\n}");
 
@@ -790,7 +790,7 @@ void dump_ir(IR const* ir,
                 note("\n else");
                 note("\n{");
                 g_indent += dn;
-                dump_irs(IF_falsebody(ir), dm);
+                dump_irs(IF_falsebody(ir), tm);
                 g_indent -= dn;
                 note("\n}");
             }
@@ -804,12 +804,12 @@ void dump_ir(IR const* ir,
 
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(LOOP_body(ir), dm);
+            dump_irs(LOOP_body(ir), tm);
             g_indent -= dn;
 
             note("\ndet");
             g_indent += dn;
-            dump_irs(LOOP_det(ir), dm);
+            dump_irs(LOOP_det(ir), tm);
             g_indent -= dn;
 
             note("\nend_do_while");
@@ -822,13 +822,13 @@ void dump_ir(IR const* ir,
 
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(LOOP_det(ir), dm);
+            dump_irs(LOOP_det(ir), tm);
             g_indent -= dn;
 
             note("\nbody");
 
             g_indent += dn;
-            dump_irs(LOOP_body(ir), dm);
+            dump_irs(LOOP_body(ir), tm);
             g_indent -= dn;
 
             note("\nend_while_do");
@@ -844,25 +844,25 @@ void dump_ir(IR const* ir,
             note("\ninit");
 
             g_indent += dn;
-            dump_irs(LOOP_init(ir), dm);
+            dump_irs(LOOP_init(ir), tm);
             g_indent -= dn;
 
             note("\ndet");
 
             g_indent += dn;
-            dump_irs(LOOP_det(ir), dm);
+            dump_irs(LOOP_det(ir), tm);
             g_indent -= dn;
 
             note("\nstep");
 
             g_indent += dn;
-            dump_irs(LOOP_step(ir), dm);
+            dump_irs(LOOP_step(ir), tm);
             g_indent -= dn;
 
             note("\ndo_loop_body");
 
             g_indent += dn;
-            dump_irs(LOOP_body(ir), dm);
+            dump_irs(LOOP_body(ir), tm);
             g_indent -= dn;
             note("\nend_do_loop");
         }
@@ -883,7 +883,7 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_ir(RET_exp(ir), dm, NULL, dump_kid,
+            dump_ir(RET_exp(ir), tm, NULL, dump_kid,
                     dump_src_line, dump_addr);
             g_indent -= dn;
         }
@@ -900,12 +900,12 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(IGOTO_vexp(ir), dm);
+            dump_irs(IGOTO_vexp(ir), tm);
             g_indent -= dn;
 
             note("\ncase_list");
             g_indent += dn;
-            dump_irs(IGOTO_case_list(ir), dm);
+            dump_irs(IGOTO_case_list(ir), tm);
             g_indent -= dn;
         }
         break;
@@ -957,15 +957,15 @@ void dump_ir(IR const* ir,
         PADDR(ir); fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(SELECT_det(ir), dm);
+            dump_irs(SELECT_det(ir), tm);
             g_indent -= dn;
 
             g_indent += dn;
-            dump_irs(SELECT_trueexp(ir), dm, (CHAR*)" true_exp");
+            dump_irs(SELECT_trueexp(ir), tm, (CHAR*)" true_exp");
             g_indent -= dn;
 
             g_indent += dn;
-            dump_irs(SELECT_falseexp(ir), dm, (CHAR*)" false_exp");
+            dump_irs(SELECT_falseexp(ir), tm, (CHAR*)" false_exp");
             g_indent -= dn;
         }
         break;
@@ -976,7 +976,7 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(CVT_exp(ir), dm, (CHAR*)" cvtbase");
+            dump_irs(CVT_exp(ir), tm, (CHAR*)" cvtbase");
             g_indent -= dn;
         }
         break;
@@ -991,7 +991,7 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(LDA_base(ir), dm);
+            dump_irs(LDA_base(ir), tm);
             g_indent -= dn;
         }
         break;
@@ -1001,7 +1001,7 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(UNA_opnd0(ir), dm);
+            dump_irs(UNA_opnd0(ir), tm);
             g_indent -= dn;
         }
         break;
@@ -1014,7 +1014,7 @@ void dump_ir(IR const* ir,
             g_indent += dn;
             IR * opnd = PHI_opnd_list(ir);
             while (opnd != NULL) {
-                dump_ir(opnd, dm, NULL);
+                dump_ir(opnd, tm, NULL);
                 opnd = IR_next(opnd);
             }
             g_indent -= dn;
@@ -1027,7 +1027,7 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(UNA_opnd0(ir), dm);
+            dump_irs(UNA_opnd0(ir), tm);
             g_indent -= dn;
         }
         break;
@@ -1038,7 +1038,7 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(UNA_opnd0(ir), dm);
+            dump_irs(UNA_opnd0(ir), tm);
             g_indent -= dn;
         }
         break;
@@ -1052,17 +1052,17 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(SWITCH_vexp(ir), dm);
+            dump_irs(SWITCH_vexp(ir), tm);
             g_indent -= dn;
 
             note("\ncase_list");
             g_indent += dn;
-            dump_irs(SWITCH_case_list(ir), dm);
+            dump_irs(SWITCH_case_list(ir), tm);
             g_indent -= dn;
 
             note("\nswitch_body");
             g_indent += dn;
-            dump_irs(SWITCH_body(ir), dm);
+            dump_irs(SWITCH_body(ir), tm);
             g_indent -= dn;
             note("\nend_switch");
         }
@@ -1114,14 +1114,14 @@ void dump_ir(IR const* ir,
             for (IR const* sub = ARR_sub_list(ir);
                  sub != NULL; sub = IR_next(sub)) {
                 sprintf(tt, " dim%d", dim);
-                dump_ir(sub, dm, (CHAR*)tt);
+                dump_ir(sub, tm, (CHAR*)tt);
                 dim++;
             }
             g_indent -= dn;
         }
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(ARR_base(ir), dm, (CHAR*)" array_base");
+            dump_irs(ARR_base(ir), tm, (CHAR*)" array_base");
             g_indent -= dn;
         }
         break;
@@ -1161,7 +1161,7 @@ void dump_ir(IR const* ir,
             if (dump_kid) {
                 if (ir->is_icall()) {
                     g_indent += dn;
-                    dump_ir(ICALL_callee(ir), dm, (CHAR*)" callee",
+                    dump_ir(ICALL_callee(ir), tm, (CHAR*)" callee",
                             dump_kid, dump_src_line, dump_addr);
                     g_indent -= dn;
                 }
@@ -1173,7 +1173,7 @@ void dump_ir(IR const* ir,
                 while (tmp != NULL) {
                     sprintf(tmpbuf, " param%d", i);
                     g_indent += dn;
-                    dump_ir(tmp, dm, tmpbuf, dump_kid,
+                    dump_ir(tmp, tm, tmpbuf, dump_kid,
                             dump_src_line, dump_addr);
                     g_indent -= dn;
                     i++;
@@ -1189,7 +1189,7 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(BR_det(ir), dm);
+            dump_irs(BR_det(ir), tm);
             g_indent -= dn;
         }
         break;
@@ -1200,7 +1200,7 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(BR_det(ir), dm);
+            dump_irs(BR_det(ir), tm);
             g_indent -= dn;
         }
         break;
@@ -1322,8 +1322,9 @@ bool IR::verify(Region const* ru) const
 {
     verifyKids();
 
-    TypeMgr const* dm = ru->get_type_mgr();
-    ASSERT0(dm);
+    TypeMgr const* tm = ru->get_type_mgr();
+    ASSERT0(tm);
+    UNUSED(tm);
 
     Type const* d = get_type();
     ASSERT0(d);
@@ -1348,12 +1349,12 @@ bool IR::verify(Region const* ru) const
         ASSERT(IS_SIMPLEX(TY_vec_ety(d)) || IS_PTR(TY_vec_ety(d)),
                 ("illegal vector elem type"));
 
-        ASSERT0(TY_vec_size(d) >= dm->get_dtype_bytesize(TY_vec_ety(d)) &&
-                 TY_vec_size(d) % dm->get_dtype_bytesize(TY_vec_ety(d)) == 0);
+        ASSERT0(TY_vec_size(d) >= tm->get_dtype_bytesize(TY_vec_ety(d)) &&
+                 TY_vec_size(d) % tm->get_dtype_bytesize(TY_vec_ety(d)) == 0);
 
         UINT ofst = get_offset();
         if (ofst != 0) {
-            ASSERT0((ofst % dm->get_dtype_bytesize(TY_vec_ety(d))) == 0);
+            ASSERT0((ofst % tm->get_dtype_bytesize(TY_vec_ety(d))) == 0);
         }
     }
 
@@ -1387,8 +1388,8 @@ bool IR::verify(Region const* ru) const
                  IR_prev(ST_rhs(this)) == NULL);
         if (d->is_vector()) {
             ASSERT0(TY_vec_ety(d) != D_UNDEF);
-            ASSERT0(dm->get_dtype_bytesize(TY_vec_ety(d)) >=
-                     dm->get_bytesize(IR_dt(ST_rhs(this))));
+            ASSERT0(tm->get_dtype_bytesize(TY_vec_ety(d)) >=
+                     tm->get_bytesize(IR_dt(ST_rhs(this))));
         }
         break;
     case IR_STPR:
@@ -1415,8 +1416,8 @@ bool IR::verify(Region const* ru) const
         ASSERT0(ARR_elemtype(this));
 
         if (ARR_ofst(this) != 0) {
-            ASSERT0(dm->get_bytesize(d) + ARR_ofst(this) <=
-                     dm->get_bytesize(ARR_elemtype(this)));
+            ASSERT0(tm->get_bytesize(d) + ARR_ofst(this) <=
+                     tm->get_bytesize(ARR_elemtype(this)));
         }
 
         ASSERT0(IR_next(ARR_base(this)) == NULL &&
@@ -1459,8 +1460,8 @@ bool IR::verify(Region const* ru) const
 
             //Note if the rhssize less than elemsize, it will be hoist to
             //elemsize.
-            ASSERT0(dm->get_dtype_bytesize(TY_vec_ety(d)) >=
-                     dm->get_bytesize(IR_dt(ST_rhs(this))));
+            ASSERT0(tm->get_dtype_bytesize(TY_vec_ety(d)) >=
+                     tm->get_bytesize(IR_dt(ST_rhs(this))));
         }
 
         ASSERT0(SETELEM_rhs(this)->is_exp());
@@ -1488,8 +1489,8 @@ bool IR::verify(Region const* ru) const
             if (basedtd->is_vector()) {
                 ASSERT0(TY_vec_ety(basedtd) != D_UNDEF);
 
-                ASSERT0(dm->get_dtype_bytesize(TY_vec_ety(basedtd)) >=
-                         dm->get_bytesize(d));
+                ASSERT0(tm->get_dtype_bytesize(TY_vec_ety(basedtd)) >=
+                         tm->get_bytesize(d));
             }
         }
         break;
@@ -1636,8 +1637,8 @@ bool IR::verify(Region const* ru) const
             ASSERT0(ARR_elemtype(this));
 
             if (ARR_ofst(this) != 0) {
-                ASSERT0(dm->get_bytesize(d) + ARR_ofst(this) <=
-                         dm->get_bytesize(ARR_elemtype(this)));
+                ASSERT0(tm->get_bytesize(d) + ARR_ofst(this) <=
+                         tm->get_bytesize(ARR_elemtype(this)));
             }
 
             ASSERT0(IR_next(ARR_base(this)) == NULL &&
@@ -1808,7 +1809,7 @@ the offset of p[i] can be computed by i*20.
 If all the indice are constant value, calcuate the value, storing
 in 'ofst_val' and return true, otherwise return false, means the
 ofst can not be determined. */
-bool IR::calcArrayOffset(TMWORD * ofst_val, TypeMgr * dm) const
+bool IR::calcArrayOffset(TMWORD * ofst_val, TypeMgr * tm) const
 {
     if (!is_array() && !is_starray()) { return false; }
 
@@ -1838,7 +1839,7 @@ bool IR::calcArrayOffset(TMWORD * ofst_val, TypeMgr * dm) const
         }
     }
 
-    aggr *= dm->get_bytesize(ARR_elemtype(this));
+    aggr *= tm->get_bytesize(ARR_elemtype(this));
     ASSERT0(ofst_val);
     *ofst_val = aggr;
     return true;

@@ -1438,11 +1438,11 @@ void IR_DU_MGR::dumpBBDUChainDetail(IRBB * bb)
     fprintf(g_tfile, "\n--- BB%d ---", BB_id(bb));
 
     //Label Info list.
-    LabelInfo const* li = bb->get_lab_list().get_head();
+    LabelInfo const* li = bb->getLabelList().get_head();
     if (li != NULL) {
         fprintf(g_tfile, "\nLABEL:");
     }
-    for (; li != NULL; li = bb->get_lab_list().get_next()) {
+    for (; li != NULL; li = bb->getLabelList().get_next()) {
         switch (LABEL_INFO_type(li)) {
         case L_CLABEL:
             note(CLABEL_STR_FORMAT, CLABEL_CONT(li));

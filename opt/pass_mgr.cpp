@@ -46,7 +46,28 @@ PassMgr::PassMgr(Region * ru)
 }
 
 
-void PassMgr::destroyPass()
+//Destory dedicated pass.
+void PassMgr::destroyPass(Pass * pass)
+{
+    ASSERT0(pass);
+    PASS_TYPE passtype = pass->get_pass_type();
+    ASSERT0(passtype != PASS_UNDEF);
+    m_registered_pass.remove(passtype);
+    m_registered_graph_based_pass.remove(passtype);
+    delete pass;
+}
+
+
+void PassMgr::destroyPass(PASS_TYPE passtype)
+{
+    Pass * pass = queryPass(passtype);
+    if (pass == NULL) { return; }
+    destroyPass(pass);
+}
+
+
+
+void PassMgr::destroyAllPass()
 {
     TMapIter<PASS_TYPE, Pass*> tabiter;
     Pass * p;

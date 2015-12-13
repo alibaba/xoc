@@ -72,7 +72,8 @@ typedef TMap<SYM const*, CallNode*> SYM2CN;
 //Call Graph
 //The call graph is not precise. That is, a callsite may indicate it can
 //call a function when in fact it does not do so in the running program.
-#define CALLG_DUMP_IR    1
+#define CALLG_DUMP_IR        1
+#define CALLG_DUMP_SRC_LINE  2
 class CallGraph : public DGraph {
     RegionMgr * m_ru_mgr;
     TypeMgr * m_tm;
@@ -92,8 +93,9 @@ class CallGraph : public DGraph {
         return p;
     }
 public:
-    CallGraph(UINT edge_hash, UINT vex_hash, RegionMgr * rumgr):
-          DGraph(edge_hash, vex_hash)
+    CallGraph(UINT edge_hash,
+              UINT vex_hash,
+              RegionMgr * rumgr): DGraph(edge_hash, vex_hash)
     {
         ASSERT0(edge_hash > 0 && vex_hash > 0);
         m_ru_mgr = rumgr;
