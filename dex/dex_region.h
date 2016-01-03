@@ -39,9 +39,6 @@ class Dex2IR;
 #define DR_functype(dr)     ((dr)->m_functype)
 #define DR_funcname(dr)     ((dr)->m_funcname)
 #define DR_classname(dr)    ((dr)->m_classname)
-#ifdef _CODE_ANA_
-#define DR_is_locked(dr)    ((dr)->m_is_locked)
-#endif
 
 class DexRegion : public Region {
 protected:
@@ -66,9 +63,6 @@ public:
     CHAR const* m_functype;
     CHAR const* m_funcname;
     CHAR const* m_classname;
-    #ifdef _CODE_ANA_
-    BYTE m_is_locked:1; //true if current region has been confirmed locked.
-    #endif
 
 public:
     DexRegion(REGION_TYPE rt, RegionMgr * rm) : Region(rt, rm)
@@ -85,9 +79,6 @@ public:
         m_funcname = NULL;
         m_functype = NULL;
         m_sc_pool = smpoolCreate(sizeof(SC<LabelInfo*>), MEM_CONST_SIZE);
-        #ifdef _CODE_ANA_
-        DR_is_locked(this) = false;
-        #endif
     }
     virtual ~DexRegion() { smpoolDelete(m_sc_pool); }
 

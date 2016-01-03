@@ -60,8 +60,11 @@ public:
     COPY_CONSTRUCTOR(IR_RCE);
     virtual ~IR_RCE() {}
 
-    IR * calcCondMustVal(IN IR * ir, OUT bool & must_true,
-                            OUT bool & must_false);
+    IR * calcCondMustVal(
+            IN IR * ir,
+            OUT bool & must_true,
+            OUT bool & must_false,
+            bool & changed);
 
     void dump();
     virtual CHAR const* get_pass_name() const

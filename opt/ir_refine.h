@@ -36,7 +36,7 @@ author: Su Zhenyu
 
 namespace xoc {
 
-//Refine operation context variable.
+//Refining context variable.
 //Set the following option true or false to enable or disable the refinement.
 #define RC_refine_div_const(r)       ((r).u1.s1.refine_div_const)
 #define RC_refine_mul_const(r)       ((r).u1.s1.refine_mul_const)
@@ -61,7 +61,11 @@ public:
             //Pass info topdown. e.g: int a; a=2+3 => a=5
             UINT do_fold_const:1;
 
-            //Pass info topdown. True to insert IR_CVT automaticlly.
+            //Pass info topdown.
+            //If the flag is true, the process will insert IR_CVT
+            //if kid's type size is smaller then parent's type size.
+            //e.g: parent:I32 = kid:I8 will be
+            //     parent:I32 = cvt:I32 (kid:I8)
             UINT insertCvt:1;
 
             //Pass info topdown. True to transform comparison stmt to lnot

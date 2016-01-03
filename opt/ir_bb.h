@@ -196,6 +196,7 @@ public:
         BYTE u1b1;
     } u1;
 
+public:
     IRBB()
     {
         ir_list.set_bb(this);
@@ -249,6 +250,27 @@ public:
     List<LabelInfo const*> & getLabelList() { return lab_list; }
     List<LabelInfo const*> const& getLabelListConst() const { return lab_list; }
     UINT getNumOfIR() const { return BB_irlist(this).get_elem_count(); }
+    UINT getNumOfPred(CFG<IRBB, IR> * cfg) const
+    {
+        ASSERT0(cfg);
+        Vertex const* vex = cfg->get_vertex(BB_id(this));
+        ASSERT0(vex);
+        UINT n = 0;
+        for (EdgeC const* in = VERTEX_in_list(vex);
+             in != NULL; in = EC_next(in), n++);
+        return n;
+    }
+
+    UINT getNumOfSucc(CFG<IRBB, IR> * cfg) const
+    {
+        ASSERT0(cfg);
+        Vertex const* vex = cfg->get_vertex(BB_id(this));
+        ASSERT0(vex);
+        UINT n = 0;
+        for (EdgeC const* out = VERTEX_out_list(vex);
+             out != NULL; out = EC_next(out), n++);
+        return n;
+    }
 
     //For some aggressive optimized purposes, call node is not looked as
     //boundary of basic block.
@@ -449,9 +471,13 @@ public:
     //Return true if one of bb's successor has a phi.
     bool successorHasPhi(CFG<IRBB, IR> * cfg);
 
-    //Before removing bb, revising phi opnd if there are phis
-    //in one of bb's successors.
+    //Before removing bb or change bb successor,
+    //you need remove the related PHI operand if BB successor has PHI stmt.
     void removeSuccessorPhiOpnd(CFG<IRBB, IR> * cfg);
+
+    //Before removing bb or change bb successor,
+    //you need remove the related PHI operand if BB successor has PHI stmt.
+    void removeSuccessorDesignatePhiOpnd(CFG<IRBB, IR> * cfg, IRBB * succ);
 
     void verify();
 };

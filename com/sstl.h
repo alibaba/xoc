@@ -67,13 +67,10 @@ namespace xcom {
 
 typedef void* OBJTY;
 
-/*
-Structure chain operations.
-
-For easing implementation, there must be 2 fields declared in T
-    1. T * next
-    2. T * prev
-*/
+//Structure chain operations.
+//For easing implementation, there must be 2 fields declared in T
+//    1. T * next
+//    2. T * prev
 template <class T>
 inline UINT cnt_list(T const* t)
 {
@@ -274,9 +271,9 @@ inline void insertbefore_one(T ** head, T * marker, T * t)
 }
 
 
-/* Insert a list that leading by 't' before 'marker'.
-'head': function might modify the header of list.
-'t': the head element of list, that to be inserted. */
+//Insert a list that leading by 't' before 'marker'.
+//'head': function might modify the header of list.
+//'t': the head element of list, that to be inserted.
 template <class T>
 inline void insertbefore(T ** head, T * marker, T * t)
 {
@@ -309,10 +306,10 @@ inline void insertbefore(T ** head, T * marker, T * t)
 }
 
 
-/* Insert t into list immediately that following 'marker'.
-e.g: a->maker->b->c
-    output is: a->maker->t->b->c
-Return header in 'marker' if list is empty. */
+//Insert t into list immediately that following 'marker'.
+//e.g: a->maker->b->c
+//    output is: a->maker->t->b->c
+//Return header in 'marker' if list is empty.
 template <class T>
 inline void insertafter_one(T ** marker, T * t)
 {
@@ -332,9 +329,9 @@ inline void insertafter_one(T ** marker, T * t)
 }
 
 
-/* Insert t into marker's list as the subsequent element.
-e.g: a->maker->b->c,  and t->x->y
-    output is: a->maker->t->x->y->b->c. */
+//Insert t into marker's list as the subsequent element.
+//e.g: a->maker->b->c,  and t->x->y
+//output is: a->maker->t->x->y->b->c.
 template <class T>
 inline void insertafter(T ** marker, T * t)
 {
@@ -411,8 +408,7 @@ public:
 
 
 
-/*
-FREE-List
+/* FREE-List
 
 T refer to basis element type.
     e.g: Suppose variable type is 'VAR*', then T is 'VAR'.
@@ -2800,6 +2796,8 @@ public:
     {
         if (m_vec != NULL) {
             ::free(m_vec);
+            m_vec = NULL;
+            SVEC_elem_num(this) = 0;
         }
     }
 
@@ -4260,6 +4258,8 @@ public:
         ASSERT0(t != T(0));
         BaseTMap::remove(t);
     }
+
+    bool find(T t) const { return BaseTMap::find(t); }
 
     //iter should be clean by caller.
     T get_first(TabIter<T> & iter) const

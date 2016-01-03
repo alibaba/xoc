@@ -256,7 +256,7 @@ void SSAGraph::dump(IN CHAR const* name, bool detail)
         if (res != NULL) {
             fprintf(h, "\nnode: { title:\"%d\" shape:box fontname:\"courB\" "
                         "color:gold label:\"", IR_id(def));
-            for (IR * r = res; r != NULL; r = IR_next(r)) {
+            for (IR * r = res; r != NULL; r = r->get_next()) {
                 VP * vp = (VP*)r->get_ssainfo();
                 fprintf(h, "P%uV%u ", VP_prno(vp), VP_ver(vp));
             }
@@ -504,7 +504,7 @@ void IR_SSA_MGR::collectDefinedPR(IN IRBB * bb, OUT DefSBitSet & mustdef_pr)
     for (IR * ir = BB_first_ir(bb); ir != NULL; ir = BB_next_ir(bb)) {
         //Generate VP for non-phi stmt.
         IR * res = initVP(ir);
-        for (IR * r = res; r != NULL; r = IR_next(r)) {
+        for (IR * r = res; r != NULL; r = r->get_next()) {
             mustdef_pr.bunion(r->get_prno());
         }
     }
@@ -523,7 +523,7 @@ void IR_SSA_MGR::insertPhi(UINT prno, IN IRBB * bb)
 
     m_ru->allocRefForPR(phi);
 
-    for (IR * opnd = PHI_opnd_list(phi); opnd != NULL; opnd = IR_next(opnd)) {
+    for (IR * opnd = PHI_opnd_list(phi); opnd != NULL; opnd = opnd->get_next()) {
         opnd->copyRef(phi, m_ru);
     }
 
@@ -616,7 +616,7 @@ bool IR_SSA_MGR::is_redundant_phi(IR const* phi, OUT IR ** common_def) const
     IR * def = NULL;
     bool same_def = true; //indicate all DEF of operands are the same stmt.
     for (IR const* opnd = PHI_opnd_list(phi);
-         opnd != NULL; opnd = IR_next(opnd)) {
+         opnd != NULL; opnd = opnd->get_next()) {
         ASSERT0(opnd->is_phi_opnd());
 
         if (!opnd->is_pr()) { continue; }
@@ -760,7 +760,7 @@ void IR_SSA_MGR::rename_bb(IN IRBB * bb)
         //Rename result, include phi.
         IR * res = ir->getResultPR();
         if (res != NULL) {
-            ASSERT0(IR_prev(res) == NULL && IR_next(res) == NULL);
+            ASSERT0(res->is_single());
 
             VP * resvp = (VP*)res->get_ssainfo();
             ASSERT0(resvp);
@@ -839,7 +839,7 @@ void IR_SSA_MGR::handleBBRename(
                 IR * opnd = PHI_opnd_list(ir);
                 UINT j = 0;
                 while (opnd != NULL && j < idx) {
-                    opnd = IR_next(opnd);
+                    opnd = opnd->get_next();
                     j++;
                 }
                 ASSERT0(j == idx && opnd);
@@ -1078,7 +1078,7 @@ bool IR_SSA_MGR::stripPhi(IR * phi, C<IR*> * phict)
     ASSERT0(PHI_ssainfo(phi));
 
     for (EdgeC * el = VERTEX_in_list(vex); el != NULL;
-         el = EC_next(el), opnd = IR_next(opnd)) {
+         el = EC_next(el), opnd = opnd->get_next()) {
         INT pred = VERTEX_id(EDGE_from(EC_edge(el)));
 
         IR * opndcopy = m_ru->dupIRTree(opnd);
@@ -1133,39 +1133,36 @@ bool IR_SSA_MGR::stripPhi(IR * phi, C<IR*> * phict)
 }
 
 
-/* This function verify def/use information of PHI stmt.
-If vpinfo is available, the function also check VP_prno of phi operands.
-is_vpinfo_avail: set true if VP information is available. */
+//This function verify def/use information of PHI stmt.
+//If vpinfo is available, the function also check VP_prno of phi operands.
+//is_vpinfo_avail: set true if VP information is available.
 bool IR_SSA_MGR::verifyPhi(bool is_vpinfo_avail)
 {
     UNUSED(is_vpinfo_avail);
     BBList * bblst = m_ru->get_bb_list();
     List<IRBB*> preds;
-    for (IRBB * bb = bblst->get_head();
-         bb != NULL; bb = bblst->get_next()) {
+    for (IRBB * bb = bblst->get_head(); bb != NULL; bb = bblst->get_next()) {
         m_cfg->get_preds(preds, bb);
         C<IR*> * ct;
-        for (BB_irlist(bb).get_head(&ct);
-             ct != BB_irlist(bb).end();
+        for (BB_irlist(bb).get_head(&ct); ct != BB_irlist(bb).end();
              ct = BB_irlist(bb).get_next(ct)) {
             IR const* ir = ct->val();
             if (!ir->is_phi()) { continue; }
 
             //Check phi result.
             VP * resvp = (VP*)PHI_ssainfo(ir);
-            ASSERT(!is_vpinfo_avail ||
-                    VP_prno(resvp) == PHI_prno(ir),
-                    ("prno unmatch"));
+            ASSERT(!is_vpinfo_avail || VP_prno(resvp) == PHI_prno(ir),
+                   ("prno unmatch"));
 
             //Check the number of phi opnds.
             UINT num_opnd = 0;
 
             for (IR const* opnd = PHI_opnd_list(ir);
-                 opnd != NULL; opnd = IR_next(opnd)) {
+                 opnd != NULL; opnd = opnd->get_next()) {
                 //Opnd may be PR, CONST or LDA.
                 ASSERT(!is_vpinfo_avail ||
-                        VP_prno((VP*)PR_ssainfo(opnd)) == PR_no(opnd),
-                        ("prno of VP is unmatched"));
+                       VP_prno((VP*)PR_ssainfo(opnd)) == PR_no(opnd),
+                       ("prno of VP is unmatched"));
 
                 //Ver0 is input parameter, and it has no SSA_def.
                 //ASSERT0(VP_ver(PR_ssainfo(opnd)) > 0);
@@ -1174,8 +1171,8 @@ bool IR_SSA_MGR::verifyPhi(bool is_vpinfo_avail)
             }
 
             ASSERT(num_opnd == preds.get_elem_count(),
-                ("The number of phi operand must same with "
-                 "the number of BB predecessors."));
+                  ("The number of phi operand must same with "
+                   "the number of BB predecessors."));
 
             //Check SSA uses.
             SSAUseIter vit = NULL;
@@ -1197,10 +1194,10 @@ bool IR_SSA_MGR::verifyPhi(bool is_vpinfo_avail)
 }
 
 
-/* Check the consistency for IR_PR if VP_prno == PR_no.
-This function only can be invoked immediately
-after rename(), because refinePhi() might clobber VP information, that leads
-VP_prno() to be invalid. */
+//Check the consistency for IR_PR if VP_prno == PR_no.
+//This function only can be invoked immediately
+//after rename(), because refinePhi() might clobber VP information, that leads
+//VP_prno() to be invalid.
 bool IR_SSA_MGR::verifyPRNOofVP()
 {
     ConstIRIter ii;
@@ -1208,8 +1205,7 @@ bool IR_SSA_MGR::verifyPRNOofVP()
     C<IRBB*> * ct;
     for (IRBB * bb = bblst->get_head(&ct);
          bb != NULL; bb = bblst->get_next(&ct)) {
-         for (IR * ir = BB_first_ir(bb);
-             ir != NULL; ir = BB_next_ir(bb)) {
+         for (IR * ir = BB_first_ir(bb); ir != NULL; ir = BB_next_ir(bb)) {
             ii.clean();
             for (IR const* opnd = iterInitC(ir, ii);
                  opnd != NULL; opnd = iterNextC(ii)) {
@@ -1428,7 +1424,7 @@ static void revise_phi_dt(IR * phi, Region * ru)
     SSAInfo * irssainfo = PHI_ssainfo(phi);
     ASSERT0(irssainfo);
     ASSERT(SSA_uses(irssainfo).get_elem_count() > 0,
-            ("phi has no use, it is redundant at all."));
+           ("phi has no use, it is redundant at all."));
 
     SSAUseIter si = NULL;
     INT i = SSA_uses(irssainfo).get_first(&si);
@@ -1471,7 +1467,7 @@ void IR_SSA_MGR::refinePhi(List<IRBB*> & wl)
             IR * common_def = NULL;
             if (is_redundant_phi(ir, &common_def)) {
                 for (IR const* opnd = PHI_opnd_list(ir);
-                     opnd != NULL; opnd = IR_next(opnd)) {
+                     opnd != NULL; opnd = opnd->get_next()) {
                     ASSERT0(opnd->is_phi_opnd());
 
                     if (!opnd->is_pr()) { continue; }

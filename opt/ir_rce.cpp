@@ -40,9 +40,6 @@ author: Su Zhenyu
 
 namespace xoc {
 
-//
-//START IR_RCE
-//
 void IR_RCE::dump()
 {
     if (g_tfile == NULL) return;
@@ -58,8 +55,11 @@ void IR_RCE::dump()
 
 //If 'ir' is always true, set 'must_true', or if it is
 //always false, set 'must_false'.
-IR * IR_RCE::calcCondMustVal(IN IR * ir, OUT bool & must_true,
-                                OUT bool & must_false)
+IR * IR_RCE::calcCondMustVal(
+        IN IR * ir,
+        OUT bool & must_true,
+        OUT bool & must_false,
+        bool & changed)
 {
     must_true = false;
     must_false = false;
@@ -75,11 +75,10 @@ IR * IR_RCE::calcCondMustVal(IN IR * ir, OUT bool & must_true,
     case IR_LOR:
     case IR_LNOT:
         {
-            bool change = false;
-            ir = m_ru->foldConst(ir, change);
-            if (change) {
+            ir = m_ru->foldConst(ir, changed);
+            if (changed) {
                 ASSERT0(ir->is_const() &&
-                         (CONST_int_val(ir) == 0 || CONST_int_val(ir) == 1));
+                        (CONST_int_val(ir) == 0 || CONST_int_val(ir) == 1));
                 if (CONST_int_val(ir) == 1) {
                     must_true = true;
                 } else if (CONST_int_val(ir) == 0) {
@@ -87,23 +86,23 @@ IR * IR_RCE::calcCondMustVal(IN IR * ir, OUT bool & must_true,
                 }
                 return ir;
             }
+
             if (m_gvn != NULL && m_gvn->is_valid()) {
-                change = m_gvn->calcCondMustVal(ir, must_true, must_false);
+                bool change = m_gvn->calcCondMustVal(ir, must_true, must_false);
                 if (change) {
+                    changed = true;
                     if (must_true) {
                         ASSERT0(!must_false);
-                        Type const* type = IR_dt(ir);
+                        Type const* type = ir->get_type();
                         ir->removeSSAUse();
                         m_ru->freeIRTree(ir);
                         ir = m_ru->buildImmInt(1, type);
                         return ir;
                     } else {
                         ASSERT0(must_false);
-                        Type const* type = IR_dt(ir);
-
+                        Type const* type = ir->get_type();
                         ir->removeSSAUse();
                         m_ru->freeIRTree(ir);
-
                         ir = m_ru->buildImmInt(0, type);
                         return ir;
                     }
@@ -113,6 +112,7 @@ IR * IR_RCE::calcCondMustVal(IN IR * ir, OUT bool & must_true,
         break;
     default: ASSERT0(0);
     }
+
     return ir;
 }
 
@@ -120,70 +120,99 @@ IR * IR_RCE::calcCondMustVal(IN IR * ir, OUT bool & must_true,
 IR * IR_RCE::processBranch(IR * ir, IN OUT bool & cfg_mod)
 {
     ASSERT0(ir->is_cond_br());
-    bool must_true, must_false;
-    BR_det(ir) = calcCondMustVal(BR_det(ir), must_true, must_false);
+
+    bool must_true, must_false, changed = false;
+    IR * new_det = calcCondMustVal(BR_det(ir), must_true, must_false, changed);
+    BR_det(ir) = NULL;
     if (ir->is_truebr()) {
         if (must_true) {
-            //TRUEBR(0x1)
+            //TRUEBR(0x1), always jump.
             IRBB * from = ir->get_bb();
             IRBB * to = m_cfg->get_fallthrough_bb(from);
             ASSERT0(from != NULL && to != NULL);
+            IR * newbr = m_ru->buildGoto(BR_lab(ir));
 
-            IR * old = ir;
-            ir = m_ru->buildGoto(BR_lab(old));
+            ir->removeSSAUse();
 
-            old->removeSSAUse();
-            m_ru->freeIRTree(old);
+            //Revise the PHI operand to fallthrough successor.
+            ir->get_bb()->removeSuccessorDesignatePhiOpnd(m_cfg, to);
+
+            m_ru->freeIRTree(ir);
 
             //Revise cfg. remove fallthrough edge.
             m_cfg->removeEdge(from, to);
             cfg_mod = true;
+            return newbr;
         } else if (must_false) {
-            //TRUEBR(0x0)
-
+            //TRUEBR(0x0), never jump.
             //Revise cfg. remove branch edge.
             IRBB * from = ir->get_bb();
             IRBB * to = m_cfg->findBBbyLabel(BR_lab(ir));
             ASSERT0(from && to);
-            m_cfg->removeEdge(from, to);
 
             ir->removeSSAUse();
+
+            //Revise the PHI operand to target successor.
+            ir->get_bb()->removeSuccessorDesignatePhiOpnd(m_cfg, to);
+
             m_ru->freeIRTree(ir);
 
-            ir = NULL;
+            m_cfg->removeEdge(from, to);
+
             cfg_mod = true;
+            return NULL;
         }
     } else {
         if (must_true) {
-            //FALSEBR(0x1)
+            //FALSEBR(0x1), never jump.
             //Revise m_cfg. remove branch edge.
             IRBB * from = ir->get_bb();
             IRBB * to = m_cfg->get_target_bb(from);
             ASSERT0(from != NULL && to != NULL);
-            m_cfg->removeEdge(from, to);
 
             ir->removeSSAUse();
+
+            //Revise the PHI operand to target successor.
+            ir->get_bb()->removeSuccessorDesignatePhiOpnd(m_cfg, to);
+
             m_ru->freeIRTree(ir);
 
-            ir = NULL;
+            m_cfg->removeEdge(from, to);
+
             cfg_mod = true;
+            return NULL;
         } else if (must_false) {
-            //FALSEBR(0x0)
+            //FALSEBR(0x0), always jump.
             IRBB * from = ir->get_bb();
             IRBB * to = m_cfg->get_fallthrough_bb(from);
             ASSERT0(from != NULL && to != NULL);
 
-            IR * old = ir;
-            ir = m_ru->buildGoto(BR_lab(old));
+            IR * newbr = m_ru->buildGoto(BR_lab(ir));
 
-            old->removeSSAUse();
-            m_ru->freeIRTree(old);
+            ir->removeSSAUse();
+
+            //Revise the PHI operand to fallthrough successor.
+            ir->get_bb()->removeSuccessorDesignatePhiOpnd(m_cfg, to);
+
+            m_ru->freeIRTree(ir);
 
             //Revise m_cfg. remove fallthrough edge.
             m_cfg->removeEdge(from, to);
             cfg_mod = true;
+            return newbr;
         }
     }
+
+    if (changed) {
+        if (!new_det->is_judge()) {
+            new_det = m_ru->buildJudge(new_det);
+        }
+        BR_det(ir) = new_det;
+        ir->setParent(false);
+    } else {
+        BR_det(ir) = new_det;
+    }
+
     return ir;
 }
 
@@ -214,11 +243,9 @@ IR * IR_RCE::processStorePR(IR * ir)
 }
 
 
-/*
-e.g:
-    1. if (a == a) { ... } , remove redundant comparation.
-    2. b = b; remove redundant store.
-*/
+//e.g:
+//1. if (a == a) { ... } , remove redundant comparation.
+//2. b = b; remove redundant store.
 bool IR_RCE::performSimplyRCE(IN OUT bool & cfg_mod)
 {
     BBList * bbl = m_ru->get_bb_list();
@@ -258,6 +285,7 @@ bool IR_RCE::performSimplyRCE(IN OUT bool & cfg_mod)
                 change = true;
             }
         }
+        bb->dump(m_ru);
     }
     return change;
 }
@@ -309,6 +337,5 @@ bool IR_RCE::perform(OptCtx & oc)
     END_TIMER_AFTER(get_pass_name());
     return change;
 }
-//END IR_RCE
 
 } //namespace xoc

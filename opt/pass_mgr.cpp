@@ -340,13 +340,10 @@ void PassMgr::performScalarOpt(OptCtx & oc)
         //improve the effect of PR SSA, so perform
         //RP before SSA construction.
         //TODO: Do SSA renaming when after register promotion done.
-        passlist.append_tail(registerPass(PASS_RP));
+        if (g_do_rp) {
+            passlist.append_tail(registerPass(PASS_RP));
+        }
     }
-
-    passlist.append_tail(registerPass(PASS_CP));
-    passlist.append_tail(registerPass(PASS_LICM));
-    passlist.append_tail(registerPass(PASS_DCE));
-    passlist.append_tail(registerPass(PASS_LOOP_CVT));
 
     if (g_do_cp) {
         IR_CP * pass = (IR_CP*)registerPass(PASS_CP);
@@ -384,6 +381,10 @@ void PassMgr::performScalarOpt(OptCtx & oc)
 
     if (g_do_ivr) {
         passlist.append_tail(registerPass(PASS_IVR));
+    }
+
+    if (g_do_loop_convert) {
+        passlist.append_tail(registerPass(PASS_LOOP_CVT));
     }
 
     bool change;

@@ -300,7 +300,7 @@ void IR_EXPR_TAB::remove_occs(IR * ir)
                 if (!p->is_const()) {
                     this->remove_occ(p);
                 }
-                p = IR_next(p);
+                p = p->get_next();
             }
         }
         break;
@@ -497,7 +497,7 @@ void IR_EXPR_TAB::encode_bb(IRBB * bb)
                     set_map_ir2ir_expr(ARR_base(ir), ie);
                 }
 
-                for (IR * sub = ARR_sub_list(ir); sub != NULL; sub = IR_next(sub)) {
+                for (IR * sub = ARR_sub_list(ir); sub != NULL; sub = sub->get_next()) {
                     ExpRep * ie = encode_expr(sub);
                     if (ie != NULL) {
                         set_map_ir2ir_expr(sub, ie);

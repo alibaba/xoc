@@ -270,7 +270,7 @@ LIR * IR2Dex::buildThrow(IN IR ** ir)
     IR * p = CALL_param_list(*ir);
     ASSERT0(p);
     lir->vA = get_vreg(p);
-    ASSERT0(IR_next(p) == NULL);
+    ASSERT0(p->get_next() == NULL);
     *ir = IR_next(*ir);
     return (LIR*)lir;
 }
@@ -287,7 +287,7 @@ LIR * IR2Dex::buildMonitorExit(IN IR ** ir)
     ASSERT0(p);
 
     lir->vA = get_vreg(p);
-    ASSERT0(IR_next(p) == NULL);
+    ASSERT0(p->get_next() == NULL);
     *ir = IR_next(*ir);
     return (LIR*)lir;
 }
@@ -304,7 +304,7 @@ LIR * IR2Dex::buildMonitorEnter(IN IR ** ir)
     ASSERT0(p);
 
     lir->vA = get_vreg(p);
-    ASSERT0(IR_next(p) == NULL);
+    ASSERT0(p->get_next() == NULL);
     *ir = IR_next(*ir);
     return (LIR*)lir;
 }
@@ -374,13 +374,13 @@ LIR * IR2Dex::buildCheckCast(IN IR ** ir)
 
     //object-ptr
     lir->vA = get_vreg(p);
-    p = IR_next(p);
+    p = p->get_next();
     ASSERT0(p);
 
     //class id.
     lir->vB = CONST_int_val(p);
     LIR_dt(lir) = LIR_JDT_unknown; //see genInstruction()
-    p = IR_next(p);
+    p = p->get_next();
     ASSERT0(p == NULL);
     *ir = IR_next(*ir);
     return (LIR*)lir;
@@ -813,7 +813,7 @@ LIR * IR2Dex::buildInvoke(IN IR ** ir)
         IR * p = CALL_param_list(tir);
         ASSERT0(p->is_const());
         UINT invoke_flags = CONST_int_val(p);
-        p = IR_next(p);
+        p = p->get_next();
 
         //The second must be method-id.
         ASSERT0(p && p->is_const());
@@ -852,12 +852,12 @@ LIR * IR2Dex::buildInvoke(IN IR ** ir)
     default: ASSERT0(0);
     }
     LIR_dt(lir) = flag;
-    p = IR_next(p);
+    p = p->get_next();
 
     //Method id.
     ASSERT0(p && p->is_const());
     lir->ref = CONST_int_val(p);
-    p = IR_next(p);
+    p = p->get_next();
 
     //Real invoke paramenters.
     UINT i = 0;
@@ -866,7 +866,7 @@ LIR * IR2Dex::buildInvoke(IN IR ** ir)
         ASSERT0(t->is_pr());
         i++;
         if (is_pair(t)) { i++; }
-        t = IR_next(t);
+        t = t->get_next();
     }
     if (i > 0) {
         lir->args = (USHORT*)ymalloc(i * sizeof(USHORT));
@@ -883,7 +883,7 @@ LIR * IR2Dex::buildInvoke(IN IR ** ir)
             lir->args[j] = vx + 1;
         }
 
-        p = IR_next(p);
+        p = p->get_next();
         j++;
     }
     *ir = IR_next(*ir);
@@ -930,7 +930,7 @@ LIR * IR2Dex::buildFillArrayData(IN IR ** ir)
     //The first parameter is array obj-ptr.
     ASSERT0(p && p->is_pr());
     lir->value = get_vreg(p);
-    p = IR_next(p);
+    p = p->get_next();
 
     //The second parameter record the pointer to filling data.
     ASSERT0(p && p->is_uint());
@@ -971,19 +971,19 @@ LIR * IR2Dex::buildFilledNewArray(IN IR ** ir)
     //first parameter is invoke-kind.
     ASSERT0(p && p->is_uint());
     LIR_dt(lir) = CONST_int_val(p);
-    p = IR_next(p);
+    p = p->get_next();
 
     //second one is class-id.
     ASSERT0(p && p->is_int());
     lir->ref = CONST_int_val(p);
-    p = IR_next(p);
+    p = p->get_next();
 
     //and else parameters.
     UINT i = 0;
     IR * t = p;
     while (t != NULL) {
         ASSERT0(t->is_pr());
-        t = IR_next(t);
+        t = t->get_next();
         i++;
     }
     lir->argc = i;
@@ -991,7 +991,7 @@ LIR * IR2Dex::buildFilledNewArray(IN IR ** ir)
     i = 0;
     while (p != NULL) {
         lir->args[i] = get_vreg(p);
-        p = IR_next(p);
+        p = p->get_next();
         i++;
     }
     *ir = IR_next(*ir);
@@ -1044,12 +1044,12 @@ LIR * IR2Dex::buildNewArray(IN IR ** ir)
     //The number of array element.
     ASSERT0(p->is_pr());
     lir->vB = get_vreg(p);
-    p = IR_next(p);
+    p = p->get_next();
 
     //Type id of array element.
     ASSERT0(p->is_const());
     lir->vC = CONST_int_val(p);
-    ASSERT0(IR_next(p) == NULL);
+    ASSERT0(p->get_next() == NULL);
 
     ASSERT0(tir->hasReturnValue());
     lir->vA = get_vreg(CALL_prno(tir));
@@ -1081,12 +1081,12 @@ LIR * IR2Dex::buildInstanceOf(IN IR ** ir)
     IR * p = CALL_param_list(tir);
     ASSERT0(p->is_pr());
     lir->vB = get_vreg(p);
-    p = IR_next(p);
+    p = p->get_next();
 
     //type-id
     ASSERT0(p->is_const());
     lir->vC = CONST_int_val(p);
-    ASSERT0(IR_next(p) == NULL);
+    ASSERT0(p->get_next() == NULL);
 
     *ir = IR_next(*ir);
     return (LIR*)lir;
@@ -1113,15 +1113,15 @@ LIR * IR2Dex::buildCmpBias(IN IR ** ir)
     IR * p = CALL_param_list(tir);
     ASSERT0(p && p->is_int() && IR_dt(p) == m_tr->u32);
     CMP_KIND ck = (CMP_KIND)CONST_int_val(p);
-    p = IR_next(p);
+    p = p->get_next();
 
     ASSERT0(p && p->is_pr());
     LIR_op0(lir) = get_vreg(p);
-    p = IR_next(p);
+    p = p->get_next();
 
     ASSERT0(p && p->is_pr());
     LIR_op1(lir) = get_vreg(p);
-    p = IR_next(p);
+    p = p->get_next();
 
     ASSERT0(tir->hasReturnValue());
     LIR_res(lir) = get_vreg(CALL_prno(tir));
@@ -1301,13 +1301,13 @@ LIR * IR2Dex::convertSwitch(IN OUT IR ** ir, IN IR2DexCtx * cont)
         IR * c = case_list;
         bool is_packed = true; //case value is continuous.
         INT base_val = CONST_int_val(CASE_vexp(c));
-        while (c != NULL && IR_next(c) != NULL) {
+        while (c != NULL && c->get_next() != NULL) {
             if ((CONST_int_val(CASE_vexp(c)) + 1) !=
-                CONST_int_val(CASE_vexp(IR_next(c)))) {
+                CONST_int_val(CASE_vexp(c->get_next()))) {
                 is_packed = false;
                 break;
             }
-            c = IR_next(c);
+            c = c->get_next();
         }
         if (is_packed) {
             lir->opcode = LOP_TABLE_SWITCH;
@@ -1321,7 +1321,7 @@ LIR * IR2Dex::convertSwitch(IN OUT IR ** ir, IN IR2DexCtx * cont)
         UINT num_of_case = 0;
         while (c != NULL) {
             num_of_case++;
-            c = IR_next(c);
+            c = c->get_next();
         }
 
         if (is_packed) {
@@ -1346,7 +1346,7 @@ LIR * IR2Dex::convertSwitch(IN OUT IR ** ir, IN IR2DexCtx * cont)
             IR * x = case_list;
             for (UINT i = 0; i < num_of_case; i++) {
                 pcase_value[i] = CONST_int_val(CASE_vexp(x));
-                x = IR_next(x);
+                x = x->get_next();
             }
 
             //((BYTE*)data)[4+num_of_case*4, 4+num_of_case*8-1]:

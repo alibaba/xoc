@@ -35,14 +35,17 @@ author: Su Zhenyu
 
 namespace xoc {
 
-/* Find the bb that is the start of the unqiue backedge of loop.
-   BB1: loop start bb
-   BB2: body start bb
-   BB3: goto loop start bb
-
-   BB2 is the loop header fallthrough bb. */
-bool findTwoSuccessorBBOfLoopHeader(LI<IRBB> const* li, IR_CFG * cfg,
-                                UINT * succ1, UINT * succ2)
+//Find the bb that is the start of the unqiue backedge of loop.
+//  BB1: loop start bb
+//  BB2: body start bb
+//  BB3: goto loop start bb
+//
+//BB2 is the loop header fallthrough bb.
+bool findTwoSuccessorBBOfLoopHeader(
+        LI<IRBB> const* li,
+        IR_CFG * cfg,
+        UINT * succ1,
+        UINT * succ2)
 {
     ASSERT0(li && cfg && succ1 && succ2);
     IRBB * head = LI_loop_head(li);
@@ -62,12 +65,12 @@ bool findTwoSuccessorBBOfLoopHeader(LI<IRBB> const* li, IR_CFG * cfg,
 }
 
 
-/* Find the bb that is the start of the unqiue backedge of loop.
-   BB1: loop start bb
-   BB2: body
-   BB3: goto loop start bb
-
-   BB3 is the backedge start bb. */
+//Find the bb that is the start of the unqiue backedge of loop.
+//  BB1: loop start bb
+//  BB2: body
+//  BB3: goto loop start bb
+//
+//BB3 is the backedge start bb.
 IRBB * findSingleBackedgeStartBB(LI<IRBB> const* li, IR_CFG * cfg)
 {
     ASSERT0(li && cfg);
@@ -93,20 +96,22 @@ IRBB * findSingleBackedgeStartBB(LI<IRBB> const* li, IR_CFG * cfg)
 }
 
 
-/* Find preheader BB. If it does not exist, insert one before loop 'li'.
-
-'insert_bb': return true if this function insert a new bb before loop,
-    otherwise return false.
-
-'force': force to insert preheader BB whatever it has exist.
-    Return the new BB if insertion is successful.
-
-Note if we find the preheader, the last IR of it may be call.
-So if you are going to insert IR at the tail of preheader, the best is
-force to insert a new bb. */
-IRBB * findAndInsertPreheader(LI<IRBB> const* li, Region * ru,
-                                OUT bool & insert_bb,
-                                bool force)
+//Find preheader BB. If it does not exist, insert one before loop 'li'.
+//
+//'insert_bb': return true if this function insert a new bb before loop,
+//    otherwise return false.
+//
+//'force': force to insert preheader BB whatever it has exist.
+//    Return the new BB if insertion is successful.
+//
+//Note if we find the preheader, the last IR of it may be call.
+//So if you are going to insert IR at the tail of preheader, the best is
+//force to insert a new bb.
+IRBB * findAndInsertPreheader(
+        LI<IRBB> const* li,
+        Region * ru,
+        OUT bool & insert_bb,
+        bool force)
 {
     ASSERT0(li && ru);
     insert_bb = false;
@@ -145,10 +150,62 @@ IRBB * findAndInsertPreheader(LI<IRBB> const* li, Region * ru,
             continue;
         }
         cfg->add_bb(newbb);
-        cfg->insertVertexBetween(BB_id(p), BB_id(head),
-                                   BB_id(newbb));
+        cfg->insertVertexBetween(BB_id(p), BB_id(head), BB_id(newbb));
         BB_is_fallthrough(newbb) = true;
     }
+
+    //Move LabelInfo from head to prehead except the LabelInfo which are the
+    //target of IR which belongs to loop body.
+    List<LabelInfo const*> & lablst = head->getLabelList();
+    if (lablst.get_elem_count() <= 1) {
+        //The only label is the loop back edge target.
+        return newbb;
+    }
+
+    //Record if label if the target of loop body's IR.
+    TMap<LabelInfo const*, bool> head_labinfo;
+    for (LabelInfo const* lab = lablst.get_head();
+         lab != NULL; lab = lablst.get_next()) {
+        head_labinfo.set(lab, false);
+    }
+
+    for (INT i = LI_bb_set(li)->get_first();
+         i >= 0; i = LI_bb_set(li)->get_next(i)) {
+        IRBB * bb = cfg->get_bb(i);
+        ASSERT0(bb);
+        for (IR const* ir = BB_first_ir(bb); ir != NULL; ir = BB_next_ir(bb)) {
+            if (ir->is_switch()) {
+                for (IR * c = SWITCH_case_list(ir);
+                     c != NULL; c = c->get_next()) {
+                    LabelInfo const* lab = c->get_label();
+                    ASSERT0(lab);
+                    if (head_labinfo.find(lab)) {
+                        head_labinfo.setAlways(lab, true);
+                    }
+                }
+                continue;
+            }
+
+            LabelInfo const* lab = ir->get_label();
+            if (lab == NULL) { continue; }
+
+            if (!head_labinfo.find(lab)) { continue; }
+
+            head_labinfo.setAlways(lab, true);
+        }
+    }
+
+    C<LabelInfo const*> * ct;
+    C<LabelInfo const*> * next_ct;
+    for (lablst.get_head(&ct); ct != lablst.end(); ct = next_ct) {
+        next_ct = lablst.get_next(ct);
+        LabelInfo const* lab = ct->val();
+        if (head_labinfo.get(lab)) { continue; }
+        lablst.remove(ct);
+        newbb->addLabel(lab);
+        cfg->get_lab2bb_map()->setAlways(lab, newbb);
+    }
+
     return newbb;
 }
 

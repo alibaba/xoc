@@ -777,7 +777,7 @@ void IR_DU_MGR::collectMustUseForLda(IR const* lda, OUT MDSet * ret_mds)
     }
     ASSERT0(ldabase->is_array());
     IR const* arr = ldabase;
-    for (IR const* s = ARR_sub_list(arr); s != NULL; s = IR_next(s)) {
+    for (IR const* s = ARR_sub_list(arr); s != NULL; s = s->get_next()) {
         collect_must_use(s, *ret_mds);
     }
 
@@ -800,12 +800,12 @@ void IR_DU_MGR::computeArrayRef(IR * ir, OUT MDSet * ret_mds, UINT flag)
         computeOverlapUseMDSet(ir, false);
 
         //Compute referred MDs to subscript expression.
-        for (IR * s = ARR_sub_list(ir); s != NULL; s = IR_next(s)) {
+        for (IR * s = ARR_sub_list(ir); s != NULL; s = s->get_next()) {
             computeExpression(s, ret_mds, flag);
         }
         computeExpression(ARR_base(ir), ret_mds, flag);
     } else if (HAVE_FLAG(flag, COMP_EXP_COLLECT_MUST_USE)) {
-        for (IR * s = ARR_sub_list(ir); s != NULL; s = IR_next(s)) {
+        for (IR * s = ARR_sub_list(ir); s != NULL; s = s->get_next()) {
             computeExpression(s, ret_mds, flag);
         }
         computeExpression(ARR_base(ir), ret_mds, flag);
@@ -1354,7 +1354,7 @@ void IR_DU_MGR::dumpBBRef(IN IRBB * bb, UINT indent)
 
 void IR_DU_MGR::dumpIRListRef(IN IR * ir, UINT indent)
 {
-    for (; ir != NULL; ir = IR_next(ir)) {
+    for (; ir != NULL; ir = ir->get_next()) {
         dumpIRRef(ir, indent);
     }
 }
@@ -2453,7 +2453,7 @@ void IR_DU_MGR::inferPhi(IR * ir)
         ASSERT0(r->get_ref_md() && r->get_ref_md()->is_pr());
         ASSERT0(r->get_ref_mds() == NULL);
         computeExpression(r, NULL, COMP_EXP_RECOMPUTE);
-        r = IR_next(r);
+        r = r->get_next();
     }
 }
 
@@ -2473,9 +2473,9 @@ void IR_DU_MGR::inferIstore(IR * ir)
 }
 
 
-/* Inference call clobbering. Function calls may modify addressable
-local variables and globals in indefinite ways.
-Variables that may be use and clobbered are global auxiliary var. */
+//Inference call clobbering. Function calls may modify addressable
+//local variables and globals in indefinite ways.
+//Variables that may be use and clobbered are global auxiliary var.
 void IR_DU_MGR::inferCall(IR * ir, IN MD2MDSet * mx)
 {
     ASSERT0(ir->is_calls_stmt());
@@ -2656,7 +2656,7 @@ void IR_DU_MGR::collectMayUseRecursive(
             IR * p = CALL_param_list(ir);
             while (p != NULL) {
                 collectMayUseRecursive(p, may_use, computePR);
-                p = IR_next(p);
+                p = p->get_next();
             }
 
             bool done = false;
@@ -2732,7 +2732,7 @@ void IR_DU_MGR::collectMayUseRecursive(
                 }
             }
 
-            for (IR * s = ARR_sub_list(ir); s != NULL; s = IR_next(s)) {
+            for (IR * s = ARR_sub_list(ir); s != NULL; s = s->get_next()) {
                 collectMayUseRecursive(s, may_use, computePR);
             }
             collectMayUseRecursive(ARR_base(ir), may_use, computePR);
@@ -2770,7 +2770,7 @@ void IR_DU_MGR::collectMayUseRecursive(
         collectMayUseRecursive(SELECT_falseexp(ir), may_use, computePR);
         return;
     case IR_PHI:
-        for (IR * p = PHI_opnd_list(ir); p != NULL; p = IR_next(p)) {
+        for (IR * p = PHI_opnd_list(ir); p != NULL; p = p->get_next()) {
             collectMayUseRecursive(p, may_use, computePR);
         }
         return;
@@ -3426,7 +3426,7 @@ void IR_DU_MGR::computeGenForBB(
             }
             break;
         case IR_PHI:
-            for (IR * p = PHI_opnd_list(ir); p != NULL; p = IR_next(p)) {
+            for (IR * p = PHI_opnd_list(ir); p != NULL; p = p->get_next()) {
                 if (canBeLiveExprCand(p)) {
                     gen_ir_exprs->bunion(IR_id(p), *m_misc_bs_mgr);
                     expr_univers.bunion(IR_id(p), *m_misc_bs_mgr);
@@ -3907,7 +3907,7 @@ void IR_DU_MGR::checkAndBuildChainRecursive(IR * stmt, IR * exp, C<IR*> * ct)
         break;
     case IR_ARRAY:
         for (IR * sub = ARR_sub_list(exp);
-             sub != NULL; sub = IR_next(sub)) {
+             sub != NULL; sub = sub->get_next()) {
             checkAndBuildChainRecursive(stmt, sub, ct);
         }
          checkAndBuildChainRecursive(stmt, ARR_base(exp), ct);
@@ -4037,7 +4037,7 @@ void IR_DU_MGR::checkAndBuildChain(IR * stmt, C<IR*> * ct)
             }
 
             for (IR * sub = ARR_sub_list(stmt);
-                 sub != NULL; sub = IR_next(sub)) {
+                 sub != NULL; sub = sub->get_next()) {
                 checkAndBuildChainRecursive(stmt, sub, ct);
             }
             checkAndBuildChainRecursive(stmt, ARR_base(stmt), ct);
@@ -4045,12 +4045,12 @@ void IR_DU_MGR::checkAndBuildChain(IR * stmt, C<IR*> * ct)
             return;
         }
     case IR_CALL:
-        for (IR * p = CALL_param_list(stmt); p != NULL; p = IR_next(p)) {
+        for (IR * p = CALL_param_list(stmt); p != NULL; p = p->get_next()) {
             checkAndBuildChainRecursive(stmt, p, ct);
         }
         return;
     case IR_ICALL:
-        for (IR * p = CALL_param_list(stmt); p != NULL; p = IR_next(p)) {
+        for (IR * p = CALL_param_list(stmt); p != NULL; p = p->get_next()) {
             checkAndBuildChainRecursive(stmt, p, ct);
         }
         checkAndBuildChainRecursive(stmt, ICALL_callee(stmt), ct);
@@ -4064,7 +4064,7 @@ void IR_DU_MGR::checkAndBuildChain(IR * stmt, C<IR*> * ct)
                     du->clean(*m_misc_bs_mgr);
                 }
                 for (IR * opnd = PHI_opnd_list(stmt);
-                     opnd != NULL; opnd = IR_next(opnd)) {
+                     opnd != NULL; opnd = opnd->get_next()) {
                     checkAndBuildChainRecursive(stmt, opnd, ct);
                 }
             }

@@ -524,7 +524,8 @@ public:
     {
         ASSERT0(dtype != D_UNDEF);
         UINT bitsize = get_dtype_bitsize(dtype);
-        return bitsize < BIT_PER_BYTE ? BIT_PER_BYTE : bitsize / BIT_PER_BYTE;
+        return bitsize < BIT_PER_BYTE ?
+                1 : (UINT)xceiling(bitsize, BIT_PER_BYTE);
     }
 
     //Retrieve Type via 'type-index'.

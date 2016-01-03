@@ -499,7 +499,7 @@ bool IR_GCSE::doPropVN(IRBB * bb, UINT entry_id)
                 bool lchange = false;
                 m_newst_lst.clean();
                 while (p != NULL) {
-                    next = IR_next(p);
+                    next = p->get_next();
                     if (isCseCandidate(p)) {
                         handleCandidate(p, bb, entry_id, lchange);
                     }

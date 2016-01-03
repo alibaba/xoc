@@ -438,6 +438,8 @@ public:
     }
 
     IR_TYPE get_code() const { return (IR_TYPE)IR_code(this); }
+    IR * get_next() const { return IR_next(this); }
+    IR * get_prev() const { return IR_prev(this); }
     inline IR * get_kid(UINT idx) const;
     inline IRBB * get_bb() const;
     inline DU * get_du() const;
@@ -624,9 +626,8 @@ public:
     //Return true if ir-list are equivalent.
     bool isIRListEqual(IR const* irs, bool is_cmp_kid = true) const;
 
-    //Return true if current ir's data type is equal to 'src'.
-    bool is_type_equal(IR const* src) const
-    { return IR_dt(this) == IR_dt(src); }
+    //Return true if ir does not have any sibling.
+    bool is_single() const { return get_next() == NULL && get_prev() == NULL; }
 
     //Return true if current ir is memory store operation.
     bool is_store() const
@@ -942,7 +943,7 @@ public:
         for (UINT i = 0; i < IR_MAX_KID_NUM(this); i++) {
             IR * kid = get_kid(i);
             if (kid == NULL) { continue; }
-            for (IR * x = kid; x != NULL; x = IR_next(x)) {
+            for (IR * x = kid; x != NULL; x = x->get_next()) {
                 if (x == oldk) {
                     xcom::replace(&kid, oldk, newk);
                     if (IR_prev(newk) == NULL) {
@@ -1523,7 +1524,7 @@ If 'elem_tyid' is vector, ARR_ofst refers the referrenced element byte offset.
 #define ARR_du(ir)           (((CArray*)CK_IRT_ARR(ir))->du)
 #define ARR_elemtype(ir)     (((CArray*)CK_IRT_ARR(ir))->elemtype)
 
-/* Get the number of element of each dimension.
+/* Get the number of element in each dimension.
 e.g: Given array D_I32 A[10][20], the 0th dimension has 20 elements,
 each element has type D_I32, the 1th dimension has 10 elements,
 each element has type [D_I32*20].
@@ -1570,7 +1571,7 @@ public:
     {
         ASSERT0(is_array_op());
         TMWORD dim = 0;
-        for (IR const* s = ARR_sub_list(this); s != NULL; s = IR_next(s)) {
+        for (IR const* s = ARR_sub_list(this); s != NULL; s = s->get_next()) {
             dim++;
         }
         return dim;
@@ -1592,7 +1593,7 @@ public:
     //Return true if exp is array subscript expression list.
     bool isInSubList(IR const* exp) const
     {
-        for (IR const* s = ARR_sub_list(this); s != NULL; s = IR_next(s)) {
+        for (IR const* s = ARR_sub_list(this); s != NULL; s = s->get_next()) {
             if (s == exp || s->is_kids(exp)) { return true; }
         }
         return false;
@@ -2010,12 +2011,11 @@ LabelInfo const* IR::get_label() const
     case IR_FALSEBR: return BR_lab(this);
     case IR_GOTO: return GOTO_lab(this);
     case IR_IGOTO:
-        ASSERT(0, ("must specify the specific target label"));
         return NULL;
     case IR_LABEL: return LAB_lab(this);
     case IR_CASE: return CASE_lab(this);
     case IR_SWITCH: return SWITCH_deflab(this);
-    default: ASSERT(0, ("%s has not label", IRTNAME(IR_code(this))));
+    default:;
     }
     return NULL;
 }
@@ -2518,8 +2518,8 @@ inline IR const* iterInitC(IR const* ir, OUT ConstIRIter & ii)
         if (kid == NULL) { continue; }
         ii.append_tail(kid);
     }
-    if (IR_next(ir) != NULL) {
-        ii.append_tail(IR_next(ir));
+    if (ir->get_next() != NULL) {
+        ii.append_tail(ir->get_next());
     }
     return ir;
 }
@@ -2538,8 +2538,8 @@ inline IR const* iterNextC(IN OUT ConstIRIter & ii)
         if (kid == NULL) { continue; }
         ii.append_tail(kid);
     }
-    if (IR_next(ir) != NULL) {
-        ii.append_tail(IR_next(ir));
+    if (ir->get_next() != NULL) {
+        ii.append_tail(ir->get_next());
     }
     return ir;
 }
@@ -2602,9 +2602,9 @@ inline IR const* iterExpInitC(IR const* ir, OUT ConstIRIter & ii)
         if (kid == NULL) { continue; }
         ii.append_tail(kid);
     }
-    if (IR_next(ir) != NULL) {
-        ASSERT(!IR_next(ir)->is_stmt(), ("ir can not be stmt list"));
-        ii.append_tail(IR_next(ir));
+    if (ir->get_next() != NULL) {
+        ASSERT(!ir->get_next()->is_stmt(), ("ir can not be stmt list"));
+        ii.append_tail(ir->get_next());
     }
     return ir;
 }
@@ -2633,8 +2633,8 @@ inline IR * iterInit(IN IR * ir, OUT IRIter & ii)
         if (kid == NULL) { continue; }
         ii.append_tail(kid);
     }
-    if (IR_next(ir) != NULL) {
-        ii.append_tail(IR_next(ir));
+    if (ir->get_next() != NULL) {
+        ii.append_tail(ir->get_next());
     }
     return ir;
 }
@@ -2653,8 +2653,8 @@ inline IR * iterNext(IN OUT IRIter & ii)
         if (kid == NULL) { continue; }
         ii.append_tail(kid);
     }
-    if (IR_next(ir) != NULL) {
-        ii.append_tail(IR_next(ir));
+    if (ir->get_next() != NULL) {
+        ii.append_tail(ir->get_next());
     }
     return ir;
 }
@@ -2734,6 +2734,8 @@ inline IR_TYPE invertIRType(IR_TYPE src)
 
 void setParentPointerForIRList(IR * ir_list);
 UINT getArithPrecedence(IR_TYPE ty);
+bool allBeExp(IR * irlst);
+bool allBeStmt(IR * irlst);
 
 } //namespace xoc
 #endif

@@ -52,7 +52,6 @@ protected:
     TMap<MD const*, UINT*> m_md2num;
 
     //Indicate whether current IR is tranformed to ssa form.
-    bool m_is_in_ssa_form;
     IR_SSA_MGR * m_ssamgr;
 
 protected:
@@ -62,6 +61,12 @@ protected:
                     TTab<IR*> & invariant_stmt,
                     TTab<IR*> & invariant_exp);
 
+    bool checkDefStmt(
+            IR * def,
+            TTab<IR*> & invariant_stmt,
+            IN IRBB * prehead,
+            IN LI<IRBB> * li);
+
     inline bool is_stmt_dom_its_use(
                     IR const* stmt,
                     IR const* use,
@@ -69,6 +74,11 @@ protected:
                     IRBB const* stmtbb) const;
     bool is_dom_all_use_in_loop(IR const* ir, LI<IRBB> * li);
 
+    bool hoistInvariantStmt(
+            TTab<IR*> & invariant_stmt,
+            IR * stmt,
+            IRBB * prehead,
+            IN LI<IRBB> * li);
     bool hoistCand(TTab<IR*> & invariant_exp,
                    TTab<IR*> & invariant_stmt,
                    IN IRBB * prehead,
@@ -104,7 +114,6 @@ public:
         m_tm = ru->get_type_mgr();
         m_md_sys = ru->get_md_sys();
         m_pool = smpoolCreate(4 * sizeof(UINT), MEM_CONST_SIZE);
-        m_is_in_ssa_form = false;
         m_ssamgr = NULL;
     }
     COPY_CONSTRUCTOR(IR_LICM);
@@ -115,7 +124,9 @@ public:
                   OUT TTab<IR*> & invariant_exp);
 
     //Given loop info li, dump the invariant stmt and invariant expression.
-    void dump(TTab<IR*> const& invariant_stmt, TTab<IR*> const& invariant_exp);
+    void dumpInvariantExpStmt(
+            TTab<IR*> const& invariant_stmt,
+            TTab<IR*> const& invariant_exp);
 
     //Consider whether exp is worth hoisting.
     bool is_worth_hoist(IR * exp)

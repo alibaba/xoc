@@ -125,7 +125,6 @@ protected:
     DontPromotTab m_dont_promot;
     BitSetMgr m_bs_mgr;
     bool m_is_insert_bb; //indicate if new bb inserted and cfg changed.
-    bool m_is_in_ssa_form; //indicate whether current IR is in ssa form.
 
     UINT analyzeIndirectAccessStatus(IR const* ref1, IR const* ref2);
     UINT analyzeArrayStatus(IR const* ref1, IR const* ref2);
@@ -281,7 +280,6 @@ public:
         m_misc_bs_mgr = ru->getMiscBitSetMgr();
         m_gvn = gvn;
         m_is_insert_bb = false;
-        m_is_in_ssa_form = false;
         m_ssamgr = NULL;
 
         UINT c = MAX(11, m_ru->get_md_sys()->get_num_of_md());

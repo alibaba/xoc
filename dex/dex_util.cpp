@@ -118,12 +118,12 @@ bool is_builtin(IR const* ir, BLTIN_TYPE bt, DexRegionMgr const* rumgr)
             //The first is a pr that record the number of array elements.
             IR * p = CALL_param_list(ir);
             ASSERT0(p && p->is_pr());
-            p = IR_next(p);
+            p = p->get_next();
 
             //The second is array element type id.
             ASSERT0(p && p->is_const());
             UINT elem_type_id = CONST_int_val(p);
-            ASSERT0(IR_next(p) == NULL);
+            ASSERT0(p->get_next() == NULL);
         }
         break;
     case BLTIN_MOVE_EXP         :
@@ -139,7 +139,7 @@ bool is_builtin(IR const* ir, BLTIN_TYPE bt, DexRegionMgr const* rumgr)
             //the exception object.
             IR * p = CALL_param_list(ir);
             ASSERT0(p->is_pr());
-            ASSERT0(IR_next(p) == NULL);
+            ASSERT0(p->get_next() == NULL);
         }
         break;
     case BLTIN_CHECK_CAST       :
@@ -155,12 +155,12 @@ bool is_builtin(IR const* ir, BLTIN_TYPE bt, DexRegionMgr const* rumgr)
             //The first is a pr that record the object-ptr
             IR * p = CALL_param_list(ir);
             ASSERT0(p && p->is_pr());
-            p = IR_next(p);
+            p = p->get_next();
 
             //The second is class type id.
             ASSERT0(p && p->is_const());
             UINT type_id = CONST_int_val(p);
-            ASSERT0(IR_next(p) == NULL);
+            ASSERT0(p->get_next() == NULL);
         }
         break;
     case BLTIN_FILLED_NEW_ARRAY    :
@@ -181,14 +181,14 @@ bool is_builtin(IR const* ir, BLTIN_TYPE bt, DexRegionMgr const* rumgr)
 
             //The first record invoke flag.
             ASSERT0(p->is_const());
-            p = IR_next(p);
+            p = p->get_next();
 
             //The second record class type id.
             ASSERT0(p && p->is_const());
-            p = IR_next(p);
+            p = p->get_next();
             while (p != NULL) {
                 ASSERT0(p->is_pr());
-                p = IR_next(p);
+                p = p->get_next();
             }
         }
         break;
@@ -206,11 +206,11 @@ bool is_builtin(IR const* ir, BLTIN_TYPE bt, DexRegionMgr const* rumgr)
 
             //The first record array obj-ptr.
             ASSERT0(p->is_pr());
-            p = IR_next(p);
+            p = p->get_next();
 
             //The second record binary data.
             ASSERT0(p && p->is_const());
-            ASSERT0(IR_next(p) == NULL);
+            ASSERT0(p->get_next() == NULL);
         }
         break;
     case BLTIN_CONST_CLASS      :
@@ -259,11 +259,11 @@ bool is_builtin(IR const* ir, BLTIN_TYPE bt, DexRegionMgr const* rumgr)
             IR * p = CALL_param_list(ir);
             //The first is object-ptr reg.
             ASSERT0(p && p->is_pr());
-            p = IR_next(p);
+            p = p->get_next();
 
             //The second is type-id.
             ASSERT0(p->is_const());
-            ASSERT0(IR_next(p) == NULL);
+            ASSERT0(p->get_next() == NULL);
 
             //The first is result reg..
             ASSERT0(ir->hasReturnValue());
@@ -286,13 +286,13 @@ bool is_builtin(IR const* ir, BLTIN_TYPE bt, DexRegionMgr const* rumgr)
             RegionMgr * trumgr =
                    const_cast<RegionMgr*>((RegionMgr const*)rumgr);
             ASSERT0(p && p->is_int());
-            p = IR_next(p);
+            p = p->get_next();
 
             ASSERT0(p && p->is_pr());
-            p = IR_next(p);
+            p = p->get_next();
 
             ASSERT0(p && p->is_pr());
-            ASSERT0(IR_next(p) == NULL);
+            ASSERT0(p->get_next() == NULL);
             ASSERT0(ir->hasReturnValue());
         }
         break;

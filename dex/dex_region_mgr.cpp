@@ -71,14 +71,5 @@ void DexRegionMgr::processProgramRegion(Region * program)
 
     //Function region has been handled. And call list should be available.
     CallGraph * callg = initCallGraph(program, false);
-
     //callg->dump_vcg();
-
-    #ifdef _CODE_ANA_
-    LockScan ls(this);
-    ls.set_program(program);
-    OptCtx oc;
-    ls.perform(oc);
-    m_warnmgr.report();
-    #endif
 }

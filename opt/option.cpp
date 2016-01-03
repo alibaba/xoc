@@ -66,7 +66,7 @@ bool g_do_rpo = true;
 bool g_do_refine = true;
 
 //If true to insert IR_CVT by ir refinement.
-bool g_do_refine_auto_insert_cvt = true;
+bool g_do_refine_auto_insert_cvt = false;
 
 //Perform loop analysis.
 bool g_do_loop_ana = true;

@@ -43,8 +43,9 @@ void Region::lowerIRTreeToLowestHeight(OptCtx & oc)
         simp.set_simp_cf();
         simp.set_simp_array();
         simp.set_simp_select();
-        simp.set_simp_local_or_and();
-        simp.set_simp_local_not();
+        simp.set_simp_ild_ist();
+        simp.set_simp_land_lor();
+        simp.set_simp_lnot();
         simp.set_simp_to_pr_mode();
     } else {
         simp.set_simp_to_lowest_heigh();
@@ -58,8 +59,9 @@ void Region::lowerIRTreeToLowestHeight(OptCtx & oc)
         //TODO: use SSA info to improve the precision of AA.
         simp.set_simp_to_pr_mode();
         simp.set_simp_select();
-        simp.set_simp_local_or_and();
-        simp.set_simp_local_not();
+        simp.set_simp_ild_ist();
+        simp.set_simp_land_lor();
+        simp.set_simp_lnot();
     }
 
     //Simplify IR tree if it is needed.

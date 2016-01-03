@@ -436,7 +436,7 @@ public:
     //Set RPO for BB.
     virtual void set_rpo(BB * bb, INT order) = 0;
 
-    bool verify_rmbb(IN CDG * cdg, OptCtx & oc);
+    bool verifyIfBBRemoved(IN CDG * cdg, OptCtx & oc);
     bool verify()
     {
         //The entry node can not have any predecessors.
@@ -455,13 +455,12 @@ public:
 };
 
 
-/* Find and Return LOOP_SIBLING and BODY_ROOT.
-e.g:
-    LOOP
-        BODY_ROOT
-    END_LOOP
-    LOOP_SIBLING
-*/
+//Find and Return LOOP_SIBLING and BODY_ROOT.
+//e.g:
+//    LOOP
+//        BODY_ROOT
+//    END_LOOP
+//    LOOP_SIBLING
 template <class BB, class XR>
 void CFG<BB, XR>::get_loop_two_kids(
         IN BB * bb,
@@ -484,15 +483,14 @@ void CFG<BB, XR>::get_loop_two_kids(
 }
 
 
-/* Find and Return TRUE_BODY, FALSE_BODY, IF_SIBLING.
-e.g:
-    IF
-        TRUE_BODY
-    ELSE
-        FALSE_BODY
-    END_IF
-    IF_SIBLING
-*/
+//Find and Return TRUE_BODY, FALSE_BODY, IF_SIBLING.
+//e.g:
+//    IF
+//        TRUE_BODY
+//    ELSE
+//        FALSE_BODY
+//    END_IF
+//    IF_SIBLING
 template <class BB, class XR>
 void CFG<BB, XR>::get_if_three_kids(
         BB * bb,
@@ -566,57 +564,55 @@ void CFG<BB, XR>::dump_loop_tree(LI<BB> * looplist, UINT indent, FILE * h)
 }
 
 
+//Do verification while BB removed.
 template <class BB, class XR>
-bool CFG<BB, XR>::verify_rmbb(IN CDG * cdg, OptCtx & oc)
+bool CFG<BB, XR>::verifyIfBBRemoved(IN CDG * cdg, OptCtx & oc)
 {
-    ASSERT(cdg, ("DEBUG: verify need cdg."));
+    ASSERT(cdg, ("DEBUG: verification need cdg."));
     C<BB*> * ct, * next_ct;
     List<BB*> succs;
     bool is_cfg_valid = OC_is_cfg_valid(oc);
-    for (m_bb_list->get_head(&ct), next_ct = ct;
-         ct != NULL; ct = next_ct) {
+    for (m_bb_list->get_head(&ct), next_ct = ct; ct != NULL; ct = next_ct) {
         next_ct = m_bb_list->get_next(next_ct);
         BB * bb = C_val(ct);
         BB * next_bb = NULL;
-        if (next_ct != NULL) {
-            next_bb = C_val(next_ct);
-        }
+        if (next_ct != NULL) { next_bb = C_val(next_ct); }
+
         if (get_last_xr(bb) == NULL &&
             !is_ru_entry(bb) &&
             !bb->is_exp_handling()) {
-            if (next_bb == NULL) {
-                continue;
-            }
-            if (is_cfg_valid) {
-                get_succs(succs, bb);
-                /* CASE:
-                    BB1
-                    LOOP_HEADER(BB2)
-                        LOOP_BODY(BB3)
-                    ENDLOOP
-                    BB5
+            if (next_bb == NULL) { continue; }
+            if (!is_cfg_valid) { continue; }
 
-                There are edges: BB1->BB2->BB3, BB2->BB5, BB3->BB2
-                Where BB3->BB2 is back edge.
-                When we remove BB2, add edge BB3->BB5 */
-                if (succs.get_elem_count() > 1) {
-                    for (BB * succ = succs.get_head();
-                         succ != NULL; succ = succs.get_next()) {
-                        if (succ == next_bb || succ == bb) {
-                            continue;
-                        }
-                        Edge * e = get_edge(bb->id, succ->id);
-                        if (EDGE_info(e) != NULL &&
-                            CFGEI_is_eh((CFGEdgeInfo*)EDGE_info(e))) {
-                            continue;
-                        }
-                        if (!cdg->is_cd(bb->id, succ->id)) {
-                            //bb should not be empty, need goto.
-                            ASSERT0(0);
-                        }
-                    }
+            get_succs(succs, bb);
+
+            /* CASE:
+                BB1
+                LOOP_HEADER(BB2)
+                    LOOP_BODY(BB3)
+                ENDLOOP
+                BB5
+
+            There are edges: BB1->BB2->BB3, BB2->BB5, BB3->BB2
+            Where BB3->BB2 is back edge.
+            When we remove BB2, add edge BB3->BB5 */
+            if (succs.get_elem_count() <= 1) { continue; }
+
+            for (BB * succ = succs.get_head();
+                 succ != NULL; succ = succs.get_next()) {
+                if (succ == next_bb || succ == bb) { continue; }
+
+                Edge * e = get_edge(bb->id, succ->id);
+                if (EDGE_info(e) != NULL &&
+                    CFGEI_is_eh((CFGEdgeInfo*)EDGE_info(e))) {
+                    continue;
                 }
-            } //end if
+
+                if (!cdg->is_cd(bb->id, succ->id)) {
+                    //bb should not be empty, need goto.
+                    ASSERT0(0);
+                }
+            }
         } //end if
     } //end for each bb
     return true;
@@ -1409,7 +1405,7 @@ void CFG<BB, XR>::clean_loop_info(bool access_li_by_scan_bb)
         m_map_bb2li.set(id, NULL);
 
         for (LI<BB> * y = LI_inner_list(x); y != NULL; y = LI_next(y)) {
-            worklst.append_tail(x);
+            worklst.append_tail(y);
         }
     }
     m_loop_info = NULL;

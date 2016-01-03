@@ -44,22 +44,8 @@ protected:
     VAR * addVarForBuiltin(CHAR const* name);
     void initBuiltin();
 
-#ifdef _CODE_ANA_
-protected:
-    AuxSym m_auxsym;
-    WarnMgr m_warnmgr;
-
 public:
-    AuxSym const& get_auxsym() const { return m_auxsym; }
-    WarnMgr & get_warnmgr() { return m_warnmgr; }
-#endif
-
-public:
-#ifdef _CODE_ANA_
-    DexRegionMgr() : m_auxsym(self()), m_warnmgr(self())
-#else
     DexRegionMgr()
-#endif
     { m_pool = smpoolCreate(128, MEM_COMM); }
 
     COPY_CONSTRUCTOR(DexRegionMgr);

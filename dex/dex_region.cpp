@@ -125,13 +125,13 @@ bool DexRegion::HighProcess(OptCtx & oc)
     CHAR const* ru_name = get_ru_name();
     g_indent = 0;
     SimpCtx simp;
-    SIMP_if(&simp) = 1;
-    SIMP_do_loop(&simp) = 1;
-    SIMP_do_while(&simp) = 1;
-    SIMP_while_do(&simp) = 1;
-    SIMP_switch(&simp) = 0;
-    SIMP_break(&simp) = 1;
-    SIMP_continue(&simp) = 1;
+    SIMP_if(&simp) = true;
+    SIMP_do_loop(&simp) = true;
+    SIMP_do_while(&simp) = true;
+    SIMP_while_do(&simp) = true;
+    SIMP_switch(&simp) = false;
+    SIMP_break(&simp) = true;
+    SIMP_continue(&simp) = true;
 
     REGION_analysis_instrument(this)->m_ir_list =
                     simplifyStmtList(get_ir_list(), &simp);

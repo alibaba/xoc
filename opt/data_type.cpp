@@ -90,11 +90,11 @@ Type const* TypeMgr::hoistDtypeForBinop(IR const* opnd0, IR const* opnd1)
 {
     Type const* d0 = opnd0->get_type();
     Type const* d1 = opnd1->get_type();
-
+    ASSERT0(!d0->is_void() && !d1->is_void());
     ASSERT(!d0->is_vector() && !d1->is_vector(),
-            ("Can not hoist vector type."));
+           ("Can not hoist vector type."));
     ASSERT(!d0->is_pointer() && !d1->is_pointer(),
-            ("Can not hoist pointer type."));
+           ("Can not hoist pointer type."));
 
     DATA_TYPE t0 = TY_dtype(d0);
     DATA_TYPE t1 = TY_dtype(d1);

@@ -619,7 +619,7 @@ bool IR_RP::checkExpressionIsLoopInvariant(IN IR * ir, LI<IRBB> const* li)
 bool IR_RP::checkArrayIsLoopInvariant(IN IR * ir, LI<IRBB> const* li)
 {
     ASSERT0(ir->is_array() && li);
-    for (IR * s = ARR_sub_list(ir); s != NULL; s = IR_next(s)) {
+    for (IR * s = ARR_sub_list(ir); s != NULL; s = s->get_next()) {
         if (!checkExpressionIsLoopInvariant(s, li)) {
             return false;
         }
@@ -1106,7 +1106,7 @@ void IR_RP::handleRestore2Mem(
         m_ru->allocRefForPR(pr);
 
         IR * stpr = delegate2stpr.get(delegate);
-        if (m_is_in_ssa_form) {
+        if (m_ssamgr != NULL) {
             m_ssamgr->buildDUChain(stpr, pr);
         } else {
             m_du->buildDUChain(stpr, pr);
@@ -1194,7 +1194,7 @@ void IR_RP::handleRestore2Mem(
             ASSERT0(def && def->is_stpr());
             ASSERT0(STPR_no(def) == PR_no(pr));
 
-            if (m_is_in_ssa_form) {
+            if (m_ssamgr != NULL) {
                 m_ssamgr->buildDUChain(def, pr);
             } else {
                 m_du->buildDUChain(def, pr);
@@ -1653,7 +1653,7 @@ void IR_RP::handleAccessInBody(
             //Add du chain between new PR and the generated STPR.
             IR * stpr = delegate2stpr.get(delegate);
             ASSERT0(stpr);
-            if (m_is_in_ssa_form) {
+            if (m_ssamgr != NULL) {
                 m_ssamgr->buildDUChain(stpr, pr);
             } else {
                 m_du->buildDUChain(stpr, pr);
@@ -2152,17 +2152,15 @@ bool IR_RP::perform(OptCtx & oc)
     m_ru->checkValidAndRecompute(&oc, PASS_DU_CHAIN, PASS_LOOP_INFO,
                                  PASS_DU_REF, PASS_UNDEF);
     //computeLiveness();
-
-    m_is_in_ssa_form = false;
+    m_ssamgr = NULL;
     IR_SSA_MGR * ssamgr =
             (IR_SSA_MGR*)(m_ru->get_pass_mgr()->queryPass(PASS_SSA_MGR));
     if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
-        m_is_in_ssa_form = true;
         m_ssamgr = ssamgr;
     }
 
-    ASSERT(!m_is_in_ssa_form,
-            ("TODO: Do SSA renaming when after register promotion done"));
+    ASSERT(m_ssamgr == NULL,
+           ("TODO: Do SSA renaming when after register promotion done"));
 
     LI<IRBB> const* li = m_cfg->get_loop_info();
     if (li == NULL) { return false; }

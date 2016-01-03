@@ -110,7 +110,7 @@ void IRBB::dump(Region * ru)
     TypeMgr * dm = ru->get_type_mgr();
     for (IR * ir = BB_first_ir(this);
         ir != NULL; ir = BB_irlist(this).get_next()) {
-        ASSERT0(IR_next(ir) == NULL && IR_prev(ir) == NULL);
+        ASSERT0(ir->is_single());
         ASSERT0(ir->get_bb() == this);
         dump_ir(ir, dm, NULL, true, true, false);
     }
@@ -127,7 +127,7 @@ void IRBB::verify()
     C<IR*> * ct;
     for (IR * ir = BB_irlist(this).get_head(&ct);
          ir != NULL; ir = BB_irlist(this).get_next(&ct)) {
-        ASSERT0(IR_next(ir) == NULL && IR_prev(ir) == NULL);
+        ASSERT0(ir->is_single());
         ASSERT0(ir->get_bb() == this);
         switch (IR_code(ir)) {
         case IR_ST:
@@ -201,7 +201,7 @@ void IRBB::dupSuccessorPhiOpnd(CFG<IRBB, IR> * cfg, Region * ru, UINT opnd_pos)
             IR * opnd;
             UINT lpos = opnd_pos;
             for (opnd = PHI_opnd_list(ir);
-                 lpos != 0; opnd = IR_next(opnd)) {
+                 lpos != 0; opnd = opnd->get_next()) {
                 ASSERT0(opnd);
                 lpos--;
             }
@@ -221,42 +221,48 @@ void IRBB::dupSuccessorPhiOpnd(CFG<IRBB, IR> * cfg, Region * ru, UINT opnd_pos)
 //END IRBB
 
 
-
-//Before removing bb, revising phi opnd if there are phis
-//in one of bb's successors.
-void IRBB::removeSuccessorPhiOpnd(CFG<IRBB, IR> * cfg)
+//Before removing bb or change bb successor,
+//you need remove the related PHI operand if BB successor has PHI stmt.
+void IRBB::removeSuccessorDesignatePhiOpnd(CFG<IRBB, IR> * cfg, IRBB * succ)
 {
+    ASSERT0(cfg && succ);
     IR_CFG * ircfg = (IR_CFG*)cfg;
     Region * ru = ircfg->get_ru();
-    Vertex * vex = ircfg->get_vertex(BB_id(this));
-    ASSERT0(vex);
-    for (EdgeC * out = VERTEX_out_list(vex);
-         out != NULL; out = EC_next(out)) {
-        Vertex * succ_vex = EDGE_to(EC_edge(out));
-        IRBB * succ = ircfg->get_bb(VERTEX_id(succ_vex));
-        ASSERT0(succ);
+    UINT const pos = ircfg->WhichPred(this, succ);
+    for (IR * ir = BB_first_ir(succ); ir != NULL; ir = BB_next_ir(succ)) {
+        if (!ir->is_phi()) { break; }
 
-        UINT const pos = ircfg->WhichPred(this, succ);
+        ASSERT0(cnt_list(PHI_opnd_list(ir)) == succ->getNumOfPred(cfg));
 
-        for (IR * ir = BB_first_ir(succ);
-             ir != NULL; ir = BB_next_ir(succ)) {
-            if (!ir->is_phi()) { break; }
-
-            ASSERT0(cnt_list(PHI_opnd_list(ir)) ==
-                     cnt_list(VERTEX_in_list(succ_vex)));
-
-            IR * opnd;
-            UINT lpos = pos;
-            for (opnd = PHI_opnd_list(ir);
-                 lpos != 0; opnd = IR_next(opnd)) {
-                ASSERT0(opnd);
-                lpos--;
-            }
-
-            opnd->removeSSAUse();
-            ((CPhi*)ir)->removeOpnd(opnd);
-            ru->freeIRTree(opnd);
+        IR * opnd;
+        UINT lpos = pos;
+        for (opnd = PHI_opnd_list(ir); lpos != 0; opnd = opnd->get_next()) {
+            ASSERT0(opnd);
+            lpos--;
         }
+
+        if (opnd == NULL) {
+            //PHI does not contain any operand.
+            continue;
+        }
+
+        opnd->removeSSAUse();
+        ((CPhi*)ir)->removeOpnd(opnd);
+        ru->freeIRTree(opnd);
+    }
+}
+
+
+//Before removing bb or change bb successor,
+//you need remove the related PHI operand if BB successor has PHI stmt.
+void IRBB::removeSuccessorPhiOpnd(CFG<IRBB, IR> * cfg)
+{
+    Vertex * vex = cfg->get_vertex(BB_id(this));
+    ASSERT0(vex);
+    for (EdgeC * out = VERTEX_out_list(vex); out != NULL; out = EC_next(out)) {
+        IRBB * succ = ((IR_CFG*)cfg)->get_bb(VERTEX_id(EDGE_to(EC_edge(out))));
+        ASSERT0(succ);
+        removeSuccessorDesignatePhiOpnd(cfg, succ);
     }
 }
 //END IRBB
@@ -302,7 +308,7 @@ void dumpBBLabel(List<LabelInfo const*> & lablist, FILE * h)
 
 void dumpBBList(BBList * bbl, Region * ru, CHAR const* name)
 {
-    ASSERT0(ru);
+    ASSERT0(ru && bbl);
     FILE * h = NULL;
     FILE * org_g_tfile = g_tfile;
     if (name == NULL) {

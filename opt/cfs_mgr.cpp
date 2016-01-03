@@ -79,7 +79,7 @@ void CfsMgr::recordStmt(IR * ir_list, BitSet & irset)
 {
     while (ir_list != NULL) {
         irset.bunion(IR_id(ir_list));
-        ir_list = IR_next(ir_list);
+        ir_list = ir_list->get_next();
     }
 }
 

@@ -314,7 +314,7 @@ void IR_CFG::findTryRegion(IRBB const* try_start, OUT BitSet & trybbs)
 void IR_CFG::findTargetBBOfIndirectBranch(IR const* ir, OUT List<IRBB*> & tgtlst)
 {
     ASSERT0(ir->is_indirect_br());
-    for (IR * c = IGOTO_case_list(ir); c != NULL; c = IR_next(c)) {
+    for (IR * c = IGOTO_case_list(ir); c != NULL; c = c->get_next()) {
         ASSERT0(c->is_case());
         IRBB * bb = m_lab2bb.get(CASE_lab(c));
         ASSERT0(bb); //no bb is correspond to lab.
@@ -1203,10 +1203,10 @@ void IR_CFG::remove_xr(IRBB * bb, IR * ir)
 }
 
 
-/* Perform miscellaneous control flow optimizations.
-Include removing dead bb which is unreachable, removing empty bb as many
-as possible, simplify and remove the branch like "if (x==x)", removing
-the trampolin branch. */
+//Perform miscellaneous control flow optimizations.
+//Include removing dead bb which is unreachable, removing empty bb as many
+//as possible, simplify and remove the branch like "if (x==x)", removing
+//the trampolin branch.
 bool IR_CFG::performMiscOpt(OptCtx & oc)
 {
     START_TIMER_AFTER();
@@ -1244,7 +1244,7 @@ bool IR_CFG::performMiscOpt(OptCtx & oc)
         computePdomAndIpdom(oc, NULL);
         CDG * cdg = (CDG*)m_ru->get_pass_mgr()->registerPass(PASS_CDG);
         cdg->rebuild(oc, *m_ru->get_cfg());
-        ASSERT0(verify_rmbb(cdg, oc));
+        ASSERT0(verifyIfBBRemoved(cdg, oc));
         #endif
     }
 

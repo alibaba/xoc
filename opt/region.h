@@ -159,16 +159,6 @@ protected:
         void * m_blx_data; //Black box data.
     } m_u1;
 
-    void * xmalloc(UINT size)
-    {
-        ASSERT(REGION_analysis_instrument(this)->m_pool != NULL,
-               ("pool does not initialized"));
-        void * p = smpoolMalloc(size, REGION_analysis_instrument(this)->m_pool);
-        ASSERT0(p != NULL);
-        memset(p, 0, size);
-        return p;
-    }
-
 public:
     RefInfo * m_ref_info; //record use/def info if Region has.
     REGION_TYPE m_ru_type; //region type.
@@ -204,6 +194,16 @@ public:
     explicit Region(REGION_TYPE rt, RegionMgr * rm) { init(rt, rm); }
     COPY_CONSTRUCTOR(Region);
     virtual ~Region() { destroy(); }
+
+    void * xmalloc(UINT size)
+    {
+        ASSERT(REGION_analysis_instrument(this)->m_pool != NULL,
+               ("pool does not initialized"));
+        void * p = smpoolMalloc(size, REGION_analysis_instrument(this)->m_pool);
+        ASSERT0(p != NULL);
+        memset(p, 0, size);
+        return p;
+    }
 
     //Add var which used inside current or inner Region.
     //Once the region destructing, all local vars are deleted.
@@ -287,6 +287,7 @@ public:
     IR * buildImmInt(HOST_INT v, Type const* type);
     IR * buildImmFp(HOST_FP fp, Type const* type);
     IR * buildLda(IR * lda_base);
+    IR * buildLdaVAR(VAR * var) { return buildLda(buildId(var)); }
     IR * buildLoad(VAR * var, Type const* type);
     IR * buildLoad(VAR * var);
     IR * buildIload(IR * base, Type const* type);
@@ -296,8 +297,8 @@ public:
     IR * buildStore(VAR * lhs, Type const* type, UINT ofst, IR * rhs);
     IR * buildStorePR(UINT prno, Type const* type, IR * rhs);
     IR * buildStorePR(Type const* type, IR * rhs);
-    IR * buildIstore(IR * lhs, IR * rhs, Type const* type);
-    IR * buildIstore(IR * lhs, IR * rhs, UINT ofst, Type const* type);
+    IR * buildIstore(IR * base, IR * rhs, Type const* type);
+    IR * buildIstore(IR * base, IR * rhs, UINT ofst, Type const* type);
     IR * buildString(SYM * strtab);
     IR * buildStoreArray(
             IR * base,
@@ -305,7 +306,7 @@ public:
             Type const* type,
             Type const* elemtype,
             UINT dims,
-            TMWORD const* elem_num,
+            TMWORD const* elem_num_buf,
             IR * rhs);
     IR * buildArray(
             IR * base,
@@ -313,7 +314,7 @@ public:
             Type const* type,
             Type const* elemtype,
             UINT dims,
-            TMWORD const* elem_num);
+            TMWORD const* elem_num_buf);
     IR * buildReturn(IR * ret_exp);
     IR * buildSelect(IR * det, IR * true_exp, IR * false_exp, Type const* type);
     IR * buildPhi(UINT prno, Type const* type, UINT num_opnd);
@@ -321,13 +322,18 @@ public:
     IR * buildIcall(
             IR * callee,
             IR * param_list,
-            UINT result_prno = 0,
-            Type const* type = NULL);
+            UINT result_prno,
+            Type const* type);
+    IR * buildIcall(IR * callee, IR * param_list)
+    { return buildIcall(callee, param_list, 0, get_type_mgr()->getVoid()); }
     IR * buildCall(
             VAR * callee,
             IR * param_list,
-            UINT result_prno = 0,
-            Type const* type = NULL);
+            UINT result_prno,
+            Type const* type);
+    IR * buildCall(VAR * callee,  IR * param_list)
+    { return buildCall(callee, param_list, 0, get_type_mgr()->getVoid()); }
+
     IR * constructIRlist(bool clean_ir_list);
     void constructIRBBlist();
     HOST_INT calcIntVal(IR_TYPE ty, HOST_INT v0, HOST_INT v1);
@@ -348,6 +354,7 @@ public:
     void dump_free_tab();
     void dump_mem_usage(FILE * h);
     void dump_bb_usage(FILE * h);
+    void dump();
 
     void freeIR(IR * ir);
     void freeIRTree(IR * ir);
@@ -520,6 +527,12 @@ public:
         LabelInfo * li = allocInternalLabel(get_pool());
         LABEL_INFO_num(li) = labid;
         return li;
+    }
+
+    LabelInfo * genCustomLabel(SYM * labsym)
+    {
+        ASSERT0(labsym);
+        return allocCustomerLabel(labsym, get_pool());
     }
 
     //Allocate MD for IR_PR.

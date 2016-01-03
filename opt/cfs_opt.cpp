@@ -121,10 +121,10 @@ bool IR_CFS_OPT::transformToDoWhile(IR ** head, IR * ir)
                     LOOP_det(dowhile) = m_ru->dupIRTree(LOOP_det(t));
 
                     IR * if_stmt = t;
-                    t = IR_next(ir);
+                    t = ir->get_next();
                     while (t != NULL && t != if_stmt) {
                         IR * c = t;
-                        t = IR_next(t);
+                        t = t->get_next();
                         remove(head, c);
                         add_next(&LOOP_body(dowhile), c);
                     }
@@ -141,7 +141,7 @@ bool IR_CFS_OPT::transformToDoWhile(IR ** head, IR * ir)
                     return true;
                 }
             }
-            t = IR_next(t);
+            t = t->get_next();
         }
     }
     return false;
@@ -189,15 +189,15 @@ bool IR_CFS_OPT::transformIf1(IR ** head, IR * ir)
         if (!is_non_branch_ir(t)) {
             break;
         }
-        t = IR_next(t);
+        t = t->get_next();
     }
 
-    if (t != NULL && IR_next(t) == NULL && t->is_goto()) {
+    if (t != NULL && t->get_next() == NULL && t->is_goto()) {
         IR * first_goto = t;
-        t = IR_next(ir);
+        t = ir->get_next();
         while (t != NULL) {
             if (!is_non_branch_ir(t)) { break; }
-            t = IR_next(t);
+            t = t->get_next();
         }
 
         if (t != NULL && t->is_goto()) {
@@ -218,7 +218,7 @@ bool IR_CFS_OPT::transformIf1(IR ** head, IR * ir)
                 IR * last = NULL;
                 while (t != first_goto) {
                     IR * c = t;
-                    t = IR_next(t);
+                    t = t->get_next();
                     remove(&IF_truebody(ir), c);
                     add_next(&new_list1, &last, c);
                 }
@@ -228,10 +228,10 @@ bool IR_CFS_OPT::transformIf1(IR ** head, IR * ir)
                 m_ru->freeIRTree(first_goto);
 
                 //Split all irs between IF and L1.
-                t = IR_next(ir);
+                t = ir->get_next();
                 while (t != second_goto) {
                     IR * c = t;
-                    t = IR_next(t);
+                    t = t->get_next();
                     remove(head, c);
                     add_next(&new_list2, c);
                 }
@@ -413,7 +413,7 @@ bool IR_CFS_OPT::hoistLoop(IR ** head, IR * ir)
     INT i = 0;
     while (det != NULL) {
         i++;
-        det = IR_next(det);
+        det = det->get_next();
     }
 
     IR * new_list = NULL, * new_body_list = NULL;
@@ -423,7 +423,7 @@ bool IR_CFS_OPT::hoistLoop(IR ** head, IR * ir)
             IR * c = det;
             ASSERT(c->is_stmt(), ("Non-stmt ir should be remove "
                                    "during reshape_ir_tree()"));
-            det = IR_next(det);
+            det = det->get_next();
             remove(&LOOP_det(ir), c);
             add_next(&new_list, c);
             i--;
@@ -452,7 +452,7 @@ bool IR_CFS_OPT::hoistIf(IR ** head, IR * ir)
     INT i = 0;
     while (det != NULL) {
         i++;
-        det = IR_next(det);
+        det = det->get_next();
     }
 
     IR * new_list = NULL;
@@ -462,7 +462,7 @@ bool IR_CFS_OPT::hoistIf(IR ** head, IR * ir)
             IR * c = det;
             ASSERT(c->is_stmt(),
                 ("Non-stmt ir should be remove during reshape_ir_tree()"));
-            det = IR_next(det);
+            det = det->get_next();
             remove(&IF_det(ir), c);
             add_next(&new_list, c);
             i--;
@@ -546,7 +546,7 @@ bool IR_CFS_OPT::perform_cfs_optimization(IN OUT IR ** ir_list,
         default:;
         } //end switch
 
-         ir = IR_next(ir);
+         ir = ir->get_next();
     }
     return change;
 }

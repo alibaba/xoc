@@ -154,11 +154,25 @@ Region * RegionMgr::newRegion(REGION_TYPE rt)
 
 
 //Record new region and delete it when RegionMgr destroy.
-void RegionMgr::set_region(Region * ru)
+void RegionMgr::addToRegionTab(Region * ru)
 {
     ASSERT(REGION_id(ru) > 0, ("should generate new region via newRegion()"));
     ASSERT0(m_id2ru.get(REGION_id(ru)) == NULL);
     m_id2ru.set(REGION_id(ru), ru);
+}
+
+
+//Dump regions recorded via addToRegionTab().
+void RegionMgr::dumpRegion()
+{
+    if (g_tfile == NULL) { return; }
+    fprintf(g_tfile, "\n==---- DUMP ALL Registered Region ----==");
+    for (INT id = 0; id <= m_id2ru.get_last_idx(); id++) {
+        Region * ru = m_id2ru.get(id);
+        if (ru == NULL) { continue; }
+        ru->dump();
+    }
+    fflush(g_tfile);
 }
 
 
@@ -210,7 +224,7 @@ CallGraph * RegionMgr::initCallGraph(Region * top, bool scan_call)
             }
             ASSERT0(call_list);
             if (call_list->get_elem_count() == 0) {
-                irs = IR_next(irs);
+                irs = irs->get_next();
                 continue;
             }
             for (IR const* ir = call_list->get_head();
@@ -218,7 +232,7 @@ CallGraph * RegionMgr::initCallGraph(Region * top, bool scan_call)
                 en++;
             }
         }
-        irs = IR_next(irs);
+        irs = irs->get_next();
     }
 
     vn = MAX(4, xcom::getNearestPowerOf2(vn));
@@ -236,7 +250,7 @@ static void test_ru(RegionMgr * rm)
     Region * ru = NULL;
     Region * program = rm->get_region(1);
     ASSERT0(program);
-    for (IR * ir = program->get_ir_list(); ir != NULL; ir = IR_next(ir)) {
+    for (IR * ir = program->get_ir_list(); ir != NULL; ir = ir->get_next()) {
         if (ir->is_region()) {
             ru = REGION_ru(ir);
             break;
@@ -290,7 +304,7 @@ void RegionMgr::processProgramRegion(Region * program)
 
     //Test mem leak.
     //test_ru(this);
-    for (IR * ir = program->get_ir_list(); ir != NULL; ir = IR_next(ir)) {
+    for (IR * ir = program->get_ir_list(); ir != NULL; ir = ir->get_next()) {
         if (ir->is_region()) {
             processFuncRegion(REGION_ru(ir));
         } else {

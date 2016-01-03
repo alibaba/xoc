@@ -594,8 +594,7 @@ Programming Guides
 
     ¡ñ IR_CALL
         This operation represent direct function call. It include a list of
-        parameters and a return value. The return value type only can
-        be PR.
+        parameters and a return value. The return value is IR_PR.
         Usage:
         pr = call, foo, parameter list,  where pr is the return value.
 
@@ -617,8 +616,7 @@ Programming Guides
     ¡ñ IR_ICALL
         This operation represent indirect function call. It invoke function
         via a computational expression. This operation include a list of
-        parameters and a return value. The return value type only
-        can be PR.
+        parameters and a return value. The return value is IR_PR.
 
         Usage:
         $pr1:ptr = lda:ptr foo

@@ -51,9 +51,10 @@ class CfsMgr;
 #define SIMP_continue(s)              (s)->prop_top_down.simp_continue
 #define SIMP_logical_or_and(s)        (s)->prop_top_down.simp_logcial_or_and
 #define SIMP_logical_not(s)           (s)->prop_top_down.simp_logcial_not
+#define SIMP_ild_ist(s)               (s)->prop_top_down.simp_ild_ist
 #define SIMP_to_pr_mode(s)            (s)->prop_top_down.simp_to_pr_mode
 #define SIMP_array_to_pr_mode(s)      (s)->prop_top_down.simp_array_to_pr_mode
-#define SIMP_to_lowest_height(s)       (s)->prop_top_down.simp_to_lowest_height
+#define SIMP_to_lowest_height(s)      (s)->prop_top_down.simp_to_lowest_height
 #define SIMP_ret_array_val(s)         (s)->prop_top_down.simp_to_get_array_value
 #define SIMP_is_record_cfs(s)         (s)->prop_top_down.is_record_cfs
 #define SIMP_ir_stmt_list(s)          (s)->ir_stmt_list
@@ -77,6 +78,7 @@ public:
         UINT simp_continue:1; //simplify CONTINUE.
         UINT simp_logcial_or_and:1; //simplify LOR, LAND.
         UINT simp_logcial_not:1; //simplify LNOT.
+        UINT simp_ild_ist:1; //simplify ILD and IST.
 
         /*
         Propagate info top down.
@@ -127,32 +129,26 @@ public:
         */
         UINT simp_to_get_array_value:1;
 
-        /*
-        Propagate info top down.
-        Record high level Control-Flow-Struct info.
-        */
+        //Propagate info top down.
+        //Record high level Control-Flow-Struct info.
         UINT is_record_cfs:1;
     } prop_top_down;
 
     struct {
-        /*
-        Propagate info bottom up.
-        Record whether exp or stmt has changed.
-        */
+        //Propagate info bottom up.
+        //Record whether exp or stmt has changed.
         BYTE something_has_changed:1;
 
-        /*
-        Propagate info bottom up.
-        To inform Region to reconstruct bb list.
-        If this flag is true, DU info and DU chain also need to be rebuilt.
-        */
+        //Propagate info bottom up.
+        //To inform Region to reconstruct bb list.
+        //If this flag is true, DU info and DU chain also need to be rebuilt.
         BYTE need_to_reconstruct_bb_list:1;
     } prop_bottom_up;
 
-    /* Record IR stmts which generated bottom up.
-    When simplifing expression, the field records the
-    generated IR STMT list. Always used along with
-    'simp_to_lowest_heigh' and 'simp_to_pr_mode'. */
+    //Record IR stmts which generated bottom up.
+    //When simplifing expression, the field records the
+    //generated IR STMT list. Always used along with
+    //'simp_to_lowest_heigh' and 'simp_to_pr_mode'.
     IR * ir_stmt_list;
 
     CfsMgr * cfs_mgr;
@@ -194,7 +190,10 @@ public:
     //Unify the actions which propagated top down
     //during processing IR tree.
     void copy_topdown_flag(SimpCtx & c)
-    { prop_top_down = c.prop_top_down; }
+    {
+        prop_top_down = c.prop_top_down;
+        cfs_mgr = c.cfs_mgr;
+    }
 
     //Copy the actions which propagated bottom up
     //during processing IR tree.
@@ -234,20 +233,19 @@ public:
     }
 
     //Simplify IR_ARRAY to linear address computation.
-    void set_simp_array()
-    { SIMP_array(this) = true; }
+    void set_simp_array() { SIMP_array(this) = true; }
+
+    //Simplify IR_ARRAY to linear address computation.
+    void set_simp_ild_ist() { SIMP_ild_ist(this) = true; }
 
     //Simplify IR_SELECT to control flow operation.
-    void set_simp_select()
-    { SIMP_select(this) = true; }
+    void set_simp_select() { SIMP_select(this) = true; }
 
     //Simplify IR_LAND and IR_LOR operation.
-    void set_simp_local_or_and()
-    { SIMP_logical_or_and(this) = true; }
+    void set_simp_land_lor() { SIMP_logical_or_and(this) = true; }
 
     //Simplify IR_LNOT operation.
-    void set_simp_local_not()
-    { SIMP_logical_not(this) = true; }
+    void set_simp_lnot() { SIMP_logical_not(this) = true; }
 
     /* Simplify IR tree to reduce the tree height to be not
     great than 2.
@@ -255,8 +253,7 @@ public:
     Note that if ARRAY or ILD still not be lowered at the moment,
     regarding it as a whole node.
     e.g: a[1][2] + b is the lowest height. */
-    void set_simp_to_lowest_heigh()
-    { SIMP_to_lowest_height(this) = true; }
+    void set_simp_to_lowest_heigh() { SIMP_to_lowest_height(this) = true; }
 
     /* Reduce the tree heigh to lowest and load value to PR to
     perform operation for IR_LD, IR_ILD, IR_ARRAY.

@@ -496,7 +496,7 @@ void IR_AA::computeMayPointTo(IR * pointer, OUT MDSet & mds)
 
 //Get to know where the pointer pointed to.
 //This function will not clean 'mds' since caller may
-//perform union operation to 'mds'.
+//perform union operations to 'mds'.
 void IR_AA::computeMayPointTo(IR * pointer, IN MD2MDSet * mx, OUT MDSet & mds)
 {
     ASSERT0(pointer && pointer->is_ptr() && mx);
@@ -512,25 +512,52 @@ void IR_AA::computeMayPointTo(IR * pointer, IN MD2MDSet * mx, OUT MDSet & mds)
         return;
     }
 
-    MD const* md = pointer->get_ref_md();
-    ASSERT0(md);
-
-    MDSet const* ptset = getPointTo(md, *mx);
-    MD const* typed_md = NULL;
-    if (ptset != NULL && !ptset->is_empty()) {
-        if (pointer->get_ai() != NULL &&
-            ptset->is_contain_global() &&
-            (typed_md = computePointToViaType(pointer)) != NULL) {
+    MD const* emd = pointer->get_ref_md();
+    if (emd != NULL) {
+        //pointer has an exact or effect MD.
+        MDSet const* ptset = getPointTo(emd, *mx);
+        MD const* typed_md = NULL;
+        if (ptset != NULL && !ptset->is_empty()) {
+            if (pointer->get_ai() != NULL &&
+                ptset->is_contain_global() &&
+                (typed_md = computePointToViaType(pointer)) != NULL) {
+                mds.bunion(typed_md, *m_misc_bs_mgr);
+            } else {
+                mds.bunion(*ptset, *m_misc_bs_mgr);
+            }
+        } else if (pointer->get_ai() != NULL &&
+                   (typed_md = computePointToViaType(pointer)) != NULL) {
             mds.bunion(typed_md, *m_misc_bs_mgr);
         } else {
-            mds.bunion(*ptset, *m_misc_bs_mgr);
+            //We do NOT known where p pointed to.
+            mds.bunion(*m_hashed_maypts, *m_misc_bs_mgr);
         }
-    } else if (pointer->get_ai() != NULL &&
-               (typed_md = computePointToViaType(pointer)) != NULL) {
-        mds.bunion(typed_md, *m_misc_bs_mgr);
-    } else {
-        //We do NOT known where p pointed to.
-        mds.bunion(*m_hashed_maypts, *m_misc_bs_mgr);
+    }
+
+    MDSet const* maymds = pointer->get_ref_mds();
+    if (maymds != NULL) {
+        //pointer has a set of may-referenced-MDs.
+        SEGIter * iter;
+        for (INT i = maymds->get_first(&iter);
+             i >= 0; i = maymds->get_next((UINT)i, &iter)) {
+            MDSet const* ptset = getPointTo(m_md_sys->get_md((UINT)i), *mx);
+            MD const* typed_md = NULL;
+            if (ptset != NULL && !ptset->is_empty()) {
+                if (pointer->get_ai() != NULL &&
+                    ptset->is_contain_global() &&
+                    (typed_md = computePointToViaType(pointer)) != NULL) {
+                    mds.bunion(typed_md, *m_misc_bs_mgr);
+                } else {
+                    mds.bunion(*ptset, *m_misc_bs_mgr);
+                }
+            } else if (pointer->get_ai() != NULL &&
+                       (typed_md = computePointToViaType(pointer)) != NULL) {
+                mds.bunion(typed_md, *m_misc_bs_mgr);
+            } else {
+                //We do NOT known where p pointed to.
+                mds.bunion(*m_hashed_maypts, *m_misc_bs_mgr);
+            }
+        }
     }
 }
 
@@ -702,7 +729,7 @@ void IR_AA::processArray(
     ASSERT0(ir->is_array_op());
 
     //Scan subscript expression and infer the offset of array element.
-    for (IR * s = ARR_sub_list(ir); s != NULL; s = IR_next(s)) {
+    for (IR * s = ARR_sub_list(ir); s != NULL; s = s->get_next()) {
         AACtx tic;
         tic.copyTopDownFlag(*ic);
         AC_comp_pt(&tic) = false;
@@ -1789,7 +1816,7 @@ void IR_AA::processPhi(IN IR * ir, IN MD2MDSet * mx)
     }
 
     MDSet tmp;
-    for (IR * opnd = PHI_opnd_list(ir); opnd != NULL; opnd = IR_next(opnd)) {
+    for (IR * opnd = PHI_opnd_list(ir); opnd != NULL; opnd = opnd->get_next()) {
         inferExpression(opnd, tmp, &ic, mx);
 
         ic.cleanBottomUpFlag();
@@ -3002,7 +3029,7 @@ void IR_AA::dumpIRPointToForBB(IRBB * bb, bool dump_kid)
                 fprintf(g_tfile, "\n>> MDSet DETAIL:");
                 dumpIRPointTo(ARR_base(ir), true, mx);
                 dumpIRPointTo(STARR_rhs(ir), true, mx);
-                for (IR * p = ARR_sub_list(ir); p != NULL; p = IR_next(p)) {
+                for (IR * p = ARR_sub_list(ir); p != NULL; p = p->get_next()) {
                     dumpIRPointTo(p, true, mx);
                 }
             }
@@ -3056,7 +3083,7 @@ void IR_AA::dumpIRPointToForBB(IRBB * bb, bool dump_kid)
 
                 if (dump_kid && CALL_param_list(ir) != NULL) {
                     fprintf(g_tfile, "\n>> MDSet DETAIL:\n");
-                    for (IR * p = CALL_param_list(ir); p ; p = IR_next(p)) {
+                    for (IR * p = CALL_param_list(ir); p ; p = p->get_next()) {
                         dumpIRPointTo(p, true, mx);
                     }
                 }
@@ -3118,14 +3145,14 @@ void IR_AA::dumpIRPointToForBB(IRBB * bb, bool dump_kid)
                 fprintf(g_tfile, "LHS:");
                 dumpIRPointTo(ir, false, mx);
 
-                for (IR * p = PHI_opnd_list(ir); p; p = IR_next(p)) {
+                for (IR * p = PHI_opnd_list(ir); p; p = p->get_next()) {
                     dumpIRPointTo(p, false, mx);
                 }
 
                 ASSERT0(PHI_opnd_list(ir));
                 if (dump_kid) {
                     fprintf(g_tfile, "\n>> MDSet DETAIL:\n");
-                    for (IR * p = PHI_opnd_list(ir); p; p = IR_next(p)) {
+                    for (IR * p = PHI_opnd_list(ir); p; p = p->get_next()) {
                         dumpIRPointTo(p, true, mx);
                     }
                 }
@@ -3468,7 +3495,7 @@ bool IR_AA::verifyIR(IR * ir)
             ASSERT0(get_must_addr(ir));
         }
 
-        for (IR * p = CALL_param_list(ir); p != NULL; p = IR_next(p)) {
+        for (IR * p = CALL_param_list(ir); p != NULL; p = p->get_next()) {
             verifyIR(p);
         }
         break;
@@ -3866,9 +3893,9 @@ bool IR_AA::perform(IN OUT OptCtx & oc)
         delete [] ptset_arr;
     }
 
-#if 0
+#if 1
     m_md_sys->dumpAllMD();
-    //dumpMD2MDSetForRegion();
+    dumpMD2MDSetForRegion(false);
     //dumpInOutPointToSetForBB();
     dumpIRPointToForRegion(true);
 #endif

@@ -109,6 +109,24 @@ IRDesc const g_ir_desc[] = {
 
 
 #ifdef _DEBUG_
+bool allBeStmt(IR * irlst)
+{
+    for (IR * ir = irlst; ir != NULL; ir = ir->get_next()) {
+        ASSERT0(ir->is_stmt());
+    }
+    return true;
+}
+
+
+bool allBeExp(IR * irlst)
+{
+    for (IR * ir = irlst; ir != NULL; ir = ir->get_next()) {
+        ASSERT0(ir->is_exp());
+    }
+    return true;
+}
+
+
 INT checkKidNumValid(IR const* ir, UINT n, CHAR const* filename, INT line)
 {
     UINT x = IR_MAX_KID_NUM(ir);
@@ -237,7 +255,7 @@ IR const* checkIRTOnlyIcall(IR const* ir)
 UINT checkArrayDimension(IR const* ir, UINT n)
 {
     UINT i = 0;
-    for (IR const* sub = ARR_sub_list(ir); sub != NULL; sub = IR_next(sub)) {
+    for (IR const* sub = ARR_sub_list(ir); sub != NULL; sub = sub->get_next()) {
         i++;
     }
     ASSERT0(n < i);
@@ -248,7 +266,7 @@ UINT checkArrayDimension(IR const* ir, UINT n)
 UINT checkStArrayDimension(IR const* ir, UINT n)
 {
     UINT i = 0;
-    for (IR const* sub = ARR_sub_list(ir); sub != NULL; sub = IR_next(sub)) {
+    for (IR const* sub = ARR_sub_list(ir); sub != NULL; sub = sub->get_next()) {
         i++;
     }
     ASSERT0(n < i);
@@ -315,7 +333,7 @@ bool verifyIRandBB(BBList * bblst, Region const* ru)
         C<IR*> * irct;
         for (IR * ir = BB_irlist(bb).get_head(&irct);
              ir != NULL; ir = BB_irlist(bb).get_next(&irct)) {
-            ASSERT0(IR_next(ir) == NULL && IR_prev(ir) == NULL);
+            ASSERT0(ir->is_single());
             ASSERT0(IR_parent(ir) == NULL);
             ASSERT0(ir->get_bb() == bb);
 
@@ -355,7 +373,7 @@ bool verifyLowestForm(BBList * ir_bb_list, Region * ru)
 bool verify_simp(IR * ir_list, SimpCtx & simp)
 {
     if (simp.is_simp_cfg()) {
-        for (IR * p = ir_list; p != NULL; p = IR_next(p)) {
+        for (IR * p = ir_list; p != NULL; p = p->get_next()) {
             ASSERT0(p->is_stmt());
             ASSERT0(IR_parent(p) == NULL);
         }
@@ -374,7 +392,7 @@ bool verify_irs(IR * ir, IRAddressHash * irh, Region const* ru)
     }
     while (ir != NULL) {
         verifyIR(ir, irh, ru);
-        ir = IR_next(ir);
+        ir = ir->get_next();
     }
     if (loc != NULL) {
         delete loc;
@@ -390,7 +408,7 @@ void dump_irs(IN List<IR*> & ir_list, TypeMgr const* tm)
     ASSERT0(tm);
     for (IR * ir = ir_list.get_head();
          ir != NULL; ir = ir_list.get_next()) {
-        ASSERT0(IR_next(ir) == NULL && IR_prev(ir) == NULL);
+        ASSERT0(ir->is_single());
         dump_ir(ir, tm);
     }
     fflush(g_tfile);
@@ -572,27 +590,28 @@ void dump_ir(IR const* ir,
         PADDR(ir);
         fprintf(g_tfile, "%s", attr);
         if (ARR_sub_list(ir) != NULL && dump_kid) {
-            CHAR tt[40];
-            ASSERT0(ARR_elem_num_buf(ir));
-
             //Dump elem number.
             g_indent += dn;
             UINT dim = 0;
-            note("\nelem_num[");
-            for (IR const* sub = ARR_sub_list(ir); sub != NULL;) {
-                fprintf(g_tfile, "%d", ARR_elem_num(ir, dim));
-                sub = IR_next(sub);
-                if (sub != NULL) {
-                    fprintf(g_tfile, ",");
+            if (ARR_elem_num_buf(ir) != NULL) {
+                note("\nelem_num[");
+                for (IR const* sub = ARR_sub_list(ir); sub != NULL;) {
+                    fprintf(g_tfile, "%d",
+                            ((CArray*)ir)->getElementNumOfDim(dim));
+                    sub = sub->get_next();
+                    if (sub != NULL) {
+                        fprintf(g_tfile, ",");
+                    }
+                    dim++;
                 }
-                dim++;
-            }
-            fprintf(g_tfile, "]");
+                fprintf(g_tfile, "]");
+            } else { note("\nelem_num[--]"); }
 
             //Dump sub exp list.
             dim = 0;
             for (IR const* sub = ARR_sub_list(ir);
-                 sub != NULL; sub = IR_next(sub)) {
+                 sub != NULL; sub = sub->get_next()) {
+                CHAR tt[40];
                 sprintf(tt, " dim%d", dim);
                 dump_ir(sub, tm, (CHAR*)tt);
                 dim++;
@@ -723,7 +742,7 @@ void dump_ir(IR const* ir,
             buf[0] = 0;
             note("\nstrconst:%s \\\"%s....\\\"", xdm->dump_type(d, buf), tbuf);
         } else if (ir->is_mc()) {
-            //ASSERT(0, ("immediate value cannot be MEM block"));
+            //Imm may be MC type.
             note("\nintconst:%s %lld|0x%llx",
                  xdm->dump_type(d, buf),
                  CONST_int_val(ir),
@@ -787,7 +806,7 @@ void dump_ir(IR const* ir,
             note("\n}");
 
             if (IF_falsebody(ir)) {
-                note("\n else");
+                note("\nelse");
                 note("\n{");
                 g_indent += dn;
                 dump_irs(IF_falsebody(ir), tm);
@@ -797,74 +816,74 @@ void dump_ir(IR const* ir,
         }
         break;
     case IR_DO_WHILE:
-        note("\ndo_while");
-        note("\nbody");
+        note("\ndowhile");
         PADDR(ir);
         fprintf(g_tfile, "%s", attr);
-
         if (dump_kid) {
+            note("\nbody:");
             g_indent += dn;
             dump_irs(LOOP_body(ir), tm);
             g_indent -= dn;
 
-            note("\ndet");
+            note("\ndet:");
             g_indent += dn;
             dump_irs(LOOP_det(ir), tm);
             g_indent -= dn;
 
-            note("\nend_do_while");
+            note("\nend_dowhile");
         }
         break;
     case IR_WHILE_DO:
-        note("\nwhile_do");
+        note("\nwhiledo");
         PADDR(ir);
         fprintf(g_tfile, "%s", attr);
 
         if (dump_kid) {
+            note("\ndet:");
             g_indent += dn;
             dump_irs(LOOP_det(ir), tm);
             g_indent -= dn;
 
-            note("\nbody");
+            note("\nbody:");
 
             g_indent += dn;
             dump_irs(LOOP_body(ir), tm);
             g_indent -= dn;
 
-            note("\nend_while_do");
+            note("\nend_whiledo");
         }
         break;
     case IR_DO_LOOP:
-        note("\ndo_loop");
+        note("\ndoloop");
         PADDR(ir);
         fprintf(g_tfile, "%s", attr);
 
         if (dump_kid) {
             g_indent += dn;
-            note("\ninit");
+            note("\ninit:");
 
             g_indent += dn;
             dump_irs(LOOP_init(ir), tm);
             g_indent -= dn;
 
-            note("\ndet");
+            note("\ndet:");
 
             g_indent += dn;
             dump_irs(LOOP_det(ir), tm);
             g_indent -= dn;
 
-            note("\nstep");
+            note("\nstep:");
 
             g_indent += dn;
             dump_irs(LOOP_step(ir), tm);
             g_indent -= dn;
 
-            note("\ndo_loop_body");
+            note("\nbody:");
 
             g_indent += dn;
             dump_irs(LOOP_body(ir), tm);
             g_indent -= dn;
-            note("\nend_do_loop");
+            note("\nend_doloop");
         }
         break;
     case IR_BREAK:
@@ -919,7 +938,7 @@ void dump_ir(IR const* ir,
                 note("\nclabel(" CLABEL_STR_FORMAT ")",
                      CLABEL_CONT(LAB_lab(ir)));
             } else if (LABEL_INFO_type(li) == L_PRAGMA) {
-                note("\npragms(%s)", SYM_name(LABEL_INFO_pragma(LAB_lab(ir))));
+                note("\npragma(%s)", SYM_name(LABEL_INFO_pragma(LAB_lab(ir))));
             } else { ASSERT0(0); }
 
             PADDR(ir);
@@ -1015,7 +1034,7 @@ void dump_ir(IR const* ir,
             IR * opnd = PHI_opnd_list(ir);
             while (opnd != NULL) {
                 dump_ir(opnd, tm, NULL);
-                opnd = IR_next(opnd);
+                opnd = opnd->get_next();
             }
             g_indent -= dn;
         }
@@ -1055,12 +1074,12 @@ void dump_ir(IR const* ir,
             dump_irs(SWITCH_vexp(ir), tm);
             g_indent -= dn;
 
-            note("\ncase_list");
+            note("\ncase_list:");
             g_indent += dn;
             dump_irs(SWITCH_case_list(ir), tm);
             g_indent -= dn;
 
-            note("\nswitch_body");
+            note("\nbody:");
             g_indent += dn;
             dump_irs(SWITCH_body(ir), tm);
             g_indent -= dn;
@@ -1092,33 +1111,35 @@ void dump_ir(IR const* ir,
         PADDR(ir);
         fprintf(g_tfile, "%s", attr);
         if (ARR_sub_list(ir) != NULL && dump_kid) {
-            CHAR tt[40];
-            ASSERT0(ARR_elem_num_buf(ir));
-
-            //Dump elem number.
+            //Dump element number if it exist.
             g_indent += dn;
-            UINT dim = 0;
-            note("\nenum[");
-            for (IR const* sub = ARR_sub_list(ir); sub != NULL;) {
-                fprintf(g_tfile, "%d", ARR_elem_num(ir, dim));
-                sub = IR_next(sub);
-                if (sub != NULL) {
-                    fprintf(g_tfile, ",");
-                }
-                dim++;
-            }
-            fprintf(g_tfile, "]");
 
-            //Dump sub exp list.
-            dim = 0;
+            if (ARR_elem_num_buf(ir) != NULL) {
+                UINT dim = 0;
+                note("\nelemnum[");
+                for (IR const* sub = ARR_sub_list(ir); sub != NULL;) {
+                    fprintf(g_tfile, "%d", ARR_elem_num(ir, dim));
+                    sub = sub->get_next();
+                    if (sub != NULL) {
+                        fprintf(g_tfile, ",");
+                    }
+                    dim++;
+                }
+                fprintf(g_tfile, "]");
+            } else { note("\nelemnum[--]"); }
+
+            //Dump subscript expressions in each dimension.
+            UINT dim = 0;
             for (IR const* sub = ARR_sub_list(ir);
-                 sub != NULL; sub = IR_next(sub)) {
+                 sub != NULL; sub = sub->get_next()) {
+                CHAR tt[40];
                 sprintf(tt, " dim%d", dim);
                 dump_ir(sub, tm, (CHAR*)tt);
                 dim++;
             }
             g_indent -= dn;
         }
+
         if (dump_kid) {
             g_indent += dn;
             dump_irs(ARR_base(ir), tm, (CHAR*)" array_base");
@@ -1206,8 +1227,19 @@ void dump_ir(IR const* ir,
         break;
     case IR_REGION:
         note("\nregion");
-        PADDR(ir);
-        fprintf(g_tfile, "%s", attr);
+        if (REGION_ru(ir)->get_ru_var() != NULL) {
+            VAR * ruvar = REGION_ru(ir)->get_ru_var();
+            CHAR tt[40];
+            tt[0] = 0;
+
+            //Dump variable info.
+            xstrcat(tt, 40, "%s", SYM_name(VAR_name(ruvar)));
+            fprintf(g_tfile, " \'%s\',ruid:%d", tt,
+                    REGION_id(REGION_ru(ir)));
+        }
+
+        PADDR(ir); //Dump IR address.
+        fprintf(g_tfile, "%s", attr); //Dump attributes.
         break;
     case IR_UNDEF:
         note("\nundef!");
@@ -1367,7 +1399,7 @@ bool IR::verify(Region const* ru) const
             !is_uint() &&
             !is_fp() &&
             !is_bool() &&
-            //!get_type()->is_mc() && //IR_CONST can not be MC.
+            !is_mc() &&
             !is_str()) {
             ASSERT(0, ("unsupport immediate value DATA_TYPE:%d", get_dtype()));
         }
@@ -1383,13 +1415,13 @@ bool IR::verify(Region const* ru) const
         ASSERT0(d);
         ASSERT(TY_dtype(d)!= D_UNDEF, ("size of store value cannot be zero"));
         ASSERT0(ST_idinfo(this));
+        ASSERT0(ST_rhs(this));
         ASSERT0(ST_rhs(this)->is_exp());
-        ASSERT0(IR_next(ST_rhs(this)) == NULL &&
-                 IR_prev(ST_rhs(this)) == NULL);
+        ASSERT0(ST_rhs(this)->is_single());
         if (d->is_vector()) {
             ASSERT0(TY_vec_ety(d) != D_UNDEF);
             ASSERT0(tm->get_dtype_bytesize(TY_vec_ety(d)) >=
-                     tm->get_bytesize(IR_dt(ST_rhs(this))));
+                    tm->get_bytesize(IR_dt(ST_rhs(this))));
         }
         break;
     case IR_STPR:
@@ -1397,18 +1429,18 @@ bool IR::verify(Region const* ru) const
         ASSERT(get_dtype() != D_UNDEF, ("size of store value cannot be zero"));
         ASSERT0(get_dtype() != D_UNDEF);
         ASSERT0(STPR_no(this) > 0);
+        ASSERT0(STPR_rhs(this));
         ASSERT0(STPR_rhs(this)->is_exp());
-        ASSERT0(IR_next(STPR_rhs(this)) == NULL &&
-                 IR_prev(STPR_rhs(this)) == NULL);
+        ASSERT0(STPR_rhs(this)->is_single());
         break;
     case IR_STARRAY:
         //Stmt properties check.
         ASSERT0(d);
         ASSERT(get_dtype() != D_UNDEF, ("size of store value cannot be zero"));
         ASSERT0(get_dtype() != D_UNDEF);
+        ASSERT0(STARR_rhs(this));
         ASSERT0(STARR_rhs(this)->is_exp());
-        ASSERT0(IR_next(STARR_rhs(this)) == NULL &&
-                 IR_prev(STARR_rhs(this)) == NULL);
+        ASSERT0(STARR_rhs(this)->is_single());
 
         //Array properties check.
         ASSERT0(ARR_base(this)->is_ptr());
@@ -1417,14 +1449,12 @@ bool IR::verify(Region const* ru) const
 
         if (ARR_ofst(this) != 0) {
             ASSERT0(tm->get_bytesize(d) + ARR_ofst(this) <=
-                     tm->get_bytesize(ARR_elemtype(this)));
+                    tm->get_bytesize(ARR_elemtype(this)));
         }
 
-        ASSERT0(IR_next(ARR_base(this)) == NULL &&
-                 IR_prev(ARR_base(this)) == NULL);
+        ASSERT0(ARR_base(this)->is_single());
 
-        ASSERT(ARR_sub_list(this),
-                ("subscript expression can not be null"));
+        ASSERT(ARR_sub_list(this), ("subscript expression can not be null"));
         break;
     case IR_ILD:
         ASSERT0(d);
@@ -1435,18 +1465,16 @@ bool IR::verify(Region const* ru) const
         ASSERT(ILD_base(this)->is_ptr(), ("base must be pointer"));
 
         ASSERT0(ILD_base(this)->is_exp());
-        ASSERT0(IR_next(ILD_base(this)) == NULL &&
-                 IR_prev(ILD_base(this)) == NULL);
+        ASSERT0(ILD_base(this)->is_single());
         break;
     case IR_IST:
         ASSERT0(d);
         ASSERT(IST_base(this)->is_ptr(), ("base must be pointer"));
+        ASSERT0(IST_rhs(this));
         ASSERT0(IST_rhs(this)->is_exp());
         ASSERT(get_dtype() != D_UNDEF, ("size of istore value cannot be zero"));
-        ASSERT0(IR_next(IST_base(this)) == NULL &&
-                 IR_prev(IST_base(this)) == NULL);
-        ASSERT0(IR_next(IST_rhs(this)) == NULL &&
-                 IR_prev(IST_rhs(this)) == NULL);
+        ASSERT0(IST_base(this)->is_single());
+        ASSERT0(IST_rhs(this)->is_single());
         break;
     case IR_SETELEM:
         ASSERT0(d);
@@ -1461,20 +1489,14 @@ bool IR::verify(Region const* ru) const
             //Note if the rhssize less than elemsize, it will be hoist to
             //elemsize.
             ASSERT0(tm->get_dtype_bytesize(TY_vec_ety(d)) >=
-                     tm->get_bytesize(IR_dt(ST_rhs(this))));
+                    tm->get_bytesize(IR_dt(ST_rhs(this))));
         }
 
         ASSERT0(SETELEM_rhs(this)->is_exp());
-
         ASSERT0(SETELEM_ofst(this)->is_exp());
-
         ASSERT0(TY_dtype(d) != D_UNDEF);
-
-        ASSERT0(IR_next(SETELEM_ofst(this)) == NULL &&
-                 IR_prev(SETELEM_ofst(this)) == NULL);
-
-        ASSERT0(IR_next(IST_rhs(this)) == NULL &&
-                 IR_prev(IST_rhs(this)) == NULL);
+        ASSERT0(SETELEM_ofst(this)->is_single());
+        ASSERT0(IST_rhs(this)->is_single());
         break;
     case IR_GETELEM:
         {
@@ -1490,7 +1512,7 @@ bool IR::verify(Region const* ru) const
                 ASSERT0(TY_vec_ety(basedtd) != D_UNDEF);
 
                 ASSERT0(tm->get_dtype_bytesize(TY_vec_ety(basedtd)) >=
-                         tm->get_bytesize(d));
+                        tm->get_bytesize(d));
             }
         }
         break;
@@ -1502,39 +1524,29 @@ bool IR::verify(Region const* ru) const
                 LDA_base(this)->is_lab());
 
         ASSERT0(d->is_pointer());
-        ASSERT0(IR_next(LDA_base(this)) == NULL &&
-                IR_prev(LDA_base(this)) == NULL);
+        ASSERT0(LDA_base(this)->is_single());
         break;
     case IR_CALL:
         ASSERT0(CALL_idinfo(this));
 
         //result type of call is the type of return value if it exist.
-        if (d->is_void()) {
-            ASSERT0(CALL_prno(this) == 0);
-        } else {
-            ASSERT0(CALL_prno(this) != 0);
-        }
+        //The result type may be VOID.
+        if (CALL_prno(this) != 0) { ASSERT0(d); }
 
         //Parameters should be expression.
-        for (IR * p = CALL_param_list(this); p != NULL; p = IR_next(p)) {
+        for (IR * p = CALL_param_list(this); p != NULL; p = p->get_next()) {
             ASSERT0(p->is_exp());
         }
         break;
     case IR_ICALL:
         //result type of call is the type of return value if it exist.
-        if (d->is_void()) {
-            ASSERT0(CALL_prno(this) == 0);
-        } else {
-            ASSERT0(CALL_prno(this) != 0);
-        }
+        //Note return-value type may be VOID.
 
         //rtype of icall is the type of IR in return-value-list.
-        ASSERT0(ICALL_callee(this)->is_ld() || ICALL_callee(this)->is_pr());
+        ASSERT0(ICALL_callee(this) && ICALL_callee(this)->is_ptr());
+        ASSERT0(ICALL_callee(this)->is_single());
 
-        ASSERT0(IR_next(ICALL_callee(this)) == NULL &&
-                 IR_prev(ICALL_callee(this)) == NULL);
-
-        for (IR * p = CALL_param_list(this); p != NULL; p = IR_next(p)) {
+        for (IR * p = CALL_param_list(this); p != NULL; p = p->get_next()) {
             ASSERT0(p->is_exp());
         }
         break;
@@ -1543,18 +1555,16 @@ bool IR::verify(Region const* ru) const
     case IR_LSL:
         ASSERT0(d);
         ASSERT0(TY_dtype(d) != D_UNDEF);
-        ASSERT0(BIN_opnd0(this) != NULL &&
-                 BIN_opnd0(this)->is_exp() &&
-                 BIN_opnd1(this) != NULL &&
-                 BIN_opnd1(this)->is_exp());
+        ASSERT0(BIN_opnd0(this) && BIN_opnd0(this)->is_exp() &&
+                BIN_opnd1(this) && BIN_opnd1(this)->is_exp());
 
         //Check that shift operations only have integer type.
-        ASSERT0(BIN_opnd0(this)->is_int() && BIN_opnd1(this)->is_int());
+        ASSERT0(is_int() && //the result must be integer type.
+                BIN_opnd0(this)->is_int() &&
+                BIN_opnd1(this)->is_int());
 
-        ASSERT0(IR_next(BIN_opnd0(this)) == NULL &&
-                 IR_prev(BIN_opnd0(this)) == NULL);
-        ASSERT0(IR_next(BIN_opnd1(this)) == NULL &&
-                 IR_prev(BIN_opnd1(this)) == NULL);
+        ASSERT0(BIN_opnd0(this)->is_single());
+        ASSERT0(BIN_opnd1(this)->is_single());
         break;
     case IR_ADD:
     case IR_SUB:
@@ -1575,24 +1585,23 @@ bool IR::verify(Region const* ru) const
     case IR_BOR:
         ASSERT0(d);
         ASSERT0(TY_dtype(d) != D_UNDEF);
-        ASSERT0(BIN_opnd0(this) != NULL &&
-                 BIN_opnd0(this)->is_exp() &&
-                 BIN_opnd1(this) != NULL &&
-                 BIN_opnd1(this)->is_exp());
-        ASSERT0(IR_next(BIN_opnd0(this)) == NULL &&
-                 IR_prev(BIN_opnd0(this)) == NULL);
-        ASSERT0(IR_next(BIN_opnd1(this)) == NULL &&
-                 IR_prev(BIN_opnd1(this)) == NULL);
+        ASSERT0(BIN_opnd0(this) && BIN_opnd0(this)->is_exp() &&
+                BIN_opnd1(this) && BIN_opnd1(this)->is_exp());
+        ASSERT0(BIN_opnd0(this)->is_single());
+        ASSERT0(BIN_opnd1(this)->is_single());
+        break;
+    case IR_LNOT:
+        ASSERT0(d);
+        ASSERT0(is_bool());
+        ASSERT0(UNA_opnd0(this) != NULL && UNA_opnd0(this)->is_exp());
+        ASSERT0(UNA_opnd0(this)->is_single());
         break;
     case IR_BNOT:
-    case IR_LNOT:
     case IR_NEG:
         ASSERT0(d);
         ASSERT0(TY_dtype(d) != D_UNDEF);
-        ASSERT0(UNA_opnd0(this) != NULL &&
-                 UNA_opnd0(this)->is_exp());
-        ASSERT0(IR_next(UNA_opnd0(this)) == NULL &&
-                 IR_prev(UNA_opnd0(this)) == NULL);
+        ASSERT0(UNA_opnd0(this) != NULL && UNA_opnd0(this)->is_exp());
+        ASSERT0(UNA_opnd0(this)->is_single());
         break;
     case IR_GOTO:
         ASSERT0(GOTO_lab(this));
@@ -1600,59 +1609,66 @@ bool IR::verify(Region const* ru) const
     case IR_IGOTO:
         ASSERT(IGOTO_vexp(this), ("igoto vexp can not be NULL."));
         ASSERT(IGOTO_case_list(this), ("igoto case list can not be NULL."));
-        ASSERT(IR_next(IGOTO_vexp(this)) == NULL &&
-                IR_prev(IGOTO_vexp(this)) == NULL,
-                ("igoto vexp can NOT be in list."));
+        ASSERT(IGOTO_vexp(this)->is_single(),
+               ("igoto vexp can NOT be in list."));
         break;
     case IR_DO_WHILE:
     case IR_WHILE_DO:
     case IR_DO_LOOP:
-        ASSERT0(IR_next(LOOP_det(this)) == NULL &&
-                 IR_prev(LOOP_det(this)) == NULL);
+        ASSERT0(LOOP_det(this) && LOOP_det(this)->is_judge());
+        ASSERT0(LOOP_det(this)->is_single());
+        if (LOOP_body(this)) {
+            ASSERT0(allBeStmt(LOOP_body(this)));
+        }
         break;
     case IR_IF:
-        ASSERT0(IR_next(IF_det(this)) == NULL &&
-                 IR_prev(IF_det(this)) == NULL);
+        ASSERT0(IF_det(this) && IF_det(this)->is_judge());
+        ASSERT0(IF_det(this)->is_single());
+        if (IF_truebody(this)) {
+            ASSERT0(allBeStmt(IF_truebody(this)));
+        }
+        if (IF_falsebody(this)) {
+            ASSERT0(allBeStmt(IF_falsebody(this)));
+        }
         //Fall through.
     case IR_LABEL:
         break;
     case IR_SWITCH:
         ASSERT(SWITCH_vexp(this), ("switch vexp can not be NULL."));
+        ASSERT0(SWITCH_vexp(this)->is_exp());
 
         //SWITCH case list can be NULL.
-        ASSERT0(IR_next(SWITCH_vexp(this)) == NULL &&
-                 IR_prev(SWITCH_vexp(this)) == NULL);
+        ASSERT0(SWITCH_vexp(this)->is_single());
+        if (SWITCH_body(this)) {
+            ASSERT0(allBeStmt(SWITCH_body(this)));
+        }
         break;
     case IR_CASE:
         ASSERT0(CASE_lab(this));
-        ASSERT0(IR_next(CASE_vexp(this)) == NULL &&
-                 IR_prev(CASE_vexp(this)) == NULL);
+        ASSERT0(CASE_vexp(this)->is_single());
+        ASSERT(CASE_vexp(this)->is_const(),
+               ("case value-expression must be const"));
         break;
     case IR_ARRAY:
-        {
-            ASSERT0(d);
-            ASSERT0(TY_dtype(d) != D_UNDEF);
-            ASSERT0(ARR_base(this)->is_ptr());
-            ASSERT0(ARR_elemtype(this) != 0);
-            ASSERT0(ARR_elemtype(this));
+        ASSERT0(d);
+        ASSERT0(TY_dtype(d) != D_UNDEF);
+        ASSERT0(ARR_base(this)->is_ptr());
+        ASSERT0(ARR_elemtype(this) != 0);
+        ASSERT0(ARR_elemtype(this));
 
-            if (ARR_ofst(this) != 0) {
-                ASSERT0(tm->get_bytesize(d) + ARR_ofst(this) <=
-                         tm->get_bytesize(ARR_elemtype(this)));
-            }
-
-            ASSERT0(IR_next(ARR_base(this)) == NULL &&
-                     IR_prev(ARR_base(this)) == NULL);
-
-            ASSERT0(ARR_sub_list(this));
+        if (ARR_ofst(this) != 0) {
+            ASSERT0(tm->get_bytesize(d) + ARR_ofst(this) <=
+                    tm->get_bytesize(ARR_elemtype(this)));
         }
+
+        ASSERT0(ARR_base(this)->is_single());
+        ASSERT0(ARR_sub_list(this));
+        ASSERT0(allBeExp(ARR_sub_list(this)));
         break;
     case IR_CVT:
         ASSERT0(d);
-        ASSERT0(CVT_exp(this) != NULL &&
-                 CVT_exp(this)->is_exp());
-        ASSERT0(IR_next(CVT_exp(this)) == NULL &&
-                 IR_prev(CVT_exp(this)) == NULL);
+        ASSERT0(CVT_exp(this) != NULL && CVT_exp(this)->is_exp());
+        ASSERT0(CVT_exp(this)->is_single());
         break;
     case IR_PR:
         ASSERT0(d);
@@ -1661,18 +1677,14 @@ bool IR::verify(Region const* ru) const
         break;
     case IR_TRUEBR:
     case IR_FALSEBR:
-        {
-            ASSERT0(BR_lab(this));
-            ASSERT0(BR_det(this) && BR_det(this)->is_judge());
-            ASSERT0(IR_next(BR_det(this)) == NULL &&
-                     IR_prev(BR_det(this)) == NULL);
-        }
+        ASSERT0(BR_lab(this));
+        ASSERT0(BR_det(this) && BR_det(this)->is_judge());
+        ASSERT0(BR_det(this)->is_single());
         break;
     case IR_RETURN:
         if (RET_exp(this) != NULL) {
             ASSERT0(RET_exp(this)->is_exp());
-            ASSERT0(IR_next(RET_exp(this)) == NULL &&
-                     IR_prev(RET_exp(this)) == NULL);
+            ASSERT0(RET_exp(this)->is_single());
         }
         break;
     case IR_SELECT:
@@ -1683,12 +1695,9 @@ bool IR::verify(Region const* ru) const
         ASSERT0(SELECT_falseexp(this) && SELECT_falseexp(this)->is_exp());
         ASSERT0(SELECT_det(this) && SELECT_det(this)->is_judge());
 
-        ASSERT0(IR_next(SELECT_trueexp(this)) == NULL &&
-                 IR_prev(SELECT_trueexp(this)) == NULL);
-        ASSERT0(IR_next(SELECT_falseexp(this)) == NULL &&
-                 IR_prev(SELECT_falseexp(this)) == NULL);
-        ASSERT0(IR_next(SELECT_det(this)) == NULL &&
-                 IR_prev(SELECT_det(this)) == NULL);
+        ASSERT0(SELECT_trueexp(this)->is_single());
+        ASSERT0(SELECT_falseexp(this)->is_single());
+        ASSERT0(SELECT_det(this)->is_single());
         break;
     case IR_BREAK:
     case IR_CONTINUE:
@@ -1703,17 +1712,16 @@ bool IR::verify(Region const* ru) const
         ASSERT0(PHI_opnd_list(this) != NULL);
         ASSERT0(verifyPhi(ru));
         break;
-    case IR_REGION:
-        break;
+    case IR_REGION: break;
     default: ASSERT0(0);
     }
     return true;
 }
 
 
-/* This function verify def/use information of PHI stmt.
-If vpinfo is available, the function also check VP_prno of phi operands.
-is_vpinfo_avail: set true if VP information is available. */
+//This function verify def/use information of PHI stmt.
+//If vpinfo is available, the function also check VP_prno of phi operands.
+//is_vpinfo_avail: set true if VP information is available.
 bool IR::verifyPhi(Region const* ru) const
 {
     ASSERT0(is_phi());
@@ -1729,7 +1737,7 @@ bool IR::verifyPhi(Region const* ru) const
     //Check the number of phi opnds.
     UINT num_opnd = 0;
     for (IR const* opnd = PHI_opnd_list(this);
-         opnd != NULL; opnd = IR_next(opnd)) {
+         opnd != NULL; opnd = opnd->get_next()) {
         num_opnd++;
     }
     ASSERT(num_opnd == num_pred, ("the num of opnd unmatch"));
@@ -1815,7 +1823,7 @@ bool IR::calcArrayOffset(TMWORD * ofst_val, TypeMgr * tm) const
 
     TMWORD aggr = 0;
     UINT dim = 0;
-    for (IR const* s = ARR_sub_list(this); s != NULL; s = IR_next(s), dim++) {
+    for (IR const* s = ARR_sub_list(this); s != NULL; s = s->get_next(), dim++) {
         ASSERT0(ARR_elem_num_buf(this));
         if (!s->is_const()) { return false; }
 
@@ -1827,8 +1835,8 @@ bool IR::calcArrayOffset(TMWORD * ofst_val, TypeMgr * tm) const
         #define MARK_32BIT 0xFFFFffff00000000llu
         #endif
         ASSERT((((ULONGLONG)CONST_int_val(s)) &
-                 (ULONGLONG)(LONGLONG)MARK_32BIT) == 0,
-                ("allow 32bit array offset."));
+                (ULONGLONG)(LONGLONG)MARK_32BIT) == 0,
+               ("allow 32bit array offset."));
 
         ASSERT0(ARR_elem_num(this, dim) != 0);
         //Array index start at 0.
@@ -1855,7 +1863,7 @@ bool IR::isIRListEqual(IR const* irs, bool is_cmp_kid) const
         if (!pthis->is_ir_equal(irs, is_cmp_kid)) {
             return false;
         }
-        irs = IR_next(irs);
+        irs = irs->get_next();
         pthis = IR_next(pthis);
     }
     if ((irs != NULL) ^ (pthis != NULL)) {
@@ -2024,7 +2032,7 @@ void IR::setParentPointer(bool recur)
                 if (recur) {
                     kid->setParentPointer(recur);
                 }
-                kid = IR_next(kid);
+                kid = kid->get_next();
             }
         }
     }
@@ -2041,7 +2049,7 @@ IR * IR::getOpndPRList(UINT prno)
         if ((pr = p->getOpndPR(prno)) != NULL) {
             return pr;
         }
-        p = IR_next(p);
+        p = p->get_next();
     }
     return NULL;
 }
@@ -2370,7 +2378,7 @@ static void removeSSAUseRecur(IR * ir)
         if (ssainfo != NULL) {
             ssainfo->cleanDU();
         }
-    }  else {
+    } else {
         SSAInfo * ssainfo = ir->get_ssainfo();
         if (ssainfo != NULL) {
             SSA_uses(ssainfo).remove(ir);
@@ -2378,9 +2386,9 @@ static void removeSSAUseRecur(IR * ir)
     }
 
     for (UINT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
-        for (IR * x = ir->get_kid(i); x != NULL; x = IR_next(x)) {
+        for (IR * x = ir->get_kid(i); x != NULL; x = x->get_next()) {
             if (x->is_pr()) {
-                SSAInfo * ssainfo = x->get_ssainfo();
+                SSAInfo * ssainfo = PR_ssainfo(x);
                 if (ssainfo != NULL) {
                     SSA_uses(ssainfo).remove(x);
                 }
@@ -2396,10 +2404,10 @@ static void removeSSAUseRecur(IR * ir)
 }
 
 
-/* Remove SSA use-def chain.
-e.g: pr1=...
-    =pr1 //S1
-If S1 will be deleted, pr1 should be removed from its SSA_uses. */
+//Remove SSA use-def chain.
+//e.g: pr1=...
+//    =pr1 //S1
+//If S1 will be deleted, pr1 should be removed from its SSA_uses.
 void IR::removeSSAUse()
 {
     removeSSAUseRecur(this);

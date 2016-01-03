@@ -437,6 +437,7 @@ void RSC::comp_ist_fmt(IR const* ir)
 
     IR const* lhs = IST_base(ir);
     ASSERT0(lhs->is_pr());
+    UNUSED(lhs);
     //ABCCCC
     //iput, vA(stv) -> vB(mlr), +CCCC(field_id)
     m_ir2fmt.set(IR_id(ir), FABCCCCv);
@@ -481,11 +482,11 @@ void RSC::comp_call_fmt(IR const* ir)
             ASSERT0(p->is_const());
 
             //second one is class-id.
-            p = IR_next(p);
+            p = p->get_next();
             ASSERT0(p->is_const());
 
-            p = IR_next(p);
-            for (; p != NULL; p = IR_next(p)) {
+            p = p->get_next();
+            for (; p != NULL; p = p->get_next()) {
                 ASSERT0(p->is_pr());
             }
             m_ir2fmt.set(IR_id(ir), FACDEFGBBBBv);
@@ -515,8 +516,8 @@ void RSC::comp_call_fmt(IR const* ir)
             {
                 IR const* p = CALL_param_list(ir);
                 ASSERT0(p && p->is_const());
-                p = IR_next(p);
-                ASSERT0(p && p->is_pr() && IR_next(p) && IR_next(p)->is_pr());
+                p = p->get_next();
+                ASSERT0(p && p->is_pr() && p->get_next() && p->get_next()->is_pr());
                 m_ir2fmt.set(IR_id(ir), FAABBCC);
                 return;
             }
@@ -527,9 +528,9 @@ void RSC::comp_call_fmt(IR const* ir)
     IR const* p = CALL_param_list(ir);
     ASSERT0(p && p->is_const());
     INVOKE_KIND ik = (INVOKE_KIND)CONST_int_val(p);
-    p = IR_next(p);
+    p = p->get_next();
     ASSERT0(p && p->is_const());
-    p = IR_next(p);
+    p = p->get_next();
     switch (ik) {
     case INVOKE_UNDEF:
     case INVOKE_VIRTUAL:
@@ -552,7 +553,7 @@ void RSC::comp_call_fmt(IR const* ir)
     default: ASSERT0(0);
     }
 
-    for (; p != NULL; p = IR_next(p)) {
+    for (; p != NULL; p = p->get_next()) {
         ASSERT0(p->is_pr());
     }
 }
@@ -2055,7 +2056,7 @@ void LTMgr::genRangeCallGroup(IR const* ir)
 {
     ASSERT0(is_range_call(ir));
     IR * p;
-    for (p = CALL_param_list(ir); p != NULL; p = IR_next(p)) {
+    for (p = CALL_param_list(ir); p != NULL; p = p->get_next()) {
         if (!p->is_pr()) { continue; }
         break;
     }
@@ -2071,7 +2072,7 @@ void LTMgr::genRangeCallGroup(IR const* ir)
     ltg->ty = LTG_RANGE_PARAM;
 
     INT idx = 0;
-    for (;p != NULL; p = IR_next(p)) {
+    for (;p != NULL; p = p->get_next()) {
         ASSERT0(p->is_pr());
         LT * lt = map_pr2lt(PR_no(p));
         ASSERT0(lt);
@@ -2607,7 +2608,7 @@ void LTMgr::renameUse(IR * ir, LT * l, IR ** newpr)
         {
             IR * next;
             for (IR * p = CALL_param_list(ir); p != NULL; p = next) {
-                next = IR_next(p);
+                next = p->get_next();
                 if (p->is_pr()) {
                     if (PR_no(p) == LT_prno(l)) {
                         if (*newpr == NULL) {

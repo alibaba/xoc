@@ -3154,16 +3154,17 @@ void Matrix<T>::qr(OUT Matrix<T> & q, OUT Matrix<T> & r, bool calc_basis)
 {
     ASSERT(m_is_init, ("not yet initialize."));
 
-    //Linear dependent for some of row vectors.
+    //Linear dependent to some of row vectors.
     if (calc_basis && rank() < m_row_size - 1) {
         Matrix<T> bs;
         basis(bs);
         bs.qr(q, r);
         return;
     }
-    orth(q);  //Computing orthogonal basis.
+    orth(q); //Computing orthogonal basis.
     q.nml(); //Normalizing orthogonal basis.
-#ifdef QR_M2 //Method2, see NOTICE.
+#ifdef QR_M2
+    //Method2, see NOTICE.
     Matrix<T> A = *this;
     A.trans();
     r =  q * A;
@@ -3171,12 +3172,12 @@ void Matrix<T>::qr(OUT Matrix<T> & q, OUT Matrix<T> & r, bool calc_basis)
     //q is orthogonal basis set, and q should use col convention.
     //and trans(A) equals Q*R.
     q.trans();
-#else //Method 1, see NOTICE.
-
+#else
+    //Method 1, see NOTICE.
     //q is orthogonal basis set, and q should use col convention.
     //and trans(A) equals Q*R.
     q.trans();
-    r =  *this * q;
+    r = *this * q;
     r.trans();
 #endif
 }
@@ -3198,12 +3199,11 @@ void Matrix<T>::nml()
 }
 
 
-/* Permute QR Decomposition.
-Function produces a permutation matrix p, an upper triangular
-matrix R of the same dimension as A and a unitary matrix Q so that AP = Q*R.
-The column permutation p is chosen so that abs(diag(R)) is decreasing.
-
-NOTICE: The precision of 'T' may has serious effect. */
+//Permute QR Decomposition.
+//Function produces a permutation matrix p, an upper triangular
+//matrix R of the same dimension as A and a unitary matrix Q so that AP = Q*R.
+//The column permutation p is chosen so that abs(diag(R)) is decreasing.
+//NOTICE: The precision of 'T' may has serious effect.
 template <class T>
 bool Matrix<T>::pqr(Matrix<T> & p, Matrix<T> & q, Matrix<T> & r)
 {
@@ -3429,11 +3429,9 @@ void Matrix<T>::cross(IN Matrix<T> & v, OUT Matrix<T> & u)
 }
 
 
-/* Orthogonalization and Normalization by Gram-Schmidt method.
-
-'z': use row convention.
-
-NOTICE: matrix is a row vector. */
+//Orthogonalization and Normalization by Gram-Schmidt method.
+//'z': use row convention.
+//NOTICE: matrix is a row vector.
 template <class T>
 void Matrix<T>::orthn(OUT Matrix<T> & z)
 {
@@ -3466,15 +3464,15 @@ void Matrix<T>::orthn(OUT Matrix<T> & z)
 }
 
 
-/* Orthogonalization by Gram-Schmidt method.
-
-'z': Each row of vectors are orthogonalized mutually.
-    It uses row convention.
-
-NOTICE:
-    'this' use row convention.
-    Each rows of vectors should be independent mutually.
-    Or else zero vector    was generated. */
+//Orthogonalization by Gram-Schmidt method.
+//
+//'z': Each row of vectors are orthogonalized mutually.
+//    It uses row convention.
+//
+//NOTICE:
+//    'this' use row convention.
+//    Each rows of vectors should be independent mutually.
+//    Or else zero vector    was generated.
 template <class T>
 void Matrix<T>::orth(OUT Matrix<T> & z)
 {
@@ -3797,22 +3795,21 @@ void Matrix<T>::proj(OUT Matrix<T> & p, IN Matrix<T> const& v)
 }
 
 
-/* Strange Value decomposition
-A = u*s*eigx, 'this' is m*n matrix.
-
-'u': is m*m orthonormal matrix, col vector form arrangement.
-'s': m*n stanger value matrix, diagonal matrix.
-'eigx': n*n  orthonormal matrix,  row vector form arrangement. */
+//Strange Value decomposition
+//A = u*s*eigx, 'this' is m*n matrix.
+//'u': is m*m orthonormal matrix, col vector form arrangement.
+//'s': m*n stanger value matrix, diagonal matrix.
+//'eigx': n*n  orthonormal matrix,  row vector form arrangement.
 template <class T>
 bool Matrix<T>::svd(OUT Matrix<T> & u, OUT Matrix<T> & s, OUT Matrix<T> & eigx)
 {
     ASSERT(m_is_init, ("not yet initialize."));
     if (m_row_size < m_col_size) {
-        /* Assuming that A is 2*3, then B=trans(A)*A is  3*3 matrix.
-        When we computing SVD of trans(A) instead of A, and B is A*trans(A),
-        the 2*2 matrix.
-        It is simpler to compute the EIGX,EIGV than those of A.
-        Because A=USV, so trans(A) = trans(V)*trans(S)*trans(U). */
+        //Assuming that A is 2*3, then B=trans(A)*A is  3*3 matrix.
+        //When we computing SVD of trans(A) instead of A, and B is A*trans(A),
+        //the 2*2 matrix.
+        //It is simpler to compute the EIGX,EIGV than those of A.
+        //Because A=USV, so trans(A) = trans(V)*trans(S)*trans(U).
         Matrix<T> transA = *this;
         transA.trans();
         bool res = transA.svd(u, s, eigx);
@@ -3871,10 +3868,10 @@ bool Matrix<T>::svd(OUT Matrix<T> & u, OUT Matrix<T> & s, OUT Matrix<T> & eigx)
         subU.grow_row(tmp);
     }
 
-    /* To construct U, we need the quad-matrix to present R^n space,
-    and the first rth axis composed 'subU'.
-    So we compute the NulA of u1, namely, the result
-    of 'RowA(subU) * x = 0'. */
+    //To construct U, we need the quad-matrix to present R^n space,
+    //and the first rth axis composed 'subU'.
+    //So we compute the NulA of u1, namely, the result
+    //of 'RowA(subU) * x = 0'.
     if (scount < m_row_size) {
         Matrix<T> nulofu1, tmpu;
         subU.null(nulofu1); //nulofu1 uses col convention.
@@ -3923,11 +3920,9 @@ bool Matrix<T>::diag(OUT Matrix<T> & p, OUT Matrix<T> & d)
 }
 
 
-/* Calculate matrix/vector norm.
-
-'p': can be 1, 2, infinite.
-
-NOTICE: matrix uses row convention. */
+//Calculate matrix/vector norm.
+//'p': can be 1, 2, infinite.
+//NOTICE: matrix uses row convention.
 template <class T>
 T Matrix<T>::norm(INT p)
 {

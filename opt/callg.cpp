@@ -149,7 +149,7 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
             IR * irs = CN_ru(cn)->get_ir_list();
             BBList * bblst = CN_ru(cn)->get_bb_list();
             if (irs != NULL) {
-                for (; irs != NULL; irs = IR_next(irs)) {
+                for (; irs != NULL; irs = irs->get_next()) {
                     //fprintf(h, "%s\n", dump_ir_buf(ir, buf));
                     //TODO: implement dump_ir_buf();
                     dump_ir(irs, m_tm, NULL, dump_src_line, false);
@@ -238,7 +238,7 @@ void CallGraph::build(Region * top)
             add_node(cn);
             List<IR const*> * call_list = ru->get_call_list();
             if (call_list->get_elem_count() == 0) {
-                irs = IR_next(irs);
+                irs = irs->get_next();
                 continue;
             }
 
@@ -247,8 +247,8 @@ void CallGraph::build(Region * top)
                  ct != NULL; ct = call_list->get_next(ct)) {
                 IR const* ir = ct->val();
                 ASSERT0(ir && ir->is_calls_stmt());
+                ASSERT0(!CALL_is_intrinsic(ir));
 
-                if (CALL_is_intrinsic(ir)) { continue; }
                 if (!shouldAddEdge(ir)) { continue; }
 
                 if (ir->is_call()) {
@@ -265,7 +265,7 @@ void CallGraph::build(Region * top)
                 }
             }
         }
-        irs = IR_next(irs);
+        irs = irs->get_next();
     }
 
     C<CallNode*> * ct;

@@ -62,7 +62,7 @@ IR * Inliner::replaceReturnImpl(
 {
     IR * next = NULL;
     for (IR * x = new_irs; x != NULL; x = next) {
-        next = IR_next(x);
+        next = x->get_next();
         switch (IR_code(x)) {
         case IR_DO_WHILE:
         case IR_WHILE_DO:
@@ -128,7 +128,7 @@ void Inliner::checkRegion(
     List<IR const*> lst;
     IR const* irs = ru->get_ir_list();
     if (irs == NULL) { return; }
-    for (IR const* x = irs; x != NULL; x = IR_next(x)) {
+    for (IR const* x = irs; x != NULL; x = x->get_next()) {
         switch (IR_code(x)) {
         case IR_DO_WHILE:
         case IR_WHILE_DO:
@@ -216,7 +216,7 @@ bool Inliner::do_inline_c(Region * caller, Region * callee)
     bool change = false;
     IR * head = caller_irs;
     for (; caller_irs != NULL; caller_irs = next) {
-        next = IR_next(caller_irs);
+        next = caller_irs->get_next();
         if (caller_irs->is_call() &&
             is_call_site(caller_irs, callee)) {
             IR * new_irs_in_caller = caller->dupIRTreeList(callee_irs);
@@ -284,7 +284,7 @@ bool Inliner::perform(OptCtx & oc)
                 do_inline(ru);
             }
         }
-        irs = IR_next(irs);
+        irs = irs->get_next();
     }
     return false;
 }

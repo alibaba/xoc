@@ -36,7 +36,7 @@ author: Su Zhenyu
 
 namespace xoc {
 
-
+#ifdef _DEBUG_
 static bool isBinAndUniExp(IR const* ir)
 {
     switch (ir->get_code()) {
@@ -68,6 +68,7 @@ static bool isBinAndUniExp(IR const* ir)
     }
     return false;
 }
+#endif
 
 
 bool Region::isLowestHeightExp(IR const* ir) const
@@ -148,7 +149,7 @@ bool Region::isLowestHeight(IR const* ir) const
     switch (IR_code(ir)) {
     case IR_CALL:
     case IR_ICALL:
-        for (IR * p = CALL_param_list(ir); p != NULL; p = IR_next(p)) {
+        for (IR * p = CALL_param_list(ir); p != NULL; p = p->get_next()) {
             if (!isLowestHeightExp(p)) {
                 return false;
             }
@@ -259,7 +260,7 @@ IR * Region::simplifyIf(IR * ir, SimpCtx * ctx)
     add_next(&ret_list, det);
     add_next(&ret_list, truebody);
     add_next(&ret_list, elsebody);
-    for (IR * p = ret_list; p != NULL; p = IR_next(p)) {
+    for (IR * p = ret_list; p != NULL; p = p->get_next()) {
         IR_parent(p) = NULL;
     }
     SIMP_changed(ctx) = true;
@@ -321,7 +322,7 @@ IR * Region::simplifyWhileDo(IR * ir, SimpCtx * ctx)
     add_next(&ret_list, det);
     add_next(&ret_list, body);
     add_next(&ret_list, buildLabel(BR_lab(falsebr)));
-    for (IR * p = ret_list; p != NULL; p = IR_next(p)) {
+    for (IR * p = ret_list; p != NULL; p = p->get_next()) {
         IR_parent(p) = NULL;
     }
     SIMP_changed(ctx) = true;
@@ -384,7 +385,7 @@ IR * Region::simplifyDoWhile (IR * ir, SimpCtx * ctx)
     add_next(&ret_list, &last, buildLabel(det_startl));
     add_next(&ret_list, &last, det);
     add_next(&ret_list, &last, buildLabel(endl));
-    for (IR * p = ret_list; p != NULL; p = IR_next(p)) {
+    for (IR * p = ret_list; p != NULL; p = p->get_next()) {
         IR_parent(p) = NULL;
     }
     SIMP_changed(ctx) = true;
@@ -457,7 +458,7 @@ IR * Region::simplifyDoLoop(IR * ir, SimpCtx * ctx)
     add_next(&ret_list, det);
     add_next(&ret_list, body);
     add_next(&ret_list, buildLabel(BR_lab(falsebr)));
-    for (IR * p = ret_list; p != NULL; p = IR_next(p)) {
+    for (IR * p = ret_list; p != NULL; p = p->get_next()) {
         IR_parent(p) = NULL;
     }
     SIMP_changed(ctx) = true;
@@ -473,7 +474,7 @@ IR * Region::simplifyDet(IR * ir, SimpCtx * ctx)
     IR * ret_exp_list = NULL;
     IR * next;
     while (ir != NULL) {
-        next = IR_next(ir);
+        next = ir->get_next();
         IR_next(ir) = IR_prev(ir) = NULL;
         if (ir->is_stmt()) {
             SimpCtx tcont(*ctx);
@@ -484,7 +485,7 @@ IR * Region::simplifyDet(IR * ir, SimpCtx * ctx)
             IR * x = new_stmt_list;
             while (x != NULL) {
                 ASSERT0(x->is_stmt());
-                x = IR_next(x);
+                x = x->get_next();
             }
             #endif
             ctx->append_irs(new_stmt_list);
@@ -500,7 +501,7 @@ IR * Region::simplifyDet(IR * ir, SimpCtx * ctx)
         }
         ir = next;
     }
-    for (IR * p = ret_exp_list; p != NULL; p = IR_next(p)) {
+    for (IR * p = ret_exp_list; p != NULL; p = p->get_next()) {
         IR_parent(p) = NULL;
     }
     return ret_exp_list;
@@ -967,7 +968,7 @@ IR * Region::simplifySelect(IR * ir, SimpCtx * ctx)
     copyDbx(falsebr, SELECT_det(ir), this);
     newdet = falsebr;
 
-    ASSERT0(SELECT_trueexp(ir)->is_type_equal(SELECT_falseexp(ir)));
+    ASSERT0(SELECT_trueexp(ir)->get_type() == SELECT_falseexp(ir)->get_type());
     IR * res = buildPR(IR_dt(SELECT_trueexp(ir)));
     allocRefForPR(res);
     //Simp true exp.
@@ -1004,7 +1005,7 @@ IR * Region::simplifySelect(IR * ir, SimpCtx * ctx)
     add_next(&newdet, buildLabel(GOTO_lab(gotoend)));
     //
 
-    for (IR * p = newdet; p != NULL; p = IR_next(p)) {
+    for (IR * p = newdet; p != NULL; p = p->get_next()) {
         IR_parent(p) = NULL;
     }
     ctx->append_irs(newdet);
@@ -1090,7 +1091,7 @@ IR * Region::simplifySwitch(IR * ir, SimpCtx * ctx)
         prev_ir_tree = simplifyStmtList(prev_ir_tree, &tctx);
     }
 
-    for (IR * p = prev_ir_tree; p != NULL; p = IR_next(p)) {
+    for (IR * p = prev_ir_tree; p != NULL; p = p->get_next()) {
         IR_parent(p) = NULL;
     }
 
@@ -1299,6 +1300,8 @@ IR * Region::simplifyBinAndUniExpression(IR * ir, SimpCtx * ctx)
 {
     ASSERT0(ir && isBinAndUniExp(ir));
 
+    if (ir->is_ild() && !SIMP_ild_ist(ctx)) { return ir; }
+
     for (UINT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
         IR * kid = ir->get_kid(i);
         if (kid != NULL) {
@@ -1350,7 +1353,7 @@ IR * Region::simplifyExpression(IR * ir, SimpCtx * ctx)
     ASSERT(ir->is_exp(), ("expect non-statement node"));
 
     //ir can not in list, or it may incur illegal result.
-    ASSERT0(IR_next(ir) == NULL && IR_prev(ir) == NULL);
+    ASSERT0(ir->is_single());
     switch (IR_code(ir)) {
     case IR_CONST:
         if (ir->is_str()) {
@@ -1419,7 +1422,7 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) return NULL;
     ASSERT0(ir->is_judge());
-    ASSERT0(IR_prev(ir) == NULL && IR_next(ir) == NULL);
+    ASSERT0(ir->is_single());
     switch (IR_code(ir)) {
     case IR_LAND: //logical and &&
     case IR_LOR: //logical or ||
@@ -1847,14 +1850,20 @@ IR * Region::simplifyIstore(IR * ir, SimpCtx * ctx)
 
     SimpCtx tcont2(*ctx);
     SIMP_ret_array_val(&tcont2) = true;
-    IST_base(ir) = simplifyExpression(IST_base(ir), &tcont2);
-    IR_parent(IST_base(ir)) = ir;
-    ctx->union_bottomup_flag(tcont2);
+
+    if (SIMP_ild_ist(ctx)) {
+        IST_base(ir) = simplifyExpression(IST_base(ir), &tcont2);
+        IR_parent(IST_base(ir)) = ir;
+        ctx->union_bottomup_flag(tcont2);
+    }
+
     if (SIMP_ir_stmt_list(&tcont2) != NULL) {
         add_next(&ret_list, &last, SIMP_ir_stmt_list(&tcont2));
     }
 
-    if (SIMP_to_lowest_height(ctx) && IST_base(ir)->is_ild()) {
+    if (SIMP_to_lowest_height(ctx) &&
+        IST_base(ir)->is_ild() &&
+        SIMP_ild_ist(ctx)) {
         /* Simplify
             IST(ILD(PR1), ...)
         =>
@@ -1915,8 +1924,7 @@ IR * Region::simplifyStore(IR * ir, SimpCtx * ctx)
 IR * Region::simplifyStmt(IR * ir, SimpCtx * ctx)
 {
     if (ir == NULL) { return NULL; }
-    ASSERT(IR_prev(ir) == NULL && IR_next(ir) == NULL,
-            ("ir should be remove out of list"));
+    ASSERT(ir->is_single(), ("ir should be remove out of list"));
     IR * ret_list = NULL;
     ASSERT(ir->is_stmt(), ("expect statement node"));
     switch (IR_code(ir)) {
@@ -2085,7 +2093,7 @@ IR * Region::simplifyStmtList(IR * ir_list, SimpCtx * ctx)
 
             if (SIMP_to_lowest_height(ctx)) {
                 //Check if new stmt still need to simplify.
-                for (IR * x = new_stmt_list; x != NULL; x = IR_next(x)) {
+                for (IR * x = new_stmt_list; x != NULL; x = x->get_next()) {
                     if (!isLowestHeight(x)) {
                         redo_simp = true;
                         break;
@@ -2115,7 +2123,7 @@ void Region::simplifyBB(IRBB * bb, SimpCtx * ctx)
          ct != BB_irlist(bb).end();
          ct = BB_irlist(bb).get_next(ct)) {
         IR * stmt = ct->val();
-        ASSERT0(stmt && IR_next(stmt) == NULL && IR_prev(stmt) == NULL);
+        ASSERT0(stmt && stmt->is_single());
         IR * newstmt_lst = simplifyStmt(stmt, ctx);
         while (newstmt_lst != NULL) {
             IR * newir = removehead(&newstmt_lst);

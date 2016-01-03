@@ -103,6 +103,9 @@ public:
 
     SYM * addToSymbolTab(CHAR const* s) { return m_sym_tab.add(s); }
 
+    //This function will establish a map between region and its id.
+    void addToRegionTab(Region * ru);
+
     //Allocate Region.
     virtual Region * allocRegion(REGION_TYPE rt);
 
@@ -117,6 +120,7 @@ public:
 
     //Destroy specific region by given id.
     void deleteRegion(Region * ru);
+    void dumpRegion(); //Dump regions recorded via addToRegionTab().
 
     BitSetMgr * get_bs_mgr() { return &m_bs_mgr; }
     virtual Region * get_region(UINT id) { return m_id2ru.get(id); }
@@ -146,8 +150,6 @@ public:
 
     Region * newRegion(REGION_TYPE rt);
 
-    //This function will establish a map between region and its id.
-    void set_region(Region * ru);
     void set_targ_info(TargInfo * ti) { m_targinfo = ti; }
 
     //Process region in the form of function type.

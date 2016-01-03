@@ -43,15 +43,17 @@ namespace xoc {
 //START IR_LICM
 //
 
-/* Scan operand to find invariant candidate.
-'invariant_stmt': Record if the result of stmt is loop invariant.
-'is_legal': set to true if loop is legal to perform invariant motion.
-    otherwise set to false to prohibit code motion.
-Return true if find loop invariant expression. */
-bool IR_LICM::scanOpnd(IN LI<IRBB> * li,
-                        OUT TTab<IR*> & invariant_exp,
-                        TTab<IR*> & invariant_stmt,
-                        bool * is_legal, bool first_scan)
+//Scan operand to find invariant candidate.
+//'invariant_stmt': Record if the result of stmt is loop invariant.
+//'is_legal': set to true if loop is legal to perform invariant motion.
+//  otherwise set to false to prohibit code motion.
+//Return true if find loop invariant expression.
+bool IR_LICM::scanOpnd(
+        IN LI<IRBB> * li,
+        OUT TTab<IR*> & invariant_exp,
+        TTab<IR*> & invariant_stmt,
+        bool * is_legal,
+        bool first_scan)
 {
     bool change = false;
     IRBB * head = LI_loop_head(li);
@@ -377,8 +379,9 @@ void IR_LICM::updateMD2Num(IR * ir)
 
 
 //Given loop info li, dump the invariant stmt and invariant expression.
-void IR_LICM::dump(TTab<IR*> const& invariant_stmt,
-                TTab<IR*> const& invariant_exp)
+void IR_LICM::dumpInvariantExpStmt(
+        TTab<IR*> const& invariant_stmt,
+        TTab<IR*> const& invariant_exp)
 {
     if (g_tfile == NULL) { return; }
     fprintf(g_tfile, "\n==---- DUMP LICM Analysis Result ----==\n");
@@ -409,9 +412,10 @@ void IR_LICM::dump(TTab<IR*> const& invariant_stmt,
 
 //Analysis loop invariant expression and stmt.
 //Return true if find them, otherwise return false.
-bool IR_LICM::analysis(IN LI<IRBB> * li,
-                    OUT TTab<IR*> & invariant_stmt,
-                    OUT TTab<IR*> & invariant_exp)
+bool IR_LICM::analysis(
+        IN LI<IRBB> * li,
+        OUT TTab<IR*> & invariant_stmt,
+        OUT TTab<IR*> & invariant_exp)
 {
     invariant_stmt.clean();
     invariant_exp.clean();
@@ -425,7 +429,8 @@ bool IR_LICM::analysis(IN LI<IRBB> * li,
     while (change) {
         bool is_legal = true;
         change = scanOpnd(li, invariant_exp, invariant_stmt,
-                           &is_legal, first_scan);
+                          &is_legal, first_scan);
+
         if (!is_legal) {
             invariant_exp.clean();
             return false;
@@ -448,8 +453,11 @@ bool IR_LICM::analysis(IN LI<IRBB> * li,
 }
 
 
-bool IR_LICM::is_stmt_dom_its_use(IR const* stmt, IR const* use,
-                                LI<IRBB> const* li, IRBB const* stmtbb) const
+bool IR_LICM::is_stmt_dom_its_use(
+        IR const* stmt,
+        IR const* use,
+        LI<IRBB> const* li,
+        IRBB const* stmtbb) const
 {
     IR const* ustmt = use->get_stmt();
     UINT ubbid = BB_id(ustmt->get_bb());
@@ -529,21 +537,96 @@ bool IR_LICM::isStmtCanBeHoisted(IR * stmt, IRBB * backedge_bb)
 }
 
 
+bool IR_LICM::hoistInvariantStmt(
+        TTab<IR*> & invariant_stmt,
+        IR * stmt,
+        IRBB * prehead,
+        IN LI<IRBB> * li)
+{
+    ASSERT0(stmt->get_bb());
+
+    ConstIRIter iriter;
+    for (IR const* x = iterRhsInitC(stmt, iriter);
+         x != NULL; x = iterRhsNextC(iriter)) {
+        if (x->get_ssainfo() != NULL) {
+            //Check if SSA def is loop invariant.
+            IR * def = SSA_def(x->get_ssainfo());
+            if (def == NULL) { continue; }
+
+            if (!checkDefStmt(def, invariant_stmt, prehead, li)) {
+                return false;
+            }
+
+            //Go ahead and check next kid.
+            continue;
+        }
+
+        DUSet const* defset = x->get_duset_c();
+        if (defset == NULL) { continue; }
+
+        DUIter di = NULL;
+        for (INT i = defset->get_first(&di);
+             i >= 0; i = defset->get_next(i, &di)) {
+            IR * d = m_ru->get_ir(i);
+            ASSERT0(d);
+
+            if (!checkDefStmt(d, invariant_stmt, prehead, li)) {
+                return false;
+            }
+        }
+    }
+
+    //OK, stmt can be moved to prehead.
+    BB_irlist(stmt->get_bb()).remove(stmt);
+    BB_irlist(prehead).append_tail(stmt);
+    return true;
+}
+
+
+bool IR_LICM::checkDefStmt(
+        IR * def,
+        TTab<IR*> & invariant_stmt,
+        IN IRBB * prehead,
+        IN LI<IRBB> * li)
+{
+    ASSERT0(def->is_stmt());
+
+    IRBB * dbb = def->get_bb();
+    ASSERT0(dbb);
+    if (invariant_stmt.find(def)) {
+        if (!li->is_inside_loop(BB_id(dbb)) ||
+            hoistInvariantStmt(invariant_stmt, def, prehead, li)) {
+            return true;
+        }
+        return false;
+    }
+
+    if (li->is_inside_loop(BB_id(dbb))) {
+        return false;
+    }
+
+    //def stmt has been moved to prehead.
+    return true;
+}
+
+
 //Hoist candidate IRs to preheader BB.
-bool IR_LICM::hoistCand(TTab<IR*> & invariant_exp,
-                         TTab<IR*> & invariant_stmt,
-                         IN IRBB * prehead, IN LI<IRBB> * li)
+bool IR_LICM::hoistCand(
+        TTab<IR*> & invariant_exp,
+        TTab<IR*> & invariant_stmt,
+        IN IRBB * prehead,
+        IN LI<IRBB> * li)
 {
     bool du_set_info_changed = false;
     Vector<IR*> removed;
     TabIter<IR*> ti;
     IRBB * backedge_bb = ::findSingleBackedgeStartBB(li, m_cfg);
+
     while (invariant_exp.get_elem_count() > 0) {
         UINT removednum = 0;
         for (IR * c = invariant_exp.get_first(ti);
              c != NULL; c = invariant_exp.get_next(ti)) {
             ASSERT0(c->is_exp());
-
             if (!is_worth_hoist(c)) { continue; }
 
             IR * stmt = c->get_stmt();
@@ -556,37 +639,34 @@ bool IR_LICM::hoistCand(TTab<IR*> & invariant_exp,
                  x != NULL; x = iterNextC(m_iriter)) {
                 if (x->get_ssainfo() != NULL) {
                     //Check if SSA def is loop invariant.
-                    IR const* def = x->get_ssainfo()->get_def();
-
+                    IR * def = SSA_def(x->get_ssainfo());
                     if (def == NULL) { continue; }
 
-                    ASSERT0(def->is_stmt());
-
-                    IRBB * dbb = def->get_bb();
-                    ASSERT0(dbb);
-                    if (li->is_inside_loop(BB_id(dbb))) {
-                        do_hoist_now = false;
-                        break;
+                    if (checkDefStmt(def, invariant_stmt, prehead, li)) {
+                        //Go ahead and check next kid.
+                        continue;
                     }
 
-                    continue;
+                    do_hoist_now = false;
+                    break;
                 }
 
-                 DUSet const* defset = x->get_duset_c();
+                DUSet const* defset = x->get_duset_c();
                 if (defset == NULL) { continue; }
 
                 DUIter di = NULL;
                 for (INT i = defset->get_first(&di);
                      i >= 0; i = defset->get_next(i, &di)) {
-                    IR const* d = m_ru->get_ir(i);
+                    IR * d = m_ru->get_ir(i);
                     ASSERT0(d->is_stmt());
 
-                    IRBB * dbb = d->get_bb();
-                    ASSERT0(dbb);
-                    if (li->is_inside_loop(BB_id(dbb))) {
-                        do_hoist_now = false;
-                        break;
+                    if (checkDefStmt(d, invariant_stmt, prehead, li)) {
+                        //Go ahead and check next kid.
+                        continue;
                     }
+
+                    do_hoist_now = false;
+                    break;
                 }
             }
 
@@ -625,10 +705,10 @@ bool IR_LICM::hoistCand(TTab<IR*> & invariant_exp,
                 BB_irlist(stmt->get_bb()).remove(stmt);
                 BB_irlist(prehead).append_tail_ex(stmt);
 
-                /* The code motion do not modify DU chain info of 'exp' and
-                'stmt'. So it is no need to revise DU chain.
-                But the live-expr, reach-def, avail-reach-def set
-                info of each BB changed. */
+                //The code motion do not modify DU chain info of 'exp' and
+                //'stmt'. So it is no need to revise DU chain.
+                //But the live-expr, reach-def, avail-reach-def set
+                //info of each BB changed.
             } else {
                 /* e.g: given
                     n = cand_exp; //S1
@@ -643,7 +723,7 @@ bool IR_LICM::hoistCand(TTab<IR*> & invariant_exp,
 
                 IR * stpr = m_ru->buildStorePR(PR_no(t), IR_dt(t), c);
 
-                if (m_is_in_ssa_form) {
+                if (m_ssamgr != NULL) {
                     //Generate SSA DU chain bewteen 'st' and 't'.
                     m_ssamgr->buildDUChain(stpr, t);
                 } else {
@@ -676,21 +756,22 @@ bool IR_LICM::hoistCand(TTab<IR*> & invariant_exp,
 
 //Return true if do code motion successfully.
 //This funtion maintain LOOP INFO.
-bool IR_LICM::doLoopTree(LI<IRBB> * li,
-                        OUT bool & du_set_info_changed,
-                        OUT bool & insert_bb,
-                        TTab<IR*> & invariant_stmt,
-                        TTab<IR*> & invariant_exp)
+bool IR_LICM::doLoopTree(
+        LI<IRBB> * li,
+        OUT bool & du_set_info_changed,
+        OUT bool & insert_bb,
+        TTab<IR*> & invariant_stmt,
+        TTab<IR*> & invariant_exp)
 {
     if (li == NULL) { return false; }
     bool doit = false;
-    LI<IRBB> * tli = li;
-    while (tli != NULL) {
+    for (LI<IRBB> * tli = li; tli != NULL; tli = LI_next(tli)) {
         doLoopTree(LI_inner_list(tli), du_set_info_changed,
-                     insert_bb, invariant_stmt, invariant_exp);
+                   insert_bb, invariant_stmt, invariant_exp);
         analysis(tli, invariant_stmt, invariant_exp);
+        //dumpInvariantExpStmt(invariant_stmt, invariant_exp);
+
         if (invariant_exp.get_elem_count() == 0) {
-            tli = LI_next(tli);
             continue;
         }
 
@@ -700,12 +781,12 @@ bool IR_LICM::doLoopTree(LI<IRBB> * li,
         ASSERT0(prehead);
         insert_bb |= flag;
         if (flag && LI_outer(tli) != NULL) {
+            //Add preheader to outer loop body.
             LI_bb_set(LI_outer(tli))->bunion(BB_id(prehead));
         }
 
         du_set_info_changed |=
             hoistCand(invariant_exp, invariant_stmt, prehead, li);
-        tli = LI_next(tli);
     }
     return doit;
 }
@@ -715,22 +796,18 @@ bool IR_LICM::perform(OptCtx & oc)
 {
     START_TIMER_AFTER();
     m_ru->checkValidAndRecompute(&oc, PASS_DOM, PASS_DU_REF, PASS_LOOP_INFO,
-                                    PASS_DU_CHAIN, PASS_UNDEF);
+                                 PASS_DU_CHAIN, PASS_UNDEF);
 
     bool du_set_info_changed = false;
     bool insert_bb = false;
     TTab<IR*> invariant_stmt;
     TTab<IR*> invariant_exp;
 
-    m_is_in_ssa_form = false;
+    m_ssamgr = NULL;
     IR_SSA_MGR * ssamgr =
             (IR_SSA_MGR*)m_ru->get_pass_mgr()->queryPass(PASS_SSA_MGR);
     if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
-        m_is_in_ssa_form = true;
         m_ssamgr = ssamgr;
-    } else {
-        m_is_in_ssa_form = false;
-        m_ssamgr = NULL;
     }
 
     bool change = doLoopTree(m_cfg->get_loop_info(),
@@ -755,7 +832,7 @@ bool IR_LICM::perform(OptCtx & oc)
 
         if (insert_bb) {
             //Loop info is maintained, but dom pdom and cdg is changed.
-
+            OC_is_rpo_valid(oc) = false;
             OC_is_dom_valid(oc) = false;
             OC_is_pdom_valid(oc) = false;
             OC_is_cdg_valid(oc) = false;

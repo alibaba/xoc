@@ -586,7 +586,7 @@ void IR_GVN::computeArrayAddrRef(IR const* ir, bool & change)
 {
     ASSERT0(ir->is_starray());
     computeVN(ARR_base(ir), change);
-    for (IR const* s = ARR_sub_list(ir); s != NULL; s = IR_next(s)) {
+    for (IR const* s = ARR_sub_list(ir); s != NULL; s = s->get_next()) {
         computeVN(s, change);
     }
 }
@@ -627,7 +627,7 @@ VN * IR_GVN::computeArrayByAnonDomDef(IR const* arr, VN const* basevn,
 VN * IR_GVN::computeArray(IR const* exp, bool & change)
 {
     ASSERT0(exp->is_array());
-    for (IR const* s = ARR_sub_list(exp); s != NULL; s = IR_next(s)) {
+    for (IR const* s = ARR_sub_list(exp); s != NULL; s = s->get_next()) {
         computeVN(s, change);
     }
     VN * evn = m_ir2vn.get(IR_id(exp));
@@ -963,9 +963,9 @@ void IR_GVN::processPhi(IR const* ir, bool & change)
     IR const* p = PHI_opnd_list(ir);
     if (p != NULL) {
         phivn = computeVN(p, change);
-        p = IR_next(p);
+        p = p->get_next();
     }
-    for (; p != NULL; p = IR_next(p)) {
+    for (; p != NULL; p = p->get_next()) {
         VN * opndvn = computeVN(p, change);
         if (phivn != NULL && phivn != opndvn) {
             phivn = NULL;
@@ -982,7 +982,7 @@ void IR_GVN::processPhi(IR const* ir, bool & change)
 
 void IR_GVN::processCall(IR const* ir, bool & change)
 {
-    for (IR const* p = CALL_param_list(ir); p != NULL; p = IR_next(p)) {
+    for (IR const* p = CALL_param_list(ir); p != NULL; p = p->get_next()) {
         computeVN(p, change);
     }
 
