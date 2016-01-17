@@ -132,6 +132,7 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
     old = g_tfile;
     g_tfile = h;
     INT c;
+    List<VAR const*> formalparamlst;
     for (Vertex * v = m_vertices.get_first(c);
          v != NULL; v = m_vertices.get_next(c)) {
         INT id = VERTEX_id(v);
@@ -139,23 +140,36 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
         ASSERT0(cn != NULL);
         fprintf(h, "\nnode: { title:\"%d\" shape:box color:gold "
                    "fontname:\"courB\" label:\"", id);
-        fprintf(h, "FUNC(%d):%s\n",
-                CN_id(cn), CN_sym(cn) != NULL ?
-                           SYM_name(CN_sym(cn)) : "IndirectCallNode");
+
+        CHAR const* cnname = CN_sym(cn) != NULL ?
+                SYM_name(CN_sym(cn)) : "IndirectCall";
+        if (CN_ru(cn) != NULL) {
+            fprintf(h, "CN(%d):Region(%d):%s\n",
+                    CN_id(cn), REGION_id(CN_ru(cn)), cnname);
+        } else {
+            fprintf(h, "CN(%d):%s\n", CN_id(cn), cnname);
+        }
 
         fprintf(h, "\n");
         if (dump_ir_detail && CN_ru(cn) != NULL) {
+            //Dump formal paramters.
+            formalparamlst.clean();
+            CN_ru(cn)->findFormalParam(formalparamlst, true);
+            for (VAR const* param = formalparamlst.get_head(); param != NULL;
+                 param = formalparamlst.get_next()) {
+                param->dump(g_tfile, m_tm);
+            }
+
             g_indent = 0;
             IR * irs = CN_ru(cn)->get_ir_list();
-            BBList * bblst = CN_ru(cn)->get_bb_list();
             if (irs != NULL) {
                 for (; irs != NULL; irs = irs->get_next()) {
                     //fprintf(h, "%s\n", dump_ir_buf(ir, buf));
                     //TODO: implement dump_ir_buf();
-                    dump_ir(irs, m_tm, NULL, dump_src_line, false);
+                    dump_ir(irs, m_tm, NULL, true, dump_src_line, false, true);
                 }
             } else {
-                dumpBBList(bblst, CN_ru(cn));
+                dumpBBList(CN_ru(cn)->get_bb_list(), CN_ru(cn));
             }
         }
         fprintf(h, "\"}");
@@ -192,7 +206,7 @@ CallNode * CallGraph::newCallNode(IR const* ir)
         return cn;
     }
 
-    CallNode * cn  = allocCallNode();
+    CallNode * cn = allocCallNode();
     CN_id(cn) = m_cn_count++;
     return cn;
 }
@@ -202,7 +216,7 @@ CallNode * CallGraph::newCallNode(IR const* ir)
 //To guarantee CallNode of Region is unique.
 CallNode * CallGraph::newCallNode(Region * ru)
 {
-    ASSERT0(ru->is_function());
+    ASSERT0(ru->is_function() || ru->is_program());
     SYM const* name = VAR_name(ru->get_ru_var());
     CallNode * cn = m_sym2cn_map.get(name);
     if (cn != NULL) {
@@ -225,61 +239,36 @@ CallNode * CallGraph::newCallNode(Region * ru)
 
 
 //Build call graph.
-void CallGraph::build(Region * top)
+void CallGraph::build(RegionMgr * rumgr)
 {
-    ASSERT0(top->is_program());
-    IR * irs = top->get_ir_list();
-    List<CallNode*> indirect_call;
-    while (irs != NULL) {
-        if (irs->is_region()) {
-            Region * ru = REGION_ru(irs);
-            ASSERT0(ru && ru->is_function());
-            CallNode * cn = newCallNode(ru);
-            add_node(cn);
-            List<IR const*> * call_list = ru->get_call_list();
-            if (call_list->get_elem_count() == 0) {
-                irs = irs->get_next();
-                continue;
-            }
+    for (UINT i = 0; i < rumgr->getNumOfRegion(); i++) {
+        Region * ru = rumgr->get_region(i);
+        if (ru == NULL) { continue; }
 
-            C<IR const*> * ct;
-            for (call_list->get_head(&ct);
-                 ct != NULL; ct = call_list->get_next(ct)) {
-                IR const* ir = ct->val();
-                ASSERT0(ir && ir->is_calls_stmt());
-                ASSERT0(!CALL_is_intrinsic(ir));
-
-                if (!shouldAddEdge(ir)) { continue; }
-
-                if (ir->is_call()) {
-                    //Direct call.
-                    CallNode * cn2 = newCallNode(ir);
-                    add_node(cn2);
-                    addEdge(CN_id(cn), CN_id(cn2));
-                } else {
-                    ASSERT(ir->is_icall(), ("Indirect call."));
-                    CallNode * cn3 = newCallNode(ir);
-                    CN_unknown_callee(cn3) = true;
-                    indirect_call.append_tail(cn3);
-                    add_node(cn3);
-                }
-            }
+        ASSERT0(ru->is_function() || ru->is_program());
+        CallNode * caller = newCallNode(ru);
+        add_node(caller);
+        List<IR const*> * call_list = ru->get_call_list();
+        if (call_list->get_elem_count() == 0) {
+            continue;
         }
-        irs = irs->get_next();
-    }
 
-    C<CallNode*> * ct;
-    for (indirect_call.get_head(&ct);
-         ct != indirect_call.end();
-         ct = indirect_call.get_next(ct)) {
-        CallNode * i = ct->val();
-        ASSERT0(i);
-        INT c;
-        for (Vertex * v = get_first_vertex(c);
-             v != NULL; v = get_next_vertex(c)) {
-            CallNode * j = map_id2cn(VERTEX_id(v));
-            ASSERT0(j);
-            addEdge(CN_id(i), CN_id(j));
+        C<IR const*> * ct;
+        for (call_list->get_head(&ct);
+             ct != NULL; ct = call_list->get_next(ct)) {
+            IR const* ir = ct->val();
+            ASSERT0(ir && ir->is_calls_stmt());
+            ASSERT0(!CALL_is_intrinsic(ir));
+
+            if (!shouldAddEdge(ir)) { continue; }
+
+            CallNode * callee = newCallNode(ir);
+            if (ir->is_icall()) {
+                //Indirect call.
+                CN_unknown_callee(callee) = true;
+            }
+            add_node(callee);
+            addEdge(CN_id(caller), CN_id(callee));
         }
     }
 }

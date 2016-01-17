@@ -113,6 +113,7 @@ public:
         m_cfg = ru->get_cfg();
         m_tm = ru->get_type_mgr();
         m_md_sys = ru->get_md_sys();
+        ASSERT0(m_cfg && m_du && m_md_sys && m_tm);
         m_pool = smpoolCreate(4 * sizeof(UINT), MEM_CONST_SIZE);
         m_ssamgr = NULL;
     }

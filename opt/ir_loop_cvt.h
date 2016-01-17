@@ -79,6 +79,7 @@ public:
         m_ru = ru;
         m_du = ru->get_du_mgr();
         m_cfg = m_ru->get_cfg();
+        ASSERT0(m_cfg && m_du);
     }
     COPY_CONSTRUCTOR(IR_LOOP_CVT);
     virtual ~IR_LOOP_CVT() {}

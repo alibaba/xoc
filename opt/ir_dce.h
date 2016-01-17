@@ -106,6 +106,7 @@ public:
         m_cfg = ru->get_cfg();
         m_du = ru->get_du_mgr();
         m_md_sys = ru->get_md_sys();
+        ASSERT0(m_cfg && m_du && m_md_sys && m_tm);
         m_is_elim_cfs = false;
         m_is_use_md_du = true;
         m_cdg = NULL;

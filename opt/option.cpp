@@ -38,8 +38,8 @@ namespace xoc {
 //Optimize float operation.
 bool g_is_opt_float = true;
 
-//Lower IR tree to simplest form.
-bool g_is_lower_to_simplest = false;
+//Lower IR tree to PR mode.
+bool g_is_lower_to_pr_mode = false;
 
 //Enable XOC support dynamic type.
 //That means the type of IR_ST may be VOID.
@@ -77,13 +77,12 @@ bool g_do_cfg_remove_empty_bb = true;
 //Perform cfg optimization: remove unreachable bb from entry.
 bool g_do_cfg_remove_unreach_bb = true;
 
-/* Perform cfg optimization: remove redundant trampoline bb.
-e.g:
-    BB1: goto L1
-    BB2, L1: goto L2
-should be optimized and generate:
-    BB1: goto L2
-*/
+//Perform cfg optimization: remove redundant trampoline bb.
+//e.g:
+//    BB1: goto L1
+//    BB2, L1: goto L2
+//should be optimized and generate:
+//    BB1: goto L2
 bool g_do_cfg_remove_trampolin_bb = true;
 
 //Build dominator tree.
@@ -98,11 +97,11 @@ bool g_do_cfs_opt = true;
 //Build control dependence graph.
 bool g_do_cdg = true;
 
-/* Build manager to reconstruct high level control flow structure IR.
-This option is always useful if you want to perform optimization on
-high level IR, such as IF, DO_LOOP, etc.
-Note that if the CFS auxiliary information established, the
-optimizations performed should not violate that. */
+//Build manager to reconstruct high level control flow structure IR.
+//This option is always useful if you want to perform optimization on
+//high level IR, such as IF, DO_LOOP, etc.
+//Note that if the CFS auxiliary information established, the
+//optimizations performed should not violate that.
 bool g_build_cfs = true;
 
 //Perform default alias analysis.
@@ -113,7 +112,10 @@ bool g_do_md_du_ana = true;
 
 //Computem available expression during du analysis to
 //build more precise du chain.
-bool g_do_compute_available_exp = false;
+bool g_compute_available_exp = false;
+
+//Computem def and use MDSet for region.
+bool g_compute_region_defuse_mdset = false;
 
 //Build expression table to record lexicographic equally IR expression.
 bool g_do_expr_tab = true;

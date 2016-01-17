@@ -374,8 +374,8 @@ void IR_CFG::insertBBbetween(
         IN C<IRBB*> * to_ct,
         IN IRBB * newbb)
 {
-    /* Revise BB list, note that 'from' is either fall-through to 'to',
-    or jumping to 'to'.    */
+    //Revise BB list, note that 'from' is either fall-through to 'to',
+    //or jumping to 'to'.
     BBList * bblst = get_bb_list();
 
     //First, processing edge if 'from'->'to' is fallthrough.

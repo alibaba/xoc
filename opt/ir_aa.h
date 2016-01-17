@@ -51,6 +51,7 @@ public:
 
 
 //PtPairSet
+//Since PtPair's id is densely allocated, using BitSet is plausible.
 typedef BitSet PtPairSet;
 
 
@@ -277,6 +278,7 @@ protected:
     VarMgr * m_var_mgr;
     TypeMgr * m_tm;
     Region * m_ru;
+    RegionMgr * m_rumgr;
     MDSystem * m_md_sys;
     SMemPool * m_pool;
     MDSetMgr * m_mds_mgr; //MDSet manager.
@@ -313,28 +315,20 @@ protected:
 
 protected:
     MD const* allocHeapobj(IR * ir);
-    MD const* assignStringConst(
-                    IN IR * ir,
-                    IN OUT MDSet * mds,
-                    IN OUT AACtx * ic);
-    MD const* assignStringIdentifier(
-                    IN IR * ir,
-                    IN OUT MDSet * mds,
-                    IN OUT AACtx * ic);
     MD const* assignIdMD(
-                    IN IR * ir,
-                    IN OUT MDSet * mds,
-                    IN OUT AACtx * ic);
+            IN IR * ir,
+            IN OUT MDSet * mds,
+            IN OUT AACtx * ic);
     MD const* assignLoadMD(
-                    IN IR * ir,
-                    IN OUT MDSet * mds,
-                    IN OUT AACtx * ic,
-                    IN OUT MD2MDSet * mx);
+            IN IR * ir,
+            IN OUT MDSet * mds,
+            IN OUT AACtx * ic,
+            IN OUT MD2MDSet * mx);
     MD const* assignPRMD(
-                    IN IR * ir,
-                    IN OUT MDSet * mds,
-                    IN OUT AACtx * ic,
-                    IN OUT MD2MDSet * mx);
+            IN IR * ir,
+            IN OUT MDSet * mds,
+            IN OUT AACtx * ic,
+            IN OUT MD2MDSet * mx);
     MD const* allocIdMD(IR * ir);
     MD const* allocLoadMD(IR * ir);
     MD const* allocStoreMD(IR * ir);
@@ -344,8 +338,13 @@ protected:
     MD const* allocCallResultPRMD(IR * ir);
     MD const* allocSetelemMD(IR * ir);
     MD const* allocGetelemMD(IR * ir);
-    MD const* allocStringMD(IR * ir);
+    MD const* allocStringMD(SYM * string);
 
+    bool computeConstOffset(
+            IR const* ir,
+            IR const* opnd1,
+            IN OUT MDSet & mds,
+            IN OUT MDSet & opnd0_mds);
     void convertPT2MD2MDSet(
             PtPairSet const& pps,
             IN PtPairMgr & pt_pair_mgr,
@@ -396,11 +395,6 @@ protected:
             IN OUT MD2MDSet * mx);
 
     void processLda(
-            IR * ir,
-            IN OUT MDSet & mds,
-            IN OUT AACtx * ic,
-            IN OUT MD2MDSet * mx);
-    void processArrayLdabase(
             IR * ir,
             IN OUT MDSet & mds,
             IN OUT AACtx * ic,
@@ -459,6 +453,7 @@ protected:
             IN OUT AACtx * ic,
             IN OUT MD2MDSet * mx);
 
+    void recomputeDataType(AACtx & ic, IR * ir, MDSet & pts);
     void reviseMDsize(IN OUT MDSet & mds, UINT size);
 
     inline void * xmalloc(size_t size)
@@ -591,9 +586,9 @@ public:
 
     //Set pointer points to 'target'.
     inline void setPointToUniqueMD(
-                    MD const* pointer,
-                    MD2MDSet & ctx,
-                    MD const* target)
+            MD const* pointer,
+            MD2MDSet & ctx,
+            MD const* target)
     {
         ASSERT0(pointer && target);
         MDSet tmp;
@@ -605,9 +600,9 @@ public:
 
     //Set pointer points to 'target_set' in the context.
     inline void setPointToMDSet(
-                   MD const* pointer,
-                   MD2MDSet & ctx,
-                   MDSet const& target_set)
+            MD const* pointer,
+            MD2MDSet & ctx,
+            MDSet const& target_set)
     {
         ASSERT0(pointer);
         MDSet const* hashed = m_mds_hash->append(target_set);
@@ -617,9 +612,9 @@ public:
     //Set pointer points to new MDSet by appending a new element 'newmd'
     //in the context.
     inline void setPointToMDSetByAddMD(
-                    MD const* pointer,
-                    MD2MDSet & ctx,
-                    MD const* newmd)
+            MD const* pointer,
+            MD2MDSet & ctx,
+            MD const* newmd)
     {
         MDSet tmp;
         tmp.bunion(newmd, *m_misc_bs_mgr);
@@ -636,9 +631,9 @@ public:
 
     //Set pointer points to MD set by appending a MDSet.
     inline void setPointToMDSetByAddMDSet(
-                    MD const* pointer,
-                    MD2MDSet & ctx,
-                    MDSet const& set)
+            MD const* pointer,
+            MD2MDSet & ctx,
+            MDSet const& set)
     {
         MDSet const* pts = getPointTo(pointer, ctx);
         if (pts == NULL) {

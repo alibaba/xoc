@@ -590,7 +590,7 @@ bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
                 IR * param = CALL_param_list(ir);
                 IR * next = NULL;
                 while (param != NULL) {
-                    next = IR_next(param);
+                    next = param->get_next();
                     if (isCseCandidate(param)) {
                         if (prcessCse(param, livexp)) {
                             //Has found cse and replaced cse with pr.
@@ -646,7 +646,7 @@ bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
                     for (livexp.get_head(&ct2), next = ct2;
                          ct2 != NULL; ct2 = next) {
                         livexp.get_next(&next);
-                        IR * x = C_val(ct2);
+                        IR * x = ct2->val();
                         tmp.clean(*m_misc_bs_mgr);
                         m_du->collectMayUseRecursive(x, tmp, true);
                         if (maydef->is_intersect(tmp)) {
@@ -661,7 +661,7 @@ bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
                     for (livexp.get_head(&ct2), next = ct2;
                          ct2 != NULL; ct2 = next) {
                         livexp.get_next(&next);
-                        IR * x = C_val(ct2);
+                        IR * x = ct2->val();
                         tmp.clean(*m_misc_bs_mgr);
                         m_du->collectMayUseRecursive(x, tmp, true);
                         if (tmp.is_overlap(mustdef)) {

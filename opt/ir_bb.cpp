@@ -60,13 +60,16 @@ bool IRBB::is_bb_down_boundary(IR * ir)
         return ((CCall*)ir)->isMustBBbound();
     case IR_GOTO:
     case IR_IGOTO:
-    case IR_TRUEBR:
-    case IR_FALSEBR:
-    case IR_RETURN:
         return true;
     case IR_SWITCH:
         ASSERT(SWITCH_body(ir) == NULL,
-                ("Peel switch-body to enable switch in bb-list construction"));
+               ("Peel switch-body to enable switch in bb-list construction"));
+        return true;
+    case IR_TRUEBR:
+    case IR_FALSEBR:
+        return true;
+    case IR_RETURN:
+    case IR_REGION:
         return true;
     default: break;
     }
@@ -78,16 +81,14 @@ void IRBB::dump(Region * ru)
 {
     if (g_tfile == NULL) { return; }
 
-    g_indent = 0;
-
-    fprintf(g_tfile, "\n----- BB%d ------", BB_id(this));
+    note("\n----- BB%d ------", BB_id(this));
     if (getLabelList().get_elem_count() > 0) {
-        fprintf(g_tfile, "\nLABEL:");
+        note("\nLABEL:");
         dumpBBLabel(getLabelList(), g_tfile);
     }
 
     //Attributes
-    fprintf(g_tfile, "\nATTR:");
+    note("\nATTR:");
     if (BB_is_entry(this)) {
         fprintf(g_tfile, "entry_bb ");
     }
@@ -105,13 +106,12 @@ void IRBB::dump(Region * ru)
     }
 
     //IR list
-    fprintf(g_tfile, "\nSTMT NUM:%d", getNumOfIR());
+    note("\nSTMT NUM:%d", getNumOfIR());
     g_indent += 3;
     TypeMgr * dm = ru->get_type_mgr();
     for (IR * ir = BB_first_ir(this);
-        ir != NULL; ir = BB_irlist(this).get_next()) {
-        ASSERT0(ir->is_single());
-        ASSERT0(ir->get_bb() == this);
+         ir != NULL; ir = BB_irlist(this).get_next()) {
+        ASSERT0(ir->is_single() && ir->get_bb() == this);
         dump_ir(ir, dm, NULL, true, true, false);
     }
     g_indent -= 3;
@@ -148,9 +148,8 @@ void IRBB::verify()
         default: ASSERT(0, ("BB does not supported this kind of IR."));
         }
 
-        if (ir->is_calls_stmt() || ir->is_cond_br() ||
-            ir->is_multicond_br() || ir->is_uncond_br()) {
-            ASSERT(ir == BB_last_ir(this), ("invalid bb boundary."));
+        if (is_bb_down_boundary(ir)) {
+            ASSERT(ir == BB_last_ir(this), ("invalid BB down boundary."));
         }
 
         c++;
@@ -319,17 +318,24 @@ void dumpBBList(BBList * bbl, Region * ru, CHAR const* name)
         ASSERT(h != NULL, ("can not dump."));
         g_tfile = h;
     }
+
     if (h != NULL && bbl->get_elem_count() != 0) {
-        fprintf(h, "\n==---- DUMP '%s' BBList ----==",
-                ru->get_ru_name());
+        if (h == g_tfile) {
+            note("\n==---- DUMP '%s' BBList ----==", ru->get_ru_name());
+        } else {
+            fprintf(h, "\n==---- DUMP '%s' BBList ----==", ru->get_ru_name());
+        }
+
         for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
             bb->dump(ru);
         }
     }
+
     fflush(h);
     if (h != org_g_tfile) {
         fclose(h);
     }
+
     g_tfile = org_g_tfile;
 }
 

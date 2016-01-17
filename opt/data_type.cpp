@@ -73,19 +73,19 @@ Type const* checkType(Type const* ty, DATA_TYPE dt)
 #endif
 
 
-/* The hoisting rules are:
-1. Return max bit size of DATA_TYPE between 'opnd0' and 'opnd1',
-2. else return SIGNED if one of them is signed;
-3. else return FLOAT if one of them is float,
-4. else return UNSIGNED.
-
-The C language rules are:
-1. If any operand is of a integral type smaller than int? Convert to int.
-2. Is any operand unsigned long? Convert the other to unsigned long.
-3. (else) Is any operand signed long? Convert the other to signed long.
-4. (else) Is any operand unsigned int? Convert the other to unsigned int.
-
-NOTE: The function does NOT hoist vector type. */
+//The hoisting rules are:
+//1. Return max bit size of DATA_TYPE between 'opnd0' and 'opnd1',
+//2. else return SIGNED if one of them is signed;
+//3. else return FLOAT if one of them is float,
+//4. else return UNSIGNED.
+//
+//The C language rules are:
+//1. If any operand is of a integral type smaller than int? Convert to int.
+//2. Is any operand unsigned long? Convert the other to unsigned long.
+//3. (else) Is any operand signed long? Convert the other to signed long.
+//4. (else) Is any operand unsigned int? Convert the other to unsigned int.
+//
+//NOTE: The function does NOT hoist vector type.
 Type const* TypeMgr::hoistDtypeForBinop(IR const* opnd0, IR const* opnd1)
 {
     Type const* d0 = opnd0->get_type();
@@ -196,17 +196,16 @@ DATA_TYPE TypeMgr::hoistBSdtype(UINT bit_size, bool is_signed) const
 TypeContainer const* TypeMgr::registerPointer(Type const* type)
 {
     ASSERT0(type && type->is_pointer());
-    /* Insertion Sort by ptr-base-size in incrmental order.
-    e.g: Given PTR, base_size=32,
-        PTR, base_size=24
-        PTR, base_size=128
-        ...
-    => after insertion.
-        PTR, base_size=24
-        PTR, base_size=32  //insert into here.
-        PTR, base_size=128
-        ...
-    */
+    //Insertion Sort by ptr-base-size in incrmental order.
+    //e.g: Given PTR, base_size=32,
+    //    PTR, base_size=24
+    //    PTR, base_size=128
+    //    ...
+    //=> after insertion.
+    //    PTR, base_size=24
+    //    PTR, base_size=32  //insert into here.
+    //    PTR, base_size=128
+    //    ...
     TypeContainer const* entry = m_pointer_type_tab.get(type);
     if (entry != NULL) {
         return entry;

@@ -55,12 +55,14 @@ IR_GVN::IR_GVN(Region * ru)
     m_du = m_ru->get_du_mgr();
     m_tm = m_ru->get_type_mgr();
     m_cfg = m_ru->get_cfg();
+    ASSERT0(m_cfg && m_du && m_md_sys && m_tm);
     m_vn_count = 1;
     m_is_vn_fp = false;
     m_is_valid = false;
     m_is_comp_ild_vn_by_du = true;
     m_is_comp_lda_string = false;
     m_zero_vn = NULL;
+    m_mc_zero_vn = NULL;
 
     List<IRBB*> * bbl = ru->get_bb_list();
     UINT n = 0;
@@ -116,6 +118,7 @@ void IR_GVN::clean()
     m_def2sctab.clean();
     m_stmt2domdef.clean();
     m_zero_vn = NULL;
+    m_mc_zero_vn = NULL;
 }
 
 
@@ -192,10 +195,39 @@ VN * IR_GVN::registerVNviaINT(LONGLONG v)
     if (vn != NULL) {
         return vn;
     }
+
     vn = newVN();
     VN_type(vn) = VN_INT;
     VN_int_val(vn) = v;
     m_ll2vn.set(v, vn);
+    return vn;
+}
+
+
+VN * IR_GVN::registerVNviaMC(LONGLONG v)
+{
+    if (v == 0) {
+        if (m_mc_zero_vn == NULL) {
+            m_mc_zero_vn = newVN();
+            VN_type(m_mc_zero_vn) = VN_MC_INT;
+            VN_int_val(m_mc_zero_vn) = 0;
+        }
+        return m_mc_zero_vn;
+    }
+
+    if (m_llmc2vn.get_bucket_size() == 0) {
+        m_llmc2vn.init(10/*TO reevaluate*/);
+    }
+
+    VN * vn = m_llmc2vn.get(v);
+    if (vn != NULL) {
+        return vn;
+    }
+
+    vn = newVN();
+    VN_type(vn) = VN_MC_INT;
+    VN_int_val(vn) = v;
+    m_llmc2vn.set(v, vn);
     return vn;
 }
 
@@ -290,8 +322,11 @@ VN * IR_GVN::registerBinVN(IR_TYPE irt, VN const* v0, VN const* v1)
 }
 
 
-VN * IR_GVN::registerTripleVN(IR_TYPE irt, VN const* v0, VN const* v1,
-                             VN const* v2)
+VN * IR_GVN::registerTripleVN(
+        IR_TYPE irt,
+        VN const* v0,
+        VN const* v1,
+        VN const* v2)
 {
     ASSERT0(v0 && v1 && v2);
     ASSERT0(is_triple(irt));
@@ -328,8 +363,12 @@ VN * IR_GVN::registerTripleVN(IR_TYPE irt, VN const* v0, VN const* v1,
 }
 
 
-VN * IR_GVN::registerQuadVN(IR_TYPE irt, VN const* v0, VN const* v1,
-                             VN const* v2, VN const* v3)
+VN * IR_GVN::registerQuadVN(
+        IR_TYPE irt,
+        VN const* v0,
+        VN const* v1,
+        VN const* v2,
+        VN const* v3)
 {
     ASSERT0(v0 && v1 && v2 && v3);
     ASSERT0(is_quad(irt));
@@ -413,77 +452,80 @@ VN * IR_GVN::computePR(IR const* exp, bool & change)
 
 
 //Only compute memory operation's vn.
-VN * IR_GVN::computeMemory(IR const* exp, bool & change)
+VN * IR_GVN::computeExactMemory(IR const* exp, bool & change)
 {
     ASSERT0(exp->is_memory_opnd());
     MD const* emd = exp->get_exact_ref();
     if (emd == NULL) { return NULL; }
 
     IR const* ed = m_du->getExactAndUniqueDef(exp);
-    if (ed == NULL) {
-        DUSet const* defset = exp->get_duset_c();
-        if (defset == NULL) {
-            return allocLiveinVN(exp, emd, change);
-        } else {
-            //Check if some may-def or overlapped-def disrupts the emd.
-            //Omit the DEF which has effect md and it does not overlapped
-            //with emd.
-            DUIter di = NULL;
-            UINT defcount = 0;
-            for (INT i = defset->get_first(&di);
-                 i >= 0; i = defset->get_next(i, &di), defcount++) {
-                IR const* dir = m_ru->get_ir(i);
-                ASSERT0(dir->is_stmt());
-                MD const* xd = m_du->get_must_def(dir);
-                if (xd == NULL) {
-                    MDSet const* xds = m_du->get_may_def(dir);
-                    if (xds != NULL && xds->is_contain(emd)) {
-                        ASSERT0(m_ir2vn.get(IR_id(exp)) == NULL);
-                        //exp's value is may defined, here we can not
-                        //determine if exp have an individual VN.
-                        return NULL;
-                    }
-                } else {
-                    if (xd == emd || xd->is_overlap(emd)) {
-                        ASSERT0(m_ir2vn.get(IR_id(exp)) == NULL);
-                        //exp's value is defined by nonkilling define,
-                        //here we can not determine if exp have an
-                        //individual VN.
-                        return NULL;
-                    }
+    if (ed != NULL) {
+        VN * defvn = NULL;
+        IR const* exp_stmt = exp->get_stmt();
+        ASSERT0(exp_stmt->is_stmt());
+        IRBB * b1 = ed->get_bb();
+        IRBB * b2 = exp_stmt->get_bb();
+        ASSERT0(b1 && b2);
+        if ((b1 != b2 && m_cfg->is_dom(BB_id(b1), BB_id(b2))) ||
+            (b1 == b2 && b1->is_dom(ed, exp_stmt, true))) {
+            defvn = m_ir2vn.get(IR_id(ed));
+        }
+
+        VN * ux = m_ir2vn.get(IR_id(exp));
+        if (defvn != ux) {
+            m_ir2vn.set(IR_id(exp), defvn);
+            change = true;
+        }
+        return defvn;
+    }
+
+    DUSet const* defset = exp->get_duset_c();
+    if (defset == NULL) {
+        return allocLiveinVN(exp, emd, change);
+    } else {
+        //Check if some may-def or overlapped-def disrupts the emd.
+        //Omit the DEF which has effect md and it does not overlapped
+        //with emd.
+        DUIter di = NULL;
+        UINT defcount = 0;
+        for (INT i = defset->get_first(&di);
+             i >= 0; i = defset->get_next(i, &di), defcount++) {
+            IR const* dir = m_ru->get_ir(i);
+            ASSERT0(dir->is_stmt());
+            MD const* xd = m_du->get_must_def(dir);
+            if (xd == NULL) {
+                MDSet const* xds = m_du->get_may_def(dir);
+                if (xds != NULL && xds->is_contain(emd)) {
+                    ASSERT0(m_ir2vn.get(IR_id(exp)) == NULL);
+                    //exp's value is may defined, here we can not
+                    //determine if exp have an individual VN.
+                    return NULL;
+                }
+            } else {
+                if (xd == emd || xd->is_overlap(emd)) {
+                    ASSERT0(m_ir2vn.get(IR_id(exp)) == NULL);
+                    //exp's value is defined by nonkilling define,
+                    //here we can not determine if exp have an
+                    //individual VN.
+                    return NULL;
                 }
             }
-
-            if (defcount == 0) {
-                return allocLiveinVN(exp, emd, change);
-            }
         }
-        return allocLiveinVN(exp, emd, change);
-    }
 
-    VN * defvn = NULL;
-    IR const* exp_stmt = exp->get_stmt();
-    ASSERT0(exp_stmt->is_stmt());
-    IRBB * b1 = ed->get_bb();
-    IRBB * b2 = exp_stmt->get_bb();
-    ASSERT0(b1 && b2);
-    if ((b1 != b2 && m_cfg->is_dom(BB_id(b1), BB_id(b2))) ||
-        (b1 == b2 && b1->is_dom(ed, exp_stmt, true))) {
-        defvn = m_ir2vn.get(IR_id(ed));
+        if (defcount == 0) {
+            return allocLiveinVN(exp, emd, change);
+        }
     }
-
-    VN * ux = m_ir2vn.get(IR_id(exp));
-    if (defvn != ux) {
-        m_ir2vn.set(IR_id(exp), defvn);
-        change = true;
-    }
-    return defvn;
+    return allocLiveinVN(exp, emd, change);
 }
 
 
 //Compute VN for ild according to anonymous domdef.
-VN * IR_GVN::computeIloadByAnonDomDef(IR const* ild, VN const* mlvn,
-                                     IR const* domdef, bool & change)
+VN * IR_GVN::computeIloadByAnonDomDef(
+        IR const* ild,
+        VN const* mlvn,
+        IR const* domdef,
+        bool & change)
 {
     ASSERT0(ild->is_ild() && m_du->is_may_def(domdef, ild, false));
     ILD_VNE2VN * vnexp_map = m_def2ildtab.get(domdef);
@@ -501,6 +543,7 @@ VN * IR_GVN::computeIloadByAnonDomDef(IR const* ild, VN const* mlvn,
         vnexp_map = new ILD_VNE2VN(m_pool, 16); //bsize to be evaluate.
         m_def2ildtab.set(domdef, vnexp_map);
     }
+
     VN * ildvn = vnexp_map->get(&vexp);
     if (ildvn == NULL) {
         ildvn = newVN();
@@ -508,6 +551,7 @@ VN * IR_GVN::computeIloadByAnonDomDef(IR const* ild, VN const* mlvn,
         VN_op(ildvn) = IR_ILD;
         vnexp_map->setv((OBJTY)&vexp, ildvn);
     }
+
     m_ir2vn.set(IR_id(ild), ildvn);
     change = true;
     return ildvn;
@@ -527,14 +571,14 @@ VN * IR_GVN::computeIload(IR const* exp, bool & change)
     VN * evn = m_ir2vn.get(IR_id(exp));
     if (evn != NULL) { return evn; }
 
-    evn = computeMemory(exp, change);
+    evn = computeExactMemory(exp, change);
     if (evn != NULL) { return evn; }
 
     DUSet const* defset = exp->get_duset_c();
     if (defset == NULL || defset->get_elem_count() == 0) {
         VN * v = registerTripleVN(IR_ILD, mlvn,
-                                 registerVNviaINT(ILD_ofst(exp)),
-                                 registerVNviaINT(exp->get_dtype_size(m_tm)));
+                                  registerVNviaINT(ILD_ofst(exp)),
+                                  registerVNviaINT(exp->get_dtype_size(m_tm)));
         m_ir2vn.set(IR_id(exp), v);
         return v;
     }
@@ -593,9 +637,12 @@ void IR_GVN::computeArrayAddrRef(IR const* ir, bool & change)
 
 
 //Compute VN for array according to anonymous domdef.
-VN * IR_GVN::computeArrayByAnonDomDef(IR const* arr, VN const* basevn,
-                                       VN const* ofstvn, IR const* domdef,
-                                       bool & change)
+VN * IR_GVN::computeArrayByAnonDomDef(
+        IR const* arr,
+        VN const* basevn,
+        VN const* ofstvn,
+        IR const* domdef,
+        bool & change)
 {
     ASSERT0(arr->is_array() && m_du->is_may_def(domdef, arr, false));
     ARR_VNE2VN * vnexp_map = m_def2arrtab.get(domdef);
@@ -633,14 +680,14 @@ VN * IR_GVN::computeArray(IR const* exp, bool & change)
     VN * evn = m_ir2vn.get(IR_id(exp));
     if (evn != NULL) { return evn; }
 
-    evn = computeMemory(exp, change);
+    evn = computeExactMemory(exp, change);
     if (evn != NULL) {
         return evn;
     }
 
     VN const* abase_vn = NULL;
     VN const* aofst_vn = NULL;
-    if (((CArray*)exp)->get_dimn() == 1) {
+    if (((CArray*)exp)->getDimNum() == 1) {
         //only handle one dim array.
         abase_vn = computeVN(ARR_base(exp), change);
         if (abase_vn == NULL) {
@@ -658,8 +705,8 @@ VN * IR_GVN::computeArray(IR const* exp, bool & change)
     if (du == NULL || du->get_elem_count() == 0) {
         //Array does not have any DEF.
         VN * x = registerQuadVN(IR_ARRAY, abase_vn, aofst_vn,
-                                 registerVNviaINT(ARR_ofst(exp)),
-                                 registerVNviaINT(exp->get_dtype_size(m_tm)));
+                                registerVNviaINT(ARR_ofst(exp)),
+                                registerVNviaINT(exp->get_dtype_size(m_tm)));
         if (m_ir2vn.get(IR_id(exp)) != x) {
             m_ir2vn.set(IR_id(exp), x);
             change = true;
@@ -678,13 +725,13 @@ VN * IR_GVN::computeArray(IR const* exp, bool & change)
     }
     if (!domdef->is_starray()) {
         return computeArrayByAnonDomDef(exp, abase_vn,
-                                         aofst_vn, domdef, change);
+                                        aofst_vn, domdef, change);
     }
 
     ASSERT0(domdef->is_starray());
     //Check if VN expression is match.
     IR const* narr = IST_base(domdef);
-    ASSERT(((CArray*)narr)->get_dimn() == 1, ("only handle one dim array."));
+    ASSERT(((CArray*)narr)->getDimNum() == 1, ("only handle one dim array."));
 
     VN const* b = m_ir2vn.get(IR_id(ARR_base(narr)));
     if (b == NULL || b != abase_vn) {
@@ -698,8 +745,8 @@ VN * IR_GVN::computeArray(IR const* exp, bool & change)
     VN * uni_vn = m_ir2vn.get(IR_id(domdef));
     if (uni_vn == NULL) {
         uni_vn = registerQuadVN(IR_ARRAY, abase_vn, aofst_vn,
-                                 registerVNviaINT(ARR_ofst(exp)),
-                                 registerVNviaINT(exp->get_dtype_size(m_tm)));
+                                registerVNviaINT(ARR_ofst(exp)),
+                                registerVNviaINT(exp->get_dtype_size(m_tm)));
         m_ir2vn.set(IR_id(domdef), uni_vn);
         m_ir2vn.set(IR_id(narr), uni_vn);
     }
@@ -710,10 +757,12 @@ VN * IR_GVN::computeArray(IR const* exp, bool & change)
 
 
 VN * IR_GVN::computeScalarByAnonDomDef(
-        IR const* exp, IR const* domdef, bool & change)
+        IR const* exp,
+        IR const* domdef,
+        bool & change)
 {
     ASSERT0((exp->is_ld() || exp->is_pr()) &&
-             m_du->is_may_def(domdef, exp, false));
+            m_du->is_may_def(domdef, exp, false));
     SCVNE2VN * vnexp_map = m_def2sctab.get(domdef);
     UINT dtsz = exp->get_dtype_size(m_tm);
     MD const* md = exp->get_exact_ref();
@@ -752,12 +801,16 @@ VN * IR_GVN::computeScalar(IR const* exp, bool & change)
         return computePR(exp, change);
     }
 
-    evn = computeMemory(exp, change);
-
+    evn = computeExactMemory(exp, change);
     if (evn != NULL) { return evn; }
 
+    if (exp->get_exact_ref() == NULL) {
+        //Can not handle inexact MD.
+        return NULL;
+    }
+
     DUSet const* du = exp->get_duset_c();
-    ASSERT(du, ("This situation should be catched in computeMemory()"));
+    ASSERT(du, ("If exact MD DU is empty, should assigned region LiveIn VN"));
     ASSERT0(du->get_elem_count() > 0);
 
     IR const* exp_stmt = const_cast<IR*>(exp)->get_stmt();
@@ -793,6 +846,7 @@ VN * IR_GVN::computeScalar(IR const* exp, bool & change)
         VN_type(uni_vn) = VN_VAR;
         m_ir2vn.set(IR_id(domdef), uni_vn);
     }
+
     m_ir2vn.set(IR_id(exp), uni_vn);
     change = true;
     return uni_vn;
@@ -881,27 +935,21 @@ VN * IR_GVN::computeVN(IR const* exp, bool & change)
         break;
     case IR_LDA:
         {
-            IR const* ldabase = LDA_base(exp);
-            VN * basevn;
-            if (ldabase->is_id()) {
-                MD const* emd = ldabase->get_exact_ref();
-                if (emd == NULL) {
-                    //e.g: p = &"blabla", regard MD of "blabla" as inexact.
-                    ASSERT(ldabase->is_str(),
-                            ("only string's MD can be inexact."));
-                    if (m_is_comp_lda_string) {
-                        emd = m_du->get_effect_use_md(ldabase);
-                        ASSERT(emd, ("string should have effect MD"));
-                        basevn = registerVNviaMD(emd);
-                    } else {
-                        basevn = NULL;
-                    }
-                } else {
-                    ASSERT0(emd);
+            VAR * v = LDA_idinfo(exp);
+            VN * basevn = NULL;
+            if (v->is_string()) {
+                if (m_is_comp_lda_string) {
+                    MD const* emd = m_ru->genMDforVAR(v);
+                    ASSERT(emd && emd->is_effect(),
+                           ("string should have effect MD"));
                     basevn = registerVNviaMD(emd);
+                } else {
+                    basevn = NULL;
                 }
             } else {
-                basevn = computeVN(LDA_base(exp), change);
+                MD const* emd = m_ru->genMDforVAR(v);
+                ASSERT(emd && emd->is_effect(), ("string should have effect MD"));
+                basevn = registerVNviaMD(emd);
             }
 
             if (basevn == NULL) {
@@ -911,6 +959,7 @@ VN * IR_GVN::computeVN(IR const* exp, bool & change)
                 }
                 return NULL;
             }
+
             VN * ofstvn = registerVNviaINT(LDA_ofst(exp));
             VN * x = registerBinVN(IR_LDA, basevn, ofstvn);
             if (m_ir2vn.get(IR_id(exp)) != x) {
@@ -932,8 +981,11 @@ VN * IR_GVN::computeVN(IR const* exp, bool & change)
         {
             VN * x = m_ir2vn.get(IR_id(exp));
             if (x != NULL) { return x; }
+
             if (exp->is_int()) {
                 x = registerVNviaINT(CONST_int_val(exp));
+            } else if (exp->is_mc()) {
+                x = registerVNviaMC(CONST_int_val(exp));
             } else if (exp->is_fp()) {
                 if (!m_is_vn_fp) {
                     return NULL;
@@ -944,6 +996,7 @@ VN * IR_GVN::computeVN(IR const* exp, bool & change)
             } else {
                 ASSERT(0, ("unsupport const type"));
             }
+
             ASSERT0(x);
             m_ir2vn.set(IR_id(exp), x);
             change = true;
@@ -965,6 +1018,7 @@ void IR_GVN::processPhi(IR const* ir, bool & change)
         phivn = computeVN(p, change);
         p = p->get_next();
     }
+
     for (; p != NULL; p = p->get_next()) {
         VN * opndvn = computeVN(p, change);
         if (phivn != NULL && phivn != opndvn) {
@@ -1188,13 +1242,11 @@ void IR_GVN::dump_bb(UINT bbid)
             break;
         case IR_CALL:
         case IR_ICALL:
-            {
-                ii.clean();
-                for (IR const* k = iterInitC(CALL_param_list(ir), ii);
-                     k != NULL; k = iterNextC(ii)) {
-                    VN * x = m_ir2vn.get(IR_id(k));
-                    dump_h1(k, x);
-                }
+            ii.clean();
+            for (IR const* k = iterInitC(CALL_param_list(ir), ii);
+                 k != NULL; k = iterNextC(ii)) {
+                VN * x = m_ir2vn.get(IR_id(k));
+                dump_h1(k, x);
             }
             break;
         case IR_TRUEBR:
@@ -1417,7 +1469,7 @@ bool IR_GVN::perform(OptCtx & oc)
 
     START_TIMER_AFTER();
     m_ru->checkValidAndRecompute(&oc, PASS_DU_CHAIN, PASS_DU_REF, PASS_RPO,
-                                    PASS_DOM, PASS_UNDEF);
+                                 PASS_DOM, PASS_UNDEF);
 
     List<IRBB*> * tbbl = m_cfg->get_bblist_in_rpo();
     ASSERT0(tbbl->get_elem_count() == bbl->get_elem_count());

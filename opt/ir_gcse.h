@@ -116,7 +116,7 @@ public:
         m_cfg = ru->get_cfg();
         m_du = ru->get_du_mgr();
         m_aa = ru->get_aa();
-        ASSERT0(m_du && m_aa);
+        ASSERT0(m_du && m_aa && m_cfg);
         m_expr_tab = NULL;
         m_tm = ru->get_type_mgr();
         m_gvn = gvn;

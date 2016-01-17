@@ -65,7 +65,7 @@ LIR * IR2Dex::buildConstString(IN IR ** ir)
     IR * tir = *ir;
     ASSERT0(tir->is_stpr());
     UINT vx = get_vreg(STPR_no(tir));
-    VAR * v = ID_info(LDA_base(STPR_rhs(tir)));
+    VAR * v = LDA_idinfo(STPR_rhs(tir));
     CHAR const* n = SYM_name(VAR_name(v));
     LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
     lir->opcode = LOP_CONST_STRING;
@@ -122,7 +122,7 @@ LIR * IR2Dex::buildSgetObj(IN IR ** ir)
     ASSERT0(tir->is_stpr());
     ASSERT0(STPR_rhs(tir)->is_lda());
     UINT vx = get_vreg(STPR_no(tir));
-    VAR * v = ID_info(LDA_base(STPR_rhs(tir)));
+    VAR * v = LDA_idinfo(STPR_rhs(tir));
     CHAR const* n = SYM_name(VAR_name(v));
     UINT field_id = m_var2fieldid->get_mapped(v);
     LIRABOp * lir = (LIRABOp*)ymalloc(sizeof(LIRABOp));
@@ -539,7 +539,7 @@ LIR * IR2Dex::buildBinRegLit(IN IR ** ir)
     ASSERT0((is_us8(vA) && is_us8(vB) && is_s8(vC)) ||
              (is_us4(vA) && is_us4(vA) && is_s16(vC)));
     enum _LIROpcode lty = LOP_NOP;
-    switch (IR_code(rhs)) {
+    switch (rhs->get_code()) {
     case IR_ADD   : lty = LOP_ADD_LIT; break;
     case IR_SUB   : lty = LOP_SUB_LIT; break;
     case IR_MUL   : lty = LOP_MUL_LIT; break;
@@ -590,7 +590,7 @@ LIR * IR2Dex::buildBinRegReg(IN IR ** ir)
         is_assign_equ = true;
     }
     enum _LIROpcode lty = LOP_NOP;
-    switch (IR_code(rhs)) {
+    switch (rhs->get_code()) {
     case IR_ADD   : lty = is_assign_equ ? LOP_ADD_ASSIGN : LOP_ADD; break;
     case IR_SUB   :
         lty = is_assign_equ ? LOP_SUB_ASSIGN : LOP_SUB;
@@ -676,7 +676,7 @@ LIR * IR2Dex::convertStoreVar(IN OUT IR ** ir, IN IR2DexCtx * cont)
     IR * tir = *ir;
     ASSERT0(tir->is_st());
     IR * rhs = ST_rhs(tir);
-    switch (IR_code(rhs)) {
+    switch (rhs->get_code()) {
     case IR_PR  :
         return buildSput(ir);
     default: ASSERT0(0);
@@ -690,22 +690,17 @@ LIR * IR2Dex::convertStorePR(IN OUT IR ** ir, IN IR2DexCtx * cont)
     IR * tir = *ir;
     ASSERT0(tir->is_stpr());
     IR * rhs = STPR_rhs(tir);
-    switch (IR_code(rhs)) {
+    switch (rhs->get_code()) {
     case IR_LD:
         //vA<-ld(id)
         return buildSgetBasicTypeVar(ir);
     case IR_LDA:
-        {
-            IR * id = LDA_base(rhs);
-            ASSERT0(id->is_id());
-            if (id->is_str()) {
-                return buildConstString(ir);
-            }
-            ASSERT0(id->is_mc());
-            //vA<-&(obj)
-            return buildSgetObj(ir);
+        if (LDA_idinfo(rhs)->is_string()) {
+            return buildConstString(ir);
         }
-        break;
+        ASSERT0(LDA_idinfo(rhs)->is_mc());
+        //vA<-&(obj)
+        return buildSgetObj(ir);
     case IR_CONST:
         return buildConst(ir);
     case IR_ILD:

@@ -309,7 +309,7 @@ void RSC::comp_st_fmt(IR const* ir)
     IR const* stv = ir->get_rhs();
     comp_ir_fmt(stv);
     if (ir->is_stpr()) {
-        switch (IR_code(stv)) {
+        switch (stv->get_code()) {
         case IR_CONST:
             //A, +B, load const
             m_ir2fmt.set(IR_id(ir), FABcv);
@@ -323,8 +323,6 @@ void RSC::comp_st_fmt(IR const* ir)
             m_ir2fmt.set(IR_id(ir), FABCCCCv);
             return;
         case IR_LDA:
-            ASSERT0(LDA_base(stv)->is_id());
-            ASSERT0(LDA_base(stv)->is_str());
             //AABBBB
             m_ir2fmt.set(IR_id(ir), FAABBBBv);
             return;
@@ -373,7 +371,7 @@ void RSC::comp_st_fmt(IR const* ir)
             //aget, OBJ, v0 <- (base)v1, (ofst)v2
             ASSERT0(ARR_base(stv)->is_pr() &&
                      ARR_sub_list(stv)->is_pr() &&
-                     ((CArray*)stv)->get_dimn() == 1);
+                     ((CArray*)stv)->getDimNum() == 1);
             m_ir2fmt.set(IR_id(ir), FAABBCC);
             return;
         case IR_BNOT:
@@ -396,7 +394,7 @@ void RSC::comp_st_fmt(IR const* ir)
         }
     } else {
         ASSERT0(ir->is_st());
-        switch (IR_code(stv)) {
+        switch (stv->get_code()) {
         case IR_PR:
             //AABBBB, sput
             m_ir2fmt.set(IR_id(ir), FAABBBB);
@@ -418,7 +416,7 @@ void RSC::comp_starray_fmt(IR const* ir)
     comp_ir_fmt(stv);
     ASSERT0(stv->is_pr());
 
-    ASSERT(((CArray*)ir)->get_dimn() == 1, ("dex supply only one dim array"));
+    ASSERT(((CArray*)ir)->getDimNum() == 1, ("dex supply only one dim array"));
 
     //AABBCC
     //aput, OBJ, vAA -> (array_base_ptr)vBB, (array_elem)vCC
@@ -627,7 +625,7 @@ void RSC::comp_ir_fmt(IR const* ir)
         m_ir2fmt.set(IR_id(ir), FAABBBBBBBBv);
         return;
     case IR_ARRAY:
-        ASSERT0(((CArray*)ir)->get_dimn() == 1);
+        ASSERT0(((CArray*)ir)->getDimNum() == 1);
         comp_ir_fmt(ARR_base(ir));
         comp_ir_fmt(ARR_sub_list(ir));
         return;
@@ -664,7 +662,7 @@ void RSC::comp_ir_fmt(IR const* ir)
         }
         return;
     case IR_SELECT:
-        comp_ir_fmt(SELECT_det(ir));
+        comp_ir_fmt(SELECT_pred(ir));
         comp_ir_fmt(SELECT_trueexp(ir));
         comp_ir_fmt(SELECT_falseexp(ir));
         ASSERT0(0);
@@ -2587,7 +2585,7 @@ void LTMgr::renameUse(IR * ir, LT * l, IR ** newpr)
     LTG * gr = LT_ltg(l);
     switch (IR_code(ir)) {
     case IR_STARRAY:
-        ASSERT0(((CArray*)ir)->get_dimn() == 1);
+        ASSERT0(((CArray*)ir)->getDimNum() == 1);
         renameUse(STARR_rhs(ir), l, newpr);
         renameUse(ARR_base(ir), l, newpr);
         renameUse(ARR_sub_list(ir), l, newpr);
@@ -2695,8 +2693,6 @@ void LTMgr::renameUse(IR * ir, LT * l, IR ** newpr)
         renameUse(CVT_exp(ir), l, newpr);
         break;
     case IR_LDA:
-        ASSERT0(!LDA_base(ir)->is_pr());
-        break;
     case IR_ID:
     case IR_LD:
         break;
@@ -2725,7 +2721,7 @@ void LTMgr::renameUse(IR * ir, LT * l, IR ** newpr)
         }
         break;
     case IR_ARRAY:
-        ASSERT0(((CArray*)ir)->get_dimn() == 1);
+        ASSERT0(((CArray*)ir)->getDimNum() == 1);
         renameUse(ARR_base(ir), l, newpr);
         renameUse(ARR_sub_list(ir), l, newpr);
         break;
@@ -3255,7 +3251,7 @@ void BBRA::allocPrioList(OUT List<LT*> & prios, List<UINT> & nis)
 {
     C<LT*> * ct, * next_ct;
     for (prios.get_head(&ct), next_ct = ct; ct != NULL; ct = next_ct) {
-        LT * lt = C_val(ct);
+        LT * lt = ct->val();
         prios.get_next(&next_ct);
         ASSERT0(!lt->has_allocated());
         if (!assignRegister(lt, nis)) {
@@ -4850,7 +4846,7 @@ void RA::allocPrioList(OUT List<GLT*> & prios, OUT List<GLT*> & unalloc,
 {
     C<GLT*> * ct, * next_ct;
     for (prios.get_head(&ct), next_ct = ct; ct != NULL; ct = next_ct) {
-        GLT * g = C_val(ct);
+        GLT * g = ct->val();
         prios.get_next(&next_ct);
         ASSERT0(!g->has_allocated());
         if (!assignRegister(g, nis, nis2)) {

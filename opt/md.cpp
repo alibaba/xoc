@@ -575,7 +575,7 @@ MD const* MDSystem::registerMD(MD const& m)
     }
 
     //Generate a new MD and record it in md-table accroding to its id.
-    MD * entry = newMD();
+    MD * entry = allocMD();
     UINT id = m_free_mdid_list.remove_head();
     if (id != 0) {
         MD_id(entry) = id;
@@ -584,7 +584,7 @@ MD const* MDSystem::registerMD(MD const& m)
     }
     entry->copy(&m);
     if (mdtab == NULL) {
-        mdtab = newMDTab();
+        mdtab = allocMDTab();
 
         //MDTab indexed by VAR's id.
         m_var2mdtab.set(MD_base(entry), mdtab);
@@ -689,21 +689,23 @@ void MDSystem::destroy()
 }
 
 
-/* Compute all other md which are overlapped with 'md', but the output
-does not include md itself.
-e.g: md is md1, and md1 overlapped with md2, md3,
-then output set is {md2, md3}.
-
-'md': input to compute the overlapped md-set.
-'tmpvec': for local use.
-'tabiter': for local use.
-'strictly': set to true to compute if md may be overlapped with global memory.
-
-Note output need to be clean before invoke this function. */
-void MDSystem::computeOverlap(MD const* md, MDSet & output,
-                             ConstMDIter & tabiter,
-                             DefMiscBitSetMgr & mbsmgr,
-                             bool strictly)
+//Compute all other md which are overlapped with 'md', but the output
+//does not include md itself.
+//e.g: md is md1, and md1 overlapped with md2, md3,
+//then output set is {md2, md3}.
+//
+//'md': input to compute the overlapped md-set.
+//'tmpvec': for local use.
+//'tabiter': for local use.
+//'strictly': set to true to compute if md may be overlapped with global memory.
+//
+//Note this function does NOT clean output, and will append result to output.
+void MDSystem::computeOverlap(
+        MD const* md,
+        MDSet & output,
+        ConstMDIter & tabiter,
+        DefMiscBitSetMgr & mbsmgr,
+        bool strictly)
 {
     ASSERT0(md);
     ASSERT0(MD_id(md) != MD_ALL_MEM);
@@ -723,32 +725,61 @@ void MDSystem::computeOverlap(MD const* md, MDSet & output,
 
     OffsetTab * ofsttab = mdt->get_ofst_tab();
     ASSERT0(ofsttab);
-    tabiter.clean();
-    for (MD const* tmd = ofsttab->get_first(tabiter, NULL);
-         tmd != NULL; tmd = ofsttab->get_next(tabiter, NULL)) {
-        ASSERT0(MD_base(md) == MD_base(tmd));
-        if (tmd == md) { continue; }
-        if (md->is_overlap(tmd)) {
-            output.bunion(tmd, mbsmgr);
+    if (ofsttab->get_elem_count() > 0) {
+        tabiter.clean();
+        for (MD const* tmd = ofsttab->get_first(tabiter, NULL);
+             tmd != NULL; tmd = ofsttab->get_next(tabiter, NULL)) {
+            ASSERT0(MD_base(md) == MD_base(tmd));
+            if (tmd == md) { continue; }
+            if (md->is_overlap(tmd)) {
+                output.bunion(tmd, mbsmgr);
+            }
         }
     }
 }
 
 
-/* Compute all other md which are overlapped with MD in set 'mds'.
-e.g: mds contains {md1}, and md1 overlapped with md2, md3,
-then output set is {md1, md2, md3}.
+//Compute overlapped Exact MD with x, then add result to output.
+//Note this function does NOT clean output, and will append result to output.
+void MDSystem::computeOverlapExactMD(
+        MD const* md,
+        OUT MDSet * output,
+        ConstMDIter & tabiter,
+        DefMiscBitSetMgr & mbsmgr)
+{
+    ASSERT0(md && md->is_exact());
+    MDTab * mdt = get_md_tab(MD_base(md));
+    ASSERT0(mdt);
 
-'mds': it is not only input but also output buffer.
-'tmpvec': for local use.
-'tabiter': for local use.
-'strictly': set to true to compute if md may be overlapped with global memory.
-*/
-void MDSystem::computeOverlap(IN OUT MDSet & mds,
-                            Vector<MD const*> & tmpvec,
-                            ConstMDIter & tabiter,
-                            DefMiscBitSetMgr & mbsmgr,
-                            bool strictly)
+    OffsetTab * ofstab = mdt->get_ofst_tab();
+    ASSERT0(ofstab);
+    if (ofstab->get_elem_count() > 0) {
+        tabiter.clean();
+        for (MD const* t = ofstab->get_first(tabiter, NULL);
+             t != NULL; t = ofstab->get_next(tabiter, NULL)) {
+            if (t == md || !t->is_exact()) { continue; }
+            if (t->is_overlap(md)) {
+                output->bunion(t, mbsmgr);
+            }
+        }
+    }
+}
+
+
+//Compute all other md which are overlapped with MD in set 'mds'.
+//e.g: mds contains {md1}, and md1 overlapped with md2, md3,
+//then output set is {md1, md2, md3}.
+//
+//'mds': it is not only input but also output buffer.
+//'tmpvec': for local use.
+//'tabiter': for local use.
+//'strictly': set to true to compute if md may be overlapped with global memory.
+void MDSystem::computeOverlap(
+        IN OUT MDSet & mds,
+        Vector<MD const*> & tmpvec,
+        ConstMDIter & tabiter,
+        DefMiscBitSetMgr & mbsmgr,
+        bool strictly)
 {
     if (((DefSBitSetCore&)mds).is_contain(MD_ALL_MEM)) { return; }
 
@@ -797,21 +828,22 @@ void MDSystem::computeOverlap(IN OUT MDSet & mds,
 }
 
 
-/* Compute all other md which are overlapped with MD in set 'mds'.
-e.g: mds contains {md1}, and md1 overlapped with md2, md3,
-then output is {md1, md2, md3}.
-
-'mds': it is not only input but also output buffer.
-'output': output md set.
-'tabiter': for local use.
-'strictly': set to true to compute if md may be overlapped with global memory.
-
-Note output do not need to clean before invoke this function. */
-void MDSystem::computeOverlap(MDSet const& mds,
-                            OUT MDSet & output,
-                            ConstMDIter & tabiter,
-                            DefMiscBitSetMgr & mbsmgr,
-                            bool strictly)
+//Compute all other md which are overlapped with MD in set 'mds'.
+//e.g: mds contains {md1}, and md1 overlapped with md2, md3,
+//then output is {md1, md2, md3}.
+//
+//'mds': it is not only input but also output buffer.
+//'output': output md set.
+//'tabiter': for local use.
+//'strictly': set to true to compute if md may be overlapped with global memory.
+//
+//Note output do not need to clean before invoke this function.
+void MDSystem::computeOverlap(
+        MDSet const& mds,
+        OUT MDSet & output,
+        ConstMDIter & tabiter,
+        DefMiscBitSetMgr & mbsmgr,
+        bool strictly)
 {
     ASSERT0(&mds != &output);
 

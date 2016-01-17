@@ -370,6 +370,7 @@ public:
 
 
 //Memory Descriptor Set.
+//Note: one must call clean() to reclamition before deletion or destruction.
 class MDSet : public DefSBitSetCore {
 public:
     MDSet() {}
@@ -610,7 +611,7 @@ protected:
     MNTY * m_md2node;
 
 protected:
-    inline MNTY * newMD2Node()
+    inline MNTY * allocMD2Node()
     {
         #ifdef _MD2NODE2_
         MD2Node2 * mn = new MD2Node2(MD2NODE2_INIT_SZ);
@@ -779,7 +780,7 @@ public:
         MNTY * mn = m_md2node->next.get((UINT)id);
         if (mn == NULL) {
             checkAndGrow(m_md2node);
-            mn = newMD2Node();
+            mn = allocMD2Node();
             m_md2node->next.set((UINT)id, mn);
         }
 
@@ -789,7 +790,7 @@ public:
             MNTY * nextmn = mn->next.get((UINT)nextid);
             if (nextmn == NULL) {
                 checkAndGrow(mn);
-                nextmn = newMD2Node();
+                nextmn = allocMD2Node();
                 mn->next.set((UINT)nextid, nextmn);
             }
             mn = nextmn;
@@ -922,7 +923,7 @@ class MDSystem {
     UINT m_md_count; //generate MD index, used by registerMD().
     TMap<VAR const*, MDTab*, CompareConstVar> m_var2mdtab; //map VAR to MDTab.
 
-    inline MD * newMD()
+    inline MD * allocMD()
     {
         MD * md = m_free_md_list.remove_head();
         if (md == NULL) {
@@ -933,8 +934,8 @@ class MDSystem {
     }
 
     //Allocated object should be recorded in list.
-    MDTab * newMDTab() { return new MDTab(); }
-    MD2Node * newMD2Node();
+    MDTab * allocMDTab() { return new MDTab(); }
+    MD2Node * allocMD2Node();
     void initGlobalMemMD(VarMgr * vm);
     void initAllMemMD(VarMgr * vm);
 public:
@@ -944,21 +945,29 @@ public:
 
     void init(VarMgr * vm);
     void clean();
-    void computeOverlap(MD const* md,
-                        MDSet & output,
-                        ConstMDIter & tabiter,
-                        DefMiscBitSetMgr & mbsmgr,
-                        bool strictly);
-    void computeOverlap(IN OUT MDSet & mds,
-                        Vector<MD const*> & tmpvec,
-                        ConstMDIter & tabiter,
-                        DefMiscBitSetMgr & mbsmgr,
-                        bool strictly);
-    void computeOverlap(MDSet const& mds,
-                        OUT MDSet & output,
-                        ConstMDIter & tabiter,
-                        DefMiscBitSetMgr & mbsmgr,
-                        bool strictly);
+    void computeOverlapExactMD(
+            MD const* md,
+            OUT MDSet * output,
+            ConstMDIter & tabiter,
+            DefMiscBitSetMgr & mbsmgr);
+    void computeOverlap(
+            MD const* md,
+            MDSet & output,
+            ConstMDIter & tabiter,
+            DefMiscBitSetMgr & mbsmgr,
+            bool strictly);
+    void computeOverlap(
+            IN OUT MDSet & mds,
+            Vector<MD const*> & tmpvec,
+            ConstMDIter & tabiter,
+            DefMiscBitSetMgr & mbsmgr,
+            bool strictly);
+    void computeOverlap(
+            MDSet const& mds,
+            OUT MDSet & output,
+            ConstMDIter & tabiter,
+            DefMiscBitSetMgr & mbsmgr,
+            bool strictly);
 
     //Dump all registered MDs.
     void dumpAllMD();

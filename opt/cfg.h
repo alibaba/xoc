@@ -398,17 +398,17 @@ public:
     bool removeUnreachBB();
     bool removeRedundantBranch();
 
-    /* Insert unconditional branch to revise fall through bb.
-    e.g: Given bblist is bb1-bb2-bb3-bb4, bb4 is exit-BB,
-    and flow edges are: bb1->bb2->bb3->bb4, bb1->bb3,
-    where bb1->bb2, bb2->bb3, bb3->bb4 are fallthrough edge.
-
-    Assuming the reordered bblist is bb1-bb3-bb4-bb2, the
-    associated flow edges are
-    bb1->bb3->bb4, bb2->bb3.
-    It is obviously that converting bb1->bb3 to be fallthrough,
-    and converting bb1->bb2 to be conditional branch, converting
-    bb2->bb3 to be unconditional branch. */
+    //Insert unconditional branch to revise fall through bb.
+    //e.g: Given bblist is bb1-bb2-bb3-bb4, bb4 is exit-BB,
+    //and flow edges are: bb1->bb2->bb3->bb4, bb1->bb3,
+    //where bb1->bb2, bb2->bb3, bb3->bb4 are fallthrough edge.
+    //
+    //Assuming the reordered bblist is bb1-bb3-bb4-bb2, the
+    //associated flow edges are
+    //bb1->bb3->bb4, bb2->bb3.
+    //It is obviously that converting bb1->bb3 to be fallthrough,
+    //and converting bb1->bb2 to be conditional branch, converting
+    //bb2->bb3 to be unconditional branch.
     void revise_fallthrough(List<BB*> & new_bbl)
     { ASSERT(0, ("Target Dependent Code")); }
 
@@ -450,6 +450,9 @@ public:
             Vertex * vex = get_vertex(bb->id);
             CK_USE(vex && get_out_degree(vex) == 0);
         }
+
+
+
         return true;
     }
 };
@@ -574,7 +577,7 @@ bool CFG<BB, XR>::verifyIfBBRemoved(IN CDG * cdg, OptCtx & oc)
     bool is_cfg_valid = OC_is_cfg_valid(oc);
     for (m_bb_list->get_head(&ct), next_ct = ct; ct != NULL; ct = next_ct) {
         next_ct = m_bb_list->get_next(next_ct);
-        BB * bb = C_val(ct);
+        BB * bb = ct->val();
         BB * next_bb = NULL;
         if (next_ct != NULL) { next_bb = C_val(next_ct); }
 
@@ -586,16 +589,16 @@ bool CFG<BB, XR>::verifyIfBBRemoved(IN CDG * cdg, OptCtx & oc)
 
             get_succs(succs, bb);
 
-            /* CASE:
-                BB1
-                LOOP_HEADER(BB2)
-                    LOOP_BODY(BB3)
-                ENDLOOP
-                BB5
-
-            There are edges: BB1->BB2->BB3, BB2->BB5, BB3->BB2
-            Where BB3->BB2 is back edge.
-            When we remove BB2, add edge BB3->BB5 */
+            //CASE:
+            //    BB1
+            //    LOOP_HEADER(BB2)
+            //        LOOP_BODY(BB3)
+            //    ENDLOOP
+            //    BB5
+            //
+            //There are edges: BB1->BB2->BB3, BB2->BB5, BB3->BB2
+            //Where BB3->BB2 is back edge.
+            //When we remove BB2, add edge BB3->BB5.
             if (succs.get_elem_count() <= 1) { continue; }
 
             for (BB * succ = succs.get_head();
@@ -640,18 +643,18 @@ bool CFG<BB, XR>::removeEmptyBB(OptCtx & oc)
             next_bb = C_val(next_ct);
         }
 
-        /* TODO: confirm if this is right:
-            is_ru_exit() need to update if cfg
-            changed or ir_bb_list reconstruct.
-            e.g: void m(bool r, bool y)
-                {
-                    bool l;
-                    l = y || r;
-                    return 0;
-                }
-        After initCfg(), there are 2 bb, BB1 and BB3.
-        While IR_LOR simpilified, new bb generated, then func-exit bb flag
-        need to update. */
+        //TODO: confirm if this is right:
+        //    is_ru_exit() need to update if cfg
+        //    changed or ir_bb_list reconstruct.
+        //    e.g: void m(bool r, bool y)
+        //        {
+        //            bool l;
+        //            l = y || r;
+        //            return 0;
+        //        }
+        //After initCfg(), there are 2 bb, BB1 and BB3.
+        //While IR_LOR simpilified, new bb generated, then func-exit bb flag
+        //need to update.
         if (get_last_xr(bb) == NULL &&
             !is_ru_entry(bb) &&
             !bb->is_exp_handling()) {
@@ -783,15 +786,15 @@ bool CFG<BB, XR>::removeRedundantBranchCase1(
         XR * xr)
 {
     ASSERT0(bb && xr);
-    /* CASE:
-        BB1:
-        falsebr L0 //S1
-
-        BB2:
-        L0  //S2
-        ... //S3
-
-    S1 is redundant branch. */
+    //CASE:
+    //    BB1:
+    //    falsebr L0 //S1
+    //
+    //    BB2:
+    //    L0  //S2
+    //    ... //S3
+    //
+    //S1 is redundant branch.
     Vertex * v = get_vertex(bb->id);
     EdgeC * last_el = NULL;
     bool find = false; //find another successor with different target.
@@ -830,7 +833,7 @@ bool CFG<BB, XR>::removeRedundantBranch()
     for (m_bb_list->get_head(&ct), next_ct = ct;
          ct != m_bb_list->end(); ct = next_ct) {
         next_ct = m_bb_list->get_next(next_ct);
-        BB * bb = C_val(ct);
+        BB * bb = ct->val();
         BB * next_bb = NULL; //next_bb is fallthrough BB.
         if (next_ct != NULL) {
             next_bb = C_val(next_ct);
@@ -850,14 +853,12 @@ bool CFG<BB, XR>::removeRedundantBranch()
         if (xr->is_cond_br()) {
             doit |= removeRedundantBranchCase1(bb, next_bb, xr);
         } else if (xr->is_uncond_br() && !xr->is_indirect_br()) {
-            /*
-            BB1:
-                ...
-                goto L1  <--- redundant branch
-
-            BB2:
-                L1:
-            */
+            //BB1:
+            //    ...
+            //    goto L1  <--- redundant branch
+            //
+            //BB2:
+            //    L1:
             BB * tgt_bb = findBBbyLabel(xr->get_label());
             ASSERT0(tgt_bb != NULL);
             if (tgt_bb == next_bb) {
@@ -1318,21 +1319,21 @@ bool CFG<BB, XR>::insert_into_loop_tree(LI<BB> ** lilist, LI<BB>* loop)
 }
 
 
-/* Add BB which is break-point of loop into loop.
-e.g:
-    for (i)
-        if (i < 10)
-            foo(A);
-        else
-            foo(B);
-            goto L1;
-        endif
-    endfor
-    ...
-    L1:
-
-where foo(B) and goto L1 are in BBx, and BBx
-should belong to loop body. */
+//Add BB which is break-point of loop into loop.
+//e.g:
+//    for (i)
+//        if (i < 10)
+//            foo(A);
+//        else
+//            foo(B);
+//            goto L1;
+//        endif
+//    endfor
+//    ...
+//    L1:
+//
+//where foo(B) and goto L1 are in BBx, and BBx
+//should belong to loop body.
 template <class BB, class XR>
 void CFG<BB, XR>::add_break_out_loop_node(BB * loop_head, BitSet & body_set)
 {

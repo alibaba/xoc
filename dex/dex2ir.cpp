@@ -1541,7 +1541,7 @@ IR * Dex2IR::convertLoadStringAddr(IN LIR * lir)
     ASSERT0(string);
     VAR * v = addStringVar(string);
     set_map_v2ofst(v, LIR_op0(lir));
-    IR * lda = m_ru->buildLda(m_ru->buildId(v));
+    IR * lda = m_ru->buildLda(v);
     IR * res = genMappedPR(LIR_res(lir), m_tr->ptr);
     return m_ru->buildStorePR(PR_no(res), res->get_type(), lda);
 }

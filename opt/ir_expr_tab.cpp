@@ -277,41 +277,37 @@ void IR_EXPR_TAB::remove_occs(IR * ir)
         {
             IR * stv = ST_rhs(ir);
             if (stv->is_const()) { return; }
-            this->remove_occ(stv);
+            remove_occ(stv);
         }
         break;
     case IR_IST:
         {
             IR * stv = IST_rhs(ir);
             if (!stv->is_const()) {
-                this->remove_occ(stv);
+                remove_occ(stv);
             }
 
             IR * m = IST_base(ir);
             if (m->is_const()) { return; }
-            this->remove_occ(m);
+            remove_occ(m);
         }
         break;
     case IR_CALL:
     case IR_ICALL:
-        {
-            IR * p = CALL_param_list(ir);
-            while (p != NULL) {
-                if (!p->is_const()) {
-                    this->remove_occ(p);
-                }
-                p = p->get_next();
+        for (IR * p = CALL_param_list(ir); p != NULL; p = p->get_next()) {
+            if (!p->is_const()) {
+                remove_occ(p);
             }
         }
         break;
     case IR_TRUEBR:
     case IR_FALSEBR:
-        this->remove_occ(BR_det(ir));
+        remove_occ(BR_det(ir));
         break;
     case IR_SWITCH:
         ASSERT0(SWITCH_vexp(ir));
         if (!SWITCH_vexp(ir)->is_const()) {
-            this->remove_occ(SWITCH_vexp(ir));
+            remove_occ(SWITCH_vexp(ir));
         }
         break;
     case IR_IGOTO:
@@ -531,14 +527,10 @@ void IR_EXPR_TAB::encode_bb(IRBB * bb)
                 }
             }
         case IR_CALL:
-            {
-                IR * parm = CALL_param_list(ir);
-                while (parm != NULL) {
-                    ExpRep * ie = encode_expr(parm);
-                    if (ie != NULL) {
-                        set_map_ir2ir_expr(parm, ie);
-                    }
-                    parm = IR_next(parm);
+            for (IR * p = CALL_param_list(ir); p != NULL; p = p->get_next()) {
+                ExpRep * ie = encode_expr(p);
+                if (ie != NULL) {
+                    set_map_ir2ir_expr(p, ie);
                 }
             }
             break;

@@ -440,6 +440,7 @@ public:
     IR_TYPE get_code() const { return (IR_TYPE)IR_code(this); }
     IR * get_next() const { return IR_next(this); }
     IR * get_prev() const { return IR_prev(this); }
+    IR * get_parent() const { return IR_parent(this); }
     inline IR * get_kid(UINT idx) const;
     inline IRBB * get_bb() const;
     inline DU * get_du() const;
@@ -447,18 +448,16 @@ public:
     //Get byte offset if any.
     inline UINT get_offset() const;
 
-    /* Return STMT if current ir is expression.
-    e.g:  st(i32 a)
-             ld(i32 b)
-    If given expression is ld, this function return st stmt.
-
-    Note if there are high level stmts, such as:
-        if (det)
-          st:i32 a
-            ld:i32 b
-        endif
-    This function only return the nearest stmt to ld:i32 b, namely, st:i32 a.
-    */
+    //Return STMT if current ir is expression.
+    //e.g:  st(i32 a)
+    //         ld(i32 b)
+    //If given expression is ld, this function return st stmt.
+    //Note if there are high level stmts, such as:
+    //    if (det)
+    //      st:i32 a
+    //        ld:i32 b
+    //    endif
+    //This function only return the nearest stmt to ld:i32 b, namely, st:i32 a.
     inline IR * get_stmt() const
     {
         ASSERT0(!is_undef());
@@ -569,7 +568,7 @@ public:
     //Return true if current IR tree may contain memory reference.
     bool isContainMemRef() const
     {
-        switch (IR_code(this)) {
+        switch (get_code()) {
         case IR_GOTO:
         case IR_LABEL:
         case IR_CASE:
@@ -598,6 +597,10 @@ public:
     //Return true if ir data type is signed, and the type
     //may be integer or float.
     bool is_signed() const { return IR_dt(this)->is_signed(); }
+
+    //Return true if ir data type is unsigned, and the type
+    //may be integer, string, vector.
+    bool is_unsigned() const { return IR_dt(this)->is_unsigned(); }
 
     //Return true if ir data type is signed integer.
     bool is_sint() const { return IR_dt(this)->is_sint(); }
@@ -1020,28 +1023,27 @@ public:
 
 class OffsetProp {
 public:
-    /* Record accessing field. result-type-idx should be D_MC.
-    ir is used by IR_LD|IR_ST|IR_ILD|IR_IST|IR_LDA|IR_ARRAY
-
-    Usage:
-        LD<ofst:3>('x')                 => pr=*(&x + 3)
-        ILD<ofst:3>(LD('x'))            => pr=*(x + 3)
-        ST<ofst:3>('x', IMM:0x100)        => *(&x + 3)=0x100
-        IST<ofst:3>(LD('x'), IMM:0x100) => *(x + 3)=0x100
-        LDA<ofst:3>('x')                => pr = &x + 3
-        ARRAY<ofst:3>(LDA('x'), OFST:5) => *(&x[5] + 3) = pr or
-                                            pr = *(&x[5] + 3)
-    */
+    //Record accessing field. result-type-idx should be D_MC.
+    //ir is used by IR_LD|IR_ST|IR_ILD|IR_IST|IR_LDA|IR_ARRAY
+    //
+    //Usage:
+    //    LD<ofst:3>('x')                 => pr=*(&x + 3)
+    //    ILD<ofst:3>(LD('x'))            => pr=*(x + 3)
+    //    ST<ofst:3>('x', IMM:0x100)      => *(&x + 3)=0x100
+    //    IST<ofst:3>(LD('x'), IMM:0x100) => *(x + 3)=0x100
+    //    LDA<ofst:3>('x')                => pr = &x + 3
+    //    ARRAY<ofst:3>(LDA('x'), OFST:5) => *(&x[5] + 3) = pr or
+    //                                       pr = *(&x[5] + 3)
     UINT field_offset;
 };
 
 
-/* This class represent memory load operation.
-LD_ofst descibe the byte offset that is the addend to variable base address.
-
-usage: ld(i32, ofst:10, s) with LD_ofst = 10 means:
-    Assum a pointer p, it point to the address of variable s.
-    The ld operation loads i32 value from the address (p + 10) */
+//This class represent memory load operation.
+//LD_ofst descibe the byte offset that is the addend to variable base address.
+//
+//usage: ld(i32, ofst:10, s) with LD_ofst = 10 means:
+//    Assum a pointer p, it point to the address of variable s.
+//    The ld operation loads i32 value from the address (p + 10)
 #define LD_ofst(ir)         (((CLd*)CK_IRT(ir, IR_LD))->field_offset)
 #define LD_idinfo(ir)       (((CLd*)CK_IRT(ir, IR_LD))->id_info)
 #define LD_du(ir)           (((CLd*)CK_IRT(ir, IR_LD))->du)
@@ -1050,13 +1052,13 @@ public:
 };
 
 
-/* This class represent indirect memory load operation.
-ILD_ofst descibe the byte offset that is the addend to address.
-If ILD_ofst is not 0, the base memory address must add the offset.
-
-usage: ild p, where p is ILD_base, it must be pointer.
-    1. res = ild (p), if ILD_ofst is 0.
-    2. res = ild (p + ILD_ofst) if ILD_ofst is not 0. */
+//This class represent indirect memory load operation.
+//ILD_ofst descibe the byte offset that is the addend to address.
+//If ILD_ofst is not 0, the base memory address must add the offset.
+//
+//usage: ild p, where p is ILD_base, it must be pointer.
+//    1. res = ild (p), if ILD_ofst is 0.
+//    2. res = ild (p + ILD_ofst) if ILD_ofst is not 0.
 #define ILD_ofst(ir)        (((CIld*)CK_IRT(ir, IR_ILD))->field_offset)
 #define ILD_du(ir)          (((CIld*)CK_IRT(ir, IR_ILD))->du)
 #define ILD_base(ir)        (((CIld*)ir)->opnd[CKID_TY(ir, IR_ILD, 0)])
@@ -1074,14 +1076,14 @@ public:
 };
 
 
-/* This class represent memory store operation.
-ST_ofst descibe the byte offset that is the addend to address.
-ST_idinfo describe the memory variable.
-If ST_ofst is not 0, the base memory address must add the offset.
-
-usage: st(lhs, rhs), p = &lhs, where p is the memory address of lhs.
-    1. [p] = rhs, if ST_ofst is 0.
-    2. [p + ST_ofst] = rhs if ST_ofst is not 0. */
+//This class represent memory store operation.
+//ST_ofst descibe the byte offset that is the addend to address.
+//ST_idinfo describe the memory variable.
+//If ST_ofst is not 0, the base memory address must add the offset.
+//
+//usage: st(lhs, rhs), p = &lhs, where p is the memory address of lhs.
+//    1. [p] = rhs, if ST_ofst is 0.
+//    2. [p + ST_ofst] = rhs if ST_ofst is not 0.
 #define ST_bb(ir)            (((CSt*)CK_IRT(ir, IR_ST))->bb)
 #define ST_idinfo(ir)        (((CSt*)CK_IRT(ir, IR_ST))->id_info)
 #define ST_ofst(ir)          (((CSt*)CK_IRT(ir, IR_ST))->field_offset)
@@ -1111,20 +1113,20 @@ public:
 };
 
 
-/* This class represent an operation that store value to be one of the
-element of a PR.
-
-SETELEM_ofst descibe the byte offset to the address of result PR.
-
-The the number of byte of result PR must be an integer multiple of
-the number of byte of SETELEM_rhs if the result data type is vector.
-
-usage: setelem $pr2(vec<4*i32>) $pr1(i32), 4.
-    The result PR is pr2.
-    The example store pr1 to be second element of pr2.
-
-This operation will store val to the memory which offset to the memory chunk
-or vector's base address. */
+//This class represent an operation that store value to be one of the
+//element of a PR.
+//
+//SETELEM_ofst descibe the byte offset to the address of result PR.
+//
+//The the number of byte of result PR must be an integer multiple of
+//the number of byte of SETELEM_rhs if the result data type is vector.
+//
+//usage: setelem $pr2(vec<4*i32>) $pr1(i32), 4.
+//    The result PR is pr2.
+//    The example store pr1 to be second element of pr2.
+//
+//This operation will store val to the memory which offset to the memory chunk
+//or vector's base address.
 #define SETELEM_bb(ir)      (((CSetElem*)CK_IRT(ir, IR_SETELEM))->bb)
 #define SETELEM_prno(ir)    (((CSetElem*)CK_IRT(ir, IR_SETELEM))->prno)
 #define SETELEM_ssainfo(ir) (((CSetElem*)CK_IRT(ir, IR_SETELEM))->ssainfo)
@@ -1140,15 +1142,15 @@ public:
 };
 
 
-/* This class represent an operation that get an element from a base memory
-location and store the element to a PR.
-
-The the number of byte of GETELEM_base must be
-an integer multiple of the number of byte of result PR if base memory is vector.
-
-usage: getelem $pr1(i32) $pr2(vec<4*i32>), 4.
-    The base memory location is a PR, which is a vector.
-    The example get the second element of pr2, then store it to pr1. */
+//This class represent an operation that get an element from a base memory
+//location and store the element to a PR.
+//
+//The the number of byte of GETELEM_base must be
+//an integer multiple of the number of byte of result PR if base memory is vector.
+//
+//usage: getelem $pr1(i32) $pr2(vec<4*i32>), 4.
+//    The base memory location is a PR, which is a vector.
+//    The example get the second element of pr2, then store it to pr1.
 #define GETELEM_bb(ir)      (((CGetElem*)CK_IRT(ir, IR_GETELEM))->bb)
 #define GETELEM_prno(ir)    (((CGetElem*)CK_IRT(ir, IR_GETELEM))->prno)
 #define GETELEM_ssainfo(ir) (((CGetElem*)CK_IRT(ir, IR_GETELEM))->ssainfo)
@@ -1168,15 +1170,15 @@ public:
 };
 
 
-/* This class represent indirect memory store operation.
-IST_ofst descibe the byte offset that is the addend to address.
-
-If IST_ofst is not 0, the base memory address must add the offset.
-
-usage: ist = ld p, rhs, where the value of p is the base memory address
-to be stored. The followed code exhibits the behaivor of such usage.
-    1. [p] = rhs, if IST_ofst is 0.
-    2. [p + IST_ofst] = rhs, if IST_ofst is not 0. */
+//This class represent indirect memory store operation.
+//IST_ofst descibe the byte offset that is the addend to address.
+//
+//If IST_ofst is not 0, the base memory address must add the offset.
+//
+//usage: ist = ld p, rhs, where the value of p is the base memory address
+//to be stored. The followed code exhibits the behaivor of such usage.
+//    1. [p] = rhs, if IST_ofst is 0.
+//    2. [p + IST_ofst] = rhs, if IST_ofst is not 0.
 #define IST_bb(ir)          (((CIst*)CK_IRT(ir, IR_IST))->bb)
 #define IST_ofst(ir)        (((CIst*)CK_IRT(ir, IR_IST))->field_offset)
 #define IST_du(ir)          (((CIst*)CK_IRT(ir, IR_IST))->du)
@@ -1189,40 +1191,34 @@ public:
 };
 
 
-/* This class represent the operation to load memory variable address.
-The base of LDA may be ID, LABEL, STRING.
-
-NOTE: LDA_ofst describe the byte offset that is the addend to the address.
-
-usage: lda(s) with LDA_ofst = 10 means:
-    pointer p = lda(s)
-    p = p + 10
-    return p */
+//This class represent the operation to load memory variable address.
+//The base of LDA may be ID variable, LABEL variable, STRING variable.
+//NOTE: LDA_ofst describe the byte offset that is the addend to the address.
+//usage: lda(s) with LDA_ofst = 10 means:
+//    pointer p = lda(s)
+//    p = p + 10
+//    return p
 #define LDA_ofst(ir)        (((CLda*)CK_IRT(ir, IR_LDA))->field_offset)
-#define LDA_base(ir)        (((CLda*)ir)->opnd[CKID_TY(ir, IR_LDA, 0)])
-#define LDA_kid(ir, idx)    (((CLda*)ir)->opnd[CKID_TY(ir, IR_LDA, idx)])
-class CLda : public IR, public OffsetProp {
+#define LDA_idinfo(ir)      (((CLda*)CK_IRT(ir, IR_LDA))->id_info)
+class CLda : public IR, public VarProp, public OffsetProp {
 public:
-    //record expression which will to be taken address.
-    //It can be ID, string const, LABEL.
-    IR * opnd[1];
 };
 
 
 //This class uses bits to describe attributes.
 //Represents a direct function call.
 //NOTE: 'opnd' must be the last member.
-#define CALL_bb(ir)          (((CCall*)CK_IRT_CALL(ir))->bb)
-#define CALL_idinfo(ir)      (((CCall*)CK_IRT_ONLY_CALL(ir))->id_info)
+#define CALL_bb(ir)              (((CCall*)CK_IRT_CALL(ir))->bb)
+#define CALL_idinfo(ir)          (((CCall*)CK_IRT_ONLY_CALL(ir))->id_info)
 
 //Returned result PR number if any.
-#define CALL_prno(ir)        (((CCall*)CK_IRT_CALL(ir))->prno)
+#define CALL_prno(ir)            (((CCall*)CK_IRT_CALL(ir))->prno)
 
 //SSA info of result PR.
-#define CALL_ssainfo(ir)     (((CCall*)CK_IRT_CALL(ir))->ssainfo)
+#define CALL_ssainfo(ir)         (((CCall*)CK_IRT_CALL(ir))->ssainfo)
 
 //Record MayUsed MD set if any.
-#define CALL_mayuse(ir)      (((CCall*)CK_IRT_CALL(ir))->mayuse)
+#define CALL_mayuse(ir)          (((CCall*)CK_IRT_CALL(ir))->mayuse)
 
 //True if this call is intrinsic function.
 #define CALL_is_intrinsic(ir)    (((CCall*)CK_IRT_CALL(ir))->is_intrinsic)
@@ -1244,6 +1240,8 @@ public:
 
 //Parameter list of call.
 #define CALL_param_list(ir)      (((CCall*)ir)->opnd[CKID_CALL(ir, 0)])
+//Record dummy referenced IR.
+#define CALL_dummyuse(ir)        (((CCall*)ir)->opnd[CKID_CALL(ir, 1)])
 #define CALL_kid(ir, idx)        (((CCall*)ir)->opnd[CKID_CALL(ir, idx)])
 class CCall : public DuProp, public VarProp, public StmtProp {
 public:
@@ -1270,7 +1268,7 @@ public:
     SSAInfo * ssainfo; //indicates ssa def and use set.
 
     //NOTE: 'opnd' must be the last member.
-    IR * opnd[1];
+    IR * opnd[2];
 
 public:
     VAR const* get_callee_var() const { return CALL_idinfo(this); }
@@ -1304,7 +1302,7 @@ public:
 //NOTE: 'opnd_pad' must be the first member.
 
 //Indicate the callee function pointer.
-#define ICALL_callee(ir)      (((CICall*)ir)->opnd[CKID_TY(ir, IR_ICALL, 1)])
+#define ICALL_callee(ir)      (((CICall*)ir)->opnd[CKID_TY(ir, IR_ICALL, 2)])
 
 //True if current call is readonly.
 #define ICALL_is_readonly(ir) (((CICall*)CK_IRT_ONLY_ICALL(ir))->is_readonly)
@@ -1370,14 +1368,14 @@ public:
 };
 
 
-/* High level control loop operation.
-usage:
-    while (det)
-      body
-    endwhile
-NOTE:
-    * The member layout should be same as do_while.
-    * 'opnd' must be the last member of CWhileDo. */
+//High level control loop operation.
+//usage:
+//    while (det)
+//      body
+//    endwhile
+//NOTE:
+//    * The member layout should be same as do_while.
+//    * 'opnd' must be the last member of CWhileDo.
 //Determinate expression.
 #define LOOP_det(ir)        (((CWhileDo*)ir)->opnd[CKID_LOOP(ir, 0)])
 
@@ -1391,31 +1389,31 @@ public:
 };
 
 
-/* High level control loop operation.
-usage:
-    do
-      body
-    while (det) */
+//High level control loop operation.
+//usage:
+//    do
+//      body
+//    while (det)
 class CDoWhile : public CWhileDo {
 public:
 };
 
 
-/* High level control loop operation.
-This structure represent a kind of loop with
-plainly definition of INIT(low bound), DET(HIGH bound),
-LOOP-BODY and STEP(Increment or Dcrement) of induction variable.
-usage:
-    do
-      init: i = 0
-      det: i <= 10
-      body
-      step: i = i+1
-    enddo
-This class uses LOOP_det, LOOP_body to access its determinate
-expression, and loop body.
-
-NOTE: 'opnd_pad' must be the first member of CDoLoop. */
+//High level control loop operation.
+//This structure represent a kind of loop with
+//plainly definition of INIT(low bound), DET(HIGH bound),
+//LOOP-BODY and STEP(Increment or Dcrement) of induction variable.
+//usage:
+//    do
+//      init: i = 0
+//      det: i <= 10
+//      body
+//      step: i = i+1
+//    enddo
+//This class uses LOOP_det, LOOP_body to access its determinate
+//expression, and loop body.
+//
+//NOTE: 'opnd_pad' must be the first member of CDoLoop.
 
 //Record the stmt that init iv.
 #define LOOP_init(ir)        (((CDoLoop*)ir)->opnd[CKID_TY(ir, IR_DO_LOOP, 2)])
@@ -1430,12 +1428,12 @@ public:
 };
 
 
-/* This class represent high level control IF operation.
-usage:
-    if (det)
-      truebody
-      falsebody
-    endif */
+//This class represent high level control IF operation.
+//usage:
+//    if (det)
+//      truebody
+//      falsebody
+//    endif
 #define IF_det(ir)          (((CIf*)ir)->opnd[CKID_TY(ir, IR_IF, 0)])
 #define IF_truebody(ir)     (((CIf*)ir)->opnd[CKID_TY(ir, IR_IF, 1)])
 #define IF_falsebody(ir)    (((CIf*)ir)->opnd[CKID_TY(ir, IR_IF, 2)])
@@ -1454,19 +1452,19 @@ public:
 };
 
 
-/* This class represent high and middle level control flow switch operation.
-usage:
-    switch (value-exp)
-    case_list
-    body
-    endswitch */
+//This class represent high and middle level control flow switch operation.
+//usage:
+//    switch (value-exp)
+//    case_list
+//    body
+//    endswitch
 #define SWITCH_bb(ir)       (((CSwitch*)CK_IRT(ir, IR_SWITCH))->bb)
 
-/* Default label.
-This is a label repesent the default jump target of IR_SWITCH.
-The label is optional.
-If there are not any cases matched, the control flow will jump to
-the default label. */
+//Default label.
+//This is a label repesent the default jump target of IR_SWITCH.
+//The label is optional.
+//If there are not any cases matched, the control flow will jump to
+//the default label.
 #define SWITCH_deflab(ir)    (((CSwitch*)CK_IRT(ir, IR_SWITCH))->default_label)
 
 //Value expression.
@@ -1501,39 +1499,39 @@ public:
 };
 
 
-/* This class represent array operation.
-Base of array can be LDA, or other computational expression.
-This operation do not perform any array bound diagnositc.
-
-* If array base is LDA, it denotes that the array's base is variable with
-array type,
-    e.g: char p[N]; (&p)[i] = ...
-
-* If array base is computational expression, it denotes that the array's
-base is pointer, and the pointer point to an array.
-    e.g: char * p; (p+1)[i] = ...
-
-'elem_ty' represent the type of array element.
-Moreover, element may be array as well.
-
-'elem_num' represent the number of array element in current dimension.
-
-If 'elem_tyid' is vector, ARR_ofst refers the referrenced element byte offset.
-*/
+//This class represent array operation.
+//Base of array can be LDA, or other computational expression.
+//This operation do not perform any array bound diagnositc.
+//
+//* If array base is LDA, it denotes that the array's base is variable with
+//array type,
+//    e.g: char p[N]; (&p)[i] = ...
+//
+//* If array base is computational expression, it denotes that the array's
+//base is pointer, and the pointer point to an array.
+//    e.g: char * p; (p+1)[i] = ...
+//
+//'elem_ty' represent the type of array element.
+//Moreover, element may be array as well.
+//
+//'elem_num' represent the number of array element in current dimension.
+//
+//If 'elem_tyid' is vector, ARR_ofst refers the referrenced element byte offset.
 #define ARR_ofst(ir)         (((CArray*)CK_IRT_ARR(ir))->field_offset)
 #define ARR_du(ir)           (((CArray*)CK_IRT_ARR(ir))->du)
 #define ARR_elemtype(ir)     (((CArray*)CK_IRT_ARR(ir))->elemtype)
 
-/* Get the number of element in each dimension.
-e.g: Given array D_I32 A[10][20], the 0th dimension has 20 elements,
-each element has type D_I32, the 1th dimension has 10 elements,
-each element has type [D_I32*20].
-If we have an array accessing, such as A[i][j], the sublist will be
-ld(j)->ld(i), and elem_num list will be 20->10.
-the fininal access address will be (j + 20 * i) * sizeof(D_I32) + lda(A).
-
-Note that if the ARR_elem_num of a dimension is 0, means we can not determine
-the number of element at the dimension. */
+//Get the number of element in each dimension.
+//e.g: Given array D_I32 A[10][20], the 0th dimension has 20 elements,
+//each element has type D_I32, the 1th dimension has 10 elements,
+//each element has type [D_I32*20], and the ARR_elem_num_buf will be [20, 10],
+//that is the lowest dimension at the position 0 of the buffer.
+//If we have an array accessing, such as A[i][j], the sublist will be
+//ld(j)->ld(i), and elem_num list will be 20->10.
+//the fininal access address will be (j + 20 * i) * sizeof(D_I32) + lda(A).
+//
+//Note that if the ARR_elem_num of a dimension is 0, means we can not determine
+//the number of element at the dimension.
 #define ARR_elem_num(ir, dim) (((CArray*)CK_IRT_ARR(ir))->elem_num[CK_ARRAY_DIM(ir, dim)])
 #define ARR_elem_num_buf(ir)  (((CArray*)CK_IRT_ARR(ir))->elem_num)
 
@@ -1545,16 +1543,16 @@ the number of element at the dimension. */
 #define ARR_kid(ir, idx)      (((CArray*)ir)->opnd[CKID_ARR(ir, idx)])
 class CArray : public DuProp, public OffsetProp {
 public:
-    /* Note that if ARR_ofst is not zero, the IR_dt may not equal to ARR_elemtype.
-    IR_dt describe the data-type of ARRAY operation + ARR_ofst.
-    ARR_elemtype describe array element type.
-
-    e.g: struct {int a, b; } s[100];
-         ... = s[2].b;
-
-    data-type of array operation is D_I32, because ARR_ofst is 4,
-    that means we are taking the value of second field of struct, meanwhile
-    data-type of array element is D_MC, size is 8, (struct {int a, b;}). */
+    //Note that if ARR_ofst is not zero, the IR_dt may not equal to ARR_elemtype.
+    //IR_dt describe the data-type of ARRAY operation + ARR_ofst.
+    //ARR_elemtype describe array element type.
+    //
+    //e.g: struct {int a, b; } s[100];
+    //     ... = s[2].b;
+    //
+    //data-type of array operation is D_I32, because ARR_ofst is 4,
+    //that means we are taking the value of second field of struct, meanwhile
+    //data-type of array element is D_MC, size is 8, (struct {int a, b;}).
     Type const* elemtype; //record data-type of array element.
 
     //Record the number of array element for each dimension.
@@ -1567,7 +1565,7 @@ public:
 public:
 
     //Return the number of dimensions.
-    TMWORD get_dimn() const
+    TMWORD getDimNum() const
     {
         ASSERT0(is_array_op());
         TMWORD dim = 0;
@@ -1601,27 +1599,26 @@ public:
 };
 
 
-/* This class represent the operation storing value to array.
-The most operations and properties are same as CArray.
-
-Base of array can be LDA, or other computational expression.
-This operation do not perform any array bound diagnositc.
-
-* If array base is IR_LDA, it denotes that the array's base is variable with
-array type,
-    e.g: char p[N]; (&p)[i] = ...
-
-* If array base is computational expression, it denotes that the array's
-base is pointer, and the pointer point to an array.
-    e.g: char * p; (p+1)[i] = ...
-
-'elem_ty' represent the type of array element.
-Moreover, element may be also an array as well.
-
-'elem_num' represent the number of array element in given dimension.
-
-If 'elem_tyid' is vector, ARR_ofst refers the referrenced element byte offset.
-*/
+//This class represent the operation storing value to array.
+//The most operations and properties are same as CArray.
+//
+//Base of array can be LDA, or other computational expression.
+//This operation do not perform any array bound diagnositc.
+//
+//* If array base is IR_LDA, it denotes that the array's base is variable with
+//array type,
+//    e.g: char p[N]; (&p)[i] = ...
+//
+//* If array base is computational expression, it denotes that the array's
+//base is pointer, and the pointer point to an array.
+//    e.g: char * p; (p+1)[i] = ...
+//
+//'elem_ty' represent the type of array element.
+//Moreover, element may be also an array as well.
+//
+//'elem_num' represent the number of array element in given dimension.
+//
+//If 'elem_tyid' is vector, ARR_ofst refers the referrenced element byte offset.
 #define STARR_bb(ir)        (((CStArray*)CK_IRT(ir, IR_STARRAY))->bb)
 #define STARR_rhs(ir)       (((CStArray*)ir)->opnd[CKID_TY(ir, IR_STARRAY, 0)])
 class CStArray: public CArray {
@@ -1654,12 +1651,12 @@ public:
 };
 
 
-/* This class represent temporary memory location which named pseudo register.
-It can be used to indicate the Region live-in register. In this case, a PR may not
-have a definition.
-NOTE:
-    1.PR can not be taken address.
-    2.PR is always allocate on stack. */
+//This class represent temporary memory location which named pseudo register.
+//It can be used to indicate the Region live-in register. In this case, a PR may not
+//have a definition.
+//NOTE:
+//    1.PR can not be taken address.
+//    2.PR is always allocate on stack.
 #define PR_no(ir)           (((CPr*)CK_IRT(ir, IR_PR))->prno)
 #define PR_ssainfo(ir)      (((CPr*)CK_IRT(ir, IR_PR))->ssainfo)
 #define PR_du(ir)           (((CPr*)CK_IRT(ir, IR_PR))->du)
@@ -1711,17 +1708,18 @@ public:
 };
 
 
-/* This class represent conditional select operation.
-usage: res = select(a > b), (10), (20)
-    means:
-    if (a > b) res = 10;
-    else res = 20;
+//This class represent conditional select operation.
+//usage: res = select(a > b), (10), (20)
+//    means:
+//    if (a > b) res = 10;
+//    else res = 20;
+//  where a > b is predicator expression.
+//This operation compute the value accroding to the result of
+//predicator expression, if the result value is true, return
+//SELECT_trueexp, otherwise return SELECT_falseexp.
 
-This operation compute the value accroding to the result of
-determinate expression, if the result value is true, return
-SELECT_trueexp, otherwise return SELECT_falseexp. */
-//Determinate expression.
-#define SELECT_det(ir)       (((CSelect*)ir)->opnd[CKID_TY(ir, IR_SELECT, 0)])
+//Predicator expression.
+#define SELECT_pred(ir)       (((CSelect*)ir)->opnd[CKID_TY(ir, IR_SELECT, 0)])
 
 //True part
 #define SELECT_trueexp(ir)   (((CSelect*)ir)->opnd[CKID_TY(ir, IR_SELECT, 1)])
@@ -1860,7 +1858,7 @@ IR * IR::get_kid(UINT idx) const
     case IR_GETELEM: return GETELEM_kid(this, idx);
     case IR_ILD: return ILD_kid(this, idx);
     case IR_IST: return IST_kid(this, idx);
-    case IR_LDA: return LDA_kid(this, idx);
+    case IR_LDA: return NULL;
     case IR_CALL: return CALL_kid(this, idx);
     case IR_ICALL: return ICALL_kid(this, idx);
     case IR_ADD:
@@ -2080,9 +2078,7 @@ bool IR::is_volatile() const
 
 bool IR::isDirectArrayRef() const
 {
-    return is_array_op() &&
-           ARR_base(this)->is_lda() &&
-           LDA_base(ARR_base(this))->is_id();
+    return is_array_op() && ARR_base(this)->is_lda();
 }
 
 
@@ -2211,7 +2207,7 @@ void IR::set_kid(UINT idx, IR * kid)
     case IR_UNDEF: ASSERT(0, ("ir should not be undef")); return;
     case IR_CONST:
     case IR_ID:
-    case IR_LD: return;
+    case IR_LD: return; //No kids.
     case IR_ST: ST_kid(this, idx) = kid; break;
     case IR_STPR: STPR_kid(this, idx) = kid; break;
     case IR_STARRAY: ARR_kid(this, idx) = kid; break;
@@ -2219,7 +2215,7 @@ void IR::set_kid(UINT idx, IR * kid)
     case IR_GETELEM: GETELEM_kid(this, idx) = kid; break;
     case IR_ILD: ILD_kid(this, idx) = kid; break;
     case IR_IST: IST_kid(this, idx) = kid; break;
-    case IR_LDA: LDA_kid(this, idx) = kid; break;
+    case IR_LDA: return; //No kids.
     case IR_CALL: CALL_kid(this, idx) = kid; break;
     case IR_ICALL: ICALL_kid(this, idx) = kid; break;
     case IR_ADD:
@@ -2245,28 +2241,29 @@ void IR::set_kid(UINT idx, IR * kid)
     case IR_BNOT:
     case IR_LNOT:
     case IR_NEG: UNA_kid(this, idx) = kid; break;
-    case IR_GOTO: return;
+    case IR_GOTO: return; //No kids.
     case IR_IGOTO: IGOTO_kid(this, idx) = kid; break;
     case IR_DO_WHILE:
     case IR_WHILE_DO: LOOP_kid(this, idx) = kid; break;
     case IR_DO_LOOP: DOLOOP_kid(this, idx) = kid; break;
     case IR_IF: IF_kid(this, idx) = kid; break;
-    case IR_LABEL: return;
+    case IR_LABEL: return; //No kids.
     case IR_SWITCH: SWITCH_kid(this, idx) = kid; break;
     case IR_CASE: CASE_kid(this, idx) = kid; break;
     case IR_ARRAY: ARR_kid(this, idx) = kid; break;
     case IR_CVT: CVT_kid(this, idx) = kid; break;
-    case IR_PR: return;
+    case IR_PR: return; //No kids.
     case IR_TRUEBR:
     case IR_FALSEBR: BR_kid(this, idx) = kid; break;
     case IR_RETURN: RET_kid(this, idx) = kid; break;
     case IR_SELECT: SELECT_kid(this, idx) = kid; break;
     case IR_BREAK:
-    case IR_CONTINUE: return;
+    case IR_CONTINUE: return; //No kids.
     case IR_PHI: PHI_kid(this, idx) = kid; break;
-    case IR_REGION: return;
+    case IR_REGION: return; //No kids.
     default: ASSERT(0, ("Unknown IR type"));
     }
+
     for (IR * k = kid; k != NULL; k = IR_next(k)) {
         IR_parent(k) = this;
     }
@@ -2495,7 +2492,8 @@ void dump_ir(IR const* ir,
              CHAR * attr = NULL,
              bool dump_kid = true,
              bool dump_src_line = true,
-             bool dump_addr = false);
+             bool dump_addr = false,
+             bool dump_inner_region = true);
 void dump_irs_h(IR * ir_list , TypeMgr const* tm);
 void dump_irs(IR * ir_list, TypeMgr const* tm, CHAR * attr = NULL);
 void dump_irs(IRList & ir_list, TypeMgr const* tm);
@@ -2503,8 +2501,6 @@ void dump_irs(List<IR*> & ir_list, TypeMgr const* tm);
 bool verify_irs(IR * ir, IRAddressHash * irh, Region const* ru);
 bool verifyIRandBB(BBList * ir_bb_list, Region const* ru);
 bool verify_simp(IR * ir, SimpCtx & simp);
-bool verifyLowestForm(BBList * ir_bb_list, Region * ru);
-
 
 //Iterative access ir tree. This funtion initialize the iterator.
 //'ir': the root ir of the tree.

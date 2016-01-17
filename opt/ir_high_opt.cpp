@@ -123,7 +123,7 @@ bool Region::HighProcess(OptCtx & oc)
             f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR;
         }
 
-        if (g_do_compute_available_exp) {
+        if (g_compute_available_exp) {
             f |= SOL_AVAIL_EXPR;
         }
 

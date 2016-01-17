@@ -57,11 +57,12 @@ AnalysisInstrument::AnalysisInstrument(Region * ru) :
 }
 
 
+//Free md's id and local-var's id back to MDSystem and VarMgr.
+//The index of MD and VAR is important resource if there
+//are a lot of REGIONs in RegionMgr.
+//Note this function does NOT process GLOBAL variable.
 static void destroyVARandMD(Region * ru, AnalysisInstrument * anainstr)
 {
-    //Free md's id and local-var's id back to MDSystem and VarMgr.
-    //The index of MD and VAR is important resource if there
-    //are a lot of REGIONs in RegionMgr.
     VarMgr * varmgr = ru->get_var_mgr();
     MDSystem * mdsys = ru->get_md_sys();
     VarTabIter c;
@@ -124,7 +125,6 @@ AnalysisInstrument::~AnalysisInstrument()
     if (REGION_refinfo(m_ru) != NULL) {
         REF_INFO_mayuse(REGION_refinfo(m_ru)).clean(m_sbs_mgr);
         REF_INFO_maydef(REGION_refinfo(m_ru)).clean(m_sbs_mgr);
-        REF_INFO_mustdef(REGION_refinfo(m_ru)).clean(m_sbs_mgr);
     }
 }
 
@@ -324,20 +324,27 @@ IR * Region::buildId(IN VAR * var)
 }
 
 
-//Build IR_LDA operation.
-IR * Region::buildLda(IR * lda_base)
+IR * Region::buildLdaString(CHAR const* varname, CHAR const * string)
 {
-    ASSERT(lda_base &&
-            (lda_base->is_id() ||
-             lda_base->is_array() ||
-             lda_base->is_ild() ||
-             lda_base->is_str()),
-            ("cannot get base of PR"));
+    return buildLdaString(varname, get_region_mgr()->addToSymbolTab(string));
+}
+
+
+IR * Region::buildLdaString(CHAR const* varname, SYM * string)
+{
+    ASSERT0(string);
+    VAR * v = get_var_mgr()->registerStringVar(varname, string, 1);
+    return buildLda(v);
+}
+
+
+//Build IR_LDA operation.
+IR * Region::buildLda(VAR * var)
+{
+    ASSERT0(var);
     IR * ir = allocIR(IR_LDA);
-    LDA_base(ir) = lda_base;
-    TypeMgr * dm = get_type_mgr();
-    IR_dt(ir) = dm->getPointerType(lda_base->get_dtype_size(dm));
-    IR_parent(lda_base) = ir;
+    LDA_idinfo(ir) = var;
+    IR_dt(ir) = get_type_mgr()->getPointerType(var->getByteSize(get_type_mgr()));
     return ir;
 }
 
@@ -355,28 +362,29 @@ IR * Region::buildString(SYM * strtab)
 
 
 //Build conditionally selected expression.
+//The result depends on the predicator's value.
 //e.g: x = a > b ? 10 : 100
+//Note predicator may not be judgement expression.
 IR * Region::buildSelect(
-        IR * det,
+        IR * pred,
         IR * true_exp,
         IR * false_exp,
         Type const* type)
 {
     ASSERT0(type);
-    ASSERT0(det && true_exp && false_exp);
-    ASSERT0(det->is_judge());
-    ASSERT0(true_exp->is_exp());
-    ASSERT0(false_exp->is_exp());
+    ASSERT0(pred && pred->is_single() && true_exp && false_exp);
+    ASSERT0(true_exp->is_exp() && true_exp->is_single());
+    ASSERT0(false_exp->is_exp() && false_exp->is_single());
 
     //Type of true exp may be not equal to false exp.
     //ASSERT0(true_exp->get_type() == false_exp->get_type());
     IR * ir = allocIR(IR_SELECT);
     IR_dt(ir) = type;
-    SELECT_det(ir) = det;
+    SELECT_pred(ir) = pred;
     SELECT_trueexp(ir) = true_exp;
     SELECT_falseexp(ir) = false_exp;
 
-    IR_parent(det) = ir;
+    IR_parent(pred) = ir;
     IR_parent(true_exp) = ir;
     IR_parent(false_exp) = ir;
     return ir;
@@ -447,10 +455,10 @@ IR * Region::buildPhi(UINT prno, Type const* type, UINT num_opnd)
 //'type': result PR data type.
 //    0 means the call does not have a return value
 IR * Region::buildCall(
-            VAR * callee,
-            IR * param_list,
-            UINT result_prno,
-            Type const* type)
+        VAR * callee,
+        IR * param_list,
+        UINT result_prno,
+        Type const* type)
 {
     ASSERT0(type);
     ASSERT0(callee);
@@ -1652,6 +1660,9 @@ void Region::constructIRBBlist()
                 //IR_BB_is_func_exit(cur_bb) = true;
                 BB_is_fallthrough(cur_bb) = true;
                 break;
+            case IR_REGION:
+                BB_is_fallthrough(cur_bb) = true;
+                break;
             default: ASSERT(0, ("invalid bb down-boundary IR"));
             } //end switch
 
@@ -1730,61 +1741,6 @@ bool Region::isSafeToOptimize(IR const* ir)
         }
     }
     return true;
-}
-
-
-//This function is just generate conservative memory reference
-//information of Region as a default setting. User should supply
-//more accurate referrence information via various analysis, since
-//the information will affect optimizations.
-void Region::genDefaultRefInfo()
-{
-    //For conservative, current region may modify all outer regions variables.
-    Region * t = this;
-    ConstMDIter iter;
-    MDSystem * md_sys = get_md_sys();
-
-    initRefInfo();
-
-    MDSet tmp;
-    DefMiscBitSetMgr * mbs = getMiscBitSetMgr();
-    while (t != NULL) {
-        VarTab * vt = t->get_var_tab();
-        VarTabIter c;
-        for (VAR * v = vt->get_first(c); v != NULL; v = vt->get_next(c)) {
-            if (VAR_is_fake(v)) { continue; }
-
-            MDTab * mdt = md_sys->get_md_tab(v);
-            ASSERT0(mdt != NULL);
-
-            MD const* x = mdt->get_effect_md();
-            if (x != NULL) {
-                tmp.bunion(x, *mbs);
-            }
-            OffsetTab * ofstab = mdt->get_ofst_tab();
-            ASSERT0(ofstab);
-            if (ofstab->get_elem_count() > 0) {
-                iter.clean();
-                for (MD const* x = ofstab->get_first(iter, NULL);
-                     x != NULL; x = ofstab->get_next(iter, NULL)) {
-                    tmp.bunion(x, *mbs);
-                }
-            }
-        }
-        t = REGION_parent(t);
-    }
-
-    if (!tmp.is_empty()) {
-        REF_INFO_mayuse(REGION_refinfo(this)).copy(tmp, *mbs);
-        REF_INFO_maydef(REGION_refinfo(this)).copy(tmp, *mbs);
-    } else {
-        REF_INFO_mayuse(REGION_refinfo(this)).clean(*mbs);
-        REF_INFO_maydef(REGION_refinfo(this)).clean(*mbs);
-    }
-
-    REF_INFO_mustdef(REGION_refinfo(this)).clean(*mbs);
-
-    tmp.clean(*getMiscBitSetMgr());
 }
 
 
@@ -2143,22 +2099,73 @@ IR * Region::dupIR(IR const* src)
     return res;
 }
 
-
-void Region::scanCallList(OUT List<IR const*> & call_list)
+void Region::scanCallListImpl(
+        OUT UINT & num_inner_region,
+        IR * irlst,
+        OUT List<IR const*> & call_list,
+        bool scan_inner_region)
 {
-    call_list.clean();
-    if (get_ir_list() != NULL) {
-        for (IR const* t = get_ir_list(); t != NULL; t = t->get_next()) {
-            if (t->is_calls_stmt() && !CALL_is_intrinsic(t)) {
-                call_list.append_tail(t);
+    for (IR const* t = irlst; t != NULL; t = t->get_next()) {
+        switch (t->get_code()) {
+        case IR_CALL:
+        case IR_ICALL:
+            if (!CALL_is_intrinsic(t)) { call_list.append_tail(t); }
+            break;
+        case IR_DO_WHILE:
+        case IR_WHILE_DO:
+            scanCallListImpl(num_inner_region, LOOP_body(t),
+                             call_list, scan_inner_region);
+            break;
+        case IR_DO_LOOP:
+            scanCallListImpl(num_inner_region, LOOP_init(t),
+                             call_list, scan_inner_region);
+            scanCallListImpl(num_inner_region,
+                             LOOP_step(t), call_list, scan_inner_region);
+            scanCallListImpl(num_inner_region,
+                             LOOP_body(t), call_list, scan_inner_region);
+            break;
+        case IR_IF:
+            scanCallListImpl(num_inner_region,
+                             IF_truebody(t), call_list, scan_inner_region);
+            scanCallListImpl(num_inner_region,
+                             IF_falsebody(t), call_list, scan_inner_region);
+            break;
+        case IR_SWITCH:
+            scanCallListImpl(num_inner_region,
+                             SWITCH_body(t), call_list, scan_inner_region);
+            break;
+        case IR_REGION:
+            num_inner_region++;
+            if (scan_inner_region) {
+                REGION_ru(t)->scanCallList(num_inner_region, call_list, true);
             }
+            break;
+        default:;
         }
+    }
+}
+
+
+//num_inner_region: count the number of inner regions.
+void Region::scanCallList(
+        OUT UINT & num_inner_region,
+        OUT List<IR const*> & call_list,
+        bool scan_inner_region)
+{
+    if (get_ir_list() != NULL) {
+        scanCallListImpl(num_inner_region, get_ir_list(),
+                         call_list, scan_inner_region);
     } else {
         for (IRBB * bb = get_bb_list()->get_head();
              bb != NULL; bb = get_bb_list()->get_next()) {
             IR * t = BB_last_ir(bb);
+            if (t == NULL) { continue; }
+            ASSERT0(t->isStmtInBB());
             if (t != NULL && t->is_calls_stmt()) {
                 call_list.append_tail(t);
+            } else if (scan_inner_region && t->is_region()) {
+                num_inner_region++;
+                REGION_ru(t)->scanCallList(num_inner_region, call_list, true);
             }
         }
     }
@@ -2193,47 +2200,36 @@ void Region::prescan(IR const* ir)
             break;
         case IR_LDA:
             {
-                IR * base = LDA_base(ir);
-                if (base->is_id()) {
-                    VAR * v = ID_info(base);
-                    ASSERT0(v && IR_parent(ir));
-                    if (v->is_string() &&
-                        get_region_mgr()->getDedicateStrMD() != NULL) {
+                ASSERT0(LDA_idinfo(ir));
+                VAR * v = LDA_idinfo(ir);
+                if (v->is_string()) {
+                    if (get_region_mgr()->genDedicateStrMD() != NULL) {
+                        //Treat all string variable as the same one.
                         break;
                     }
 
-                    if (!IR_parent(ir)->is_array()) {
+                    VAR * sv = get_var_mgr()->
+                                registerStringVar(NULL, VAR_str(v), 1);
+                    ASSERT0(sv);
+                    VAR_is_addr_taken(sv) = true;
+                    VAR_allocable(sv) = true;
+                } else if (v->is_label()) {
+                    ; //do nothing.
+                } else {
+                    //general variable.
+                    if (!ir->get_parent()->is_array()) {
                         //If LDA is the base of ARRAY, say (&a)[..], its
                         //address does not need to mark as address taken.
-                        VAR_is_addr_taken(v) = true;
+                        VAR_is_addr_taken(LDA_idinfo(ir)) = true;
                     }
 
                     // ...=&x.a, address of 'x.a' is taken.
                     MD md;
-                    MD_base(&md) = v; //correspond to VAR
+                    MD_base(&md) = LDA_idinfo(ir); //correspond to VAR
                     MD_ofst(&md) = LDA_ofst(ir);
                     MD_size(&md) = ir->get_dtype_size(get_type_mgr());
                     MD_ty(&md) = MD_EXACT;
                     get_md_sys()->registerMD(md);
-                } else if (base->is_array()) {
-                    //... = &a[x]; address of 'a' is taken
-                    IR * array_base = ARR_base(base);
-                    ASSERT0(array_base);
-                    if (array_base->is_lda()) {
-                        prescan(array_base);
-                    }
-                } else if (base->is_str()) {
-                    VAR * v = get_var_mgr()->
-                                registerStringVar(NULL, CONST_str_val(base), 1);
-                    ASSERT0(v);
-                    VAR_is_addr_taken(v) = true;
-                    VAR_allocable(v) = true;
-                } else if (base->is_ild()) {
-                    //We do not known where to be taken.
-                    ASSERT(0, ("ILD should not appeared here, "
-                               "one should do refining at first."));
-                } else {
-                    ASSERT(0, ("Illegal LDA base."));
                 }
             }
             break;
@@ -2304,8 +2300,7 @@ void Region::dump_bb_usage(FILE * h)
 void Region::dump_mem_usage(FILE * h)
 {
     if (h == NULL) { return; }
-    fprintf(h, "\n\n'%s' use %dKB memory",
-            get_ru_name(), count_mem()/1024);
+    note("\n'%s' use %dKB memory", get_ru_name(), count_mem() / 1024);
     Vector<IR*> * v = get_ir_vec();
     float nid = 0.0;
     float nld = 0.0;
@@ -2332,20 +2327,20 @@ void Region::dump_mem_usage(FILE * h)
     }
 
     float total = (float)(v->get_last_idx() + 1);
-    fprintf(h, "\nThe number of IR Total:%d, id:%d(%.1f)%%, "
-                    "ld:%d(%.1f)%%, st:%d(%.1f)%%, lda:%d(%.1f)%%,"
-                    "callee:%d(%.1f)%%, stpr:%d(%.1f)%%, ist:%d(%.1f)%%,"
-                    "bin:%d(%.1f)%%, una:%d(%.1f)%%",
-            (int)total,
-            (int)nid, nid / total * 100,
-            (int)nld, nld / total * 100,
-            (int)nst, nst / total * 100,
-            (int)nlda, nlda / total * 100,
-            (int)ncallee, ncallee / total * 100,
-            (int)nstpr, nstpr / total * 100,
-            (int)nist, nist / total * 100,
-            (int)nbin, nbin / total * 100,
-            (int)nuna, nuna / total * 100);
+    note("\nThe number of IR Total:%d, id:%d(%.1f)%%, "
+         "ld:%d(%.1f)%%, st:%d(%.1f)%%, lda:%d(%.1f)%%,"
+         "callee:%d(%.1f)%%, stpr:%d(%.1f)%%, ist:%d(%.1f)%%,"
+         "bin:%d(%.1f)%%, una:%d(%.1f)%%",
+         (int)total,
+         (int)nid, nid / total * 100,
+         (int)nld, nld / total * 100,
+         (int)nst, nst / total * 100,
+         (int)nlda, nlda / total * 100,
+         (int)ncallee, ncallee / total * 100,
+         (int)nstpr, nstpr / total * 100,
+         (int)nist, nist / total * 100,
+         (int)nbin, nbin / total * 100,
+         (int)nuna, nuna / total * 100);
 }
 
 
@@ -2353,19 +2348,19 @@ void Region::dump()
 {
     if (g_tfile == NULL) { return; }
 
-    dumpVARInRegion(0);
+    dumpVARInRegion();
     dump_mem_usage(g_tfile);
 
     IR * irlst = get_ir_list();
     if (irlst != NULL) {
-        g_indent = 2;
-        fprintf(g_tfile, "==---- IR List ----==");
-        dump_irs(irlst, get_type_mgr());
-    } else {
-        BBList * bblst = get_bb_list();
-        if (bblst != NULL) {
-            dumpBBList(bblst, this);
-        }
+        note("\n==---- IR List ----==");
+        dump_irs(irlst, get_type_mgr(), NULL);
+        return;
+    }
+
+    BBList * bblst = get_bb_list();
+    if (bblst != NULL) {
+        dumpBBList(bblst, this);
     }
 }
 
@@ -2374,7 +2369,7 @@ void Region::dump()
 void Region::dump_all_ir()
 {
     if (g_tfile == NULL) return;
-    fprintf(g_tfile, "\n==---- DUMP ALL IR INFO ----==");
+    note("\n==---- DUMP ALL IR INFO ----==");
     INT n = get_ir_vec()->get_last_idx();
     INT i = 1;
     g_indent = 2;
@@ -2397,7 +2392,7 @@ void Region::dump_all_ir()
     //
 
     //Dump IR dispers in free tab.
-    fprintf(g_tfile, "\n==---- Dump IR dispersed in free tab ----==");
+    note("\n==---- Dump IR dispersed in free tab ----==");
     for (UINT w = 0; w < MAX_OFFSET_AT_FREE_TABLE + 1; w++) {
         IR * lst = REGION_analysis_instrument(this)->m_free_tab[w];
         note("\nbyte(%d)", (INT)(w + sizeof(IR)));
@@ -2418,7 +2413,7 @@ void Region::dump_all_ir()
     }
     fflush(g_tfile);
 
-    fprintf(g_tfile, "\n==---- DUMP IR allocated ----==");
+    note("\n==---- DUMP IR allocated ----==");
 
     CHAR buf[256]; //record data-type.
     TypeMgr * dm = get_type_mgr();
@@ -2452,27 +2447,6 @@ void Region::dump_all_ir()
 }
 
 
-//Only dump STMT IR.
-void Region::dump_all_stmt()
-{
-    INT i = get_ir_vec()->get_last_idx(), j = 0;
-    g_indent = 1;
-    note("  == IR STATEMENT: ==");
-    g_indent = 2;
-    TypeMgr * dm = get_type_mgr();
-    while (j <= i) {
-        IR * ir = get_ir_vec()->get(j);
-        if (ir->is_stmt()) {
-            note("\n%d(%d):  %s  (r:%s:%d>",
-                 j, IR_id(ir), IRNAME(ir),
-                 get_type_mgr()->get_dtype_name(TY_dtype(IR_dt(ir))),
-                 ir->get_dtype_size(dm));
-        }
-        j++;
-    }
-}
-
-
 PassMgr * Region::initPassMgr()
 {
     if (REGION_analysis_instrument(this)->m_pass_mgr != NULL) {
@@ -2490,6 +2464,20 @@ void Region::destroyPassMgr()
     if (ANA_INS_pass_mgr(REGION_analysis_instrument(this)) == NULL) { return; }
     delete ANA_INS_pass_mgr(REGION_analysis_instrument(this));
     ANA_INS_pass_mgr(REGION_analysis_instrument(this)) = NULL;
+}
+
+
+bool Region::verifyRPO(OptCtx & oc)
+{
+    if (get_cfg() == NULL) { return true; }
+    ASSERT0(get_bb_list());
+    if (OC_is_rpo_valid(oc)) {
+        ASSERT(get_cfg()->get_bblist_in_rpo()->get_elem_count() ==
+               get_bb_list()->get_elem_count(),
+               ("Previous pass has changed RPO, "
+                "and you should set it to be invalid"));
+    }
+    return true;
 }
 
 
@@ -2554,11 +2542,10 @@ void Region::dump_var_md(VAR * v, UINT indent)
     if (mdtab != NULL) {
         MD const* x = mdtab->get_effect_md();
         if (x != NULL) {
-            UINT i = 0;
-            while (i < indent) { fprintf(g_tfile, " "); i++; }
+            dumpIndent(g_tfile, indent);
             buf[0] = 0;
             x->dump(buf, 4096, get_type_mgr());
-            fprintf(g_tfile, "%s\n", buf);
+            note("\n%s", buf);
         }
 
         OffsetTab * ofstab = mdtab->get_ofst_tab();
@@ -2567,11 +2554,10 @@ void Region::dump_var_md(VAR * v, UINT indent)
             iter.clean();
             for (MD const* md = ofstab->get_first(iter, NULL);
                  md != NULL; md = ofstab->get_next(iter, NULL)) {
-                UINT i = 0;
-                while (i < indent) { fprintf(g_tfile, " "); i++; }
+                dumpIndent(g_tfile, indent);
                 buf[0] = 0;
                 md->dump(buf, 4096, get_type_mgr());
-                fprintf(g_tfile, "%s\n", buf);
+                note("\n%s", buf);
             }
         }
     }
@@ -2580,12 +2566,12 @@ void Region::dump_var_md(VAR * v, UINT indent)
 
 
 //Dump each VAR in current region's VAR table.
-void Region::dumpVARInRegion(INT indent)
+void Region::dumpVARInRegion()
 {
     if (g_tfile == NULL) { return; }
 
     //Dump Region name.
-    fprintf(g_tfile, "\n==---- REGION:%s:", get_ru_name());
+    note("\n==---- REGION(%d):%s:", REGION_id(this), get_ru_name());
     static CHAR buf[8192]; //Is it too large?
     buf[0] = 0;
     m_var->dumpVARDecl(buf, 100);
@@ -2604,18 +2590,18 @@ void Region::dumpVARInRegion(INT indent)
         }
 
         if (has_param) {
-            g_indent = indent + 1;
-            note("\nFORMAL PARAMETERS:\n");
+            note("\nFORMAL PARAMETERS:");
             c.clean();
             for (VAR * v = get_var_tab()->get_first(c);
                  v != NULL; v = get_var_tab()->get_next(c)) {
                 if (VAR_is_formal_param(v)) {
                     buf[0] = 0;
                     v->dump(buf, get_type_mgr());
-                    g_indent = indent + 2;
-                    note("%s\n", buf);
+                    g_indent += 2;
+                    note("\n%s", buf);
                     fflush(g_tfile);
-                    dump_var_md(v, g_indent + 2);
+                    dump_var_md(v, g_indent);
+                    g_indent -= 2;
                 }
             }
         }
@@ -2624,23 +2610,20 @@ void Region::dumpVARInRegion(INT indent)
     //Dump local varibles.
     VarTab * vt = get_var_tab();
     if (vt->get_elem_count() > 0) {
-        g_indent = indent + 1;
-        note("\nLOCAL VARIABLES:\n");
+        note("\nVARIABLES:");
+        g_indent += 2;
         VarTabIter c;
         for (VAR * v = vt->get_first(c); v != NULL; v = vt->get_next(c)) {
-            //fprintf(g_tfile, "        ");
             buf[0] = 0;
             v->dump(buf, get_type_mgr());
-            g_indent = indent + 2;
-            note("%s\n", buf);
-            //fprintf(g_tfile, buf);
-            //fprintf(g_tfile, "\n");
+            note("\n%s", buf);
             fflush(g_tfile);
-            dump_var_md(v, g_indent + 2);
+            g_indent += 2;
+            dump_var_md(v, g_indent);
+            g_indent -= 2;
         }
+        g_indent -= 2;
     }
-
-    //fprintf(g_tfile, "\n");
     fflush(g_tfile);
 }
 
@@ -2874,6 +2857,25 @@ bool Region::partitionRegion()
 }
 
 
+//Check and rescan call list of region if one of elements in list changed.
+void Region::updateCallList()
+{
+    if (read_call_list() == NULL) { return; }
+    UINT num_inner_region = 0;
+    List<IR const*> * clst = get_call_list();
+    C<IR const*> * ct;
+    for (clst->get_head(&ct); ct != clst->end(); ct = clst->get_next(ct)) {
+        IR const* c = ct->val();
+        ASSERT0(c);
+        if (!c->is_calls_stmt()) {
+            //Call stmt has changed, then rescanning is needed.
+            scanCallList(num_inner_region, *clst, true);
+            return;
+        }
+    }
+}
+
+
 void Region::process()
 {
     if (get_ir_list() == NULL) { return ; }
@@ -2914,7 +2916,7 @@ void Region::process()
     simp.set_simp_land_lor();
     simp.set_simp_lnot();
     simp.set_simp_ild_ist();
-    simp.set_simp_to_lowest_heigh();
+    simp.set_simp_to_lowest_height();
     simplifyBBlist(bbl, &simp);
 
     if (g_cst_bb_list && SIMP_need_recon_bblist(&simp)) {
@@ -2950,18 +2952,7 @@ void Region::process()
     }
 
     destroyPassMgr();
-
-    List<IR const*> * call_list = get_call_list();
-    if (call_list != NULL) {
-        for (IR const* call = call_list->get_head();
-             call != NULL; call = call_list->get_next()) {
-            if (!call->is_calls_stmt()) {
-                //Call stmt has changed, then rescanning is needed.
-                scanCallList(*call_list);
-                break;
-            }
-        }
-    }
+    updateCallList();
 }
 //END Region
 

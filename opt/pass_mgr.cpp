@@ -341,6 +341,7 @@ void PassMgr::performScalarOpt(OptCtx & oc)
         //RP before SSA construction.
         //TODO: Do SSA renaming when after register promotion done.
         if (g_do_rp) {
+            //First RP.
             passlist.append_tail(registerPass(PASS_RP));
         }
     }
@@ -352,6 +353,7 @@ void PassMgr::performScalarOpt(OptCtx & oc)
     }
 
     if (g_do_rp) {
+        //Second RP.
         passlist.append_tail(registerPass(PASS_RP));
     }
 
@@ -361,10 +363,6 @@ void PassMgr::performScalarOpt(OptCtx & oc)
 
     if (g_do_lcse) {
         passlist.append_tail(registerPass(PASS_LCSE));
-    }
-
-    if (g_do_pre) {
-        passlist.append_tail(registerPass(PASS_PRE));
     }
 
     if (g_do_rce) {
@@ -408,6 +406,7 @@ void PassMgr::performScalarOpt(OptCtx & oc)
             }
             RefineCtx rc;
             m_ru->refineBBlist(bbl, rc);
+            ASSERT0(m_ru->verifyRPO(oc));
         }
         count++;
     } while (change && count < 20);

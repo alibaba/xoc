@@ -64,7 +64,7 @@ class RegionMgr;
 #define VAR_VOLATILE             0x10 //var is volatile
 #define VAR_HAS_INIT_VAL         0x20 //var with initialied value.
 #define VAR_FAKE                 0x40 //var is fake
-//0x80 is reversed               0x80
+#define VAR_IS_LABEL             0x80 //var is label.
 #define VAR_FUNC_DECL            0x100 //var is function declaration.
 #define VAR_IS_ARRAY             0x200 //var is array.
 #define VAR_IS_FORMAL_PARAM      0x400 //var is formal parameter.
@@ -73,6 +73,7 @@ class RegionMgr;
 #define VAR_IS_PR                0x2000 //var is pr.
 #define VAR_IS_RESTRICT          0x4000 //var is restrict.
 #define VAR_IS_ALLOCABLE         0x8000 //var is allocable on memory.
+
 //************************************************
 //NOTE: Do *NOT* forget modify the bit-field in VAR if
 //you remove/add flag here.
@@ -91,6 +92,12 @@ class RegionMgr;
 
 //Record string content if variable is string.
 #define VAR_str(v)               ((v)->u1.string)
+
+//Record LabelInfo if variable is label.
+#define VAR_labinfo(v)           ((v)->u1.labinfo)
+
+//Variable is label.
+#define VAR_is_label(v)         ((v)->u2.u2s1.is_label)
 
 //Variable is global.
 #define VAR_is_global(v)         ((v)->u2.u2s1.is_global)
@@ -154,7 +161,7 @@ public:
     SYM * name;
 
     union {
-        //Record string contents if VAR is string.
+        //Record string contents if VAR is const string.
         SYM * string;
 
         //Index to constant value table.
@@ -165,6 +172,9 @@ public:
         //Record the formal parameter position if VAR is parameter.
         //Start from 0.
         UINT formal_parameter_pos;
+
+        //Record labelinfo if VAR is label.
+        LabelInfo * labinfo;
     } u1;
 
     union {
@@ -177,7 +187,7 @@ public:
             UINT is_volatile:1;     //VAR is volatile.
             UINT has_init_val:1;    //VAR has initial value.
             UINT is_fake:1;         //VAR is fake.
-            UINT reversed:1;
+            UINT is_label:1;        //VAR is label.
             UINT is_func_decl:1;    //VAR is function unit declaration.
             UINT is_array:1;        //VAR is array
             UINT is_formal_param:1; //VAR is formal parameter.
@@ -196,6 +206,12 @@ public:
 public:
     VAR();
     virtual ~VAR() {}
+
+    bool is_void() const
+    {
+        ASSERT0(VAR_type(this));
+        return VAR_type(this)->is_void();
+    }
 
     bool is_pointer() const
     {
@@ -222,6 +238,9 @@ public:
         return VAR_type(this)->is_vector();
     }
 
+    bool is_label() const { return VAR_is_label(this); }
+
+    Type const* get_type() const { return VAR_type(this); }
     UINT getStringLength() const
     {
         ASSERT0(VAR_type(this)->is_string());
@@ -340,7 +359,7 @@ public:
 
     //Interface to target machine.
     //Customer could specify additional attributions for specific purpose.
-    virtual VAR * newVar()    { return new VAR(); }
+    virtual VAR * allocVAR()    { return new VAR(); }
 
     //Free VAR memory.
     inline void destroyVar(VAR * v)

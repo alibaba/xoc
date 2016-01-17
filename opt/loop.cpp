@@ -137,6 +137,12 @@ IRBB * findAndInsertPreheader(
         ec = EC_next(ec);
     }
 
+    if (BB_last_ir(prev) != NULL &&
+        prev->is_bb_down_boundary(BB_last_ir(prev))) {
+        //Can not append IR to prev BB.
+        find_appropriate_prev_bb = false;
+    }
+
     if (!force && find_appropriate_prev_bb) { return prev; }
 
     List<IRBB*> preds;
@@ -162,7 +168,9 @@ IRBB * findAndInsertPreheader(
         return newbb;
     }
 
-    //Record if label if the target of loop body's IR.
+    //Record if Labels which attached on head are
+    //the branch target of IR which inside the loop.
+    //The other Label can be moved to preheader.
     TMap<LabelInfo const*, bool> head_labinfo;
     for (LabelInfo const* lab = lablst.get_head();
          lab != NULL; lab = lablst.get_next()) {

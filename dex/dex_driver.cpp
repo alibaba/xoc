@@ -683,7 +683,8 @@ bool compileFunc(
         Region * program = ((DexRegionMgr*)rumgr)->getProgramRegion();
         ASSERT0(program);
         REGION_parent(func_ru) = program;
-        program->addToIRList(program->buildRegion(func_ru));
+        //program->addToIRList(program->buildRegion(func_ru));
+        rm->addToRegionTab(func_ru);
         if (rulist != NULL) {
             //Caller must make sure func_ru will not be destroied before IPA.
             rulist->append_tail(func_ru);

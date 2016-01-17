@@ -183,7 +183,7 @@ extern FILE * g_tfile; //Only for dump.
 extern INT g_indent; //Only for dump.
 extern bool g_prt_carriage_return_for_dot; //Only for dump.
 
-//Exported Functions.
+void dumpIndent(FILE * h, UINT indent);
 void dumpIntVector(Vector<UINT> & v);
 
 //Get temporary memory pool handler.

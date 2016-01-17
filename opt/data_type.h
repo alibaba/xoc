@@ -45,10 +45,10 @@ class Type;
 #define IS_SINT(t)              ((t) >= D_I8 && (t) <= D_I128)
 #define IS_FP(t)                ((t) >= D_F32 && (t) <= D_F128)
 #define IS_BOOL(t)              ((t) == D_B)
-#define IS_MC(t)                   ((t) == D_MC)
+#define IS_MC(t)                ((t) == D_MC)
 #define IS_VEC(t)               ((t) == D_VEC)
 #define IS_PTR(t)               ((t) == D_PTR)
-#define IS_SIMPLEX(t)            (IS_INT(t) || IS_FP(t) || IS_BOOL(t) || \
+#define IS_SIMPLEX(t)           (IS_INT(t) || IS_FP(t) || IS_BOOL(t) || \
                                  t == D_STR || t == D_VOID)
 
 /* Data Type, represented with bit length.
@@ -99,38 +99,38 @@ public:
     CHAR const* name;
     UINT bitsize;
 };
-#define TYDES_dtype(d)                ((d)->dtype)
-#define TYDES_name(d)                ((d)->name)
-#define TYDES_bitsize(d)            ((d)->bitsize)
+#define TYDES_dtype(d)             ((d)->dtype)
+#define TYDES_name(d)              ((d)->name)
+#define TYDES_bitsize(d)           ((d)->bitsize)
 
 
 #ifdef _DEBUG_
 Type const* checkType(Type const* ty, DATA_TYPE dt);
 
-#define CK_TY(ty, dt)                        (checkType(ty, dt))
+#define CK_TY(ty, dt)         (checkType(ty, dt))
 #else
-#define CK_TY(ty, dt)                        (ty)
+#define CK_TY(ty, dt)         (ty)
 #endif
 
-#define DTNAME(type)                (TYDES_name(&g_type_desc[type]))
+#define DTNAME(type)          (TYDES_name(&g_type_desc[type]))
 
 //Define target bit size of WORD length.
 #define WORD_BITSIZE    GENERAL_REGISTER_SIZE * BIT_PER_BYTE
 
 //Data Type Descriptor.
-#define TY_dtype(d)            ((d)->data_type)
+#define TY_dtype(d)           ((d)->data_type)
 
 //Indicate the pointer base size.
-#define TY_ptr_base_size(d)    (((PointerType*)CK_TY(d, D_PTR))->pointer_base_size)
+#define TY_ptr_base_size(d)   (((PointerType*)CK_TY(d, D_PTR))->pointer_base_size)
 
 //Indicate the size of memory chunk.
-#define TY_mc_size(d)        (((MCType*)CK_TY(d, D_MC))->mc_size)
+#define TY_mc_size(d)         (((MCType*)CK_TY(d, D_MC))->mc_size)
 
 //Indicate the total byte size of whole vector.
 #define TY_vec_size(d)        (((VectorType*)CK_TY(d, D_VEC))->total_vector_size)
 
 //Indicate the vector element size.
-#define TY_vec_ety(d)        (((VectorType*)CK_TY(d, D_VEC))->vector_elem_type)
+#define TY_vec_ety(d)         (((VectorType*)CK_TY(d, D_VEC))->vector_elem_type)
 
 //Date Type Description.
 class Type {
@@ -169,8 +169,19 @@ public:
     //Return true if tyid is signed.
     inline bool is_signed() const
     {
-        if ((TY_dtype(this)>= D_I8 && TY_dtype(this) <= D_I128) ||
+        if ((TY_dtype(this) >= D_I8 && TY_dtype(this) <= D_I128) ||
             (TY_dtype(this) >= D_F32 && TY_dtype(this) <= D_F128)) {
+            return true;
+        }
+        return false;
+    }
+
+    inline bool is_unsigned() const
+    {
+        if ((TY_dtype(this) >= D_U8 && TY_dtype(this) <= D_U128) ||
+            TY_dtype(this) == D_STR ||
+            TY_dtype(this) == D_PTR ||
+            TY_dtype(this) == D_VEC) {
             return true;
         }
         return false;
@@ -525,7 +536,7 @@ public:
         ASSERT0(dtype != D_UNDEF);
         UINT bitsize = get_dtype_bitsize(dtype);
         return bitsize < BIT_PER_BYTE ?
-                1 : (UINT)xceiling(bitsize, BIT_PER_BYTE);
+                (UINT)1 : (UINT)xceiling((INT)bitsize, BIT_PER_BYTE);
     }
 
     //Retrieve Type via 'type-index'.

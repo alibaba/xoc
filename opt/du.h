@@ -70,8 +70,8 @@ public:
 };
 
 
-#define DU_md(du)            ((du)->md)
-#define DU_mds(du)            ((du)->mds)
+#define DU_md(du)           ((du)->md)
+#define DU_mds(du)          ((du)->mds)
 #define DU_duset(du)        ((du)->duset)
 class DU {
 public:

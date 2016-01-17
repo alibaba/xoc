@@ -40,29 +40,29 @@ class CfsMgr;
 
 #define MAX_SIMP_WORD_LEN  1
 
-#define SIMP_if(s)                    (s)->prop_top_down.simp_if
-#define SIMP_do_loop(s)               (s)->prop_top_down.simp_do_loop
-#define SIMP_do_while(s)              (s)->prop_top_down.simp_do_while
-#define SIMP_while_do(s)              (s)->prop_top_down.simp_while_do
-#define SIMP_switch(s)                (s)->prop_top_down.simp_switch
-#define SIMP_select(s)                (s)->prop_top_down.simp_select
-#define SIMP_array(s)                 (s)->prop_top_down.simp_array
-#define SIMP_break(s)                 (s)->prop_top_down.simp_break
-#define SIMP_continue(s)              (s)->prop_top_down.simp_continue
-#define SIMP_logical_or_and(s)        (s)->prop_top_down.simp_logcial_or_and
-#define SIMP_logical_not(s)           (s)->prop_top_down.simp_logcial_not
-#define SIMP_ild_ist(s)               (s)->prop_top_down.simp_ild_ist
-#define SIMP_to_pr_mode(s)            (s)->prop_top_down.simp_to_pr_mode
-#define SIMP_array_to_pr_mode(s)      (s)->prop_top_down.simp_array_to_pr_mode
-#define SIMP_to_lowest_height(s)      (s)->prop_top_down.simp_to_lowest_height
-#define SIMP_ret_array_val(s)         (s)->prop_top_down.simp_to_get_array_value
-#define SIMP_is_record_cfs(s)         (s)->prop_top_down.is_record_cfs
-#define SIMP_ir_stmt_list(s)          (s)->ir_stmt_list
-#define SIMP_break_label(s)           (s)->break_label
-#define SIMP_continue_label(s)        (s)->continue_label
-#define SIMP_changed(s)               (s)->prop_bottom_up.something_has_changed
-#define SIMP_need_recon_bblist(s)     (s)->prop_bottom_up.need_to_reconstruct_bb_list
-#define SIMP_cfs_mgr(s)               (s)->cfs_mgr
+#define SIMP_if(s)                  (s)->prop_top_down.simp_if
+#define SIMP_doloop(s)              (s)->prop_top_down.simp_do_loop
+#define SIMP_dowhile(s)             (s)->prop_top_down.simp_do_while
+#define SIMP_whiledo(s)             (s)->prop_top_down.simp_while_do
+#define SIMP_switch(s)              (s)->prop_top_down.simp_switch
+#define SIMP_select(s)              (s)->prop_top_down.simp_select
+#define SIMP_array(s)               (s)->prop_top_down.simp_array
+#define SIMP_break(s)               (s)->prop_top_down.simp_break
+#define SIMP_continue(s)            (s)->prop_top_down.simp_continue
+#define SIMP_lor_land(s)            (s)->prop_top_down.simp_logcial_or_and
+#define SIMP_lnot(s)                (s)->prop_top_down.simp_logcial_not
+#define SIMP_ild_ist(s)             (s)->prop_top_down.simp_ild_ist
+#define SIMP_to_pr_mode(s)          (s)->prop_top_down.simp_to_pr_mode
+#define SIMP_array_to_pr_mode(s)    (s)->prop_top_down.simp_array_to_pr_mode
+#define SIMP_to_lowest_height(s)    (s)->prop_top_down.simp_to_lowest_height
+#define SIMP_ret_array_val(s)       (s)->prop_top_down.simp_to_get_array_value
+#define SIMP_is_record_cfs(s)       (s)->prop_top_down.is_record_cfs
+#define SIMP_stmtlist(s)            (s)->ir_stmt_list
+#define SIMP_break_label(s)         (s)->break_label
+#define SIMP_continue_label(s)      (s)->continue_label
+#define SIMP_changed(s)             (s)->prop_bottom_up.something_has_changed
+#define SIMP_need_recon_bblist(s)   (s)->prop_bottom_up.need_to_reconstruct_bb_list
+#define SIMP_cfs_mgr(s)             (s)->cfs_mgr
 class SimpCtx {
 public:
     struct {
@@ -80,53 +80,45 @@ public:
         UINT simp_logcial_not:1; //simplify LNOT.
         UINT simp_ild_ist:1; //simplify ILD and IST.
 
-        /*
-        Propagate info top down.
-        Simplify IR expression tree into the simplest
-        mode, which IR tree's height is not more than 2,
-        namely, non-leaf IR is no more than 1.
-        e.g:
-            st(id, add(ld(v2), ld(v3)))
-            ADD is non-leaf IR, its children can not be non-leaf also.
-        */
+        //Propagate info top down.
+        //Simplify IR expression tree into the simplest
+        //mode, which IR tree's height is not more than 2,
+        //namely, non-leaf IR is no more than 1.
+        //e.g:
+        //    st(id, add(ld(v2), ld(v3)))
+        //    ADD is non-leaf IR, its children can not be non-leaf also.
         UINT simp_to_lowest_height:1;
 
-        /*
-        Propagate info top down.
-        Operand only can be PR.
-        e.g: st(id1, ild(ld(v2))), converted to:
-                pr1=ld(v1)
-                pr2=ld(v2)
-                pr3=ild(P2)
-                st(pr1, pr3)
-        And this IR tree is unpermittable: ADD(LD(ID1), P1)
-        */
+        //Propagate info top down.
+        //Operand only can be PR.
+        //e.g: st(id1, ild(ld(v2))), converted to:
+        //        pr1=ld(v1)
+        //        pr2=ld(v2)
+        //        pr3=ild(P2)
+        //        st(pr1, pr3)
+        //And this IR tree is unpermittable: ADD(LD(ID1), P1)
         UINT simp_to_pr_mode:1;
 
-        /*
-        Propagate info top down.
-        Store array value into individual PR, but keep array operation
-        unchanged.
-        e.g:
-            add(array(a), array(b))
-        converted to:
-            pr1 = array(a)
-            pr2 = array(b)
-            add(pr1, pr2)
-        */
+        //Propagate info top down.
+        //Store array value into individual PR, but keep array operation
+        //unchanged.
+        //e.g:
+        //    add(array(a), array(b))
+        //converted to:
+        //    pr1 = array(a)
+        //    pr2 = array(b)
+        //    add(pr1, pr2)
         UINT simp_array_to_pr_mode:1;
 
-        /*
-        Propagate info top down.
-        If it is true function return array's value, or else return
-        the array address.
-        The flag often used in RHS simplification.
-
-        e.g: Given ... = a[i][j], we need to get the value of a[i][j].
-        If the flag is false, function return the address expression:
-            &a + i*elem_size + j,
-        Or else return ILD(&a + i*elem_size + j).
-        */
+        //Propagate info top down.
+        //If it is true function return array's value, or else return
+        //the array address.
+        //The flag often used in RHS simplification.
+        //
+        //e.g: Given ... = a[i][j], we need to get the value of a[i][j].
+        //If the flag is false, function return the address expression:
+        //    &a + i*elem_size + j,
+        //Or else return ILD(&a + i*elem_size + j).
         UINT simp_to_get_array_value:1;
 
         //Propagate info top down.
@@ -165,27 +157,26 @@ public:
     SimpCtx(SimpCtx const& s)
     {
         *this = s;
-        SIMP_ir_stmt_list(this) = NULL;
+        SIMP_stmtlist(this) = NULL;
     }
 
     void copy(SimpCtx const& s)
     {
         *this = s;
-        SIMP_ir_stmt_list(this) = NULL;
+        SIMP_stmtlist(this) = NULL;
     }
 
-    void init()
-    { memset(this, 0, sizeof(SimpCtx)); }
+    void init() { memset(this, 0, sizeof(SimpCtx)); }
 
     //Append irs to current simplification context and
     //return back to up level.
     void append_irs(SimpCtx & c)
-    { add_next(&SIMP_ir_stmt_list(this), SIMP_ir_stmt_list(&c)); }
+    { add_next(&SIMP_stmtlist(this), SIMP_stmtlist(&c)); }
 
     //Append irs to current simplification context and
     //return back to up level.
     void append_irs(IR * irs)
-    { add_next(&SIMP_ir_stmt_list(this), irs); }
+    { add_next(&SIMP_stmtlist(this), irs); }
 
     //Unify the actions which propagated top down
     //during processing IR tree.
@@ -212,9 +203,9 @@ public:
     inline void set_simp_cf()
     {
         SIMP_if(this) = true;
-        SIMP_do_loop(this) = true;
-        SIMP_do_while(this) = true;
-        SIMP_while_do(this) = true;
+        SIMP_doloop(this) = true;
+        SIMP_dowhile(this) = true;
+        SIMP_whiledo(this) = true;
         SIMP_switch(this) = true;
         SIMP_break(this) = true;
         SIMP_continue(this) = true;
@@ -224,51 +215,62 @@ public:
     bool is_simp_cfg()
     {
         return SIMP_if(this) ||
-                SIMP_do_loop(this) ||
-                SIMP_do_while(this) ||
-                SIMP_while_do(this) ||
-                SIMP_switch(this) ||
-                SIMP_break(this) ||
-                SIMP_continue(this);
+               SIMP_doloop(this) ||
+               SIMP_dowhile(this) ||
+               SIMP_whiledo(this) ||
+               SIMP_switch(this) ||
+               SIMP_break(this) ||
+               SIMP_continue(this);
     }
 
     //Simplify IR_ARRAY to linear address computation.
     void set_simp_array() { SIMP_array(this) = true; }
 
-    //Simplify IR_ARRAY to linear address computation.
+    //Reduce the tree height of IST/ILD to be lowest.
     void set_simp_ild_ist() { SIMP_ild_ist(this) = true; }
 
     //Simplify IR_SELECT to control flow operation.
     void set_simp_select() { SIMP_select(this) = true; }
 
     //Simplify IR_LAND and IR_LOR operation.
-    void set_simp_land_lor() { SIMP_logical_or_and(this) = true; }
+    void set_simp_land_lor() { SIMP_lor_land(this) = true; }
 
     //Simplify IR_LNOT operation.
-    void set_simp_lnot() { SIMP_logical_not(this) = true; }
+    void set_simp_lnot() { SIMP_lnot(this) = true; }
 
-    /* Simplify IR tree to reduce the tree height to be not
-    great than 2.
-    e.g: tree a + b is lowest height , but a + b + c is not.
-    Note that if ARRAY or ILD still not be lowered at the moment,
-    regarding it as a whole node.
-    e.g: a[1][2] + b is the lowest height. */
-    void set_simp_to_lowest_heigh() { SIMP_to_lowest_height(this) = true; }
+    //Simplify IR tree to reduce the tree height to be not
+    //more than 2.
+    //e.g: The height of 'a + b' is 2, the lowest height,
+    //whereas 'a + b + c' is not.
+    //Note that if ARRAY/STARRAY/ILD/IST/SELECT are not demanded to be
+    //lowered, regarding it as a whole node.
+    //e.g: Treat a[1][2] + b to be the lowest height.
+    void set_simp_to_lowest_height()
+    {
+        ASSERT(SIMP_lor_land(this) && SIMP_lnot(this),
+               ("these operations should be lowered as well."));
+        SIMP_to_lowest_height(this) = true;
+    }
 
-    /* Reduce the tree heigh to lowest and load value to PR to
-    perform operation for IR_LD, IR_ILD, IR_ARRAY.
-    e.g: ist(a, (ld(b) + ld(c)))
-    will be simplified to :
-        pr1 = a
-        pr2 = b
-        pr3 = c
-        pr4 = pr2 + pr3
-        ist(pr1, pr4)
-    */
+    //Reduce the tree heigh to lowest and load value to PR to
+    //perform operation for IR_LD, IR_ILD, IR_ARRAY.
+    //e.g: ist(a, (ld(b) + ld(c)))
+    //will be simplified to :
+    //    pr1 = a
+    //    pr2 = b
+    //    pr3 = c
+    //    pr4 = pr2 + pr3
+    //    ist(pr1, pr4)
     void set_simp_to_pr_mode()
     {
         SIMP_to_pr_mode(this) = true;
-        SIMP_to_lowest_height(this) = true;
+        set_simp_cf();
+        set_simp_array();
+        set_simp_ild_ist();
+        set_simp_select();
+        set_simp_land_lor();
+        set_simp_lnot();
+        set_simp_to_lowest_height();
     }
 };
 

@@ -292,14 +292,13 @@ Programming Guides
         * ID_info indicate the VAR.
 
     ¡ñ IR_LDA
-        This operation computes the pointer value of the memory address of an
-        identifier, label, or string.
+        This operation computes the pointer value of the memory address of a
+        variable, the variable can be general identifier, label, or string.
         e.g:
             Semantics: pr1 = &a
             IR tree is:
-                st:i32 $pr1
-                  lda:ptr
-                    id:i32 a
+                stpr:i32 $pr1
+                  lda:ptr a
 
         There is a difference in usage if LDA_ofst is not 0.
             1. p = lda:i32 a
@@ -308,14 +307,14 @@ Programming Guides
 
             2. p = lda:i32 a + LDA_ofst
                 if LDA_ofst is not 0, LDA operation return the sum of
-                address    of variable a and LDA_ofst.
+                address of variable a and LDA_ofst.
 
         Operands:
         * IR_dt indicate the result type.
         * LDA_ofst indicate the offset related to the address of varaible.
-        * LDA_base indicate the varaible which to be taken address.
+        * LDA_idinfo indicate the varaible which to be taken address.
 
-        Note that the LDA base can only be identifier, label, and string.
+        Note that the LDA base can only be variable.
         The operation does not have the ability to access memory.
         e.g:
             Type * p = &a;
@@ -849,7 +848,7 @@ Programming Guides
 
     ¡ñ IR_SELECT
         This operation represents conditional execute operation. It computes
-        the value accroding to the result of determinant expression, if the
+        the value accroding to the result of predicator expression, if the
         result value is true, return CONDEXE_trueexp, otherwise return
         CONDEXE_falseexp.
 
@@ -857,9 +856,10 @@ Programming Guides
         Semantics:
             if (a > b) res = 10;
             else res = 20;
+        where a > b is the predicator.
 
         Operands:
-        * SELECT_det      indicate determinant expression.
+        * SELECT_pred     indicate predicator expression.
         * SELECT_trueexp  indicate the true-value expressions.
         * SELECT_falseexp indicate the false-value expressions.
 

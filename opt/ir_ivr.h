@@ -143,6 +143,7 @@ public:
         m_du = ru->get_du_mgr();
         m_cfg = ru->get_cfg();
         m_tm = ru->get_type_mgr();
+        ASSERT0(m_cfg && m_du && m_md_sys && m_tm);
         m_pool = smpoolCreate(sizeof(IV) * 4, MEM_COMM);
         m_sc_pool = smpoolCreate(sizeof(SC<IV*>) * 4, MEM_CONST_SIZE);
         m_is_only_handle_exact_md = true;

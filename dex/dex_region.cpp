@@ -110,7 +110,7 @@ void DexRegion::HighProcessImpl(OptCtx & oc)
             f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR;
         }
 
-        if (g_do_compute_available_exp) {
+        if (g_compute_available_exp) {
             f |= SOL_AVAIL_EXPR;
         }
 
@@ -126,9 +126,9 @@ bool DexRegion::HighProcess(OptCtx & oc)
     g_indent = 0;
     SimpCtx simp;
     SIMP_if(&simp) = true;
-    SIMP_do_loop(&simp) = true;
-    SIMP_do_while(&simp) = true;
-    SIMP_while_do(&simp) = true;
+    SIMP_doloop(&simp) = true;
+    SIMP_dowhile(&simp) = true;
+    SIMP_whiledo(&simp) = true;
     SIMP_switch(&simp) = false;
     SIMP_break(&simp) = true;
     SIMP_continue(&simp) = true;

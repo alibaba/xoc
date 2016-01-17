@@ -55,6 +55,7 @@ public:
         m_gvn = gvn;
         m_cfg = ru->get_cfg();
         m_du = m_ru->get_du_mgr();
+        ASSERT0(m_cfg && m_du);
         m_use_gvn = false;
     }
     COPY_CONSTRUCTOR(IR_RCE);

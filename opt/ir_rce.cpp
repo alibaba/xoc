@@ -208,7 +208,7 @@ IR * IR_RCE::processBranch(IR * ir, IN OUT bool & cfg_mod)
             new_det = m_ru->buildJudge(new_det);
         }
         BR_det(ir) = new_det;
-        ir->setParent(false);
+        ir->setParent(new_det);
     } else {
         BR_det(ir) = new_det;
     }
@@ -285,7 +285,6 @@ bool IR_RCE::performSimplyRCE(IN OUT bool & cfg_mod)
                 change = true;
             }
         }
-        bb->dump(m_ru);
     }
     return change;
 }

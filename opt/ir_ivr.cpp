@@ -387,8 +387,7 @@ void IR_IVR::findDIV(LI<IRBB> const* li, SList<IV*> const& bivlst, BitSet & tmp)
                 break;
             case IR_CALL:
             case IR_ICALL:
-                for (IR * p = CALL_param_list(ir);
-                     p != NULL; p = IR_next(p)) {
+                for (IR * p = CALL_param_list(ir); p != NULL; p = p->get_next()) {
                     if (scanExp(p, li, tmp)) {
                         addDIVList(li, p);
                     }

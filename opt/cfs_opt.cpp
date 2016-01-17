@@ -561,9 +561,9 @@ High Level Reshaping phase consist of:
 bool IR_CFS_OPT::perform(IN SimpCtx const& sc)
 {
     ASSERT0(!SIMP_if(&sc) &&
-            !SIMP_do_loop(&sc) &&
-            !SIMP_do_while(&sc) &&
-            !SIMP_while_do(&sc) &&
+            !SIMP_doloop(&sc) &&
+            !SIMP_dowhile(&sc) &&
+            !SIMP_whiledo(&sc) &&
             !SIMP_switch(&sc) &&
             !SIMP_break(&sc) &&
             !SIMP_continue(&sc));

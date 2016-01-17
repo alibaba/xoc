@@ -469,7 +469,7 @@ public:
             lst.get_head(&ct);
             UINT i;
             for (i = 0; i < n; i++, lst.get_next(&ct)) {
-                if (c >= C_val(ct)) {
+                if (c >= ct->val()) {
                     lst.insert_before(c, ct);
                     break;
                 }

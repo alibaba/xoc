@@ -1474,7 +1474,7 @@ protected:
         return false;
     }
 
-    SC<T> * get_one_sc(SC<T> ** free_list)
+    SC<T> * get_freed_sc(SC<T> ** free_list)
     {
         if (free_list == NULL || *free_list == NULL) { return NULL; }
         SC<T> * t = *free_list;
@@ -1505,7 +1505,7 @@ protected:
 
     SC<T> * newsc(SC<T> ** free_list, SMemPool * pool)
     {
-        SC<T> * c = get_one_sc(free_list);
+        SC<T> * c = get_freed_sc(free_list);
         if (c == NULL) {
             c = new_sc_container(pool);
         }
@@ -1602,7 +1602,7 @@ public:
         SC<T> * c = newsc(free_list, pool);
         ASSERT(c != NULL, ("newc return NULL"));
 
-        SC_val(c) = t;
+        c->val() = t;
         insert_after(c, marker);
         return c;
     }
@@ -1630,7 +1630,7 @@ public:
     {
         SC<T> * c = m_head.next;
         while (c != &m_head) {
-            if (SC_val(c) == t) {
+            if (c->val() == t) {
                 if (holder != NULL) {
                     *holder = c;
                 }
@@ -1659,7 +1659,7 @@ public:
         SC<T> * c = m_head.next;
         SC<T> * prev = &m_head;
         while (c != &m_head) {
-            if (SC_val(c) == t) { break; }
+            if (c->val() == t) { break; }
 
             prev = c;
             c = c->next;
@@ -1695,7 +1695,7 @@ public:
 
         SC<T> * c = m_head.next;
         m_head.next = c->next;
-        T t = SC_val(c);
+        T t = c->val();
         free_sc(c, free_list);
         m_elem_count--;
         return t;
@@ -1845,7 +1845,7 @@ protected:
         return p;
     }
 
-    SC<T> * get_one_sc(SC<T> ** free_list)
+    SC<T> * get_freed_sc(SC<T> ** free_list)
     {
         if (free_list == NULL || *free_list == NULL) { return NULL; }
         SC<T> * t = *free_list;
@@ -1863,7 +1863,7 @@ protected:
 
     SC<T> * newsc(SC<T> ** free_list, SMemPool * pool)
     {
-        SC<T> * c = get_one_sc(free_list);
+        SC<T> * c = get_freed_sc(free_list);
         if (c == NULL) {
             c = new_sc_container(pool);
         }
@@ -2039,7 +2039,7 @@ public:
     {
         SC<T> * c = m_head;
         while (c != NULL) {
-            if (SC_val(c) == t) {
+            if (c->val() == t) {
                 if (holder    != NULL) {
                     *holder = c;
                 }
@@ -2059,7 +2059,7 @@ public:
     bool remove(T t, SC<T> ** free_list)
     {
         if (m_head == NULL) { return false; }
-        if (SC_val(m_head) == t) {
+        if (m_head->val() == t) {
             remove_head(free_list);
             return true;
         }
@@ -2067,7 +2067,7 @@ public:
         SC<T> * c = m_head->next;
         SC<T> * prev = m_head;
         while (c != NULL) {
-            if (SC_val(c) == t) { break; }
+            if (c->val() == t) { break; }
             prev = c;
             c = c->next;
         }
@@ -2122,7 +2122,7 @@ public:
             m_tail = NULL;
         }
 
-        T t = SC_val(c);
+        T t = c->val();
         free_sc(c, free_list);
         m_elem_count--;
         return t;
@@ -4077,9 +4077,9 @@ public:
 
 
 
-/* TMap Iterator based on Double Linked List.
-This class is used to iterate elements in TMap.
-You should call clean() to initialize the iterator. */
+//TMap Iterator based on Double Linked List.
+//This class is used to iterate elements in TMap.
+//You should call clean() to initialize the iterator.
 template <class Tsrc, class Ttgt>
 class TMapIter : public List<RBTNode<Tsrc, Ttgt>*> {
 public:
@@ -4117,8 +4117,7 @@ NOTICE:
        use T(0) as element.
     2. Keep the key *UNIQUE* .
     3. Overload operator == and operator < if Tsrc is neither basic type
-       nor pointer type.
-*/
+       nor pointer type. */
 template <class Tsrc, class Ttgt, class CompareKey = CompareKeyBase<Tsrc> >
 class TMap : public RBT<Tsrc, Ttgt, CompareKey> {
 public:

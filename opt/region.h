@@ -96,20 +96,17 @@ public:
 
 //Region referrence info.
 #define REF_INFO_maydef(ri)     ((ri)->may_def_mds)
-#define REF_INFO_mustdef(ri)    ((ri)->must_def_mds)
 #define REF_INFO_mayuse(ri)     ((ri)->may_use_mds)
 class RefInfo {
 public:
-    MDSet must_def_mds; //Record the MD set for Region usage
     MDSet may_def_mds; //Record the MD set for Region usage
     MDSet may_use_mds; //Record the MD set for Region usage
 
     UINT count_mem()
     {
-        UINT c = must_def_mds.count_mem();
+        UINT c = sizeof(RefInfo);
         c += may_def_mds.count_mem();
         c += may_use_mds.count_mem();
-        c += sizeof(MDSet*) * 3;
         return c;
     }
 };
@@ -159,6 +156,13 @@ protected:
         void * m_blx_data; //Black box data.
     } m_u1;
 
+protected:
+    void scanCallListImpl(
+            OUT UINT & num_inner_region,
+            IR * irlst,
+            OUT List<IR const*> & call_list,
+            bool scan_inner_region);
+
 public:
     RefInfo * m_ref_info; //record use/def info if Region has.
     REGION_TYPE m_ru_type; //region type.
@@ -170,13 +174,12 @@ public:
             BYTE is_expect_inline:1; //see above macro declaration.
             BYTE is_du_valid:1;  //see above macro declaration.
 
-            /* Set to true if there is single map between
-            PR and MD. If PR may corresponde to multiple
-            MD, set it to false.
-
-            e.g: If one use same pr with different type U8 and U32,
-            there will have two mds refer to pr1(U8) and pr1(U32),
-            MD2->pr1(U8), MD8->pr1(U32). */
+            //Set to true if there is single map between
+            //PR and MD. If PR may corresponde to multiple
+            //MD, set it to false.
+            //e.g: If one use same pr with different type U8 and U32,
+            //there will have two mds refer to pr1(U8) and pr1(U32),
+            //MD2->pr1(U8), MD8->pr1(U32).
             BYTE isPRUniqueForSameNo:1;
 
             //True if region does not modify any live-in variables
@@ -249,6 +252,12 @@ public:
         return ai;
     }
 
+    //Allocate PassMgr
+    virtual PassMgr * allocPassMgr();
+
+    //Allocate AliasAnalysis.
+    virtual IR_AA * allocAliasAnalysis();
+
     IR * buildContinue();
     IR * buildBreak();
     IR * buildCase(IR * casev_exp, LabelInfo const* case_br_lab);
@@ -279,15 +288,19 @@ public:
             Type const* type,
             IR * lchild,
             IR * rchild);
-    IR * buildBinaryOp(IR_TYPE irt, Type const* type,
-                       IN IR * lchild, IN IR * rchild);
+    IR * buildBinaryOp(
+            IR_TYPE irt,
+            Type const* type,
+            IN IR * lchild,
+            IN IR * rchild);
     IR * buildUnaryOp(IR_TYPE irt, Type const* type, IN IR * opnd);
     IR * buildLogicalNot(IR * opnd0);
     IR * buildLogicalOp(IR_TYPE irt, IR * opnd0, IR * opnd1);
     IR * buildImmInt(HOST_INT v, Type const* type);
     IR * buildImmFp(HOST_FP fp, Type const* type);
-    IR * buildLda(IR * lda_base);
-    IR * buildLdaVAR(VAR * var) { return buildLda(buildId(var)); }
+    IR * buildLda(VAR * var);
+    IR * buildLdaString(CHAR const* varname, SYM * string);
+    IR * buildLdaString(CHAR const* varname, CHAR const * string);
     IR * buildLoad(VAR * var, Type const* type);
     IR * buildLoad(VAR * var);
     IR * buildIload(IR * base, Type const* type);
@@ -347,9 +360,8 @@ public:
     IR * dupIRTree(IR const* ir);
     IR * dupIRTreeList(IR const* ir);
 
-    void dump_all_stmt();
     void dump_all_ir();
-    void dumpVARInRegion(INT indent = 0);
+    void dumpVARInRegion();
     void dump_var_md(VAR * v, UINT indent);
     void dump_free_tab();
     void dump_mem_usage(FILE * h);
@@ -479,29 +491,13 @@ public:
         return REGION_analysis_instrument(this)->m_return_list;
     }
 
-    //Compute the most conservative MD reference information.
-    void genDefaultRefInfo();
+    //Get the MayDef MDSet of Region.
+    MDSet * get_may_def()
+    { return m_ref_info != NULL ? &REF_INFO_maydef(m_ref_info) : NULL; }
 
-    //Get the MustUse of Region.
-    inline MDSet * get_must_def()
-    {
-        if (m_ref_info != NULL) { return &REF_INFO_mustdef(m_ref_info); }
-        return NULL;
-    }
-
-    //Get the MayDef of Region.
-    inline MDSet * get_may_def()
-    {
-        if (m_ref_info != NULL) { return &REF_INFO_maydef(m_ref_info); }
-        return NULL;
-    }
-
-    //Get the MayUse of Region.
-    inline MDSet * get_may_use()
-    {
-        if (m_ref_info != NULL) { return &REF_INFO_mayuse(m_ref_info); }
-        return NULL;
-    }
+    //Get the MayUse MDSet of Region.
+    MDSet * get_may_use()
+    { return m_ref_info != NULL ? &REF_INFO_mayuse(m_ref_info) : NULL; }
 
     Region * getTopRegion()
     {
@@ -542,11 +538,16 @@ public:
     MD const* genMDforPR(IR const* ir)
     {
         ASSERT0(ir->is_write_pr() || ir->is_read_pr() || ir->is_calls_stmt());
-        return genMDforPR(ir->get_prno(), IR_dt(ir));
+        return genMDforPR(ir->get_prno(), ir->get_type());
     }
 
     //Generate MD for VAR.
-    MD const* genMDforVar(VAR * var, Type const* type)
+    MD const* genMDforVAR(VAR * var)
+    { return genMDforVAR(var, var->get_type()); }
+
+
+    //Generate MD for VAR.
+    MD const* genMDforVAR(VAR * var, Type const* type)
     {
         ASSERT0(var && type);
         MD md;
@@ -568,21 +569,21 @@ public:
     MD const* genMDforStore(IR const* ir)
     {
         ASSERT0(ir->is_st());
-        return genMDforVar(ST_idinfo(ir), IR_dt(ir));
+        return genMDforVAR(ST_idinfo(ir), ir->get_type());
     }
 
     //Generate MD for IR_LD.
     MD const* genMDforLoad(IR const* ir)
     {
         ASSERT0(ir->is_ld());
-        return genMDforVar(LD_idinfo(ir), IR_dt(ir));
+        return genMDforVAR(LD_idinfo(ir), ir->get_type());
     }
 
     //Generate MD for IR_ID.
     MD const* genMDforId(IR const* ir)
     {
         ASSERT0(ir->is_id());
-        return genMDforVar(ID_info(ir), IR_dt(ir));
+        return genMDforVAR(ID_info(ir), ir->get_type());
     }
 
     //Return the tyid for array index, the default is unsigned 32bit.
@@ -613,15 +614,17 @@ public:
     bool isSafeToOptimize(IR const* ir);
 
     //Check and insert data type CVT if it is necessary.
-     IR * insertCvt(IR * parent, IR * kid, bool & change);
+    IR * insertCvt(IR * parent, IR * kid, bool & change);
     void insertCvtForBinaryOp(IR * ir, bool & change);
 
     //Return true if the tree height is not great than 2.
     //e.g: tree a + b is lowest height , but a + b + c is not.
     //Note that if ARRAY or ILD still not be lowered at the moment, regarding
     //it as a whole node. e.g: a[1][2] + b is the lowest height.
-    bool isLowestHeight(IR const* ir) const;
-    bool isLowestHeightExp(IR const* ir) const;
+    bool isLowestHeight(IR const* ir, SimpCtx const* ctx) const;
+    bool isLowestHeightExp(IR const* ir, SimpCtx const* ctx) const;
+    bool isLowestHeightSelect(IR const* ir) const;
+    bool isLowestHeightArrayOp(IR const* ir) const;
 
     //Return true if Region name is equivalent to 'n'.
     bool isRegionName(CHAR const* n) const
@@ -633,6 +636,7 @@ public:
     bool is_program() const { return REGION_type(this) == RU_PROGRAM; }
     bool is_subregion() const { return REGION_type(this) == RU_SUB; }
     bool is_eh() const { return REGION_type(this) == RU_EH; }
+    bool is_readonly() const { return REGION_is_readonly(this); }
 
     //Perform middle level IR optimizations which are implemented
     //accroding to control flow info and data flow info.
@@ -642,11 +646,9 @@ public:
     VAR * mapPR2Var(UINT prno)
     { return REGION_analysis_instrument(this)->m_prno2var.get(prno); }
 
-    //Allocate PassMgr
-    virtual PassMgr * allocPassMgr();
-
-    //Allocate AliasAnalysis.
-    virtual IR_AA * allocAliasAnalysis();
+    //Return the Call list of current region.
+    List<IR const*> const* read_call_list() const
+    { return REGION_analysis_instrument(this)->m_call_list; }
 
     //Peephole optimizations.
     IR * refineBand(IR * ir, bool & change);
@@ -675,7 +677,6 @@ public:
     IR * refineNeg(IR * ir, bool & change);
     IR * refineNot(IR * ir, bool & change, RefineCtx & rc);
     IR * refineBinaryOp(IR * ir, bool & change, RefineCtx & rc);
-    IR * refineLda(IR * ir, bool & change, RefineCtx & rc);
     IR * refineLoad(IR * ir);
     IR * refineIload1(IR * ir, bool & change);
     IR * refineIload2(IR * ir, bool & change);
@@ -692,10 +693,19 @@ public:
     IR * reassociation(IR * ir, bool & change);
     bool reconstructBBlist(OptCtx & oc);
 
+    IR * simpToPR(IR * ir, SimpCtx * ctx);
     C<IRBB*> * splitIRlistIntoBB(IR * irs, BBList * bbl, C<IRBB*> * ctbb);
-    IR * simplifyKids(IR * ir, SimpCtx * cont);
+    IR * simplifyLoopIngredient(IR * ir, SimpCtx * ctx);
+    IR * simplifyBranch(IR * ir, SimpCtx * ctx);
+    IR * simplifyIfSelf(IR * ir, SimpCtx * ctx);
+    IR * simplifyDoWhileSelf(IR * ir, SimpCtx * ctx);
+    IR * simplifyWhileDoSelf(IR * ir, SimpCtx * ctx);
+    IR * simplifyDoLoopSelf(IR * ir, SimpCtx * ctx);
+    IR * simplifySwitchSelf(IR * ir, SimpCtx * ctx);
+    void simplifySelectKids(IR * ir, SimpCtx * cont);
     IR * simplifyStore(IR * ir, SimpCtx * cont);
     IR * simplifyStorePR(IR * ir, SimpCtx * cont);
+    IR * simplifyArrayIngredient(IR * ir, SimpCtx * ctx);
     IR * simplifyStoreArray(IR * ir, SimpCtx * ctx);
     IR * simplifySetelem(IR * ir, SimpCtx * ctx);
     IR * simplifyGetelem(IR * ir, SimpCtx * ctx);
@@ -726,7 +736,6 @@ public:
     IR * simplifyLogicalAndAtFalsebr(IN IR * ir, LabelInfo const* tgt_label);
     IR * simplifyLogicalAnd(IN IR * ir, SimpCtx * cont);
     IR * simplifyLogicalDet(IR * ir, SimpCtx * cont);
-    IR * simplifyLda(IR * ir, SimpCtx * cont);
     void set_irt_size(IR * ir, UINT)
     {
         #ifdef CONST_IRT_SZ
@@ -742,7 +751,10 @@ public:
     void set_ir_list(IR * irs) { REGION_analysis_instrument(this)->m_ir_list = irs; }
     void set_blx_data(void * d) { REGION_blx_data(this) = d; }
     IR * StrengthReduce(IN OUT IR * ir, IN OUT bool & change);
-    void scanCallList(OUT List<IR const*> & call_list);
+    void scanCallList(
+            OUT UINT & num_inner_region,
+            OUT List<IR const*> & call_list,
+            bool scan_inner_region);
 
     void lowerIRTreeToLowestHeight(OptCtx & oc);
 
@@ -750,8 +762,12 @@ public:
     bool partitionRegion();
     virtual void process(); //Entry to process region-unit.
 
+    //Check and rescan call list of region if one of elements in list changed.
+    void updateCallList();
+
     bool verifyBBlist(BBList & bbl);
     bool verifyIRinRegion();
+    bool verifyRPO(OptCtx & oc);
 };
 //END Region
 

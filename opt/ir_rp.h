@@ -126,78 +126,86 @@ protected:
     BitSetMgr m_bs_mgr;
     bool m_is_insert_bb; //indicate if new bb inserted and cfg changed.
 
+protected:
     UINT analyzeIndirectAccessStatus(IR const* ref1, IR const* ref2);
     UINT analyzeArrayStatus(IR const* ref1, IR const* ref2);
-    void addExactAccess(OUT TMap<MD const*, IR*> & exact_access,
-                        OUT List<IR*> & exact_occ_list,
-                        MD const* exact_md,
-                        IR * ir);
+    void addExactAccess(
+            OUT TMap<MD const*, IR*> & exact_access,
+            OUT List<IR*> & exact_occ_list,
+            MD const* exact_md,
+            IR * ir);
     void addInexactAccess(TTab<IR*> & inexact_access, IR * ir);
 
-    void buildDepGraph(TMap<MD const*, IR*> & exact_access,
-                       TTab<IR*> & inexact_access,
-                       List<IR*> & exact_occ_list);
+    void buildDepGraph(
+            TMap<MD const*, IR*> & exact_access,
+            TTab<IR*> & inexact_access,
+            List<IR*> & exact_occ_list);
 
     void checkAndRemoveInvalidExactOcc(List<IR*> & exact_occ_list);
-    void clobberAccessInList(IR * ir,
-                             OUT TMap<MD const*, IR*> & exact_access,
-                             OUT List<IR*> & exact_occ_list,
-                             OUT TTab<IR*> & inexact_access);
+    void clobberAccessInList(
+            IR * ir,
+            OUT TMap<MD const*, IR*> & exact_access,
+            OUT List<IR*> & exact_occ_list,
+            OUT TTab<IR*> & inexact_access);
     bool checkArrayIsLoopInvariant(IN IR * ir, LI<IRBB> const* li);
     bool checkExpressionIsLoopInvariant(IN IR * ir, LI<IRBB> const* li);
-    bool checkIndirectAccessIsLoopInvariant(IN IR * ir,
-                                            LI<IRBB> const* li);
-    void createDelegateInfo(IR * delegate,
-                            TMap<IR*, IR*> & delegate2pr,
-                            TMap<IR*, SList<IR*>*> &
-                                delegate2has_outside_uses_ir_list);
-    void computeOuterDefUse(IR * ref, IR * delegate,
-                            TMap<IR*, DUSet*> & delegate2def,
-                            TMap<IR*, DUSet*> & delegate2use,
-                            DefMiscBitSetMgr * sbs_mgr,
-                            LI<IRBB> const* li);
+    bool checkIndirectAccessIsLoopInvariant(IN IR * ir, LI<IRBB> const* li);
+    void createDelegateInfo(
+            IR * delegate,
+            TMap<IR*, IR*> & delegate2pr,
+            TMap<IR*, SList<IR*>*> & delegate2has_outside_uses_ir_list);
+    void computeOuterDefUse(
+            IR * ref,
+            IR * delegate,
+            TMap<IR*, DUSet*> & delegate2def,
+            TMap<IR*, DUSet*> & delegate2use,
+            DefMiscBitSetMgr * sbs_mgr,
+            LI<IRBB> const* li);
 
     IRBB * findSingleExitBB(LI<IRBB> const* li);
-    void freeLocalStruct(TMap<IR*, DUSet*> & delegate2use,
-                         TMap<IR*, DUSet*> & delegate2def,
-                         TMap<IR*, IR*> & delegate2pr,
-                         DefMiscBitSetMgr * sbs_mgr);
+    void freeLocalStruct(
+            TMap<IR*, DUSet*> & delegate2use,
+            TMap<IR*, DUSet*> & delegate2def,
+            TMap<IR*, IR*> & delegate2pr,
+            DefMiscBitSetMgr * sbs_mgr);
 
-    void handleAccessInBody(IR * ref, IR * delegate,
-                            IR const* delegate_pr,
-                            TMap<IR*, SList<IR*>*> const&
-                                    delegate2has_outside_uses_ir_list,
-                            OUT TTab<IR*> & restore2mem,
-                            OUT List<IR*> & fixup_list,
-                            TMap<IR*, IR*> const& delegate2stpr,
-                            LI<IRBB> const* li,
-                            IRIter & ii);
+    void handleAccessInBody(
+            IR * ref,
+            IR * delegate,
+            IR const* delegate_pr,
+            TMap<IR*, SList<IR*>*> const& delegate2has_outside_uses_ir_list,
+            OUT TTab<IR*> & restore2mem,
+            OUT List<IR*> & fixup_list,
+            TMap<IR*, IR*> const& delegate2stpr,
+            LI<IRBB> const* li,
+            IRIter & ii);
     void handleRestore2Mem(
-                TTab<IR*> & restore2mem,
-                TMap<IR*, IR*> & delegate2stpr,
-                TMap<IR*, IR*> & delegate2pr,
-                TMap<IR*, DUSet*> & delegate2use,
-                TMap<IR*, SList<IR*>*> &
-                        delegate2has_outside_uses_ir_list,
-                TabIter<IR*> & ti,
-                IRBB * exit_bb);
+            TTab<IR*> & restore2mem,
+            TMap<IR*, IR*> & delegate2stpr,
+            TMap<IR*, IR*> & delegate2pr,
+            TMap<IR*, DUSet*> & delegate2use,
+            TMap<IR*, SList<IR*>*> & delegate2has_outside_uses_ir_list,
+            TabIter<IR*> & ti,
+            IRBB * exit_bb);
     void handlePrelog(
-                IR * delegate, IR * pr,
-                TMap<IR*, IR*> & delegate2stpr,
-                TMap<IR*, DUSet*> & delegate2def,
-                IRBB * preheader);
+            IR * delegate,
+            IR * pr,
+            TMap<IR*, IR*> & delegate2stpr,
+            TMap<IR*, DUSet*> & delegate2def,
+            IRBB * preheader);
     bool hasLoopOutsideUse(IR const* stmt, LI<IRBB> const* li);
-    bool handleArrayRef(IN IR * ir,
-                        LI<IRBB> const* li,
-                        OUT TMap<MD const*, IR*> & exact_access,
-                        OUT List<IR*> & exact_occ_list,
-                        OUT TTab<IR*> & inexact_access);
+    bool handleArrayRef(
+            IN IR * ir,
+            LI<IRBB> const* li,
+            OUT TMap<MD const*, IR*> & exact_access,
+            OUT List<IR*> & exact_occ_list,
+            OUT TTab<IR*> & inexact_access);
     bool handleGeneralRef(
-                IR * ir,
-                LI<IRBB> const* li,
-                OUT TMap<MD const*, IR*> & exact_access,
-                OUT List<IR*> & exact_occ_list,
-                OUT TTab<IR*> & inexact_access);
+            IR * ir,
+            LI<IRBB> const* li,
+            OUT TMap<MD const*, IR*> & exact_access,
+            OUT List<IR*> & exact_occ_list,
+            OUT TTab<IR*> & inexact_access);
 
     bool is_may_throw(IR * ir, IRIter & iter);
     bool mayBeGlobalRef(IR * ref)
@@ -237,14 +245,20 @@ protected:
                 IRIter & ii);
     bool should_be_promoted(IR const* occ, List<IR*> & exact_occ_list);
 
-    bool promoteInexactAccess(LI<IRBB> const* li, IRBB * preheader,
-                              IRBB * exit_bb, TTab<IR*> & inexact_access,
-                              IRIter & ii, TabIter<IR*> & ti);
-    bool promoteExactAccess(LI<IRBB> const* li, IRIter & ii,
-                            TabIter<IR*> & ti,
-                            IRBB * preheader, IRBB * exit_bb,
-                            TMap<MD const*, IR*> & cand_list,
-                            List<IR*> & occ_list);
+    bool promoteInexactAccess(
+            LI<IRBB> const* li,
+            IRBB * preheader,
+            IRBB * exit_bb,
+            TTab<IR*> & inexact_access,
+            IRIter & ii, TabIter<IR*> & ti);
+    bool promoteExactAccess(
+            LI<IRBB> const* li,
+            IRIter & ii,
+            TabIter<IR*> & ti,
+            IRBB * preheader,
+            IRBB * exit_bb,
+            TMap<MD const*, IR*> & cand_list,
+            List<IR*> & occ_list);
 
     void removeRedundantDUChain(List<IR*> & fixup_list);
     void replaceUseForTree(IR * oldir, IR * newir);
@@ -286,8 +300,7 @@ public:
         m_md2lt_map = new MD2MDLifeTime(c);
         m_mdlt_count = 0;
         m_pool = smpoolCreate(2 * sizeof(MD_LT), MEM_COMM);
-        m_ir_ptr_pool = smpoolCreate(4 * sizeof(SC<IR*>),
-                                             MEM_CONST_SIZE);
+        m_ir_ptr_pool = smpoolCreate(4 * sizeof(SC<IR*>), MEM_CONST_SIZE);
     }
     COPY_CONSTRUCTOR(IR_RP);
     virtual ~IR_RP()
@@ -315,6 +328,8 @@ public:
             if (mds == NULL) { continue; }
             m_mds_mgr->free(mds);
         }
+
+        m_dont_promot.clean(*m_misc_bs_mgr);
 
         delete m_md2lt_map;
         m_md2lt_map = NULL;

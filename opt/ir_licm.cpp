@@ -196,15 +196,13 @@ bool IR_LICM::markExpAndStmt(IR * ir, TTab<IR*> & invariant_exp)
         {
             //Hoisting CALL out of loop may be unsafe if the loop
             //will never execute.
-            IR * param = CALL_param_list(ir);
-            while (param != NULL) {
-                if (!param->is_const_exp() && !param->is_pr()) {
-                    if (!invariant_exp.find(param)) {
-                        invariant_exp.append(param);
+            for (IR * p = CALL_param_list(ir); p != NULL; p = p->get_next()) {
+                if (!p->is_const_exp() && !p->is_pr()) {
+                    if (!invariant_exp.find(p)) {
+                        invariant_exp.append(p);
                         change = true;
                     }
                 }
-                param = IR_next(param);
             }
 
             //The result of call may not be loop invariant.
@@ -710,13 +708,13 @@ bool IR_LICM::hoistCand(
                 //But the live-expr, reach-def, avail-reach-def set
                 //info of each BB changed.
             } else {
-                /* e.g: given
-                    n = cand_exp; //S1
-
-                Generate new stmt S2, change S1 to S3:
-                    p1 = cand_exp; //S2
-                    n = p1; //S3
-                move S2 into prehead BB. */
+                //e.g: given
+                //    n = cand_exp; //S1
+                //
+                //Generate new stmt S2, change S1 to S3:
+                //    p1 = cand_exp; //S2
+                //    n = p1; //S3
+                //move S2 into prehead BB.
                 IR * t = m_ru->buildPR(IR_dt(c));
                 bool f = stmt->replaceKid(c, t, false);
                 CK_USE(f);
@@ -766,7 +764,7 @@ bool IR_LICM::doLoopTree(
     if (li == NULL) { return false; }
     bool doit = false;
     for (LI<IRBB> * tli = li; tli != NULL; tli = LI_next(tli)) {
-        doLoopTree(LI_inner_list(tli), du_set_info_changed,
+        doit |= doLoopTree(LI_inner_list(tli), du_set_info_changed,
                    insert_bb, invariant_stmt, invariant_exp);
         analysis(tli, invariant_stmt, invariant_exp);
         //dumpInvariantExpStmt(invariant_stmt, invariant_exp);

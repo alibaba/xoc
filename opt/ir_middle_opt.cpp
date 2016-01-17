@@ -39,29 +39,17 @@ namespace xoc {
 void Region::lowerIRTreeToLowestHeight(OptCtx & oc)
 {
     SimpCtx simp;
-    if (g_is_lower_to_simplest) {
-        simp.set_simp_cf();
-        simp.set_simp_array();
-        simp.set_simp_select();
-        simp.set_simp_ild_ist();
-        simp.set_simp_land_lor();
-        simp.set_simp_lnot();
+    if (g_is_lower_to_pr_mode) {
         simp.set_simp_to_pr_mode();
-    } else {
-        simp.set_simp_to_lowest_heigh();
-        SIMP_array(&simp) = false; //Keep array operation unchanged.
-        SIMP_array_to_pr_mode(&simp) = true;
     }
 
     if (g_do_ssa) {
         //Note if this flag enable,
         //AA may generate imprecise result.
         //TODO: use SSA info to improve the precision of AA.
-        simp.set_simp_to_pr_mode();
-        simp.set_simp_select();
-        simp.set_simp_ild_ist();
         simp.set_simp_land_lor();
         simp.set_simp_lnot();
+        simp.set_simp_cf();
     }
 
     //Simplify IR tree if it is needed.

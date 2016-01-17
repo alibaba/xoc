@@ -195,7 +195,7 @@ extern bool g_show_memory_usage; //Show the memory usage to dump file.
 extern bool g_do_inline;
 extern UINT g_inline_threshold;
 extern bool g_is_opt_float; //Optimize float point operation.
-extern bool g_is_lower_to_simplest; //Lower IR to simplest form.
+extern bool g_is_lower_to_pr_mode; //Lower IR to PR mode.
 
 //Enable XOC support dynamic type.
 //That means the type of IR_ST, IR_LD, IR_STPR, IR_PR may be VOID.
@@ -213,19 +213,20 @@ extern bool g_do_cfg_pdom;
 extern bool g_do_cdg;
 extern bool g_do_aa;
 extern bool g_do_md_du_ana;
-extern bool g_do_compute_available_exp;
+extern bool g_compute_available_exp;
+extern bool g_compute_region_defuse_mdset;
 extern bool g_do_expr_tab;
 
 extern bool g_do_dce;
 
-/* Set true to eliminate control-flow-structures.
-Note this option may incur user unexpected result:
-e.g: If user is going to write a dead cyclic loop,
-    void non_return()
-    {
-        for (;;) {}
-    }
-Aggressive DCE will remove the above dead cycle. */
+//Set true to eliminate control-flow-structures.
+//Note this option may incur user unexpected result:
+//e.g: If user is going to write a dead cyclic loop,
+//    void non_return()
+//    {
+//        for (;;) {}
+//    }
+//Aggressive DCE will remove the above dead cycle.
 extern bool g_do_dce_aggressive;
 
 extern bool g_do_cp_aggressive; //It may cost much compile time.

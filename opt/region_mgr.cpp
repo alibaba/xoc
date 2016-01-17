@@ -63,33 +63,33 @@ RegionMgr::~RegionMgr()
 }
 
 
-/* Map string variable to dedicated string md.
-CASE: android/external/tagsoup/src/org/ccil/cowan/tagsoup/HTMLSchema.java
-    This method allocates 3000+ string variable.
-    Each string has been taken address.
-    It will bloat may_point_to_set.
-    So we need to regard all string variables as one if necessary. */
-MD const* RegionMgr::getDedicateStrMD()
+//Try to generate a MD to represent dedicated string md.
+//In case, e.g: android/external/tagsoup/src/org/ccil/cowan/tagsoup/HTMLSchema.java
+//There is a function allocates 3000+ string variable.
+//Each string has been taken address.
+//That will inflate may_point_to_set too much.
+//In this situation, AA can be conservatively regard all string variables
+//as same unbounded MD.
+MD const* RegionMgr::genDedicateStrMD()
 {
-    if (m_is_regard_str_as_same_md) {
-        //Regard all string variables as single one.
-        if (m_str_md == NULL) {
-            SYM * s  = addToSymbolTab("Dedicated_VAR_be_regarded_as_string");
-            VAR * sv = get_var_mgr()->
-                        registerStringVar("Dedicated_String_Var", s, 1);
-            VAR_allocable(sv) = false;
-            VAR_is_addr_taken(sv) = true;
-            MD md;
-            MD_base(&md) = sv;
-            MD_ty(&md) = MD_UNBOUND;
-            ASSERT0(MD_base(&md)->is_string());
-            MD const* e = m_md_sys->registerMD(md);
-            ASSERT0(MD_id(e) > 0);
-            m_str_md = e;
-        }
-        return m_str_md;
+    if (!m_is_regard_str_as_same_md) { return NULL; }
+
+    //Regard all string variables as same unbound MD.
+    if (m_str_md == NULL) {
+        SYM * s  = addToSymbolTab("Dedicated_VAR_be_regarded_as_string");
+        VAR * sv = get_var_mgr()->
+                     registerStringVar("Dedicated_String_Var", s, 1);
+        VAR_allocable(sv) = false;
+        VAR_is_addr_taken(sv) = true;
+        MD md;
+        MD_base(&md) = sv;
+        MD_ty(&md) = MD_UNBOUND; //
+        ASSERT0(MD_base(&md)->is_string());
+        MD const* e = m_md_sys->registerMD(md);
+        ASSERT0(MD_id(e) > 0);
+        m_str_md = e;
     }
-    return NULL;
+    return m_str_md;
 }
 
 
@@ -108,8 +108,13 @@ void RegionMgr::registerGlobalMDS()
             continue;
         }
 
-        ASSERT0(VAR_is_global(v) && VAR_allocable(v));
-        if (v->is_string() && getDedicateStrMD() != NULL) {
+        ASSERT0(VAR_is_global(v));
+
+        //User sometime intentionally declare non-allocable
+        //global variable to custmized usage.
+        //ASSERT0(VAR_allocable(v));
+
+        if (v->is_string() && genDedicateStrMD() != NULL) {
             continue;
         }
 
@@ -158,6 +163,7 @@ void RegionMgr::addToRegionTab(Region * ru)
 {
     ASSERT(REGION_id(ru) > 0, ("should generate new region via newRegion()"));
     ASSERT0(m_id2ru.get(REGION_id(ru)) == NULL);
+    ASSERT0(REGION_id(ru) < m_ru_count);
     m_id2ru.set(REGION_id(ru), ru);
 }
 
@@ -166,7 +172,9 @@ void RegionMgr::addToRegionTab(Region * ru)
 void RegionMgr::dumpRegion()
 {
     if (g_tfile == NULL) { return; }
-    fprintf(g_tfile, "\n==---- DUMP ALL Registered Region ----==");
+
+    g_indent = 0;
+    note("\n==---- DUMP ALL Registered Region ----==");
     for (INT id = 0; id <= m_id2ru.get_last_idx(); id++) {
         Region * ru = m_id2ru.get(id);
         if (ru == NULL) { continue; }
@@ -208,78 +216,43 @@ IPA * RegionMgr::allocIPA(Region * program)
 }
 
 
+void RegionMgr::estimateEV(UINT & num_call, UINT & num_ru, bool scan_call)
+{
+    for (UINT i = 0; i < getNumOfRegion(); i++) {
+        Region * ru = get_region(i);
+        if (ru == NULL) { continue; }
+
+        num_ru++;
+
+        ASSERT0(ru->is_function() || ru->is_program());
+        List<IR const*> * call_list = ru->get_call_list();
+        ASSERT0(call_list);
+        if (scan_call) {
+            call_list->clean();
+            ru->scanCallList(num_ru, *call_list, true);
+        }
+
+        if (call_list->get_elem_count() == 0) {
+            continue;
+        }
+
+        num_call += call_list->get_elem_count();
+    }
+    num_ru = MAX(4, xcom::getNearestPowerOf2(num_ru));
+    num_call = MAX(4, xcom::getNearestPowerOf2(num_call));
+}
+
+
 //Scan call site and build call graph.
-CallGraph * RegionMgr::initCallGraph(Region * top, bool scan_call)
+CallGraph * RegionMgr::initCallGraph(bool scan_call)
 {
     ASSERT0(m_call_graph == NULL);
     UINT vn = 0, en = 0;
-    IR * irs = top->get_ir_list();
-    while (irs != NULL) {
-        if (irs->is_region()) {
-            vn++;
-            Region * ru = REGION_ru(irs);
-            List<IR const*> * call_list = ru->get_call_list();
-            if (scan_call) {
-                ru->scanCallList(*call_list);
-            }
-            ASSERT0(call_list);
-            if (call_list->get_elem_count() == 0) {
-                irs = irs->get_next();
-                continue;
-            }
-            for (IR const* ir = call_list->get_head();
-                 ir != NULL; ir = call_list->get_next()) {
-                en++;
-            }
-        }
-        irs = irs->get_next();
-    }
-
-    vn = MAX(4, xcom::getNearestPowerOf2(vn));
-    en = MAX(4, xcom::getNearestPowerOf2(en));
+    estimateEV(en, vn, scan_call);
     m_call_graph = allocCallGraph(vn, en);
-    m_call_graph->build(top);
+    m_call_graph->build(this);
     return m_call_graph;
 }
-
-
-//#define MEMLEAKTEST
-#ifdef MEMLEAKTEST
-static void test_ru(RegionMgr * rm)
-{
-    Region * ru = NULL;
-    Region * program = rm->get_region(1);
-    ASSERT0(program);
-    for (IR * ir = program->get_ir_list(); ir != NULL; ir = ir->get_next()) {
-        if (ir->is_region()) {
-            ru = REGION_ru(ir);
-            break;
-        }
-    }
-
-    ASSERT0(ru);
-
-    INT i = 0;
-    VAR * v = ru->get_ru_var();
-    Region * x = new Region(RU_FUNC, rm);
-    while (i < 10000) {
-        x->init(RU_FUNC, rm);
-        x->set_ru_var(v);
-        IR * irs = ru->get_ir_list();
-        x->set_ir_list(x->dupIRTreeList(irs));
-        //g_do_ssa = true;
-        x->process();
-        //VarMgr * vm = x->get_var_mgr();
-        //vm->dump();
-        //MDSystem * ms = x->get_md_sys();
-        //ms->dumpAllMD();
-        tfree();
-        x->destroy();
-        i++;
-    }
-    return;
-}
-#endif
 
 
 //Process top-level region unit.
@@ -292,7 +265,7 @@ void RegionMgr::processProgramRegion(Region * program)
     OptCtx oc;
     if (g_do_inline) {
         //Need to scan call-list.
-        CallGraph * callg = initCallGraph(program, true);
+        CallGraph * callg = initCallGraph(true);
         UNUSED(callg);
         //callg->dump_vcg(get_dt_mgr(), NULL);
 
@@ -302,21 +275,12 @@ void RegionMgr::processProgramRegion(Region * program)
         inl.perform(oc);
     }
 
-    //Test mem leak.
-    //test_ru(this);
-    for (IR * ir = program->get_ir_list(); ir != NULL; ir = ir->get_next()) {
-        if (ir->is_region()) {
-            processFuncRegion(REGION_ru(ir));
-        } else {
-            ASSERT(0, ("TODO"));
-        }
-    }
-
+    program->process();
     if (g_do_ipa) {
         if (!OC_is_callg_valid(oc)) {
             //processFuncRegion has scanned and collected call-list.
             //Thus it does not need to scan call-list here.
-            initCallGraph(program, false);
+            initCallGraph(true);
             OC_is_callg_valid(oc) = true;
         }
 

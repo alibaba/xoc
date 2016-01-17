@@ -67,7 +67,9 @@ void VAR::dump(FILE * h, TypeMgr const* dm) const
         h = g_tfile;
     }
     if (h == NULL) { return; }
-    fprintf(h, "\n%s", dump(buf, dm));
+    fprintf(h, "\n");
+    dumpIndent(h, g_indent);
+    fprintf(h, "%s", dump(buf, dm));
     fflush(h);
 }
 
@@ -121,6 +123,10 @@ CHAR * VAR::dump(CHAR * buf, TypeMgr const* dm) const
 
     if (HAVE_FLAG(VAR_flag(this), VAR_FAKE)) {
         strcat(buf, ",fake");
+    }
+
+    if (HAVE_FLAG(VAR_flag(this), VAR_IS_LABEL)) {
+        strcat(buf, ",label");
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_IS_FORMAL_PARAM)) {
@@ -183,6 +189,7 @@ CHAR * VAR::dump(CHAR * buf, TypeMgr const* dm) const
     REMOVE_FLAG(tmpf, VAR_HAS_INIT_VAL);
     REMOVE_FLAG(tmpf, VAR_FUNC_DECL);
     REMOVE_FLAG(tmpf, VAR_FAKE);
+    REMOVE_FLAG(tmpf, VAR_IS_LABEL);
     REMOVE_FLAG(tmpf, VAR_IS_ARRAY);
     REMOVE_FLAG(tmpf, VAR_IS_FORMAL_PARAM);
     REMOVE_FLAG(tmpf, VAR_IS_SPILL);
@@ -220,10 +227,10 @@ void VarMgr::assignVarId(VAR * v)
 //related to properties.
 //'var_name': name of the variable, it is optional.
 VAR * VarMgr::registerVar(
-                CHAR const* varname,
-                Type const* type,
-                UINT align,
-                UINT flag)
+        CHAR const* varname,
+        Type const* type,
+        UINT align,
+        UINT flag)
 {
     ASSERT0(varname);
     SYM * sym = m_ru_mgr->addToSymbolTab(varname);
@@ -237,17 +244,18 @@ VAR * VarMgr::registerVar(
 //related to properties.
 //'var_name': name of the variable, it is optional.
 VAR * VarMgr::registerVar(
-                SYM * var_name,
-                Type const* type,
-                UINT align,
-                UINT flag)
+        SYM * var_name,
+        Type const* type,
+        UINT align,
+        UINT flag)
 {
-    //tyid may be undefined.
     ASSERT0(type);
     ASSERT(var_name, ("variable need a name"));
-    ASSERT(!type->is_string(), ("use registerStringVar instead of"));
 
-    VAR * v = newVar();
+    //VAR is string type, but not const string.
+    //ASSERT(!type->is_string(), ("use registerStringVar instead of"));
+
+    VAR * v = allocVAR();
     VAR_type(v) = type;
     VAR_name(v) = var_name;
     VAR_align(v) = align;
@@ -257,6 +265,7 @@ VAR * VarMgr::registerVar(
 }
 
 
+//Register VAR for const string.
 //Return VAR if there is already related to 's',
 //otherwise create a new VAR.
 //'var_name': name of the variable, it is optional.
@@ -269,7 +278,7 @@ VAR * VarMgr::registerStringVar(CHAR const* var_name, SYM * s, UINT align)
         return v;
     }
 
-    v = newVar();
+    v = allocVAR();
 
     CHAR buf[64];
     if (var_name == NULL) {
@@ -278,10 +287,12 @@ VAR * VarMgr::registerStringVar(CHAR const* var_name, SYM * s, UINT align)
     } else {
         VAR_name(v) = m_ru_mgr->addToSymbolTab(var_name);
     }
+
     VAR_str(v) = s;
     VAR_type(v) = m_tm->getString();
     VAR_align(v) = align;
-    VAR_is_global(v) = 1; //store in .data or .rodata
+    VAR_is_global(v) = true; //store in .data or .rodata
+    VAR_allocable(v) = true;
     assignVarId(v);
     m_str_tab.set(s, v);
     return v;

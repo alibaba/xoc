@@ -111,7 +111,7 @@ public:
         m_cnid2cn.set(CN_id(cn), cn);
         addVertex(CN_id(cn));
     }
-    void build(Region * top);
+    void build(RegionMgr * rumgr);
     void computeEntryList(List<CallNode*> & elst);
     void computeExitList(List<CallNode*> & elst);
 

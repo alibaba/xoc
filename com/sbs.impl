@@ -473,8 +473,8 @@ INT SBitSetCore<BitsPerSeg>::get_next(
 					return -1;
 				}
 				
-				start = SC_val(st)->get_start();
-				n = SC_val(st)->bs.get_first();
+				start = st->val()->get_start();
+				n = st->val()->bs.get_first();
 				ASSERT0(n >= 0);
 				return (INT)(start + (UINT)n);
 			}
@@ -485,8 +485,8 @@ INT SBitSetCore<BitsPerSeg>::get_next(
 	TSEGIter * st = *cur;
 	if (st == NULL) { return -1; }
 	
-	UINT start = SC_val(st)->get_start();
-	INT n = SC_val(st)->bs.get_next(elem - start);
+	UINT start = st->val()->get_start();
+	INT n = st->val()->bs.get_next(elem - start);
 	if (n >= 0) {
 		return (INT)(start + (UINT)n);
 	}
@@ -499,8 +499,8 @@ INT SBitSetCore<BitsPerSeg>::get_next(
 
 	//Update container.
 	*cur = st;
-	start = SC_val(st)->get_start();
-	n = SC_val(st)->bs.get_first();
+	start = st->val()->get_start();
+	n = st->val()->bs.get_first();
 	ASSERT0(n >= 0);
 	return (INT)(start + (UINT)n);
 }
@@ -568,7 +568,7 @@ bool SBitSetCore<BitsPerSeg>::is_contain(UINT elem) const
 {
 	for (TSEGIter * st = segs.get_head(); 
 		 st != segs.end(); st = segs.get_next(st)) {
-		SEG<BitsPerSeg> * seg = SC_val(st);
+		SEG<BitsPerSeg> * seg = st->val();
         UINT start = seg->get_start();
         if (elem < start) { return false; }
 		

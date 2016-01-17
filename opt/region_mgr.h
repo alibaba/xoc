@@ -85,6 +85,10 @@ protected:
     UINT m_label_count;
     bool m_is_regard_str_as_same_md;
     TargInfo * m_targinfo;
+
+protected:
+    void estimateEV(UINT & num_call, UINT & num_ru, bool scan_call);
+
 public:
     explicit RegionMgr() : m_sym_tab(0)
     {
@@ -124,9 +128,9 @@ public:
 
     BitSetMgr * get_bs_mgr() { return &m_bs_mgr; }
     virtual Region * get_region(UINT id) { return m_id2ru.get(id); }
-    UINT getNumOfRegion() const { return m_ru_count; }
+    UINT getNumOfRegion() const { return (UINT)(m_id2ru.get_last_idx() + 1); }
     VarMgr * get_var_mgr() { return m_var_mgr; }
-    MD const* getDedicateStrMD();
+    MD const* genDedicateStrMD();
     MDSystem * get_md_sys() { return m_md_sys; }
     SymTab * get_sym_tab() { return &m_sym_tab; }
     TypeMgr * get_type_mgr() { return &m_type_mgr; }
@@ -146,7 +150,7 @@ public:
     }
 
     //Scan call site and build call graph.
-    CallGraph * initCallGraph(Region * top, bool scan_call);
+    CallGraph * initCallGraph(bool scan_call);
 
     Region * newRegion(REGION_TYPE rt);
 

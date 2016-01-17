@@ -60,9 +60,9 @@ IRDesc const g_ir_desc[] = {
     {IR_IST,        "ist",       0x3,    2,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CIst)     },
     {IR_SETELEM,    "setepr",    0x3,    2,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CSetElem) },
     {IR_GETELEM,    "getepr",    0x3,    2,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CGetElem) },
-    {IR_CALL,       "call",      0x1,    1,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CCall)    },
-    {IR_ICALL,      "icall",     0x3,    2,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CICall)   },
-    {IR_LDA,        "lda",       0x1,    1,    IRT_IS_UNA,                                     sizeof(CLda)     },
+    {IR_CALL,       "call",      0x3,    2,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CCall)    },
+    {IR_ICALL,      "icall",     0x7,    3,    IRT_IS_STMT|IRT_IS_MEM_REF|IRT_HAS_RESULT,      sizeof(CICall)   },
+    {IR_LDA,        "lda",       0x0,    0,    IRT_IS_UNA|IRT_IS_LEAF,                         sizeof(CLda)     },
     {IR_ADD,        "add",       0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE|IRT_IS_COMMUTATIVE, sizeof(CBin)   },
     {IR_SUB,        "sub",       0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE,                    sizeof(CBin)   },
     {IR_MUL,        "mul",       0x3,    2,    IRT_IS_BIN|IRT_IS_ASSOCIATIVE|IRT_IS_COMMUTATIVE, sizeof(CBin)   },
@@ -354,21 +354,6 @@ bool verifyIRandBB(BBList * bblst, Region const* ru)
 }
 
 
-//Check for IR is lowest form.
-bool verifyLowestForm(BBList * ir_bb_list, Region * ru)
-{
-    CK_USE(ru);
-    for (IRBB * bb = ir_bb_list->get_head();
-         bb != NULL; bb = ir_bb_list->get_next()) {
-        for (IR * ir = BB_first_ir(bb);
-             ir != NULL; ir = BB_next_ir(bb)) {
-            ASSERT0(ru->isLowestHeight(ir));
-        }
-    }
-    return true;
-}
-
-
 //Function to verify stmt info after IR simplified.
 bool verify_simp(IR * ir_list, SimpCtx & simp)
 {
@@ -471,7 +456,8 @@ void dump_ir(IR const* ir,
              IN CHAR * attr,
              bool dump_kid,
              bool dump_src_line,
-             bool dump_addr)
+             bool dump_addr,
+             bool dump_inner_region)
 {
     UNUSED(dump_addr);
     UNUSED(dump_src_line);
@@ -976,7 +962,7 @@ void dump_ir(IR const* ir,
         PADDR(ir); fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(SELECT_det(ir), tm);
+            dump_irs(SELECT_pred(ir), tm);
             g_indent -= dn;
 
             g_indent += dn;
@@ -1000,18 +986,30 @@ void dump_ir(IR const* ir,
         }
         break;
     case IR_LDA: //Get address of a symbol
-        if (LDA_ofst(ir) != 0) {
-            note("\nlda:%s:offset(%d)", xdm->dump_type(d, buf), LDA_ofst(ir));
-        } else {
-            note("\nlda:%s", xdm->dump_type(d, buf));
-        }
+        {
+            CHAR tt[40];
+            tt[0] = 0;
 
-        PADDR(ir);
-        fprintf(g_tfile, "%s", attr);
-        if (dump_kid) {
-            g_indent += dn;
-            dump_irs(LDA_base(ir), tm);
-            g_indent -= dn;
+            //Dump variable info.
+            CHAR * name = xstrcat(tt, 40, "%s",
+                                SYM_name(VAR_name(LDA_idinfo(ir))));
+            buf[0] = 0;
+            if (LDA_ofst(ir) != 0) {
+                note("\nlda:%s:offset(%d) '%s'",
+                     xdm->dump_type(d, buf), LDA_ofst(ir), name);
+            } else {
+                note("\nlda:%s '%s'", xdm->dump_type(d, buf), name);
+            }
+
+            //Dump declaration if frontend supplied.
+            buf[0] = 0;
+            if (LDA_idinfo(ir)->dumpVARDecl(buf, 40) != NULL) {
+                fprintf(g_tfile, " decl:%s", buf);
+            }
+
+            //Dump IR address.
+            PADDR(ir);
+            fprintf(g_tfile, "%s", attr);
         }
         break;
       case IR_NEG: // -123
@@ -1074,15 +1072,19 @@ void dump_ir(IR const* ir,
             dump_irs(SWITCH_vexp(ir), tm);
             g_indent -= dn;
 
-            note("\ncase_list:");
-            g_indent += dn;
-            dump_irs(SWITCH_case_list(ir), tm);
-            g_indent -= dn;
+            if (SWITCH_case_list(ir) != NULL) {
+                note("\ncase_list:");
+                g_indent += dn;
+                dump_irs(SWITCH_case_list(ir), tm);
+                g_indent -= dn;
+            }
 
-            note("\nbody:");
-            g_indent += dn;
-            dump_irs(SWITCH_body(ir), tm);
-            g_indent -= dn;
+            if (SWITCH_body(ir) != NULL) {
+                note("\nbody:");
+                g_indent += dn;
+                dump_irs(SWITCH_body(ir), tm);
+                g_indent -= dn;
+            }
             note("\nend_switch");
         }
         break;
@@ -1187,18 +1189,28 @@ void dump_ir(IR const* ir,
                     g_indent -= dn;
                 }
 
-                //Dump parameter list.
-                IR * tmp = CALL_param_list(ir);
-                UINT i = 0;
                 CHAR tmpbuf[30];
-                while (tmp != NULL) {
+                UINT i = 0;
+
+                //Dump parameter list.
+                for (IR * p = CALL_param_list(ir); p != NULL; p = p->get_next()) {
                     sprintf(tmpbuf, " param%d", i);
                     g_indent += dn;
-                    dump_ir(tmp, tm, tmpbuf, dump_kid,
+                    dump_ir(p, tm, tmpbuf, dump_kid,
                             dump_src_line, dump_addr);
                     g_indent -= dn;
                     i++;
-                    tmp = IR_next(tmp);
+                }
+
+                //Dump dummy use.
+                i = 0;
+                for (IR * p = CALL_dummyuse(ir); p != NULL; p = p->get_next()) {
+                    sprintf(tmpbuf, " dummy%d", i);
+                    g_indent += dn;
+                    dump_ir(p, tm, tmpbuf, dump_kid,
+                            dump_src_line, dump_addr);
+                    g_indent -= dn;
+                    i++;
                 }
             }
             break;
@@ -1240,6 +1252,15 @@ void dump_ir(IR const* ir,
 
         PADDR(ir); //Dump IR address.
         fprintf(g_tfile, "%s", attr); //Dump attributes.
+
+        if (dump_inner_region) {
+            note("\nruinfo:");
+            //Inner region.
+            ASSERT0(REGION_ru(ir));
+            g_indent += dn;
+            REGION_ru(ir)->dump();
+            g_indent -= dn;
+        }
         break;
     case IR_UNDEF:
         note("\nundef!");
@@ -1342,7 +1363,7 @@ UINT getArithPrecedence(IR_TYPE ty)
 bool CRegion::is_readonly() const
 {
     ASSERT0(ru);
-    return REGION_is_readonly(ru);
+    return ru->is_readonly();
 }
 
 
@@ -1366,12 +1387,10 @@ bool IR::verify(Region const* ru) const
     } else if (d->is_mc()) {
         ASSERT0(TY_mc_size(d) != 0);
     } else {
-        /*
-        IR_mc_size may be not zero.
-        e.g: struct {int x;}s;
-            int a = s.x;
-            Here we get a IR_LD(s, offset=0, mc_size=4)
-        */
+        //IR_mc_size may be not zero.
+        //e.g: struct {int x;}s;
+        //    int a = s.x;
+        //    Here we get a IR_LD(s, offset=0, mc_size=4)
         //ASSERT0(IR_mc_size(this) == 0);
     }
 
@@ -1517,14 +1536,12 @@ bool IR::verify(Region const* ru) const
         }
         break;
     case IR_LDA:
+        ASSERT0(LDA_idinfo(this));
         ASSERT0(d);
-        ASSERT0(TY_dtype(d) != D_UNDEF);
-        ASSERT0(LDA_base(this)->is_id() ||
-                LDA_base(this)->is_str() ||
-                LDA_base(this)->is_lab());
-
+        ASSERT(TY_dtype(d) != D_UNDEF, ("size of load value cannot be zero"));
         ASSERT0(d->is_pointer());
-        ASSERT0(LDA_base(this)->is_single());
+        //Lda base can be general VAR, label, const string.
+        ASSERT(!VAR_is_fake(LDA_idinfo(this)), ("LDA's base must be effect VAR"));
         break;
     case IR_CALL:
         ASSERT0(CALL_idinfo(this));
@@ -1535,6 +1552,11 @@ bool IR::verify(Region const* ru) const
 
         //Parameters should be expression.
         for (IR * p = CALL_param_list(this); p != NULL; p = p->get_next()) {
+            ASSERT0(p->is_exp());
+        }
+
+        //Dummy uses should be expression.
+        for (IR * p = CALL_dummyuse(this); p != NULL; p = p->get_next()) {
             ASSERT0(p->is_exp());
         }
         break;
@@ -1567,6 +1589,16 @@ bool IR::verify(Region const* ru) const
         ASSERT0(BIN_opnd1(this)->is_single());
         break;
     case IR_ADD:
+        ASSERT0(d);
+        ASSERT0(TY_dtype(d) != D_UNDEF);
+        ASSERT0(BIN_opnd0(this) && BIN_opnd0(this)->is_exp() &&
+                BIN_opnd1(this) && BIN_opnd1(this)->is_exp());
+        ASSERT0(BIN_opnd0(this)->is_single());
+        ASSERT0(BIN_opnd1(this)->is_single());
+
+        //Opnd1 can not be pointer. e.g: &p-&q
+        ASSERT0(!BIN_opnd1(this)->is_ptr());
+        break;
     case IR_SUB:
     case IR_MUL:
     case IR_DIV:
@@ -1689,15 +1721,18 @@ bool IR::verify(Region const* ru) const
         break;
     case IR_SELECT:
         //true_exp's type might not equal to false_exp's.
-        ASSERT0(d);
-        ASSERT0(TY_dtype(d) != D_UNDEF);
-        ASSERT0(SELECT_trueexp(this) && SELECT_trueexp(this)->is_exp());
-        ASSERT0(SELECT_falseexp(this) && SELECT_falseexp(this)->is_exp());
-        ASSERT0(SELECT_det(this) && SELECT_det(this)->is_judge());
+        ASSERT0(d && TY_dtype(d) != D_UNDEF);
+        ASSERT0(SELECT_pred(this) &&
+                SELECT_pred(this)->is_bool() &&
+                SELECT_pred(this)->is_single());
 
-        ASSERT0(SELECT_trueexp(this)->is_single());
-        ASSERT0(SELECT_falseexp(this)->is_single());
-        ASSERT0(SELECT_det(this)->is_single());
+        ASSERT0(SELECT_trueexp(this) &&
+                SELECT_trueexp(this)->is_exp() &&
+                SELECT_trueexp(this)->is_single());
+
+        ASSERT0(SELECT_falseexp(this) &&
+                SELECT_falseexp(this)->is_exp() &&
+                SELECT_falseexp(this)->is_single());
         break;
     case IR_BREAK:
     case IR_CONTINUE:
@@ -1773,11 +1808,11 @@ bool IR::verifyKids() const
         }
         if (!HAVE_FLAG(IRDES_kid_map(g_ir_desc[IR_code(this)]), kidbit)) {
             ASSERT(k == NULL,
-                    ("IR_%s does not have No.%d kid", IRNAME(this), i));
+                   ("IR_%s does not have No.%d kid", IRNAME(this), i));
         } else {
             //Here, ith kid cannot be NULL.
-            /* CASE: Kind of node permit some of their kid to be NULL.
-            For now include IR_IF, IR_RETURN, IR_DO_LOOP, etc. */
+            //CASE: Kind of node permit some of their kid to be NULL.
+            //For now include IR_IF, IR_RETURN, IR_DO_LOOP, etc. */
             if (k == NULL) {
                 switch (IR_code(this)) {
                 case IR_IF:
@@ -1809,22 +1844,21 @@ bool IR::verifyKids() const
 }
 
 
-/* Calculate the accumulated offset value from the base of array.
-e.g: For given array long long p[10][20],
-the offset of p[i][j] can be computed by i*20 + j, and
-the offset of p[i] can be computed by i*20.
-
-If all the indice are constant value, calcuate the value, storing
-in 'ofst_val' and return true, otherwise return false, means the
-ofst can not be determined. */
+//Calculate the accumulated offset value from the base of array.
+//e.g: For given array long long p[10][20],
+//the offset of p[i][j] can be computed by i*20 + j, and
+//the offset of p[i] can be computed by i*20.
+//If all the indice are constant value, calcuate the value, storing
+//in 'ofst_val' and return True, otherwise return False that means the
+//Offset can not be predicated.
 bool IR::calcArrayOffset(TMWORD * ofst_val, TypeMgr * tm) const
 {
     if (!is_array() && !is_starray()) { return false; }
+    if (ARR_elem_num_buf(this) == NULL) { return false; }
 
     TMWORD aggr = 0;
     UINT dim = 0;
     for (IR const* s = ARR_sub_list(this); s != NULL; s = s->get_next(), dim++) {
-        ASSERT0(ARR_elem_num_buf(this));
         if (!s->is_const()) { return false; }
 
         ASSERT0(!s->is_fp() && CONST_int_val(s) >= 0);
@@ -1838,6 +1872,7 @@ bool IR::calcArrayOffset(TMWORD * ofst_val, TypeMgr * tm) const
                 (ULONGLONG)(LONGLONG)MARK_32BIT) == 0,
                ("allow 32bit array offset."));
 
+        ASSERT0(dim < ((CArray*)this)->getDimNum());
         ASSERT0(ARR_elem_num(this, dim) != 0);
         //Array index start at 0.
         if (dim == 0) {
@@ -1877,12 +1912,9 @@ bool IR::isIRListEqual(IR const* irs, bool is_cmp_kid) const
 //'is_cmp_kid': it is true if comparing kids as well.
 bool IR::is_ir_equal(IR const* src, bool is_cmp_kid) const
 {
-    ASSERT0(src != NULL);
-
-    //Compare opcode.
-    if (IR_code(this) != IR_code(src)) { return false; }
-
-    switch (IR_code(src)) {
+    ASSERT0(src);
+    if (get_code() != src->get_code()) { return false; }
+    switch (src->get_code()) {
     case IR_CONST: //Constant value: include integer, float, string.
         if (CONST_int_val(this) != CONST_int_val(src)) return false;
         break;
@@ -1897,8 +1929,7 @@ bool IR::is_ir_equal(IR const* src, bool is_cmp_kid) const
         }
         break;
     case IR_ILD:
-        if (ILD_ofst(this) != ILD_ofst(src) ||
-            get_type() != src->get_type()) {
+        if (ILD_ofst(this) != ILD_ofst(src) || get_type() != src->get_type()) {
             return false;
         }
         break;
@@ -1926,7 +1957,8 @@ bool IR::is_ir_equal(IR const* src, bool is_cmp_kid) const
         }
         break;
     case IR_LDA:
-        if (LDA_ofst(this) != LDA_ofst(src) ||
+        if (LDA_idinfo(this) != LDA_idinfo(src) ||
+            LDA_ofst(this) != LDA_ofst(src) ||
             get_type() != src->get_type()) {
             return false;
         }
@@ -2009,6 +2041,14 @@ bool IR::is_ir_equal(IR const* src, bool is_cmp_kid) const
     for (INT i = 0; i < IR_MAX_KID_NUM(this); i++) {
         IR * kid1 = get_kid(i);
         IR * kid2 = src->get_kid(i);
+
+        if (src->is_calls_stmt() &&
+            (kid1 == CALL_dummyuse(this) ||
+             kid2 == CALL_dummyuse(src))) {
+            //Do NOT check the equality of dummyuses.
+            continue;
+        }
+
         if ((kid1 != NULL) ^ (kid2 != NULL)) {
             return false;
         }
@@ -2205,7 +2245,7 @@ IR * IR::getOpndPR(UINT prno)
     case IR_FALSEBR:
         return BR_det(this)->getOpndPR(prno);
     case IR_SELECT:
-        if ((pr = SELECT_det(this)->getOpndPR(prno)) != NULL) {
+        if ((pr = SELECT_pred(this)->getOpndPR(prno)) != NULL) {
             return pr;
         }
         if ((pr = SELECT_trueexp(this)->getOpndPR(prno)) != NULL) {

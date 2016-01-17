@@ -46,13 +46,12 @@ namespace xoc {
 
 #define ERR_BUF_LEN 1024
 
-
 //Print \l as the Carriage Return.
 bool g_prt_carriage_return_for_dot = false;
 INT g_indent = 0;
-CHAR * g_indent_chars = (CHAR*)" ";
 FILE * g_tfile = NULL;
 static SMemPool * g_pool_tmp_used = NULL;
+static CHAR g_indent_chars = ' ';
 
 void interwarn(CHAR const* format, ...)
 {
@@ -146,11 +145,8 @@ void note(CHAR const* format, ...)
     }
 
     //Append indent chars ahead of string.
-    INT w = 0;
-    while (w < g_indent) {
-        fprintf(g_tfile, "%s", g_indent_chars);
-        w++;
-    }
+    ASSERT0(g_indent >= 0);
+    dumpIndent(g_tfile, g_indent);
 
     if (i == len) {
         fflush(g_tfile);
@@ -185,6 +181,15 @@ void tfree()
     if (g_pool_tmp_used != NULL) {
         smpoolDelete(g_pool_tmp_used);
         g_pool_tmp_used = NULL;
+    }
+}
+
+
+void dumpIndent(FILE * h, UINT indent)
+{
+    ASSERT0(indent < 10000);
+    for (; indent > 0; indent--) {
+        fprintf(h, "%c", g_indent_chars);
     }
 }
 

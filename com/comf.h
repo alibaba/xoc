@@ -37,11 +37,11 @@ author: Su Zhenyu
 namespace xcom {
 
 
-/* Singler timer, show const string before timer start.
-e.g:
-    START_TIMER("My Pass");
-    Run mypass();
-    END_TIMER(); */
+//Singler timer, show const string before timer start.
+//e.g:
+//    START_TIMER("My Pass");
+//    Run mypass();
+//    END_TIMER();
 #define START_TIMER(s)              \
     LONG _start_time_count_ = 0;    \
     if (g_show_comp_time) {         \
@@ -55,11 +55,11 @@ e.g:
     }
 
 
-/* Single timer, show const string after timer finish.
-e.g:
-    START_TIMER_AFTER();
-    Run mypass();
-    END_TIMER_AFTER("My Pass"); */
+//Single timer, show const string after timer finish.
+//e.g:
+//    START_TIMER_AFTER();
+//    Run mypass();
+//    END_TIMER_AFTER("My Pass");
 #define START_TIMER_AFTER()         \
     LONG _start_time_count_ = 0;    \
     if (g_show_comp_time) {         \
@@ -73,11 +73,11 @@ e.g:
     }
 
 
-/* Single timer, show format string after timer finish.
-e.g:
-    START_TIMER();
-    Run mypass();
-    END_TIMER_FMT(("My Pass Name%s", get_pass_name())); */
+//Single timer, show format string after timer finish.
+//e.g:
+//    START_TIMER();
+//    Run mypass();
+//    END_TIMER_FMT(("My Pass Name%s", get_pass_name()));
 #define START_TIMER_FMT()           \
     LONG _start_time_count_ = 0;    \
     if (g_show_comp_time) {         \
@@ -92,12 +92,12 @@ e.g:
     }
 
 
-/* Define multiple const string timers,
-and show const string before timer start.
-e.g:
-    START_TIMERS("My Pass", local_timer);
-    Run mypass();
-    END_TIMERS(local_timer); */
+//Define multiple const string timers,
+//and show const string before timer start.
+//e.g:
+//    START_TIMERS("My Pass", local_timer);
+//    Run mypass();
+//    END_TIMERS(local_timer);
 #define START_TIMERS(s, _timer_timer_) \
     LONG _timer_timer_ = 0;            \
     if (g_show_comp_time) {            \
@@ -152,6 +152,9 @@ UINT combin(UINT n, UINT m); //Combination
 //Ceil rounding alignment.
 //e.g  v=17 , align=4 , the result is 20.
 LONGLONG ceil_align(LONGLONG v, LONGLONG align);
+
+//Caculate the number of bits which longer enough to represent given constant.
+UINT computeConstBitLen(LONGLONG v);
 
 //Dumpf() for Vector<TY>.
 void dumpf_svec(void * vec, UINT ty, CHAR const* name, bool is_del);
@@ -218,7 +221,6 @@ UINT getSparsePopCount(ULONGLONG v);
 //Compute the power of 2, return the result.
 //Note v must be power of 2.
 UINT getPowerOf2(ULONGLONG v);
-UINT get_const_bit_len(LONGLONG v);
 
 //Extract file suffix.
 //e.g: Given a.foo, return foo.
@@ -257,11 +259,10 @@ bool is_integer(float f);
 
 //Judge if 'd' is integer conform to IEEE754 spec.
 bool is_integerd(double d);
-bool isPowerOf5(double f);
 
 //inline is necessary to avoid multiple define.
-inline bool isPowerOf2(ULONGLONG x)
-{ return (x != 0 && (x & (x-1)) == 0); }
+inline bool isPowerOf2(ULONGLONG x) { return (x != 0 && (x & (x-1)) == 0); }
+bool isPowerOf5(double f);
 
 //Prime Factorization.
 //e.g: 435234 = 251 * 17 * 17 * 3 * 2.
