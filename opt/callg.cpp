@@ -195,7 +195,7 @@ CallNode * CallGraph::newCallNode(IR const* ir)
 {
     ASSERT0(ir->is_calls_stmt());
     if (ir->is_call()) {
-        SYM const* name = VAR_name(CALL_idinfo(ir));
+        SYM const* name = CALL_idinfo(ir)->get_name();
         CallNode * cn  = m_sym2cn_map.get(name);
         if (cn != NULL) { return cn; }
 
@@ -217,7 +217,7 @@ CallNode * CallGraph::newCallNode(IR const* ir)
 CallNode * CallGraph::newCallNode(Region * ru)
 {
     ASSERT0(ru->is_function() || ru->is_program());
-    SYM const* name = VAR_name(ru->get_ru_var());
+    SYM const* name = ru->get_ru_var()->get_name();
     CallNode * cn = m_sym2cn_map.get(name);
     if (cn != NULL) {
         if (CN_ru(cn) == NULL) {
@@ -248,10 +248,9 @@ void CallGraph::build(RegionMgr * rumgr)
         ASSERT0(ru->is_function() || ru->is_program());
         CallNode * caller = newCallNode(ru);
         add_node(caller);
-        List<IR const*> * call_list = ru->get_call_list();
-        if (call_list->get_elem_count() == 0) {
-            continue;
-        }
+        List<IR const*> * call_list = ru->gen_call_list();
+        ASSERT0(call_list);
+        if (call_list->get_elem_count() == 0) { continue; }
 
         C<IR const*> * ct;
         for (call_list->get_head(&ct);

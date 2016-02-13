@@ -282,7 +282,7 @@ void dumpBBLabel(List<LabelInfo const*> & lablist, FILE * h)
         case L_PRAGMA:
             fprintf(h, "%s", SYM_name(LABEL_INFO_pragma(li)));
             break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
 
         if (LABEL_INFO_is_try_start(li) ||

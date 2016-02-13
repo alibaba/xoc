@@ -36,6 +36,101 @@ author: Su Zhenyu
 
 namespace xoc {
 
+void Region::HighProcessImpl(OptCtx & oc)
+{
+    if (g_do_cfg) {
+        ASSERT0(g_cst_bb_list);
+        checkValidAndRecompute(&oc, PASS_CFG, PASS_UNDEF);
+    }
+
+    if (g_do_ssa) {
+        //Note lowering IR now may be too early and will be
+        //a hindrance to optmizations.
+        //low_to_pr_mode(oc);
+        ASSERT0(get_pass_mgr());
+        IR_SSA_MGR * ssamgr =
+            (IR_SSA_MGR*)get_pass_mgr()->registerPass(PASS_SSA_MGR);
+        ASSERT0(ssamgr);
+        ssamgr->construction(oc);
+    }
+
+    if (g_do_aa) {
+        ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc));
+        checkValidAndRecompute(&oc, PASS_AA, PASS_UNDEF);
+    }
+
+    if (g_do_md_du_ana) {
+        ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc) && OC_is_aa_valid(oc));
+        ASSERT0(get_pass_mgr());
+        IR_DU_MGR * dumgr =
+            (IR_DU_MGR*)get_pass_mgr()->registerPass(PASS_DU_MGR);
+        ASSERT0(dumgr);
+        UINT f = SOL_REACH_DEF|SOL_REF;
+        if (g_do_ivr) {
+            f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR;
+        }
+
+        if (g_compute_available_exp) {
+            f |= SOL_AVAIL_EXPR;
+        }
+
+        if (g_compute_region_imported_defuse_md) {
+            f |= SOL_RU_REF;
+        }
+
+        if (g_compute_du_chain) {
+            f |= SOL_REACH_DEF;
+        }
+
+        dumgr->perform(oc, f);
+        if (g_compute_du_chain) {
+            dumgr->computeMDDUChain(oc);
+        }
+    }
+
+    if (g_do_expr_tab) {
+        ASSERT0(g_cst_bb_list);
+        checkValidAndRecompute(&oc, PASS_EXPR_TAB, PASS_UNDEF);
+    }
+
+    if (g_do_cdg) {
+        ASSERT0(g_cst_bb_list);
+        checkValidAndRecompute(&oc, PASS_CDG, PASS_UNDEF);
+    }
+
+    if (g_opt_level == NO_OPT) {
+        return;
+    }
+
+    /* Regenerate high level IR, and do high level optimizations.
+    Now, I get one thing: We cannot or not very easy
+    construct High Level Control IR,
+    (IF,DO_LOOP,...) via analysing CFG.
+        e.g:
+
+            if (i > j) { //BB1
+                ...
+            } else {
+                return 2; //S1
+            }
+        BB1 does not have a ipdom, so we can not find the indispensible 3 parts:
+            True body, False body, and the Sibling node.
+
+    Solution: We can scan IF stmt first, in order to mark
+    start stmt and end stmt of IF.
+
+    //AbsNode * an =
+        REGION_analysis_instrument(this)->m_cfs_mgr->construct_abstract_cfs();
+    //Polyhedra optimization.
+    //IR_POLY * poly = newPoly();
+    //if (poly->construct_poly(an)) {
+    //    poly->perform_poly_trans();
+    //}
+    //delete poly;
+    */
+}
+
+
 /* Perform high-level optimizaitions.
 Basis step to do:
     1. Build control flow graph.
@@ -62,12 +157,10 @@ bool Region::HighProcess(OptCtx & oc)
         ASSERT0(verify_irs(get_ir_list(), NULL, this));
     }
 
-    PassMgr * passmgr = initPassMgr();
-    ASSERT0(passmgr);
-
     if (g_build_cfs) {
+        ASSERT0(get_pass_mgr());
         SIMP_is_record_cfs(&simp) = true;
-        CfsMgr * cfsmgr = (CfsMgr*)passmgr->registerPass(PASS_CFS_MGR);
+        CfsMgr * cfsmgr = (CfsMgr*)get_pass_mgr()->registerPass(PASS_CFS_MGR);
         ASSERT0(cfsmgr);
         SIMP_cfs_mgr(&simp) = cfsmgr;
     }
@@ -83,98 +176,7 @@ bool Region::HighProcess(OptCtx & oc)
         set_ir_list(NULL); //All IRs have been moved to each IRBB.
     }
 
-    if (g_do_cfg) {
-        ASSERT0(g_cst_bb_list);
-        IR_CFG * cfg = (IR_CFG*)passmgr->registerPass(PASS_CFG);
-        ASSERT0(cfg);
-        cfg->initCfg(oc);
-        if (g_do_loop_ana) {
-            ASSERT0(g_do_cfg_dom);
-            cfg->LoopAnalysis(oc);
-        }
-    }
-
-    if (g_do_ssa) {
-        //Note lowering IR now may be too early and will be
-        //a hindrance to optmizations.
-        //low_to_pr_mode(oc);
-        IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)passmgr->registerPass(PASS_SSA_MGR);
-        ASSERT0(ssamgr);
-        ssamgr->construction(oc);
-    }
-
-    if (g_do_aa) {
-        ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc));
-        IR_AA * aa = (IR_AA*)passmgr->registerPass(PASS_AA);
-        ASSERT0(aa);
-        aa->initAliasAnalysis();
-        aa->perform(oc);
-    }
-
-    if (g_do_md_du_ana) {
-        ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc) && OC_is_aa_valid(oc));
-        IR_DU_MGR * dumgr = (IR_DU_MGR*)passmgr->registerPass(PASS_DU_MGR);
-        ASSERT0(dumgr);
-
-        UINT f = SOL_REACH_DEF|SOL_REF;
-        //f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR|SOL_RU_REF;
-
-        if (g_do_ivr) {
-            f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR;
-        }
-
-        if (g_compute_available_exp) {
-            f |= SOL_AVAIL_EXPR;
-        }
-
-        dumgr->perform(oc, f);
-        dumgr->computeMDDUChain(oc);
-    }
-
-    if (g_do_expr_tab) {
-        ASSERT0(g_cst_bb_list);
-        IR_EXPR_TAB * exprtab =
-            (IR_EXPR_TAB*)passmgr->registerPass(PASS_EXPR_TAB);
-        ASSERT0(exprtab);
-        exprtab->perform(oc);
-    }
-
-    if (g_do_cdg) {
-        ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc));
-        CDG * cdg = (CDG*)passmgr->registerPass(PASS_CDG);
-        ASSERT0(cdg);
-        cdg->build(oc, *get_cfg());
-    }
-
-    if (g_opt_level == NO_OPT) {
-        return false;
-    }
-
-    /* Regenerate high level IR, and do high level optimizations.
-    Now, I get one thing: We cannot or not very easy
-    construct High Level Control IR,
-    (IF,DO_LOOP,...) via analysing CFG.
-        e.g:
-
-            if (i > j) { //BB1
-                ...
-            } else {
-                return 2; //S1
-            }
-        BB1 does not have a ipdom, so we can not find the indispensible 3 parts:
-            True body, False body, and the Sibling node.
-
-    Solution: We can scan IF stmt first, in order to mark
-    start stmt and end stmt of IF.
-
-    //AbsNode * an = REGION_analysis_instrument(this)->m_cfs_mgr->construct_abstract_cfs();
-    //Polyhedra optimization.
-    //IR_POLY * poly = newPoly();
-    //if (poly->construct_poly(an)) {
-    //    poly->perform_poly_trans();
-    //}
-    //delete poly;
-    */
+    HighProcessImpl(oc);
     return true;
 }
 

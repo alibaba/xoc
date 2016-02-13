@@ -172,12 +172,13 @@ typedef enum _PASS_TYPE {
     PASS_POLY,
     PASS_PRDF,
     PASS_VRP,
-    PASS_IPA,
     PASS_SSA_MGR,
     PASS_CFS_MGR,
     PASS_POLY_TRAN,
     PASS_MD_SSA_MGR,
     PASS_MD_BUGPATTERN_MGR,
+    PASS_IPA,
+    PASS_INLINER,
     PASS_NUM,
 } PASS_TYPE;
 
@@ -213,8 +214,9 @@ extern bool g_do_cfg_pdom;
 extern bool g_do_cdg;
 extern bool g_do_aa;
 extern bool g_do_md_du_ana;
+extern bool g_compute_du_chain;
 extern bool g_compute_available_exp;
-extern bool g_compute_region_defuse_mdset;
+extern bool g_compute_region_imported_defuse_md;
 extern bool g_do_expr_tab;
 
 extern bool g_do_dce;

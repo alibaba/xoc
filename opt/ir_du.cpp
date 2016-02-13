@@ -61,7 +61,7 @@ MDId2IRlist::MDId2IRlist(Region * ru)
     m_tm = ru->get_type_mgr();
     m_du = ru->get_du_mgr();
     m_misc_bs_mgr = ru->getMiscBitSetMgr();
-    m_has_stmt_which_only_have_maydef = false;
+    m_are_stmts_defed_ineffect_md = false;
 }
 
 
@@ -91,7 +91,7 @@ void MDId2IRlist::clean()
     }
 
     m_global_md.clean(*m_misc_bs_mgr);
-    m_has_stmt_which_only_have_maydef = false;
+    m_are_stmts_defed_ineffect_md = false;
 
     //Do not clean DefSBitSet* here, it will incur memory leak.
     //TMap<UINT, DefSBitSetCore*>::clean();
@@ -221,7 +221,7 @@ IR_DU_MGR::~IR_DU_MGR()
 void IR_DU_MGR::computeOverlapUseMDSet(IR * ir, bool recompute)
 {
     bool has_init = false;
-    MD const* md = ir->get_ref_md();
+    MD const* md = ir->getRefMD();
     MDSet tmpmds;
     if (md != NULL) {
         if (MD_id(md) == MD_GLOBAL_MEM || MD_id(md) == MD_ALL_MEM) {
@@ -251,7 +251,7 @@ void IR_DU_MGR::computeOverlapUseMDSet(IR * ir, bool recompute)
     }
 
     //Compute overlapped md set for may-ref, may-ref may contain several MDs.
-    MDSet const* mds = ir->get_ref_mds();
+    MDSet const* mds = ir->getRefMDSet();
     if (mds != NULL) {
         if (!has_init) {
             has_init = true;
@@ -272,7 +272,7 @@ void IR_DU_MGR::computeOverlapUseMDSet(IR * ir, bool recompute)
 
     MDSet const* newmds = m_mds_hash->append(tmpmds);
     ASSERT0(newmds);
-    ir->set_ref_mds(newmds, m_ru);
+    ir->setRefMDSet(newmds, m_ru);
     tmpmds.clean(*m_misc_bs_mgr);
 }
 
@@ -597,7 +597,7 @@ static bool is_call_may_def_core(
 {
     //MD of use may be exact or inexact.
     MD const* use_md = use->get_effect_ref();
-    MDSet const* use_mds = use->get_ref_mds();
+    MDSet const* use_mds = use->getRefMDSet();
     if (call->is_exact_def(use_md, use_mds)) {
         return true;
     }
@@ -717,8 +717,8 @@ bool IR_DU_MGR::is_may_kill(IR const* def1, IR const* def2)
         MDSet const* maydef1;
         MDSet const* maydef2;
         if (!isPRUniqueForSameNo() &&
-            (maydef1 = def1->get_ref_mds()) != NULL &&
-            (maydef2 = def2->get_ref_mds()) != NULL) {
+            (maydef1 = def1->getRefMDSet()) != NULL &&
+            (maydef2 = def2->getRefMDSet()) != NULL) {
             return maydef1->is_intersect(*maydef2);
         }
     }
@@ -754,8 +754,8 @@ void IR_DU_MGR::computeArrayRef(IR * ir, OUT MDSet * ret_mds, UINT flag)
 {
     ASSERT0(ir->is_array_op());
 
-    ASSERT0((ir->get_ref_mds() && !ir->get_ref_mds()->is_empty()) ||
-             ir->get_ref_md());
+    ASSERT0((ir->getRefMDSet() && !ir->getRefMDSet()->is_empty()) ||
+             ir->getRefMD());
     if (HAVE_FLAG(flag, COMP_EXP_RECOMPUTE)) {
         computeOverlapUseMDSet(ir, false);
 
@@ -797,9 +797,9 @@ void IR_DU_MGR::computeExpression(IR * ir, OUT MDSet * ret_mds, UINT flag)
             //The result of MD ref should be avaiable.
 
             //We do not need MD or MDSET information of IR_ID.
-            //ASSERT0(ir->get_ref_md());
+            //ASSERT0(ir->getRefMD());
 
-            ASSERT0(ir->get_ref_mds() == NULL);
+            ASSERT0(ir->getRefMDSet() == NULL);
         } else if (HAVE_FLAG(flag, COMP_EXP_COLLECT_MUST_USE)) {
             ASSERT(0, ("should not be here."));
         }
@@ -807,10 +807,10 @@ void IR_DU_MGR::computeExpression(IR * ir, OUT MDSet * ret_mds, UINT flag)
     case IR_LD:
         if (HAVE_FLAG(flag, COMP_EXP_RECOMPUTE)) {
             //The result of ref info should be avaiable.
-            ASSERT0(ir->get_ref_md());
+            ASSERT0(ir->getRefMD());
 
             if (!ir->is_void()) {
-                ASSERT0(ir->get_ref_mds() == NULL);
+                ASSERT0(ir->getRefMDSet() == NULL);
             }
 
             //e.g: struct {int a;} s;
@@ -819,7 +819,7 @@ void IR_DU_MGR::computeExpression(IR * ir, OUT MDSet * ret_mds, UINT flag)
             //Where s and s.a is overlapped.
             computeOverlapUseMDSet(ir, false);
         } else if (HAVE_FLAG(flag, COMP_EXP_COLLECT_MUST_USE)) {
-            MD const* t = ir->get_ref_md();
+            MD const* t = ir->getRefMD();
             ASSERT0(t && t->is_exact());
             ret_mds->bunion_pure(MD_id(t), *m_misc_bs_mgr);
         }
@@ -834,7 +834,7 @@ void IR_DU_MGR::computeExpression(IR * ir, OUT MDSet * ret_mds, UINT flag)
             computeOverlapUseMDSet(ir, false);
         } else if (HAVE_FLAG(flag, COMP_EXP_COLLECT_MUST_USE)) {
             MD * use;
-            MDSet const* use_mds = ir->get_ref_mds();
+            MDSet const* use_mds = ir->getRefMDSet();
             if (use_mds != NULL &&
                 (use = use_mds->get_exact_md(m_md_sys)) != NULL) {
                 ret_mds->bunion(use, *m_misc_bs_mgr);
@@ -851,9 +851,9 @@ void IR_DU_MGR::computeExpression(IR * ir, OUT MDSet * ret_mds, UINT flag)
             //The result of MD ref should be avaiable.
 
             //We do not need MD or MDSET information of IR_ID.
-            //ASSERT0(ir->get_ref_md());
-            ASSERT0(ir->get_ref_md() == NULL);
-            ASSERT0(ir->get_ref_mds() == NULL);
+            //ASSERT0(ir->getRefMD());
+            ASSERT0(ir->getRefMD() == NULL);
+            ASSERT0(ir->getRefMDSet() == NULL);
         } else if (HAVE_FLAG(flag, COMP_EXP_COLLECT_MUST_USE)) {
             ASSERT(0, ("should not be here."));
         }
@@ -907,7 +907,7 @@ void IR_DU_MGR::computeExpression(IR * ir, OUT MDSet * ret_mds, UINT flag)
                 computeOverlapUseMDSet(ir, false);
             }
         } else if (HAVE_FLAG(flag, COMP_EXP_COLLECT_MUST_USE)) {
-            MD const* t = ir->get_ref_md();
+            MD const* t = ir->getRefMD();
             ASSERT0(t && t->is_exact());
             ret_mds->bunion(t, *m_misc_bs_mgr);
         }
@@ -1303,17 +1303,17 @@ void IR_DU_MGR::dumpRef(UINT indent)
         m_md_sys->dumpAllMD();
     }
 
-    //Dump region reference.
+    //Dump imported variables referenced.
     fprintf(g_tfile, "\n==----==");
     MDSet * ru_maydef = m_ru->get_may_def();
     if (ru_maydef != NULL) {
-        fprintf(g_tfile, "\nRegionMayDef:");
+        fprintf(g_tfile, "\nRegionMayDef(OuterRegion):");
         ru_maydef->dump(m_md_sys, true);
     }
 
     MDSet * ru_mayuse = m_ru->get_may_use();
     if (ru_mayuse != NULL) {
-        fprintf(g_tfile, "\nRegionMayUse:");
+        fprintf(g_tfile, "\nRegionMayUse(OuterRegion):");
         ru_mayuse->dump(m_md_sys, true);
     }
 
@@ -1349,8 +1349,8 @@ void IR_DU_MGR::dumpIRRef(IN IR * ir, UINT indent)
     dump_ir(ir, m_tm, NULL, false);
 
     //Dump mustref MD.
-    MD const* md = ir->get_ref_md();
-    MDSet const* mds = ir->get_ref_mds();
+    MD const* md = ir->getRefMD();
+    MDSet const* mds = ir->getRefMDSet();
 
     //MustDef
     bool prt_mustdef = false;
@@ -1376,7 +1376,7 @@ void IR_DU_MGR::dumpIRRef(IN IR * ir, UINT indent)
         bool doit = false;
         CallGraph * callg = m_ru->get_region_mgr()->get_call_graph();
         if (callg != NULL) {
-            Region * ru = callg->map_ir2ru(ir);
+            Region * ru = callg->map_call2ru(ir);
             if (ru != NULL && REGION_is_mddu_valid(ru)) {
                 MDSet const* muse = ru->get_may_use();
                 //May use
@@ -1388,9 +1388,10 @@ void IR_DU_MGR::dumpIRRef(IN IR * ir, UINT indent)
             }
         }
         if (!doit) {
-            //May use
+            //MayUse MDSet.
+            //Regard MayDef MDSet as MayUse.
             fprintf(g_tfile, " <-- ");
-            MDSet const* x = CALL_mayuse(ir);
+            MDSet const* x = ir->getRefMDSet();
             if (x != NULL && !x->is_empty()) {
                 x->dump(m_md_sys);
             }
@@ -1478,13 +1479,13 @@ void IR_DU_MGR::dumpBBDUChainDetail(IRBB * bb)
             }
 
             //Dump must ref.
-            MD const* md = k->get_ref_md();
+            MD const* md = k->getRefMD();
             if (md != NULL) {
                 fprintf(g_tfile, "MMD%d", MD_id(md));
             }
 
             //Dump may ref.
-            MDSet const* mds = k->get_ref_mds();
+            MDSet const* mds = k->getRefMDSet();
             if (mds != NULL && !mds->is_empty()) {
                 fprintf(g_tfile, ",");
                 SEGIter * iter;
@@ -1531,7 +1532,7 @@ void IR_DU_MGR::dumpDUChainDetail()
 {
     if (g_tfile == NULL) return;
     fprintf(g_tfile, "\n\n==---- DUMP '%s' DU_CHAIN Detail ----==\n",
-            m_ru->get_ru_name());
+             m_ru->get_ru_name());
     g_indent = 0;
     BBList * bbl = m_ru->get_bb_list();
     for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
@@ -1853,12 +1854,12 @@ void IR_DU_MGR::copyIRTreeDU(IR * to, IR const* from, bool copyDUChain)
          from_ir = iterNextC(m_citer)) {
         ASSERT0(to_ir->is_ir_equal(from_ir, true));
         if (!to_ir->is_memory_ref() && !to_ir->is_id()) {
-            //Copy MD for IR_ID also, some pass need it, e.g. GVN.
+            //Copy MD for IR_ID, some Passes need it, e.g. GVN.
             continue;
         }
 
-        to_ir->set_ref_md(from_ir->get_ref_md(), m_ru);
-        to_ir->set_ref_mds(from_ir->get_ref_mds(), m_ru);
+        to_ir->setRefMD(from_ir->getRefMD(), m_ru);
+        to_ir->setRefMDSet(from_ir->getRefMDSet(), m_ru);
 
         if (!copyDUChain) { continue; }
 
@@ -2374,14 +2375,14 @@ void IR_DU_MGR::collectMustUsedMDs(IR const* ir, OUT MDSet & mustuse)
     case IR_RETURN:
         computeExpression(RET_exp(ir), &mustuse, COMP_EXP_COLLECT_MUST_USE);
         return;
-    default: ASSERT0(0);
+    default: UNREACH();
     } //end switch
 }
 
 
 void IR_DU_MGR::inferStore(IR * ir)
 {
-    ASSERT0(ir->is_st() && ir->get_ref_md());
+    ASSERT0(ir->is_st() && ir->getRefMD());
 
     //Find ovelapped MD.
     //e.g: struct {int a;} s;
@@ -2404,7 +2405,7 @@ void IR_DU_MGR::inferStoreArray(IR * ir)
 
 void IR_DU_MGR::inferStorePR(IR * ir)
 {
-    ASSERT0(ir->is_stpr() && ir->get_ref_md() && ir->get_ref_mds() == NULL);
+    ASSERT0(ir->is_stpr() && ir->getRefMD() && ir->getRefMDSet() == NULL);
     if (!isPRUniqueForSameNo()) {
         computeOverlapUseMDSet(ir, false);
     }
@@ -2414,7 +2415,7 @@ void IR_DU_MGR::inferStorePR(IR * ir)
 
 void IR_DU_MGR::inferPhi(IR * ir)
 {
-    ASSERT0(ir->is_phi() && ir->get_ref_md() && ir->get_ref_mds() == NULL);
+    ASSERT0(ir->is_phi() && ir->getRefMD() && ir->getRefMDSet() == NULL);
     if (!isPRUniqueForSameNo()) {
         computeOverlapUseMDSet(ir, false);
     }
@@ -2422,8 +2423,8 @@ void IR_DU_MGR::inferPhi(IR * ir)
     //Set call result list MD.
     IR * r = PHI_opnd_list(ir);
     while (r != NULL) {
-        ASSERT0(r->get_ref_md() && r->get_ref_md()->is_pr());
-        ASSERT0(r->get_ref_mds() == NULL);
+        ASSERT0(r->getRefMD() && r->getRefMD()->is_pr());
+        ASSERT0(r->getRefMDSet() == NULL);
         computeExpression(r, NULL, COMP_EXP_RECOMPUTE);
         r = r->get_next();
     }
@@ -2437,8 +2438,8 @@ void IR_DU_MGR::inferIstore(IR * ir)
 
     //Compute DEF mdset. AA should guarantee either mustdef is not NULL or
     //maydef not NULL.
-    ASSERT0((ir->get_ref_mds() && !ir->get_ref_mds()->is_empty()) ^
-            (ir->get_ref_md() != NULL));
+    ASSERT0((ir->getRefMDSet() && !ir->getRefMDSet()->is_empty()) ^
+            (ir->getRefMD() != NULL));
 
     computeOverlapDefMDSet(ir, false);
     computeExpression(IST_rhs(ir), NULL, COMP_EXP_RECOMPUTE);
@@ -2482,13 +2483,13 @@ void IR_DU_MGR::inferCall(IR * ir, IN MD2MDSet * mx)
                  maydefuse, tmpmds, m_tab_iter, *m_misc_bs_mgr, true);
     maydefuse.bunion_pure(tmpmds, *m_misc_bs_mgr);
 
-    //Set to refer global memory.
-    maydefuse.bunion(m_md_sys->get_md(MD_GLOBAL_MEM), *m_misc_bs_mgr);
-    CALL_mayuse(ir) = m_mds_hash->append(maydefuse);
-    maydefuse.clean(*m_misc_bs_mgr);
-    if (ir->is_readonly_call()) {
-        ir->cleanRefMDSet();
+    if (!ir->is_readonly_call()) {
+        //For conservative purpose.
+        //Set to mod/ref global memory for conservative purpose.
+        maydefuse.bunion(m_md_sys->get_md(MD_GLOBAL_MEM), *m_misc_bs_mgr);
     }
+    ir->setRefMDSet(m_mds_hash->append(maydefuse), m_ru);
+    maydefuse.clean(*m_misc_bs_mgr);
     tmpmds.clean(*m_misc_bs_mgr);
 }
 
@@ -2546,7 +2547,7 @@ void IR_DU_MGR::collectMayUse(IR const* ir, MDSet & may_use, bool computePR)
             bool done = false;
             CallGraph * callg = m_ru->get_region_mgr()->get_call_graph();
             if (callg != NULL) {
-                Region * ru = callg->map_ir2ru(ir);
+                Region * ru = callg->map_call2ru(ir);
                 if (ru != NULL && REGION_is_mddu_valid(ru)) {
                     MDSet const* muse = ru->get_may_use();
                     if (muse != NULL) {
@@ -2557,7 +2558,8 @@ void IR_DU_MGR::collectMayUse(IR const* ir, MDSet & may_use, bool computePR)
             }
 
             if (!done) {
-                MDSet const* muse = CALL_mayuse(ir);
+                //Regard CALL/ICALL's MayDef MDSet as MayUse.
+                MDSet const* muse = ir->getRefMDSet();
                 if (muse != NULL) {
                     may_use.bunion(*muse, *m_misc_bs_mgr);
                 }
@@ -2600,6 +2602,13 @@ void IR_DU_MGR::collectMayUseRecursive(
     case IR_STPR:
         collectMayUseRecursive(STPR_rhs(ir), may_use, computePR);
         return;
+    case IR_STARRAY:
+        for (IR * s = ARR_sub_list(ir); s != NULL; s = s->get_next()) {
+            collectMayUseRecursive(s, may_use, computePR);
+        }
+        collectMayUseRecursive(ARR_base(ir), may_use, computePR);
+        collectMayUseRecursive(STARR_rhs(ir), may_use, computePR);
+        return;
     case IR_ILD:
         collectMayUseRecursive(ILD_base(ir), may_use, computePR);
         ASSERT0(ir->get_parent() != NULL);
@@ -2636,7 +2645,7 @@ void IR_DU_MGR::collectMayUseRecursive(
             bool done = false;
             CallGraph * callg = m_ru->get_region_mgr()->get_call_graph();
             if (callg != NULL) {
-                Region * ru = callg->map_ir2ru(ir);
+                Region * ru = callg->map_call2ru(ir);
                 if (ru != NULL && REGION_is_mddu_valid(ru)) {
                     MDSet const* muse = ru->get_may_use();
                     if (muse != NULL) {
@@ -2646,7 +2655,8 @@ void IR_DU_MGR::collectMayUseRecursive(
                 }
             }
             if (!done) {
-                MDSet const* muse = CALL_mayuse(ir);
+                //Regard MayDef MDSet as MayUse.
+                MDSet const* muse = ir->getRefMDSet();
                 if (muse != NULL) {
                     may_use.bunion(*muse, *m_misc_bs_mgr);
                 }
@@ -2694,16 +2704,14 @@ void IR_DU_MGR::collectMayUseRecursive(
     case IR_ARRAY:
         {
             ASSERT0(ir->get_parent() != NULL);
-            if (!ir->get_parent()->is_lda()) {
-                 MD const* t = get_must_use(ir);
-                if (t != NULL) {
-                    may_use.bunion(t, *m_misc_bs_mgr);
-                }
+            MD const* t = get_must_use(ir);
+            if (t != NULL) {
+                may_use.bunion(t, *m_misc_bs_mgr);
+            }
 
-                MDSet const* ts = get_may_use(ir);
-                if (ts != NULL) {
-                    may_use.bunion(*ts, *m_misc_bs_mgr);
-                }
+            MDSet const* ts = get_may_use(ir);
+            if (ts != NULL) {
+                may_use.bunion(*ts, *m_misc_bs_mgr);
             }
 
             for (IR * s = ARR_sub_list(ir); s != NULL; s = s->get_next()) {
@@ -2756,7 +2764,7 @@ void IR_DU_MGR::collectMayUseRecursive(
             }
         }
         return;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 }
 
@@ -3005,7 +3013,7 @@ void IR_DU_MGR::computeMDRef()
                 //The memory reference information of Region
                 //should already be avaiable.
                 break;
-            default: ASSERT0(0);
+            default: UNREACH();
             }
         }
     }
@@ -3376,7 +3384,7 @@ void IR_DU_MGR::computeGenForBB(
                 }
             }
             break;
-        default: ASSERT0(0);
+        default: UNREACH();
         } //end switch
     } //end for each IR
 }
@@ -3760,13 +3768,14 @@ IR const* IR_DU_MGR::findKillingLocalDef(
             MD const* expmd)
 {
     ASSERT0(!exp->is_pr() || isComputePRDU());
+    ASSERT(expmd->is_exact(), ("only exact md has killing-def"));
 
     C<IR*> * localct(ct);
     for (IR * ir = BB_irlist(bb).get_prev(&localct);
          ir != NULL; ir = BB_irlist(bb).get_prev(&localct)) {
         if (!ir->is_memory_ref()) { continue; }
 
-        MD const* mustdef = ir->get_ref_md();
+        MD const* mustdef = ir->getRefMD();
         if (mustdef != NULL) {
             if (mustdef == expmd || mustdef->is_overlap(expmd)) {
                 if (mustdef->is_exact()) {
@@ -3790,7 +3799,7 @@ IR const* IR_DU_MGR::findKillingLocalDef(
         }
 
         //We need to check maydef.
-        MDSet const* maydefs = ir->get_ref_mds();
+        MDSet const* maydefs = ir->getRefMDSet();
         if (maydefs != NULL && maydefs->is_contain(expmd)) {
             //There is a nonkilling DEF, ir may modified expmd.
             //The subsequent searching is meaningless.
@@ -3895,7 +3904,7 @@ void IR_DU_MGR::checkAndBuildChainRecursive(IRBB * bb, IR * exp, C<IR*> * ct)
     case IR_CASE:
         checkAndBuildChainRecursive(bb, CASE_vexp(exp), ct);
         return;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 
     DUSet * xdu = getAndAllocDUSet(exp);
@@ -3906,8 +3915,8 @@ void IR_DU_MGR::checkAndBuildChainRecursive(IRBB * bb, IR * exp, C<IR*> * ct)
 
     MD const* xmd = get_must_use(exp);
     bool has_local_killing_def = false;
-    if (xmd != NULL) {
-        ASSERT(xmd->is_effect(), ("MustUse should be effect"));
+    if (xmd != NULL && xmd->is_exact()) {
+        //Only must-exact USE has qualification to compute killing-def.
         has_local_killing_def =
             buildLocalDUChain(bb, exp, xmd, xdu, ct);
     }
@@ -3916,13 +3925,13 @@ void IR_DU_MGR::checkAndBuildChainRecursive(IRBB * bb, IR * exp, C<IR*> * ct)
 
     if (xmd != NULL) {
         //Find nonkilling def for must-use of x.
-        buildChainForMust(exp, xmd, xdu);
+        checkMustMDAndBuildDUChain(exp, xmd, xdu);
     }
 
     if (xmd == NULL || m_md2irs->hasIneffectDef()) {
         MDSet const* xmds = get_may_use(exp);
         if (xmds != NULL) {
-            buildChainForMDSet(exp, xmd, *xmds, xdu);
+            checkMDSetAndBuildDUChain(exp, xmd, *xmds, xdu);
         }
     }
 }
@@ -4078,169 +4087,114 @@ UINT IR_DU_MGR::checkIsNonLocalKillingDef(IR const* stmt, IR const* exp)
 }
 
 
-//Check and build DU chain for operand accroding to md.
-void IR_DU_MGR::buildChainForMust(IR const* exp, MD const* expmd, DUSet * expdu)
+void IR_DU_MGR::checkDefSetToBuildDUChain(
+        IR const* exp,
+        MD const* expmd,
+        MDSet const* expmds,
+        DUSet * expdu,
+        DefSBitSetCore const* defset,
+        IRBB * curbb)
 {
-    ASSERT0(exp && expmd && expdu);
     SEGIter * sc = NULL;
-    UINT id = IR_id(exp);
-    INT mdid = MD_id(expmd);
-    DefSBitSetCore const* defset = m_md2irs->get(mdid);
-    if (defset == NULL) { return; }
+    for (INT d = defset->get_first(&sc); d >= 0; d = defset->get_next(d, &sc)) {
+        IR * def = m_ru->get_ir(d);
+        ASSERT0(def->is_stmt());
 
-    IRBB * curbb = exp->get_stmt()->get_bb();
-    for (INT d = defset->get_first(&sc);
-         d >= 0; d = defset->get_next(d, &sc)) {
-        IR * stmt = m_ru->get_ir(d);
-        ASSERT0(stmt->is_stmt());
         bool build_du = false;
-
-        MD const* m;
-        MDSet const* ms;
-        if ((m = get_must_def(stmt)) != NULL) {
-            //If def has must reference, we do not consider
-            //maydef set any more.
-            ASSERT(!MD_is_may(m), ("m can not be mustdef."));
-            if (expmd == m || expmd->is_overlap(m)) {
-                if (m->is_exact()) {
+        MD const* mustdef = get_must_def(def);
+        bool consider_maydef = false;
+        if (expmd != NULL && mustdef != NULL) {
+            //If def has MustDef (exact|effect) MD, then we do
+            //not consider MayDef MDSet if the def is neither CALL|ICALL
+            //nor REGION.
+            ASSERT(!MD_is_may(mustdef), ("MayMD can not be mustdef."));
+            if (expmd == mustdef || expmd->is_overlap(mustdef)) {
+                if (mustdef->is_exact()) {
                     build_du = true;
-                } else if (stmt->get_bb() == curbb) {
+                } else if (def->get_bb() == curbb) {
                     //If stmt is at same bb with exp, then
                     //we can not determine whether they are independent,
                     //because if they are, the situation should be processed
                     //in buildLocalDUChain().
                     //Build du chain for conservative purpose.
+                    //Nonkilling Def.
                     build_du = true;
                 } else {
-                    UINT result = checkIsNonLocalKillingDef(stmt, exp);
+                    UINT result = checkIsNonLocalKillingDef(def, exp);
                     if (result == CK_OVERLAP || result == CK_UNKNOWN) {
+                        //Nonkilling Def.
                         build_du = true;
                     }
                 }
+            } else if (def->is_calls_stmt() || def->is_region()) {
+                //If def is CALL, ICALL, REGION which has sideeffect,
+                //then we should consider MayDef MDSet as well.
+                consider_maydef = true;
             }
-        } else if ((ms = get_may_def(stmt)) != NULL && ms->is_contain(expmd)) {
-            //Check to find Nonkilling Def if stmt's maydef set contain expmd.
-            build_du = true;
+        } else {
+            consider_maydef = true;
+        }
+
+        if (consider_maydef) {
+            MDSet const* maydef = get_may_def(def);
+            if (maydef != NULL &&
+                ((maydef == expmds ||
+                  (expmds != NULL && maydef->is_intersect(*expmds))) ||
+                 (expmd != NULL && maydef->is_overlap(expmd)))) {
+                //Nonkilling Def.
+                build_du = true;
+            } else if (mustdef != NULL &&
+                       expmds != NULL &&
+                       expmds->is_overlap(mustdef)) {
+                //Killing Def if mustdef is exact, or else is nonkilling def.
+                build_du = true;
+            }
         }
 
         if (build_du) {
-            //Build DU chain between exp and stmt.
             expdu->add(d, *m_misc_bs_mgr);
 
-            DUSet * def_useset = getAndAllocDUSet(stmt);
+            DUSet * def_useset = getAndAllocDUSet(def);
             if (!m_is_init->is_contain(d)) {
                 m_is_init->bunion(d);
                 def_useset->clean(*m_misc_bs_mgr);
             }
-            def_useset->add(id, *m_misc_bs_mgr);
+            def_useset->add(IR_id(exp), *m_misc_bs_mgr);
         }
     }
 }
 
 
-//Check and build DU chain for operand accroding to md.
-void IR_DU_MGR::buildChainForMD(IR const* exp, MD const* expmd, DUSet * expdu)
+//Check and build DU chain to IR Expression accroding to MustUse MD.
+void IR_DU_MGR::checkMustMDAndBuildDUChain(
+        IR const* exp,
+        MD const* expmd,
+        DUSet * expdu)
 {
     ASSERT0(exp && expmd && expdu);
-    SEGIter * sc = NULL;
-    UINT id = IR_id(exp);
-    INT mdid = MD_id(expmd);
-    DefSBitSetCore const* defset = m_md2irs->get(mdid);
+    DefSBitSetCore const* defset = m_md2irs->get(MD_id(expmd));
     if (defset == NULL) { return; }
-
-    for (INT d = defset->get_first(&sc);
-         d >= 0; d = defset->get_next(d, &sc)) {
-        IR * stmt = m_ru->get_ir(d);
-        ASSERT0(stmt->is_stmt());
-
-        bool build_du = false;
-        MD const* m;
-        MDSet const* ms;
-        if ((m = get_must_def(stmt)) == expmd) {
-            //If mustdef is exact, killing def, otherwise nonkilling def.
-            build_du = true;
-        } else if ((ms = get_may_def(stmt)) != NULL && ms->is_contain(expmd)) {
-            //Nonkilling Def.
-            build_du = true;
-        }
-        if (build_du) {
-            expdu->add(d, *m_misc_bs_mgr);
-
-            DUSet * def_useset = getAndAllocDUSet(stmt);
-            if (!m_is_init->is_contain(d)) {
-                m_is_init->bunion(d);
-                def_useset->clean(*m_misc_bs_mgr);
-            }
-            def_useset->add(id, *m_misc_bs_mgr);
-        }
-    }
+    IRBB * curbb = exp->get_stmt()->get_bb();
+    checkDefSetToBuildDUChain(exp, expmd, NULL, expdu, defset, curbb);
+    return;
 }
 
 
-//Check and build DU chain for operand accroding to mds.
-void IR_DU_MGR::buildChainForMDSet(
+//Check and build DU chain to IR Expression accroding to MDSet.
+void IR_DU_MGR::checkMDSetAndBuildDUChain(
         IR const* exp,
         MD const* expmd,
         MDSet const& expmds,
         DUSet * expdu)
 {
     ASSERT0(expdu);
-    SEGIter * sc = NULL;
-    UINT id = IR_id(exp);
     IRBB * curbb = exp->get_stmt()->get_bb();
-
     SEGIter * iter;
     for (INT u = expmds.get_first(&iter);
          u >= 0; u = expmds.get_next(u, &iter)) {
         DefSBitSetCore const* defset = m_md2irs->get(u);
         if (defset == NULL) { continue; }
-
-        for (INT d = defset->get_first(&sc);
-             d >= 0; d = defset->get_next(d, &sc)) {
-            IR * stmt = m_ru->get_ir(d);
-            ASSERT0(stmt->is_stmt());
-
-            bool build_du = false;
-            MD const* m;
-            MDSet const* ms;
-            if (expmd != NULL && (m = get_must_def(stmt)) != NULL) {
-                //If def has must reference, we do not consider
-                //maydef set any more.
-                ASSERT(!MD_is_may(m), ("m can not be mustdef."));
-                if (expmd == m || expmd->is_overlap(m)) {
-                    if (m->is_exact()) {
-                        build_du = true;
-                    } else if (stmt->get_bb() == curbb) {
-                        //If stmt is at same bb with exp, then
-                        //we can not determine whether they are independent,
-                        //because if they are, the situation should be processed
-                        //in buildLocalDUChain().
-                        //Build du chain for conservative purpose.
-                        build_du = true;
-                    } else {
-                        UINT result = checkIsNonLocalKillingDef(stmt, exp);
-                        if (result == CK_OVERLAP || result == CK_UNKNOWN) {
-                            build_du = true;
-                        }
-                    }
-                }
-            } else if ((ms = get_may_def(stmt)) != NULL &&
-                       (ms == &expmds || ms->is_intersect(expmds))) {
-                //Nonkilling Def.
-                build_du = true;
-            }
-
-            if (build_du) {
-                expdu->add(d, *m_misc_bs_mgr);
-
-                DUSet * def_useset = getAndAllocDUSet(stmt);
-                if (!m_is_init->is_contain(d)) {
-                    m_is_init->bunion(d);
-                    def_useset->clean(*m_misc_bs_mgr);
-                }
-                def_useset->add(id, *m_misc_bs_mgr);
-            }
-        }
+        checkDefSetToBuildDUChain(exp, expmd, &expmds, expdu, defset, curbb);
     }
 }
 
@@ -4248,7 +4202,7 @@ void IR_DU_MGR::buildChainForMDSet(
 void IR_DU_MGR::updateRegion(IR * ir)
 {
     //Regard region only has may-def.
-    m_md2irs->markStmtOnlyHasMaydef();
+    m_md2irs->setHasIneffectDef();
     MDSet const* maydef = REGION_ru(ir)->get_may_def();
     if (maydef != NULL) {
         //May kill DEF stmt of overlap-set of md.
@@ -4257,6 +4211,100 @@ void IR_DU_MGR::updateRegion(IR * ir)
              i >= 0; i = maydef->get_next(i, &iter)) {
             ASSERT0(m_md_sys->get_md(i));
             m_md2irs->append(i, ir);
+        }
+    }
+}
+
+
+void IR_DU_MGR::updateDefWithMustExactMD(IR * ir, MD const* mustexact)
+{
+    ASSERT0(mustexact && mustexact->is_exact());
+
+    //Handle exactly killing def. This def kills
+    //prior DEF stmt to exact md.
+    m_md2irs->set(MD_id(mustexact), ir);
+
+    //Pick off stmt from md's definition-list.
+    //e.g: Assume the md of struct {int a;} s is MD13, and s.a is MD4,
+    //then MD4 and MD13 are overlapped.
+    //    MD13 has overlap-def in list:
+    //        s.a = 10;
+    //When we meet exact definition to MD4, it kill all lived
+    //stmts that exact-def MD4, also include the
+    //stmt in MD13's def-list.
+    MDSet const* maydef = get_may_def(ir);
+    if (maydef != NULL) {
+        SEGIter * iter;
+        for (INT i = maydef->get_first(&iter);
+             i >= 0; i = maydef->get_next(i, &iter)) {
+            if (MD_id(mustexact) == (UINT)i) {
+                //Already add to md2irs.
+                continue;
+            }
+
+            ASSERT0(m_md_sys->get_md(i));
+            if (!m_md_sys->get_md(i)->is_exact()) {
+                //ir is non-killing def related to ith MD.
+                m_md2irs->append(i, ir);
+                continue;
+            }
+
+            DefSBitSetCore * dlst = m_md2irs->get(i);
+            if (dlst == NULL) { continue; }
+
+            SEGIter * sc = NULL;
+            INT nk;
+            for (INT k = dlst->get_first(&sc); k >= 0; k = nk) {
+                nk = dlst->get_next(k, &sc);
+                ASSERT0(m_ru->get_ir(k) && m_ru->get_ir(k)->is_stmt());
+                MD const* w = m_ru->get_ir(k)->get_exact_ref();
+                if (mustexact == w || (w != NULL && mustexact->is_cover(w))) {
+                    //Current ir stmt killed stmt k as well.
+                    dlst->diff(k, *m_misc_bs_mgr);
+                }
+            }
+        }
+    }
+}
+
+
+void IR_DU_MGR::updateDefWithMustEffectMD(IR * ir, MD const* musteffect)
+{
+    ASSERT0(musteffect == NULL ||
+            (musteffect->is_effect() && !musteffect->is_exact()));
+
+    //Handle inexactly nonkilling DEF.
+    //And alloc overlapped MDSet for DEF as maydef.
+    if (musteffect != NULL) {
+        ASSERT0(musteffect->is_effect());
+        m_md2irs->append(musteffect, ir);
+    } else {
+        m_md2irs->setHasIneffectDef();
+    }
+
+    MDSet const* maydef = get_may_def(ir);
+    if (maydef != NULL) {
+        //ir might kill stmts which has overlapped MDSet with md.
+        if (musteffect != NULL) {
+            UINT mustid = MD_id(musteffect);
+            SEGIter * iter;
+            for (INT i = maydef->get_first(&iter);
+                 i >= 0; i = maydef->get_next(i, &iter)) {
+                if (mustid == (UINT)i) {
+                    //Already add to md2irs.
+                    continue;
+                }
+
+                ASSERT0(m_md_sys->get_md(i));
+                m_md2irs->append(i, ir);
+            }
+        } else {
+            SEGIter * iter;
+            for (INT i = maydef->get_first(&iter);
+                 i >= 0; i = maydef->get_next(i, &iter)) {
+                ASSERT0(m_md_sys->get_md(i));
+                m_md2irs->append(i, ir);
+            }
         }
     }
 }
@@ -4280,81 +4328,11 @@ void IR_DU_MGR::updateDef(IR * ir)
     ASSERT0(ir->is_st() || ir->is_ist() || ir->is_starray() ||
             ir->is_stpr() || ir->is_phi() || ir->is_calls_stmt());
 
-    //Handle general stmt.
-
-    MD const* must = ir->get_ref_md();
+    MD const* must = ir->getRefMD();
     if (must != NULL && must->is_exact()) {
-        //Handle exactly killing def. This def kills
-        //prior DEF stmt to exact md.
-        m_md2irs->set(MD_id(must), ir);
-
-        //Pick off stmt from md's definition-list.
-        //e.g: Assume the md of struct {int a;} s is MD13, and s.a is MD4,
-        //then MD4 and MD13 are overlapped.
-        //    MD13 has overlap-def in list:
-        //        s.a = 10;
-        //When we meet exact definition to MD4, it kill all lived
-        //stmts that exact-def MD4, also include the
-        //stmt in MD13's def-list.
-        MDSet const* maydef = get_may_def(ir);
-        if (maydef != NULL) {
-            SEGIter * iter;
-            for (INT i = maydef->get_first(&iter);
-                 i >= 0; i = maydef->get_next(i, &iter)) {
-                if (MD_id(must) == (UINT)i) { continue; }
-
-                DefSBitSetCore * dlst = m_md2irs->get(i);
-                if (dlst == NULL) { continue; }
-
-                SEGIter * sc = NULL;
-                INT nk;
-                for (INT k = dlst->get_first(&sc); k >= 0; k = nk) {
-                    nk = dlst->get_next(k, &sc);
-                    IR * stmt = m_ru->get_ir(k);
-                    ASSERT0(stmt && stmt->is_stmt());
-                    MD const* w = stmt->get_exact_ref();
-                    if (must == w || (w != NULL && must->is_cover(w))) {
-                        //Current ir kills stmt k.
-                        dlst->diff(k, *m_misc_bs_mgr);
-                    }
-                }
-            }
-        }
+        updateDefWithMustExactMD(ir, must);
     } else {
-        //Handle inexactly nonkilling DEF.
-        //And alloc overlapped MDSet for DEF as maydef.
-        if (must != NULL) {
-            ASSERT0(must->is_effect());
-            m_md2irs->append(must, ir);
-        } else {
-            m_md2irs->markStmtOnlyHasMaydef();
-        }
-
-        MDSet const* maydef = get_may_def(ir);
-        if (maydef != NULL) {
-            //May kill DEF stmt of overlapped set of md.
-            if (must != NULL) {
-                UINT mustid = MD_id(must);
-                SEGIter * iter;
-                for (INT i = maydef->get_first(&iter);
-                     i >= 0; i = maydef->get_next(i, &iter)) {
-                    if (mustid == (UINT)i) {
-                        //Already add to md2irs.
-                        continue;
-                    }
-
-                    ASSERT0(m_md_sys->get_md(i));
-                    m_md2irs->append(i, ir);
-                }
-            } else {
-                SEGIter * iter;
-                for (INT i = maydef->get_first(&iter);
-                     i >= 0; i = maydef->get_next(i, &iter)) {
-                    ASSERT0(m_md_sys->get_md(i));
-                    m_md2irs->append(i, ir);
-                }
-            }
-        }
+        updateDefWithMustEffectMD(ir, must);
     }
 }
 
@@ -4363,6 +4341,7 @@ void IR_DU_MGR::updateDef(IR * ir)
 void IR_DU_MGR::initMD2IRList(IRBB * bb)
 {
     DefDBitSetCore * reach_def_irs = getInReachDef(BB_id(bb));
+    ASSERT0(reach_def_irs);
     m_md2irs->clean();
 
     //Record DEF IR STMT for each MD.
@@ -4381,16 +4360,18 @@ void IR_DU_MGR::initMD2IRList(IRBB * bb)
             m_md2irs->append(mustdef, i);
         }
 
-        if (mustdef == NULL) {
-            m_md2irs->markStmtOnlyHasMaydef();
-        }
+        //if (mustdef == NULL) {
+        //    m_md2irs->setHasIneffectDef();
+        //}
 
         MDSet const* maydef = get_may_def(stmt);
         if (maydef != NULL) {
             SEGIter * iter;
             for (INT j = maydef->get_first(&iter);
                  j != -1; j = maydef->get_next(j, &iter)) {
-                if (mustdef != NULL && MD_id(mustdef) == (UINT)j) {
+                if (j == MD_GLOBAL_MEM || j == MD_ALL_MEM) {
+                    m_md2irs->setHasIneffectDef();
+                } else if (mustdef != NULL && MD_id(mustdef) == (UINT)j) {
                     continue;
                 }
                 ASSERT0(m_md_sys->get_md(j) != NULL);
@@ -4444,19 +4425,34 @@ bool IR_DU_MGR::verifyLiveinExp()
 }
 
 
-bool IR_DU_MGR::checkIsTruelyDep(
-        MD const* mustdef,
-        MDSet const* maydef,
-        IR const* use)
+bool IR_DU_MGR::checkIsTruelyDep(IR const* def, IR const* use)
 {
-
-    MD const* mustuse = use->get_ref_md();
-    MDSet const* mayuse = use->get_ref_mds();
+    MD const* mustdef = def->getRefMD();
+    MDSet const* maydef = def->getRefMDSet();
+    MD const* mustuse = use->getRefMD();
+    MDSet const* mayuse = use->getRefMDSet();
     if (mustdef != NULL) {
         if (mustuse != NULL) {
-            ASSERT0(mustdef == mustuse || mustdef->is_overlap(mustuse));
+            if (def->is_calls_stmt() || def->is_region()) {
+                //CALL, ICALL, REGION have sideeffect, so process
+                //them individually.
+                if (mustdef == mustuse || mustdef->is_overlap(mustuse)) {
+                    ; //Do nothing.
+                } else if (maydef->is_overlap(mustuse)) {
+                    ; //Do nothing.
+                } else {
+                    UNREACH();
+                }
+            } else {
+                ASSERT0(mustdef == mustuse || mustdef->is_overlap(mustuse));
+            }
         } else if (mayuse != NULL) {
-            ASSERT0(mayuse->is_overlap_ex(mustdef, m_md_sys));
+            if (def->is_calls_stmt() || def->is_region()) {
+                ASSERT0(mayuse->is_overlap_ex(mustdef, m_md_sys) ||
+                        (maydef != NULL && mayuse->is_intersect(*maydef)));
+            } else {
+                ASSERT0(mayuse->is_overlap_ex(mustdef, m_md_sys));
+            }
         } else {
             ASSERT(0, ("Not a truely dependence"));
         }
@@ -4496,8 +4492,8 @@ bool IR_DU_MGR::verifyMDDUChainForIR(IR const* ir)
 
                 //Check the existence to 'use'.
                 ASSERT0(use->get_stmt() && use->get_stmt()->get_bb());
-                ASSERT0(BB_irlist(use->get_stmt()->get_bb()).
-                                find(use->get_stmt()));
+                ASSERT0(BB_irlist(
+                    use->get_stmt()->get_bb()).find(use->get_stmt()));
 
                 //use must be a memory operation.
                 ASSERT0(use->is_memory_opnd());
@@ -4509,8 +4505,7 @@ bool IR_DU_MGR::verifyMDDUChainForIR(IR const* ir)
                 ASSERT0(use->get_duset_c()->is_contain(IR_id(ir)));
 
                 if (precision_check) {
-                    ASSERT0(checkIsTruelyDep(ir->get_ref_md(),
-                                                ir->get_ref_mds(), use));
+                    ASSERT0(checkIsTruelyDep(ir, use));
                 }
             }
         }
@@ -4548,8 +4543,7 @@ bool IR_DU_MGR::verifyMDDUChainForIR(IR const* ir)
             ASSERT0(def->get_duset_c()->is_contain(IR_id(u)));
 
             if (precision_check) {
-                ASSERT0(checkIsTruelyDep(def->get_ref_md(),
-                         def->get_ref_mds(), u));
+                ASSERT0(checkIsTruelyDep(def, u));
             }
         }
     }
@@ -4591,13 +4585,12 @@ bool IR_DU_MGR::verifyMDRef()
                     break;
                 case IR_LD:
                     if (g_is_support_dynamic_type) {
-                        ASSERT(t->get_effect_ref(),
-                               ("type is at least effect"));
-                        ASSERT(!MD_is_pr(t->get_effect_ref()),
+                        ASSERT(t->get_effect_ref(), ("type is at least effect"));
+                        ASSERT(!t->get_effect_ref()->is_pr(),
                                ("MD can not present a PR."));
                     } else {
                         ASSERT(t->get_exact_ref(), ("type must be exact"));
-                        ASSERT(!MD_is_pr(t->get_exact_ref()),
+                        ASSERT(!t->get_exact_ref()->is_pr(),
                                ("MD can not present a PR."));
                     }
 
@@ -4605,19 +4598,19 @@ bool IR_DU_MGR::verifyMDRef()
                     //e.g: cvt(ld(id(x,i8)), i32) x has exact md4(size=1), and
                     //an overlapped md5(size=4).
 
-                    if (t->get_ref_mds() != NULL) {
-                        ASSERT0(m_mds_hash->find(*t->get_ref_mds()));
+                    if (t->getRefMDSet() != NULL) {
+                        ASSERT0(m_mds_hash->find(*t->getRefMDSet()));
                     }
                     break;
                 case IR_PR:
                     if (g_is_support_dynamic_type) {
                         ASSERT(t->get_effect_ref(),
                                ("type is at least effect"));
-                        ASSERT(MD_is_pr(t->get_effect_ref()),
+                        ASSERT(t->get_effect_ref()->is_pr(),
                                ("MD must present a PR."));
                     } else {
                         ASSERT(t->get_exact_ref(), ("type must be exact"));
-                        ASSERT(!MD_is_pr(t->get_exact_ref()),
+                        ASSERT(t->get_exact_ref()->is_pr(),
                                ("MD must present a PR."));
                     }
 
@@ -4629,8 +4622,8 @@ bool IR_DU_MGR::verifyMDRef()
                         //Same PR may have different referrence type.
                         //e.g: PR1(U8)=...
                         //    ...=PR(U32)
-                        if (t->get_ref_mds() != NULL) {
-                            ASSERT0(m_mds_hash->find(*t->get_ref_mds()));
+                        if (t->getRefMDSet() != NULL) {
+                            ASSERT0(m_mds_hash->find(*t->getRefMDSet()));
                         }
                     }
                     break;
@@ -4645,7 +4638,7 @@ bool IR_DU_MGR::verifyMDRef()
                                  (may && !may->is_empty()));
                         if (must != NULL) {
                             //PR can not be accessed by indirect operation.
-                            ASSERT0(!MD_is_pr(must));
+                            ASSERT0(!must->is_pr());
                         }
                         if (may != NULL) {
                             //PR can not be accessed by indirect operation.
@@ -4654,7 +4647,7 @@ bool IR_DU_MGR::verifyMDRef()
                                  i >= 0; i = may->get_next(i, &iter)) {
                                 MD const* x = m_md_sys->get_md(i);
                                 UNUSED(x);
-                                ASSERT0(x && !MD_is_pr(x));
+                                ASSERT0(x && !x->is_pr());
                             }
                             ASSERT0(m_mds_hash->find(*may));
                         }
@@ -4672,7 +4665,7 @@ bool IR_DU_MGR::verifyMDRef()
                                  (mayuse && !mayuse->is_empty()));
                         if (mustuse != NULL) {
                             //PR can not be accessed by indirect operation.
-                            ASSERT0(!MD_is_pr(mustuse));
+                            ASSERT0(!mustuse->is_pr());
                         }
                         if (mayuse != NULL) {
                             //PR can not be accessed by indirect operation.
@@ -4681,7 +4674,7 @@ bool IR_DU_MGR::verifyMDRef()
                                  i >= 0; i = mayuse->get_next(i, &iter)) {
                                 MD const* x = m_md_sys->get_md(i);
                                 UNUSED(x);
-                                ASSERT0(x && !MD_is_pr(x));
+                                ASSERT0(x && !x->is_pr());
                             }
                             ASSERT0(m_mds_hash->find(*mayuse));
                         }
@@ -4691,27 +4684,27 @@ bool IR_DU_MGR::verifyMDRef()
                     if (g_is_support_dynamic_type) {
                         ASSERT(t->get_effect_ref(),
                                ("type is at least effect"));
-                        ASSERT(!MD_is_pr(t->get_effect_ref()),
+                        ASSERT(!t->get_effect_ref()->is_pr(),
                                ("MD can not present a PR."));
                     } else {
                         ASSERT(t->get_exact_ref(), ("type must be exact"));
-                        ASSERT(!MD_is_pr(t->get_exact_ref()),
+                        ASSERT(!t->get_exact_ref()->is_pr(),
                                ("MD can not present a PR."));
                     }
                     //ST may modify overlapped memory object.
-                    if (t->get_ref_mds() != NULL) {
-                        ASSERT0(m_mds_hash->find(*t->get_ref_mds()));
+                    if (t->getRefMDSet() != NULL) {
+                        ASSERT0(m_mds_hash->find(*t->getRefMDSet()));
                     }
                     break;
                 case IR_STPR:
                     if (g_is_support_dynamic_type) {
                         ASSERT(t->get_effect_ref(),
                                ("type is at least effect"));
-                        ASSERT(MD_is_pr(t->get_effect_ref()),
+                        ASSERT(t->get_effect_ref()->is_pr(),
                                ("MD must present a PR."));
                     } else {
                         ASSERT(t->get_exact_ref(), ("type must be exact"));
-                        ASSERT(!MD_is_pr(t->get_exact_ref()),
+                        ASSERT(t->get_exact_ref()->is_pr(),
                                ("MD must present a PR."));
                     }
 
@@ -4723,8 +4716,8 @@ bool IR_DU_MGR::verifyMDRef()
                         //Same PR may have different referrence type.
                         //e.g: PR1(U8)=...
                         //    ...=PR(U32)
-                        if (t->get_ref_mds() != NULL) {
-                            ASSERT0(m_mds_hash->find(*t->get_ref_mds()));
+                        if (t->getRefMDSet() != NULL) {
+                            ASSERT0(m_mds_hash->find(*t->getRefMDSet()));
                         }
                     }
                     break;
@@ -4736,7 +4729,7 @@ bool IR_DU_MGR::verifyMDRef()
                             //ASSERT0(mustdef->is_effect());
 
                             //PR can not be accessed by indirect operation.
-                            ASSERT0(!MD_is_pr(mustdef));
+                            ASSERT0(!mustdef->is_pr());
                         }
 
                         MDSet const* maydef = get_may_def(t);
@@ -4750,7 +4743,7 @@ bool IR_DU_MGR::verifyMDRef()
                                 MD const* x = m_md_sys->get_md(i);
                                 UNUSED(x);
                                 ASSERT0(x);
-                                ASSERT0(!MD_is_pr(x));
+                                ASSERT0(!x->is_pr());
                             }
                             ASSERT0(m_mds_hash->find(*maydef));
                         }
@@ -4758,12 +4751,12 @@ bool IR_DU_MGR::verifyMDRef()
                     break;
                 case IR_CALL:
                 case IR_ICALL:
-                    if (t->get_ref_mds() != NULL) {
-                        ASSERT0(m_mds_hash->find(*t->get_ref_mds()));
+                    if (t->getRefMDSet() != NULL) {
+                        ASSERT0(m_mds_hash->find(*t->getRefMDSet()));
                     }
                     break;
                 case IR_PHI:
-                    ASSERT0(t->get_exact_ref() && MD_is_pr(t->get_exact_ref()));
+                    ASSERT0(t->get_exact_ref() && t->get_exact_ref()->is_pr());
                     if (isPRUniqueForSameNo()) {
                         ASSERT0(get_may_def(t) == NULL);
                     } else {
@@ -4772,8 +4765,8 @@ bool IR_DU_MGR::verifyMDRef()
                         //Same PR may have different referrence type.
                         //e.g: PR1(U8)=...
                         //    ...=PR(U32)
-                        if (t->get_ref_mds() != NULL) {
-                            ASSERT0(m_mds_hash->find(*t->get_ref_mds()));
+                        if (t->getRefMDSet() != NULL) {
+                            ASSERT0(m_mds_hash->find(*t->getRefMDSet()));
                         }
                     }
                     break;
@@ -4817,8 +4810,8 @@ bool IR_DU_MGR::verifyMDRef()
                 case IR_SWITCH:
                 case IR_RETURN:
                 case IR_REGION:
-                    ASSERT0(t->get_ref_md() == NULL &&
-                            t->get_ref_mds() == NULL);
+                    ASSERT0(t->getRefMD() == NULL &&
+                            t->getRefMDSet() == NULL);
                     break;
                 default: ASSERT(0, ("unsupport ir type"));
                 }
@@ -5052,7 +5045,7 @@ void IR_DU_MGR::computeRegionMDDU(
 
     BBList * bbl = m_ru->get_bb_list();
     C<IRBB*> * ct;
-    VarTab * vtab = m_ru->get_var_tab();
+    VarTab const* vtab = m_ru->get_var_tab();
     for (bbl->get_head(&ct); ct != bbl->end(); ct = bbl->get_next(ct)) {
         IRBB * bb = ct->val();
         MDSet const* mds = mustexactdef_mds->get(BB_id(bb));
@@ -5061,8 +5054,9 @@ void IR_DU_MGR::computeRegionMDDU(
         for (INT i = mds->get_first(&iter);
              i >= 0; i = mds->get_next(i, &iter)) {
             MD const* md = m_md_sys->get_md(i);
-            ASSERT0(MD_base(md));
-            if (!MD_is_pr(md) && !vtab->find(MD_base(md))) {
+            ASSERT0(md->get_base());
+            if (!md->is_pr() && !vtab->find(md->get_base())) {
+                //Do NOT record local used VAR.
                 ru_maydef->bunion(md, *m_misc_bs_mgr);
             }
         }
@@ -5072,8 +5066,9 @@ void IR_DU_MGR::computeRegionMDDU(
         for (INT i = mds->get_first(&iter);
              i >= 0; i = mds->get_next(i, &iter)) {
             MD const* md = m_md_sys->get_md(i);
-            ASSERT0(MD_base(md));
-            if (!MD_is_pr(md) && !vtab->find(MD_base(md))) {
+            ASSERT0(md->get_base());
+            if (!md->is_pr() && !vtab->find(md->get_base())) {
+                //Do NOT record local used VAR.
                 ru_maydef->bunion(md, *m_misc_bs_mgr);
             }
         }
@@ -5083,8 +5078,8 @@ void IR_DU_MGR::computeRegionMDDU(
     for (INT i = mayuse_mds->get_first(&iter);
          i >= 0; i = mayuse_mds->get_next(i, &iter)) {
         MD const* md = m_md_sys->get_md(i);
-        ASSERT0(MD_base(md));
-        if (!MD_is_pr(md) && !vtab->find(MD_base(md))) {
+        ASSERT0(md->get_base());
+        if (!md->is_pr() && !vtab->find(md->get_base())) {
             ru_mayuse->bunion(md, *m_misc_bs_mgr);
         }
     }
@@ -5308,7 +5303,7 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
         delete mayuse_mds;
     }
 
-#if    0
+#if 0
     dumpRef(2);
     dumpSet(true);
     //dumpMemUsageForMDRef();
@@ -5341,6 +5336,8 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
 //retain_reach_def: true to reserve reach-def stmt set.
 void IR_DU_MGR::computeMDDUChain(IN OUT OptCtx & oc, bool retain_reach_def)
 {
+    if (m_ru->get_bb_list()->get_elem_count() == 0) { return; }
+
     START_TIMER("Build DU-CHAIN");
 
     //If PRs have already been in SSA form, then computing DU chain for them
@@ -5402,8 +5399,8 @@ void IR_DU_MGR::computeMDDUChain(IN OUT OptCtx & oc, bool retain_reach_def)
 
     //m_md_sys->dumpAllMD();
     //dumpBBList(bbl, m_ru);
-    //dumpDUChain();
     //dumpDUChainDetail();
+    //dumpDUChain();
     ASSERT0(verifyMDDUChain());
     END_TIMER();
 }

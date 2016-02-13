@@ -65,14 +65,14 @@ public:
 
     inline void computeDomAndIdom()
     {
-        if (!computeDom()) { ASSERT0(0); }
-        if (!computeIdom()) { ASSERT0(0); }
+        if (!computeDom()) { UNREACH(); }
+        if (!computeIdom()) { UNREACH(); }
     }
 
     inline void computePdomAndIpdom(Vertex * root)
     {
-        if (!computePdomByRpo(root, NULL)) { ASSERT0(0); }
-        if (!computeIpdom()) { ASSERT0(0); }
+        if (!computePdomByRpo(root, NULL)) { UNREACH(); }
+        if (!computeIpdom()) { UNREACH(); }
     }
 };
 

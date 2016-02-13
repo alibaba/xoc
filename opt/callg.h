@@ -130,13 +130,15 @@ public:
     CallNode * map_sym2cn(SYM const* name) const
     { return m_sym2cn_map.get(name); }
 
-    Region * map_ir2ru(IR const* ir)
+    Region * map_call2ru(IR const* ir)
     {
-        ASSERT0(ir->is_calls_stmt());
-        SYM * name = VAR_name(CALL_idinfo(ir));
-        CallNode * cn = map_sym2cn(name);
-        if (cn == NULL) return NULL;
-        return CN_ru(cn);
+        if (ir->is_call()) {
+            CallNode * cn = map_sym2cn(CALL_idinfo(ir)->get_name());
+            if (cn != NULL) { return CN_ru(cn); }
+            return NULL;
+        }
+        ASSERT0(ir->is_icall());
+        return NULL; //TODO: implement icall analysis.
     }
 
     CallNode * newCallNode(IR const* ir);

@@ -285,7 +285,7 @@ bool IR_LICM::scanResult(OUT TTab<IR*> & invariant_stmt)
         case IR_ST:
         case IR_STPR:
             {
-                MD const* must = stmt->get_ref_md();
+                MD const* must = stmt->getRefMD();
                 ASSERT0(must);
                 if (isUniqueDef(must) &&
                     !invariant_stmt.find(stmt)) {
@@ -296,7 +296,7 @@ bool IR_LICM::scanResult(OUT TTab<IR*> & invariant_stmt)
             break;
         case IR_IST:
             {
-                MD const* must = stmt->get_ref_md();
+                MD const* must = stmt->getRefMD();
                 if (must != NULL && must->is_effect() &&
                     isUniqueDef(must) &&
                     !invariant_stmt.find(stmt)) {
@@ -309,7 +309,7 @@ bool IR_LICM::scanResult(OUT TTab<IR*> & invariant_stmt)
         case IR_ICALL:
             //TODO: hoist readonly call.
             break;
-        default: ASSERT0(0); //TODO: support more operations.
+        default: UNREACH(); //TODO: support more operations.
         }
     }
     return change;
@@ -322,7 +322,7 @@ void IR_LICM::updateMD2Num(IR * ir)
     case IR_ST:
     case IR_STPR:
         {
-            MD const* md = ir->get_ref_md();
+            MD const* md = ir->getRefMD();
             ASSERT0(md);
             UINT * n = m_md2num.get(const_cast<MD*>(md));
             if (n == NULL) {
@@ -336,7 +336,7 @@ void IR_LICM::updateMD2Num(IR * ir)
     case IR_IST:
         {
             MDSet const* mds = NULL;
-            MD const* md = ir->get_ref_md();
+            MD const* md = ir->getRefMD();
             if (md != NULL) {
                 UINT * n = m_md2num.get(const_cast<MD*>(md));
                 if (n == NULL) {
@@ -344,7 +344,7 @@ void IR_LICM::updateMD2Num(IR * ir)
                     m_md2num.set(md, n);
                 }
                 (*n)++;
-            } else if ((mds = ir->get_ref_mds()) != NULL) {
+            } else if ((mds = ir->getRefMDSet()) != NULL) {
                 SEGIter * iter;
                 for (INT i = mds->get_first(&iter);
                      i >= 0; i = mds->get_next(i, &iter)) {
@@ -371,7 +371,7 @@ void IR_LICM::updateMD2Num(IR * ir)
     case IR_FALSEBR:
     case IR_RETURN:
         break;
-    default: ASSERT0(0); //Unsupport.
+    default: UNREACH(); //Unsupport.
     }
 }
 
@@ -733,8 +733,8 @@ bool IR_LICM::hoistCand(
 
                 //Revise MD info.
                 MD const* tmd = m_ru->genMDforPR(t);
-                t->set_ref_md(tmd, m_ru);
-                stpr->set_ref_md(tmd, m_ru);
+                t->setRefMD(tmd, m_ru);
+                stpr->setRefMD(tmd, m_ru);
             }
             du_set_info_changed = true;
         }

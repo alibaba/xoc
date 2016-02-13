@@ -910,9 +910,9 @@ void BitSet::bunion(UINT elem)
 }
 
 
-/* The difference operation calculates the elements that
-distinguish one set from another.
-Remove a element which map with 'elem' bit, and clean this bit. */
+//The difference operation calculates the elements that
+//distinguish one set from another.
+//Remove a element which map with 'elem' bit, and clean this bit.
 void BitSet::diff(UINT elem)
 {
     UINT first_byte = DIVBPB(elem);
@@ -925,11 +925,11 @@ void BitSet::diff(UINT elem)
 }
 
 
-/* The difference operation calculates the elements that
-distinguish one set from another.
-Subtracting set2 from set1
-Returns a new set which is
-    { x : member( x, 'set1' ) & ~ member( x, 'set2' ) }. */
+//The difference operation calculates the elements that
+//distinguish one set from another.
+//Subtracting set2 from set1
+//Returns a new set which is
+//  { x : member( x, 'set1' ) & ~ member( x, 'set2' ) }.
 void BitSet::diff(BitSet const& bs)
 {
     ASSERT0(this != &bs);
@@ -977,9 +977,9 @@ void BitSet::intersect(BitSet const& bs)
 }
 
 
-/* Reverse each bit.
-e.g: 1001 to 0110
-'last_bit_pos': start at 0, e.g:given '101', last bit pos is 2. */
+//Reverse each bit.
+//e.g: 1001 to 0110
+//'last_bit_pos': start at 0, e.g:given '101', last bit pos is 2.
 void BitSet::rev(UINT last_bit_pos)
 {
     ASSERT(m_ptr != NULL, ("can not reverse empty set"));
@@ -1016,10 +1016,10 @@ void BitSet::complement(IN BitSet const& univers)
 }
 
 
-/* Return the element count in 'set'
-Add up the population count of each byte in the set.  We get the
-population counts from the table above.  Great for a machine with
-effecient loadbyte instructions. */
+//Return the element count in 'set'
+//Add up the population count of each byte in the set.  We get the
+//population counts from the table above.  Great for a machine with
+//effecient loadbyte instructions.
 UINT BitSet::get_elem_count() const
 {
     if (m_ptr == NULL) { return 0; }
@@ -1114,10 +1114,10 @@ bool BitSet::is_contain(UINT elem) const
 }
 
 
-/* Return true if 'this' contains 'bs'.
-'strict': If it is false, we say the bitset contains bs;
-if it is true, the bitset must have at least one
-element that does not belong to 'bs'. */
+//Return true if 'this' contains 'bs'.
+//'strict': If it is false, we say the bitset contains bs;
+//if it is true, the bitset must have at least one
+//element that does not belong to 'bs'.
 bool BitSet::is_contain(BitSet const& bs, bool strict) const
 {
     ASSERT0(this != &bs);
@@ -1270,9 +1270,9 @@ bool BitSet::is_contain_range(UINT low, UINT high, bool strict) const
 }
 
 
-/* Return true if range between first_bit of 'this' and
-last_bit of 'this' overlapped with the range between
-'low' and 'high'. */
+//Return true if range between first_bit of 'this' and
+//last_bit of 'this' overlapped with the range between
+//'low' and 'high'.
 bool BitSet::is_overlapped(UINT low, UINT high) const
 {
     ASSERT(low <= high, ("Invalid bit set"));
@@ -1440,27 +1440,21 @@ BitSet * BitSet::get_subset_in_range(UINT low, UINT high, OUT BitSet & subset)
     //the first and last byte of the extracted range.
     INT start, end;
     if (first_byte > sb_first_byte) {
-        /*
-        'this':             first_byte, ...
-        subset: first_byte, ...
-        */
+        //'this':             first_byte, ...
+        //subset: first_byte, ...
         start = first_byte;
         if (last_byte < sb_last_byte) {
-            /*
-            'this': last_byte,
-            subset:       ,...,last_byte
-            */
+            //'this': last_byte,
+            //subset:       ,...,last_byte
             end = last_byte;
             ::memcpy(subset.m_ptr + start,
                     m_ptr + start, end - start + 1);
         } else {
-            /*
-            'this':         ,...,last_byte
-            subset: last_byte,
-            or:
-            'this': last_byte,
-            subset: last_byte,
-             */
+            //'this':         ,...,last_byte
+            //subset: last_byte,
+            //or:
+            //'this': last_byte,
+            //subset: last_byte,
             end = sb_last_byte - 1;
             if (end >= start) {
                 //Copy the content of 'this', except for
@@ -1476,13 +1470,11 @@ BitSet * BitSet::get_subset_in_range(UINT low, UINT high, OUT BitSet & subset)
             subset.m_ptr[sb_last_byte] = byte;
         }
     } else {
-        /*
-        'this': first_byte, ...,
-        subset:             first_byte, ...
-        or:
-        'this': first_byte, ...
-        subset: first_byte, ...
-        */
+        //'this': first_byte, ...,
+        //subset:             first_byte, ...
+        //or:
+        //'this': first_byte, ...
+        //subset: first_byte, ...
         BYTE byte = m_ptr[sb_first_byte];
         UINT ofst = MODBPB(low);
         byte >>= ofst;
@@ -1491,20 +1483,16 @@ BitSet * BitSet::get_subset_in_range(UINT low, UINT high, OUT BitSet & subset)
 
         start = sb_first_byte + 1;
         if (last_byte < sb_last_byte) {
-            /*
-            'this': last_byte,
-            subset:          ,...,last_byte
-             */
+            //'this': last_byte,
+            //subset:          ,...,last_byte
             end = last_byte;
             ::memcpy(subset.m_ptr + start, m_ptr + start, end - start + 1);
         } else {
-            /*
-            'this':          ,...,last_byte
-            subset: last_byte,
-            or:
-            'this': last_byte,
-            subset: last_byte,
-             */
+            //'this':          ,...,last_byte
+            //subset: last_byte,
+            //or:
+            //'this': last_byte,
+            //subset: last_byte,
             end = sb_last_byte - 1;
             BYTE byte = 0;
             if (end >= start) {
@@ -1514,21 +1502,19 @@ BitSet * BitSet::get_subset_in_range(UINT low, UINT high, OUT BitSet & subset)
                         m_ptr + start, end - start + 1);
                 byte = m_ptr[sb_last_byte];
             } else {
-                /*
-                There are two cases:
-                CASE1: Both subset's first and last byte are the same one.
-                    'this': first/last_byte,
-                    subset: first/last_byte,
-                CASE2: first and last byte are sibling.
-                    'this': first_byte, last_byte,
-                    subset: first_byte, last_byte,
-                */
+                //There are two cases:
+                //CASE1: Both subset's first and last byte are the same one.
+                //    'this': first/last_byte,
+                //    subset: first/last_byte,
+                //CASE2: first and last byte are sibling.
+                //    'this': first_byte, last_byte,
+                //    subset: first_byte, last_byte,
                 if (sb_first_byte == sb_last_byte) {
                     byte = subset.m_ptr[sb_last_byte];
                 } else if (sb_first_byte + 1 == sb_last_byte) {
                     byte = m_ptr[sb_last_byte];
                 } else {
-                    ASSERT0(0);
+                    UNREACH();
                 }
             }
             UINT ofst = MODBPB(high);
@@ -1658,14 +1644,12 @@ void BitSet::dump(FILE * h, UINT flag, INT last_pos) const
         }
     } else {
         INT i = 0;
-        /*
-        fprintf(h, "\nbitset(hex):\n\t");
-        fprintf(h, "[0x");
-        for (BYTE byte = m_ptr[i]; i <= DIVBPB(elem); byte = m_ptr[++i]) {
-            fprintf(h, "%x", byte);
-        }
-        fprintf(h, "]");
-        */
+        //fprintf(h, "\nbitset(hex):\n\t");
+        //fprintf(h, "[0x");
+        //for (BYTE byte = m_ptr[i]; i <= DIVBPB(elem); byte = m_ptr[++i]) {
+        //    fprintf(h, "%x", byte);
+        //}
+        //fprintf(h, "]");
 
         //Print as binary
         if (HAVE_FLAG(flag, BS_DUMP_BITSET)) {

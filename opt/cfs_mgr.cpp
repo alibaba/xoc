@@ -56,7 +56,7 @@ CFS_INFO * CfsMgr::new_cfs_info(IR_TYPE irtype)
         CFS_INFO_loop_body(ci) = m_bs_mgr.create();
         break;
     default:
-        ASSERT0(0);
+        UNREACH();
     }
     return ci;
 }

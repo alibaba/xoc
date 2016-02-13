@@ -59,7 +59,7 @@ public:
     bool perform_cfs_optimization(IN OUT IR ** ir_list, IN SimpCtx const& sc);
     virtual bool perform(OptCtx &)
     {
-        ASSERT0(0);
+        UNREACH();
         return false;
     }
     virtual bool perform(IN SimpCtx const& simp);

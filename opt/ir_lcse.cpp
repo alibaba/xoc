@@ -206,7 +206,7 @@ IR * IR_LCSE::hoist_cse(IN IRBB * bb, IN IR * ir_pos, IN ExpRep * ie)
         }
         break;
     default:
-        ASSERT0(0);
+        UNREACH();
     } //end switch
     return NULL;
 }
@@ -552,7 +552,7 @@ bool IR_LCSE::processUse(IN IRBB * bb, IN IR * ir,
         }
         break;
     default:
-        ASSERT0(0);
+        UNREACH();
     } //end switch
     return change;
 }
@@ -618,7 +618,7 @@ bool IR_LCSE::processDef(
     case IR_TRUEBR:
     case IR_FALSEBR:
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     } //end switch
     return change;
 }

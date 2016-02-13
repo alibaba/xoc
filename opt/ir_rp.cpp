@@ -98,7 +98,7 @@ public:
                 hval += v;
             }
             break;
-        default: ASSERT0(0); //unsupport.
+        default: UNREACH(); //unsupport.
         }
         return hash32bit(hval) & (bucket_size - 1);
     }
@@ -653,7 +653,7 @@ bool IR_RP::handleArrayRef(
         return true;
     }
 
-    MD const* mustuse = ir->get_ref_md();
+    MD const* mustuse = ir->getRefMD();
     if (mustuse == NULL || !mustuse->is_effect()) { return false; }
 
     if (mustuse->is_volatile()) {
@@ -717,7 +717,7 @@ bool IR_RP::handleGeneralRef(
         //return true;
     }
 
-    MD const* mustuse = ir->get_ref_md();
+    MD const* mustuse = ir->getRefMD();
     if (mustuse == NULL || !mustuse->is_effect()) {
         //It is dispensable clobbering access if all loop is not analysable.
         //clobberAccessInList(ir, exact_access, exact_occ_list,
@@ -759,7 +759,7 @@ bool IR_RP::handleGeneralRef(
             return true;
         }
     } else {
-        ASSERT0(0); //TODO
+        UNREACH(); //TODO
     }
 
     TabIter<IR*> ti;
@@ -790,8 +790,8 @@ void IR_RP::clobberAccessInList(
 {
     UNUSED(exact_occ_list);
 
-    MD const* mustdef = ir->get_ref_md();
-    MDSet const* maydef = ir->get_ref_mds();
+    MD const* mustdef = ir->getRefMD();
+    MDSet const* maydef = ir->getRefMDSet();
 
     if (mustdef != NULL) { m_dont_promot.bunion(mustdef, *m_misc_bs_mgr); }
     else if (maydef != NULL) { m_dont_promot.bunion(*maydef, *m_misc_bs_mgr); }
@@ -835,8 +835,8 @@ void IR_RP::clobberAccessInList(
     if (mustdef != NULL) {
         for (IR * acc = inexact_access.get_first(iter2);
              acc != NULL; acc = inexact_access.get_next(iter2)) {
-            MD const* acc_md = acc->get_ref_md();
-            MDSet const* acc_mds = acc->get_ref_mds();
+            MD const* acc_md = acc->getRefMD();
+            MDSet const* acc_mds = acc->getRefMDSet();
             if (acc_md != NULL) {
                 if (mustdef == acc_md || mustdef->is_overlap(acc_md)) {
                     //ir is not suite to promot any more, all mds which
@@ -854,8 +854,8 @@ void IR_RP::clobberAccessInList(
     } else if (maydef != NULL && !maydef->is_empty()) {
         for (IR * acc = inexact_access.get_first(iter2);
              acc != NULL; acc = inexact_access.get_next(iter2)) {
-            MD const* acc_md = acc->get_ref_md();
-            MDSet const* acc_mds = acc->get_ref_mds();
+            MD const* acc_md = acc->getRefMD();
+            MDSet const* acc_mds = acc->getRefMDSet();
             if ((acc_md != NULL && maydef->is_overlap(acc_md)) ||
                 (acc_mds != NULL &&
                  (acc_mds == maydef || maydef->is_intersect(*acc_mds)))) {
@@ -1098,7 +1098,7 @@ void IR_RP::replaceUseForTree(IR * oldir, IR * newir)
         m_du->removeUseOutFromDefset(ARR_sub_list(oldir));
         m_du->changeUse(newir, oldir, m_ru->getMiscBitSetMgr());
     } else {
-        ASSERT0(0); //TODO
+        UNREACH(); //TODO
     }
 }
 
@@ -1183,7 +1183,7 @@ void IR_RP::handleRestore2Mem(
                                     IR_dt(delegate),
                                     LD_ofst(delegate), pr);
             break;
-        default: ASSERT0(0); //Unsupport.
+        default: UNREACH(); //Unsupport.
         }
 
         ASSERT0(stmt);
@@ -1278,7 +1278,7 @@ bool IR_RP::promoteExactAccess(
 
     for (IR * ref = exact_occ_list.get_head();
          ref != NULL; ref = exact_occ_list.get_next()) {
-         MD const* md = ref->get_ref_md();
+         MD const* md = ref->getRefMD();
         ASSERT0(md && md->is_exact());
 
         //Get the unique delegate.
@@ -1313,7 +1313,7 @@ bool IR_RP::promoteExactAccess(
          ref != NULL; ref = exact_occ_list.get_next()) {
         if (promoted.is_contain(IR_id(ref))) { continue; }
 
-        MD const* md = ref->get_ref_md();
+        MD const* md = ref->getRefMD();
         ASSERT0(md && md->is_exact());
 
         //Get the unique delegate.
@@ -1352,7 +1352,7 @@ bool IR_RP::promoteExactAccess(
             continue;
         }
 
-        MD const* md = ref->get_ref_md();
+        MD const* md = ref->getRefMD();
         ASSERT0(md);
 
         IR * delegate = exact_access.get(md);
@@ -1739,7 +1739,7 @@ void IR_RP::handlePrelog(
         LD_ofst(rhs) = ST_ofst(delegate);
         stpr = m_ru->buildStorePR(PR_no(pr), IR_dt(pr), rhs);
     } else {
-        ASSERT0(0); //unsupport.
+        UNREACH(); //unsupport.
     }
 
     ASSERT0(rhs && stpr);
@@ -2030,7 +2030,7 @@ void IR_RP::checkAndRemoveInvalidExactOcc(List<IR*> & exact_occ_list)
         IR * occ = C_val(ct);
         exact_occ_list.get_next(&nct);
 
-        MD const* md = occ->get_ref_md();
+        MD const* md = occ->getRefMD();
         ASSERT0(md && md->is_exact());
 
         //We record all MD that are not suit for promotion, and perform

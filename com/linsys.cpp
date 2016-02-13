@@ -422,7 +422,7 @@ bool Lineq::reduce(IN OUT RMat & m, UINT rhs_idx, bool is_intersect)
                 //TODO: Check the domain of constant symbol.
                 break;
             default:
-                ASSERT0(0);;
+                UNREACH();;
             }
         } else if (vars == 1) {
             //Record number of inequality if it only has single variable.
@@ -1316,7 +1316,7 @@ void Lineq::EhartPoly(OUT RMat & res, IN RMat & a, UINT rhs_idx)
     UNUSED(rhs_idx);
     UNUSED(a);
     UNUSED(res);
-    ASSERT0(0);
+    UNREACH();
 }
 
 
@@ -1897,7 +1897,7 @@ void Lineq::PolyImage(OUT RMat & res, IN RMat & a, UINT rhs_idx)
     UNUSED(res);
     UNUSED(a);
     UNUSED(rhs_idx);
-    ASSERT0(0);
+    UNREACH();
 }
 //END Lineq
 

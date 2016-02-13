@@ -277,7 +277,7 @@ Type const* Dex2IR::getType(LIR * ir)
 {
     switch (LIR_dt(ir)) {
     case LIR_JDT_unknown:
-        ASSERT0(0);
+        UNREACH();
     case LIR_JDT_void    :
         return m_tr->i32;
     case LIR_JDT_int    :
@@ -296,7 +296,7 @@ Type const* Dex2IR::getType(LIR * ir)
     case LIR_JDT_wide: return m_tr->u64;
     case LIR_JDT_long: return m_tr->i64;
     case LIR_JDT_double: return m_tr->f64;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     return 0;
 }
@@ -585,7 +585,7 @@ IR * Dex2IR::convertCmp(IN LIR * lir)
             ck = CMPG_DOUBLE;
         }
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 
     Type const* ty = 0;
@@ -595,7 +595,7 @@ IR * Dex2IR::convertCmp(IN LIR * lir)
     case CMPL_DOUBLE: ty = m_tr->f64; break;
     case CMPG_DOUBLE: ty = m_tr->f64; break;
     case CMP_LONG: ty = m_tr->i64; break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 
     //Generate callee.
@@ -692,7 +692,7 @@ UINT Dex2IR::computeFieldOffset(UINT field_id)
         }
         //dumpf_field(df, finfo, 4);
     }
-    ASSERT0(0);
+    UNREACH();
     return 0;
 }
 
@@ -796,7 +796,7 @@ IR * Dex2IR::convertBinaryOpAssign(IN LIR * lir)
         ty2 = m_tm->getSimplexTypeEx(D_U32); break;
     case LOP_USHR_ASSIGN: ir_ty = IR_LSR;
         ty2 = m_tm->getSimplexTypeEx(D_U32); break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     IR * res = genMappedPR(LIR_res(lir), ty);
     IR * op0 = genMappedPR(LIR_op0(lir), ty2);
@@ -834,7 +834,7 @@ IR * Dex2IR::convertBinaryOp(IN LIR * lir)
     case LOP_SHL : ir_ty = IR_LSL; break;
     case LOP_SHR : ir_ty = IR_ASR; break;
     case LOP_USHR: ir_ty = IR_LSR; break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     IR * res = genMappedPR(LIR_res(lir), ty);
     IR * op0 = genMappedPR(LIR_op0(lir), ty);
@@ -878,7 +878,7 @@ IR * Dex2IR::convertBinaryOpLit(IN LIR * lir)
     case LOP_SHL_LIT : ir_ty = IR_LSL; break;
     case LOP_SHR_LIT : ir_ty = IR_ASR; break;
     case LOP_USHR_LIT: ir_ty = IR_LSR; break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 
     IR * res = genMappedPR(LIR_res(lir), ty);
@@ -906,50 +906,50 @@ UINT Dex2IR::get_dexopcode(UINT flag)
     UINT dexopcode = 0; //defined in DexOpcodes.h
     switch (flag1) {
     case LIR_invoke_unknown:
-        ASSERT0(0);
+        UNREACH();
         switch (flag2) {
         case 0: dexopcode = OP_FILLED_NEW_ARRAY; break;
         case LIR_Range: dexopcode = OP_FILLED_NEW_ARRAY_RANGE; break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
         break;
     case LIR_invoke_virtual:
         switch (flag2) {
         case 0: dexopcode = OP_INVOKE_VIRTUAL; break;
         case LIR_Range: dexopcode = OP_INVOKE_VIRTUAL_RANGE; break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
         break;
     case LIR_invoke_super:
         switch(flag2) {
         case 0: dexopcode = OP_INVOKE_SUPER; break;
         case LIR_Range: dexopcode = OP_INVOKE_SUPER_RANGE; break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
         break;
     case LIR_invoke_direct:
         switch (flag2) {
         case 0: dexopcode = OP_INVOKE_DIRECT; break;
         case LIR_Range: dexopcode = OP_INVOKE_DIRECT_RANGE; break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
         break;
     case LIR_invoke_static:
         switch (flag2) {
         case 0: dexopcode = OP_INVOKE_STATIC; break;
         case LIR_Range: dexopcode = OP_INVOKE_STATIC_RANGE; break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
         break;
     case LIR_invoke_interface:
         switch (flag2) {
         case 0: dexopcode = OP_INVOKE_INTERFACE; break;
         case LIR_Range: dexopcode = OP_INVOKE_INTERFACE_RANGE; break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
         break;
     default:
-        ASSERT0(0);
+        UNREACH();
     }
     return dexopcode;
 }
@@ -988,7 +988,7 @@ IR * Dex2IR::convertInvoke(IN LIR * lir)
     bool has_this = true;
     if (is_range) {
         switch (k & 0x0f) {
-        case LIR_invoke_unknown: ASSERT0(0); break;
+        case LIR_invoke_unknown: UNREACH(); break;
         case LIR_invoke_virtual: ik = INVOKE_VIRTUAL_RANGE; break;
         case LIR_invoke_direct: ik = INVOKE_DIRECT_RANGE; break;
         case LIR_invoke_super: ik = INVOKE_SUPER_RANGE; break;
@@ -997,17 +997,17 @@ IR * Dex2IR::convertInvoke(IN LIR * lir)
             ik = INVOKE_STATIC_RANGE;
             has_this = false;
             break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
     } else {
         switch (k & 0x0f) {
-        case LIR_invoke_unknown: ASSERT0(0); break;
+        case LIR_invoke_unknown: UNREACH(); break;
         case LIR_invoke_virtual: ik = INVOKE_VIRTUAL; break;
         case LIR_invoke_direct: ik = INVOKE_DIRECT; break;
         case LIR_invoke_super: ik = INVOKE_SUPER; break;
         case LIR_invoke_interface: ik = INVOKE_INTERFACE; break;
         case LIR_invoke_static: ik = INVOKE_STATIC; has_this = false; break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
     }
     IR * kind = m_ru->buildImmInt(ik, m_tr->u32);
@@ -1430,7 +1430,7 @@ IR * Dex2IR::convertMoveResult(IN LIR * lir)
     case LIR_JDT_unknown: resty = m_tr->i32; break;
     case LIR_JDT_object: resty = m_tr->ptr; break;
     case LIR_JDT_wide: resty = m_tr->i64; break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 
     VAR * v = getBuiltinVar(BLTIN_MOVE_RES, m_ru_mgr);
@@ -1458,7 +1458,7 @@ IR * Dex2IR::convertMove(IN LIR * lir)
     case LIR_JDT_wide: //return 64bits result
         ty = m_tr->i64; //TODO: need pair?
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     IR * tgt = genMappedPR(LIR_res(lir), ty);
     IR * src = genMappedPR(LIR_op0(lir), ty);
@@ -1512,7 +1512,7 @@ IR * Dex2IR::convertRet(IN LIR * lir)
     case LIR_JDT_wide: //return 64bits result
         exp = genMappedPR(LIR_res(lir), m_tr->i64);
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     return m_ru->buildReturn(exp);
 }
@@ -1525,7 +1525,7 @@ IR * Dex2IR::convertUnaryOp(IN LIR * lir)
     switch (LIR_opcode(lir)) {
     case LOP_NEG: ir_ty = IR_NEG; break;
     case LOP_NOT: ir_ty = IR_BNOT; break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     IR * res = genMappedPR(LIR_res(lir), ty);
     IR * op0 = genMappedPR(LIR_op0(lir), ty);
@@ -1564,7 +1564,7 @@ IR * Dex2IR::convertLoadConst(IN LIR * lir)
     case LIR_JDT_float  :
     case LIR_JDT_none   :
     case LIR_wide       :
-        ASSERT0(0);
+        UNREACH();
         break;
     case LIR_JDT_wide:
         ty = m_tr->i64;
@@ -1572,7 +1572,7 @@ IR * Dex2IR::convertLoadConst(IN LIR * lir)
     case LIR_JDT_long:
     case LIR_JDT_double :
     default:
-        ASSERT0(0);
+        UNREACH();
         break;
     }
 
@@ -1618,7 +1618,7 @@ IR * Dex2IR::convertCondBr(IN LIR * lir)
         op1 = m_ru->buildImmInt(0, ty);
         liridx = LIR_op0(lir);
     } else {
-        ASSERT0(0);
+        UNREACH();
     }
     IR * det = m_ru->buildBinaryOp(rt, m_tr->b, op0, op1);
     //Target label
@@ -1654,7 +1654,7 @@ IR * Dex2IR::convertCvt(IN LIR * lir)
     case LIR_convert_i2b: tgt = m_tr->b; src = m_tr->i32; break;
     case LIR_convert_i2c: tgt = m_tr->i8; src = m_tr->i32; break;
     case LIR_convert_i2s: tgt = m_tr->i16; src = m_tr->i32; break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 
     IR * res = genMappedPR(LIR_res(lir), tgt);
@@ -1773,9 +1773,9 @@ IR * Dex2IR::convert(IN LIR * lir)
     case LOP_FILLED_NEW_ARRAY:
         return convertFilledNewArray(lir);
     case LOP_PHI:
-        ASSERT0(0);
+        UNREACH();
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     } //end switch
 
     if (g_tfile != NULL) {

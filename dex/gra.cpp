@@ -390,7 +390,7 @@ void RSC::comp_st_fmt(IR const* ir)
             //AAAABBBB
             m_ir2fmt.set(IR_id(ir), FAAAABBBB);
             return;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
     } else {
         ASSERT0(ir->is_st());
@@ -403,7 +403,7 @@ void RSC::comp_st_fmt(IR const* ir)
             //ABCCCC, iget
             m_ir2fmt.set(IR_id(ir), FABCCCCv);
             return;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
     }
 }
@@ -452,7 +452,7 @@ void RSC::comp_call_fmt(IR const* ir)
     if (ir->is_call() && CALL_is_intrinsic(ir)) {
         VAR const* v = CALL_idinfo(ir);
         ASSERT0(v);
-        BLTIN_TYPE blt = m_str2builtin.get(SYM_name(VAR_name(v)));
+        BLTIN_TYPE blt = m_str2builtin.get(SYM_name(v->get_name()));
         ASSERT0(blt != BLTIN_UNDEF);
         switch (blt) {
         case BLTIN_NEW:
@@ -548,7 +548,7 @@ void RSC::comp_call_fmt(IR const* ir)
     case INVOKE_INTERFACE_RANGE:
         m_ir2fmt.set(IR_id(ir), FAACCCCBBBBv);
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 
     for (; p != NULL; p = p->get_next()) {
@@ -574,7 +574,7 @@ void RSC::comp_ir_fmt(IR const* ir)
         comp_ir_fmt(ILD_base(ir));
         if (ILD_base(ir)->is_pr()) {
             m_ir2fmt.set(IR_id(ir), FABCCCCv);
-        } else { ASSERT0(0); }
+        } else { UNREACH(); }
         return;
     case IR_STARRAY:
         comp_starray_fmt(ir);
@@ -665,10 +665,10 @@ void RSC::comp_ir_fmt(IR const* ir)
         comp_ir_fmt(SELECT_pred(ir));
         comp_ir_fmt(SELECT_trueexp(ir));
         comp_ir_fmt(SELECT_falseexp(ir));
-        ASSERT0(0);
+        UNREACH();
         return;
     case IR_REGION:
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 }
 
@@ -2021,7 +2021,7 @@ static bool is_range_call(IR const* ir)
     if (p == NULL || !p->is_const() || !p->is_uint()) {
         return false;
     }
-    CHAR const* fname = SYM_name(VAR_name(CALL_idinfo(ir)));
+    CHAR const* fname = SYM_name(CALL_idinfo(ir)->get_name());
     ASSERT0(fname);
 
     if (*fname == '#') {
@@ -2031,7 +2031,7 @@ static bool is_range_call(IR const* ir)
 
     INVOKE_KIND ik = (INVOKE_KIND)CONST_int_val(p);
     switch (ik) {
-    case INVOKE_UNDEF: ASSERT0(0);
+    case INVOKE_UNDEF: UNREACH();
     case INVOKE_VIRTUAL_RANGE:
     case INVOKE_DIRECT_RANGE:
     case INVOKE_SUPER_RANGE:
@@ -2044,7 +2044,7 @@ static bool is_range_call(IR const* ir)
     case INVOKE_STATIC:
     case INVOKE_INTERFACE:
         return false;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     return false;
 }
@@ -2244,7 +2244,7 @@ void LTMgr::processResult(
             }
         }
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 }
 
@@ -2658,7 +2658,7 @@ void LTMgr::renameUse(IR * ir, LT * l, IR ** newpr)
         }
         break;
     case IR_REGION:
-        ASSERT0(0);
+        UNREACH();
         break;
     case IR_GOTO: break;
     case IR_ADD:
@@ -2729,7 +2729,7 @@ void LTMgr::renameUse(IR * ir, LT * l, IR ** newpr)
         renameUse(ILD_base(ir), l, newpr);
         break;
     case IR_CONST: break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 }
 
@@ -2922,7 +2922,7 @@ void LTMgr::dump_allocated(FILE * h, BitSet & visited)
                 fprintf(h, "rg"); break;
             case LTG_REG_PAIR:
                 fprintf(h, "pg"); break;
-            default: ASSERT0(0);
+            default: UNREACH();
             }
 
             //Dump ltg's prno, ltid, phy.
@@ -3009,7 +3009,7 @@ void LTMgr::dump_allocated(FILE * h, BitSet & visited)
                 fprintf(h, "rg"); break;
             case LTG_REG_PAIR:
                 fprintf(h, "pg"); break;
-            default: ASSERT0(0);
+            default: UNREACH();
             }
 
             //Dump ltg's prno, ltid, phy.
@@ -3849,7 +3849,7 @@ void BBRA::selectReasonableSplitPos(
 //get the index-info of the same opnd and result.
 bool BBRA::isOpndSameWithResult(IR *)
 {
-    ASSERT0(0);
+    UNREACH();
     return false;
 }
 
@@ -3858,7 +3858,7 @@ void BBRA::renameResult(IR *, UINT old_prno, IR * newpr)
 {
     UNUSED(newpr);
     UNUSED(old_prno);
-    ASSERT0(0);
+    UNREACH();
 }
 
 
@@ -3866,7 +3866,7 @@ void BBRA::renameOpnd(IR *, UINT old_prno, IR * newpr)
 {
     UNUSED(newpr);
     UNUSED(old_prno);
-    ASSERT0(0);
+    UNREACH();
 }
 
 
@@ -3876,7 +3876,7 @@ void BBRA::renameOpnd(IR *, UINT old_prno, IR * newpr)
 void BBRA::renameOpndInRange(LT * lt, IR * newpr, INT start, INT end)
 {
     ASSERT0(lt && newpr && newpr->is_pr());
-    ASSERT0(0);
+    UNREACH();
     INT firstpos = m_ltm->get_first_pos();
     INT lastpos = m_ltm->get_last_pos();
     if (start == -1) { start = firstpos; }
@@ -5906,7 +5906,7 @@ bool RA::verify_ltg()
             } else if (LT_rg_sz(l) == 2) {
                 ASSERT(bsz == BYTE_PER_LONGLONG, ("lt should not be pair"));
             } else {
-                ASSERT0(0);
+                UNREACH();
             }
         }
     }

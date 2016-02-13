@@ -210,10 +210,10 @@ protected:
     bool is_may_throw(IR * ir, IRIter & iter);
     bool mayBeGlobalRef(IR * ref)
     {
-        MD const* md = ref->get_ref_md();
+        MD const* md = ref->getRefMD();
         if (md != NULL && md->is_global()) { return true; }
 
-        MDSet const* mds = ref->get_ref_mds();
+        MDSet const* mds = ref->getRefMDSet();
         if (mds == NULL) { return false; }
 
         SEGIter * iter;

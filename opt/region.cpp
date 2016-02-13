@@ -84,6 +84,7 @@ AnalysisInstrument::~AnalysisInstrument()
     //dumpSegMgr(segmgr, g_tfile);
     #endif
 
+    //Destroy pass manager.
     if (m_pass_mgr != NULL) {
         delete m_pass_mgr;
         m_pass_mgr = NULL;
@@ -104,17 +105,17 @@ AnalysisInstrument::~AnalysisInstrument()
         ir->freeDUset(m_sbs_mgr);
     }
 
+    //Free local VAR id and related MD id, and destroy the memory.
     destroyVARandMD(m_ru, this);
 
-    //Destroy all IR. IR allocated in the pool.
-    smpoolDelete(m_pool);
-    m_pool = NULL;
+    //Destroy reference info.
+    if (REGION_refinfo(m_ru) != NULL) {
+        REF_INFO_mayuse(REGION_refinfo(m_ru)).clean(m_sbs_mgr);
+        REF_INFO_maydef(REGION_refinfo(m_ru)).clean(m_sbs_mgr);
 
-    //Destroy all DU structure. DU set allocated in the du_pool.
-    smpoolDelete(m_du_pool);
-    m_du_pool = NULL;
-
-    m_ir_list = NULL;
+        //REGION_refinfo allocated in pool.
+        REGION_refinfo(m_ru) = NULL;
+    }
 
     //Destory CALL list.
     if (m_call_list != NULL) {
@@ -122,10 +123,24 @@ AnalysisInstrument::~AnalysisInstrument()
         m_call_list = NULL;
     }
 
-    if (REGION_refinfo(m_ru) != NULL) {
-        REF_INFO_mayuse(REGION_refinfo(m_ru)).clean(m_sbs_mgr);
-        REF_INFO_maydef(REGION_refinfo(m_ru)).clean(m_sbs_mgr);
+    //Destory RETURN list.
+    if (m_return_list != NULL) {
+        delete m_return_list;
+        m_return_list = NULL;
     }
+
+    ////////////////////////////////////////////////////////////
+    //Do NOT destroy member which allocated in pool after here//
+    ////////////////////////////////////////////////////////////
+
+    //Destroy all IR. IR allocated in the pool.
+    smpoolDelete(m_pool);
+    m_pool = NULL;
+
+    //Destroy all DUSet which allocated in the du_pool.
+    smpoolDelete(m_du_pool);
+    m_du_pool = NULL;
+    m_ir_list = NULL;
 }
 
 
@@ -2102,42 +2117,52 @@ IR * Region::dupIR(IR const* src)
 void Region::scanCallListImpl(
         OUT UINT & num_inner_region,
         IR * irlst,
-        OUT List<IR const*> & call_list,
+        OUT List<IR const*> * call_list,
+        OUT List<IR const*> * ret_list,
         bool scan_inner_region)
 {
     for (IR const* t = irlst; t != NULL; t = t->get_next()) {
         switch (t->get_code()) {
         case IR_CALL:
         case IR_ICALL:
-            if (!CALL_is_intrinsic(t)) { call_list.append_tail(t); }
+            if (!CALL_is_intrinsic(t)) {
+                ASSERT0(call_list);
+                call_list->append_tail(t);
+            }
             break;
         case IR_DO_WHILE:
         case IR_WHILE_DO:
             scanCallListImpl(num_inner_region, LOOP_body(t),
-                             call_list, scan_inner_region);
+                             call_list, ret_list, scan_inner_region);
             break;
         case IR_DO_LOOP:
             scanCallListImpl(num_inner_region, LOOP_init(t),
-                             call_list, scan_inner_region);
-            scanCallListImpl(num_inner_region,
-                             LOOP_step(t), call_list, scan_inner_region);
-            scanCallListImpl(num_inner_region,
-                             LOOP_body(t), call_list, scan_inner_region);
+                             call_list, ret_list, scan_inner_region);
+            scanCallListImpl(num_inner_region, LOOP_step(t), call_list,
+                             ret_list, scan_inner_region);
+            scanCallListImpl(num_inner_region, LOOP_body(t), call_list,
+                             ret_list, scan_inner_region);
             break;
         case IR_IF:
-            scanCallListImpl(num_inner_region,
-                             IF_truebody(t), call_list, scan_inner_region);
-            scanCallListImpl(num_inner_region,
-                             IF_falsebody(t), call_list, scan_inner_region);
+            scanCallListImpl(num_inner_region, IF_truebody(t), call_list,
+                             ret_list, scan_inner_region);
+            scanCallListImpl(num_inner_region, IF_falsebody(t), call_list,
+                             ret_list, scan_inner_region);
             break;
         case IR_SWITCH:
-            scanCallListImpl(num_inner_region,
-                             SWITCH_body(t), call_list, scan_inner_region);
+            scanCallListImpl(num_inner_region, SWITCH_body(t), call_list,
+                             ret_list, scan_inner_region);
             break;
         case IR_REGION:
             num_inner_region++;
             if (scan_inner_region) {
-                REGION_ru(t)->scanCallList(num_inner_region, call_list, true);
+                REGION_ru(t)->scanCallAndReturnList(
+                    num_inner_region, call_list, ret_list, true);
+            }
+            break;
+        case IR_RETURN:
+            if (ret_list != NULL) {
+                ret_list->append_tail(t);
             }
             break;
         default:;
@@ -2147,25 +2172,30 @@ void Region::scanCallListImpl(
 
 
 //num_inner_region: count the number of inner regions.
-void Region::scanCallList(
+void Region::scanCallAndReturnList(
         OUT UINT & num_inner_region,
-        OUT List<IR const*> & call_list,
+        OUT List<IR const*> * call_list,
+        OUT List<IR const*> * ret_list,
         bool scan_inner_region)
 {
     if (get_ir_list() != NULL) {
         scanCallListImpl(num_inner_region, get_ir_list(),
-                         call_list, scan_inner_region);
+                         call_list, ret_list, scan_inner_region);
     } else {
         for (IRBB * bb = get_bb_list()->get_head();
              bb != NULL; bb = get_bb_list()->get_next()) {
             IR * t = BB_last_ir(bb);
             if (t == NULL) { continue; }
             ASSERT0(t->isStmtInBB());
+            ASSERT0(call_list);
             if (t != NULL && t->is_calls_stmt()) {
-                call_list.append_tail(t);
+                call_list->append_tail(t);
+            } else if (ret_list != NULL && t->is_return()) {
+                ret_list->append_tail(t);
             } else if (scan_inner_region && t->is_region()) {
                 num_inner_region++;
-                REGION_ru(t)->scanCallList(num_inner_region, call_list, true);
+                REGION_ru(t)->scanCallAndReturnList(
+                    num_inner_region, call_list, ret_list, true);
             }
         }
     }
@@ -2185,7 +2215,7 @@ void Region::prescan(IR const* ir)
         case IR_CALL:
         case IR_ICALL:
             if (g_do_call_graph && !CALL_is_intrinsic(ir)) {
-                List<IR const*> * cl = get_call_list();
+                List<IR const*> * cl = gen_call_list();
                 ASSERT0(cl);
                 cl->append_tail(ir);
             }
@@ -2242,7 +2272,7 @@ void Region::prescan(IR const* ir)
             //    int a[10];
             //    int * p;
             //    p = a;
-            ASSERT0(0);
+            UNREACH();
             //ASSERT0(ID_info(ir) && VAR_is_array(ID_info(ir)));
             break;
         case IR_CONST:
@@ -2257,7 +2287,7 @@ void Region::prescan(IR const* ir)
             break;
         case IR_RETURN:
             if (g_do_call_graph) {
-                List<IR const*> * cl = get_return_list();
+                List<IR const*> * cl = gen_return_list();
                 ASSERT0(cl);
                 cl->append_tail(ir);
             }
@@ -2349,6 +2379,20 @@ void Region::dump()
     if (g_tfile == NULL) { return; }
 
     dumpVARInRegion();
+
+    //Dump imported variables referenced.
+    MDSet * ru_maydef = get_may_def();
+    if (ru_maydef != NULL) {
+        note("\nRegionMayDef(OuterRegion):");
+        ru_maydef->dump(get_md_sys(), true);
+    }
+
+    MDSet * ru_mayuse = get_may_use();
+    if (ru_mayuse != NULL) {
+        note("\nRegionMayUse(OuterRegion):");
+        ru_mayuse->dump(get_md_sys(), true);
+    }
+
     dump_mem_usage(g_tfile);
 
     IR * irlst = get_ir_list();
@@ -2636,7 +2680,7 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
     va_start(ptr, oc);
     PASS_TYPE opty = (PASS_TYPE)va_arg(ptr, UINT);
     while (opty != PASS_UNDEF && num < 1000) {
-        ASSERT0(opty < PASS_NUM);
+        ASSERT(opty < PASS_NUM, ("You should append PASS_UNDEF to pass list."));
         opts.bunion(opty);
         num++;
         opty = (PASS_TYPE)va_arg(ptr, UINT);
@@ -2654,15 +2698,28 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
     IR_DU_MGR * dumgr = NULL;
 
     if (opts.is_contain(PASS_CFG) && !OC_is_cfg_valid(*oc)) {
-        ASSERT(cfg, ("CFG is not enable"));
-        //Caution: the validation of cfg should maintained by user.
-        cfg->rebuild(*oc);
-        cfg->removeEmptyBB(*oc);
-        cfg->computeExitList();
+        if (cfg == NULL) {
+            //CFG is not constructed.
+            cfg = (IR_CFG*)get_pass_mgr()->registerPass(PASS_CFG);
+            cfg->initCfg(*oc);
+            if (g_do_loop_ana) {
+                ASSERT(g_do_cfg_dom, ("dominator is necessary to build loop"));
+                cfg->LoopAnalysis(*oc);
+            }
+        } else {
+            //Caution: the validation of cfg should maintained by user.
+            cfg->rebuild(*oc);
+            cfg->removeEmptyBB(*oc);
+            cfg->computeExitList();
+        }
     }
 
-    if (opts.is_contain(PASS_CDG) && !OC_is_aa_valid(*oc)) {
-        ASSERT(cfg, ("CFG is not enable"));
+    if (opts.is_contain(PASS_CDG) &&
+        !OC_is_aa_valid(*oc) &&
+        get_bb_list() != NULL &&
+        get_bb_list()->get_elem_count() != 0) {
+        ASSERT(cfg && OC_is_cfg_valid(*oc),
+           ("You should make CFG available first."));
         if (aa == NULL) {
             aa = (IR_AA*)passmgr->registerPass(PASS_AA);
             if (!aa->is_init()) {
@@ -2675,12 +2732,14 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
     }
 
     if (opts.is_contain(PASS_DOM) && !OC_is_dom_valid(*oc)) {
-        ASSERT(cfg, ("CFG is not enable"));
+        ASSERT(cfg && OC_is_cfg_valid(*oc),
+               ("You should make CFG available first."));
         cfg->computeDomAndIdom(*oc);
     }
 
     if (opts.is_contain(PASS_PDOM) && !OC_is_pdom_valid(*oc)) {
-        ASSERT(cfg, ("CFG is not enable"));
+        ASSERT(cfg && OC_is_cfg_valid(*oc),
+               ("You should make CFG available first."));
         cfg->computePdomAndIpdom(*oc);
     }
 
@@ -2688,7 +2747,8 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
         ASSERT0(passmgr);
         CDG * cdg = (CDG*)passmgr->registerPass(PASS_CDG);
         ASSERT0(cdg); //cdg is not enable.
-        ASSERT(cfg, ("CFG is not enable"));
+        ASSERT(cfg && OC_is_cfg_valid(*oc),
+               ("You should make CFG available first."));
         cdg->rebuild(*oc, *cfg);
     }
 
@@ -2717,7 +2777,11 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
     }
 
     if ((HAVE_FLAG(f, SOL_REF) || opts.is_contain(PASS_AA)) &&
-        !OC_is_aa_valid(*oc)) {
+        !OC_is_aa_valid(*oc) &&
+        get_bb_list() != NULL &&
+        get_bb_list()->get_elem_count() != 0) {
+        ASSERT(cfg && OC_is_cfg_valid(*oc),
+               ("You should make CFG available first."));
         if (aa == NULL) {
             aa = (IR_AA*)passmgr->registerPass(PASS_AA);
             if (!aa->is_init()) {
@@ -2728,7 +2792,9 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
         aa->perform(*oc);
     }
 
-    if (f != 0) {
+    if (f != 0 &&
+        get_bb_list() != NULL &&
+        get_bb_list()->get_elem_count() != 0) {
         if (dumgr == NULL) {
             dumgr = (IR_DU_MGR*)passmgr->registerPass(PASS_DU_MGR);
         }
@@ -2742,7 +2808,10 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
         }
     }
 
-    if (opts.is_contain(PASS_DU_CHAIN) && !OC_is_du_chain_valid(*oc)) {
+    if (opts.is_contain(PASS_DU_CHAIN) &&
+        !OC_is_du_chain_valid(*oc) &&
+        get_bb_list() != NULL &&
+        get_bb_list()->get_elem_count() != 0) {
         if (dumgr == NULL) {
             dumgr = (IR_DU_MGR*)passmgr->registerPass(PASS_DU_MGR);
         }
@@ -2754,7 +2823,10 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
         }
     }
 
-    if (opts.is_contain(PASS_EXPR_TAB) && !OC_is_expr_tab_valid(*oc)) {
+    if (opts.is_contain(PASS_EXPR_TAB) &&
+        !OC_is_expr_tab_valid(*oc) &&
+        get_bb_list() != NULL &&
+        get_bb_list()->get_elem_count() != 0) {
         IR_EXPR_TAB * exprtab =
             (IR_EXPR_TAB*)passmgr->registerPass(PASS_EXPR_TAB);
         ASSERT0(exprtab);
@@ -2762,12 +2834,14 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
     }
 
     if (opts.is_contain(PASS_LOOP_INFO) && !OC_is_loopinfo_valid(*oc)) {
-        ASSERT(cfg, ("CFG is not enable"));
+        ASSERT(cfg && OC_is_cfg_valid(*oc),
+               ("You should make CFG available first."));
         cfg->LoopAnalysis(*oc);
     }
 
     if (opts.is_contain(PASS_RPO)) {
-        ASSERT(cfg, ("CFG is not enable"));
+        ASSERT(cfg && OC_is_cfg_valid(*oc),
+               ("You should make CFG available first."));
         if (!OC_is_rpo_valid(*oc)) {
             cfg->compute_rpo(*oc);
         } else {
@@ -2858,92 +2932,103 @@ bool Region::partitionRegion()
 
 
 //Check and rescan call list of region if one of elements in list changed.
-void Region::updateCallList()
+void Region::updateCallAndReturnList(bool scan_inner_region)
 {
     if (read_call_list() == NULL) { return; }
     UINT num_inner_region = 0;
     List<IR const*> * clst = get_call_list();
+    if (clst == NULL) { return; }
+
     C<IR const*> * ct;
     for (clst->get_head(&ct); ct != clst->end(); ct = clst->get_next(ct)) {
         IR const* c = ct->val();
         ASSERT0(c);
         if (!c->is_calls_stmt()) {
             //Call stmt has changed, then rescanning is needed.
-            scanCallList(num_inner_region, *clst, true);
+            scanCallAndReturnList(num_inner_region, scan_inner_region);
+            return;
+        }
+    }
+
+    List<IR const*> * retlst = get_return_list();
+    if (retlst == NULL) { return; }
+
+    for (retlst->get_head(&ct);
+         ct != retlst->end(); ct = retlst->get_next(ct)) {
+        IR const* c = ct->val();
+        ASSERT0(c);
+        if (!c->is_return()) {
+            //Return stmt has changed, then rescanning is needed.
+            scanCallAndReturnList(num_inner_region, scan_inner_region);
             return;
         }
     }
 }
 
 
-void Region::process()
+void Region::processBBList(OptCtx & oc)
 {
-    if (get_ir_list() == NULL) { return ; }
+    if (get_bb_list() == NULL || get_bb_list()->get_elem_count() == 0) {
+        return;
+    }
+    MiddleProcess(oc);
+}
 
-    ASSERT0(verifyIRinRegion());
 
-    ASSERT(is_function() ||
-            REGION_type(this) == RU_EH ||
-            REGION_type(this) == RU_SUB,
-            ("Are you sure this kind of Region executable?"));
-
-    g_indent = 0;
-
-    note("\nREGION_NAME:%s", get_ru_name());
-
-    if (g_opt_level == NO_OPT) { return; }
-
-    OptCtx oc;
+void Region::processIRList(OptCtx & oc)
+{
+    if (get_ir_list() == NULL) { return; }
 
     START_TIMER("PreScan");
     prescan(get_ir_list());
     END_TIMER();
 
     HighProcess(oc);
-
     MiddleProcess(oc);
+}
 
-    if (!is_function()) { return; }
 
-    BBList * bbl = get_bb_list();
+void Region::process()
+{
+    ASSERT0(verifyIRinRegion());
+    note("\nREGION_NAME:%s", get_ru_name());
 
-    if (bbl->get_elem_count() == 0) { return; }
+    OptCtx oc;
+    OC_show_comp_time(oc) = g_show_comp_time;
+    initPassMgr();
 
-    SimpCtx simp;
-    simp.set_simp_cf();
-    simp.set_simp_array();
-    simp.set_simp_select();
-    simp.set_simp_land_lor();
-    simp.set_simp_lnot();
-    simp.set_simp_ild_ist();
-    simp.set_simp_to_lowest_height();
-    simplifyBBlist(bbl, &simp);
-
-    if (g_cst_bb_list && SIMP_need_recon_bblist(&simp)) {
-        if (reconstructBBlist(oc) && g_do_cfg) {
-            //Before CFG building.
-            get_cfg()->removeEmptyBB(oc);
-
-            get_cfg()->rebuild(oc);
-
-            //After CFG building, it is perform different
-            //operation to before building.
-            get_cfg()->removeEmptyBB(oc);
-
-            get_cfg()->computeExitList();
-
-            if (g_do_cdg) {
-                ASSERT0(get_pass_mgr());
-                CDG * cdg = (CDG*)get_pass_mgr()->registerPass(PASS_CDG);
-                cdg->rebuild(oc, *get_cfg());
-            }
+    if (g_do_inline && is_program()) {
+        //Need to scan call-list.
+        CallGraph * callg = get_region_mgr()->get_call_graph();
+        if (callg == NULL) {
+            get_region_mgr()->initCallGraph(true, true);
         }
+
+        OC_is_callg_valid(oc) = true;
+        Inliner * inl = (Inliner*)get_pass_mgr()->registerPass(PASS_INLINER);
+        inl->perform(oc);
+        get_pass_mgr()->destroyPass(inl);
     }
 
-    ASSERT0(verifyIRandBB(bbl, this));
-    RefineCtx rf;
-    refineBBlist(bbl, rf);
-    ASSERT0(verifyIRandBB(bbl, this));
+    if (get_ir_list() != NULL) {
+        processIRList(oc);
+    } else {
+        processBBList(oc);
+    }
+
+    if (g_do_ipa && is_program()) {
+        if (!OC_is_callg_valid(oc)) {
+            //processFuncRegion has scanned and collected call-list.
+            //Thus it does not need to scan call-list here.
+            get_region_mgr()->initCallGraph(true, true);
+            OC_is_callg_valid(oc) = true;
+        }
+
+        ASSERT0(get_pass_mgr());
+        IPA * ipa = (IPA*)get_pass_mgr()->registerPass(PASS_IPA);
+        ipa->perform(oc);
+        get_pass_mgr()->destroyPass(ipa);
+    }
 
     ASSERT0(get_pass_mgr());
     IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)get_pass_mgr()->queryPass(PASS_SSA_MGR);
@@ -2951,8 +3036,12 @@ void Region::process()
         ssamgr->destructionInBBListOrder();
     }
 
-    destroyPassMgr();
-    updateCallList();
+    if (!g_retain_pass_mgr_for_region) {
+        destroyPassMgr();
+    }
+
+    updateCallAndReturnList(true);
+    tfree();
 }
 //END Region
 

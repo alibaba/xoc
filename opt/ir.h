@@ -241,59 +241,59 @@ extern IRDesc const g_ir_desc[];
 #define CK_ARRAY_DIM(ir, n)                (n)
 #endif
 
-#define CKID_TY(ir, irty, n)    CK_KID_NUM_IRTY(ir, n, irty, __FILE__, __LINE__)
-#define CKID_BR(ir, n)          CK_KID_NUM_BR(ir, n, __FILE__, __LINE__)
-#define CKID_LOOP(ir, n)        CK_KID_NUM_LOOP(ir, n, __FILE__, __LINE__)
-#define CKID_UNA(ir, n)         CK_KID_NUM_UNA(ir, n, __FILE__, __LINE__)
-#define CKID_BIN(ir, n)         CK_KID_NUM_BIN(ir, n, __FILE__, __LINE__)
-#define CKID_CALL(ir, n)        CK_KID_NUM_CALL(ir, n, __FILE__, __LINE__)
-#define CKID_ARR(ir, n)         CK_KID_NUM_ARR(ir, n, __FILE__, __LINE__)
+#define CKID_TY(ir, irty, n)  CK_KID_NUM_IRTY(ir, n, irty, __FILE__, __LINE__)
+#define CKID_BR(ir, n)        CK_KID_NUM_BR(ir, n, __FILE__, __LINE__)
+#define CKID_LOOP(ir, n)      CK_KID_NUM_LOOP(ir, n, __FILE__, __LINE__)
+#define CKID_UNA(ir, n)       CK_KID_NUM_UNA(ir, n, __FILE__, __LINE__)
+#define CKID_BIN(ir, n)       CK_KID_NUM_BIN(ir, n, __FILE__, __LINE__)
+#define CKID_CALL(ir, n)      CK_KID_NUM_CALL(ir, n, __FILE__, __LINE__)
+#define CKID_ARR(ir, n)       CK_KID_NUM_ARR(ir, n, __FILE__, __LINE__)
 
 //Used by all IR.
-#define IRNAME(ir)              (IRDES_name(g_ir_desc[IR_code(ir)]))
-#define IRTNAME(irt)            (IRDES_name(g_ir_desc[irt]))
-#define IRTSIZE(irt)            (IRDES_size(g_ir_desc[irt]))
+#define IRNAME(ir)               (IRDES_name(g_ir_desc[IR_code(ir)]))
+#define IRTNAME(irt)             (IRDES_name(g_ir_desc[irt]))
+#define IRTSIZE(irt)             (IRDES_size(g_ir_desc[irt]))
 
-#define IR_MAX_KID_NUM(ir)      (IRDES_kid_num(g_ir_desc[IR_code(ir)]))
+#define IR_MAX_KID_NUM(ir)       (IRDES_kid_num(g_ir_desc[IR_code(ir)]))
 
 //Each IR at same Region has it own unique id.
-#define IR_id(ir)               ((ir)->id)
+#define IR_id(ir)                ((ir)->id)
 
 //Record result data type.
-#define IR_dt(ir)               ((ir)->result_data_type)
+#define IR_dt(ir)                ((ir)->result_data_type)
 
 //Record if ir might throw exception.
-#define IR_may_throw(ir)        ((ir)->may_throw_exception)
+#define IR_may_throw(ir)         ((ir)->may_throw_exception)
 
 //Indicate IR will terminate current control flow.
 //If this flag is true, the code that followed subsequently is unreachable.
-#define IR_is_termiate(ir)      ((ir)->is_terminate_control_flow)
+#define IR_is_termiate(ir)       ((ir)->is_terminate_control_flow)
 
 //Record IR type.
-#define IR_code(ir)             ((ir)->code)
+#define IR_code(ir)              ((ir)->code)
 
 //Access parent IR.
-#define IR_parent(ir)           ((ir)->parent)
+#define IR_parent(ir)            ((ir)->parent)
 
 //Access next IR.
-#define IR_next(ir)             ((ir)->next)
+#define IR_next(ir)              ((ir)->next)
 
 //Access prev IR.
-#define IR_prev(ir)             ((ir)->prev)
+#define IR_prev(ir)              ((ir)->prev)
 
 //Record attached info container.
-#define IR_ai(ir)               ((ir)->attach_info_container)
+#define IR_ai(ir)                ((ir)->attach_info_container)
 
 //True if current operation is atomic. If ir is atomic load, write or
 //read-modify-write.
-#define IR_is_atomic(ir)        ((ir)->is_atomic)
+#define IR_is_atomic(ir)         ((ir)->is_atomic)
 
-/* True if current operation is atomic read-modify-write.
-For given variable, RMW operation read the old value, then compare
-with new value, then write the new value to the variable. The write
-operation may be failed.
-If the variable is volatile, one should not change the order of this
-operation with other volatile operations. */
+//True if current operation is atomic read-modify-write.
+//For given variable, RMW operation read the old value, then compare
+//with new value, then write the new value to the variable. The write
+//operation may be failed.
+//If the variable is volatile, one should not change the order of this
+//operation with other memory operations.
 #define IR_is_read_mod_write(ir) ((ir)->is_read_mod_write)
 
 //True if ir has sideeffect. This flag often be used to prevent user
@@ -396,8 +396,8 @@ public:
     {
         ASSERT0(src && ru);
         ASSERT(is_memory_ref(), ("not memory reference"));
-        set_ref_md(src->get_ref_md(), ru);
-        set_ref_mds(src->get_ref_mds(), ru);
+        setRefMD(src->getRefMD(), ru);
+        setRefMDSet(src->getRefMDSet(), ru);
     }
 
     //Copy each memory reference for whole ir tree.
@@ -408,8 +408,8 @@ public:
         ASSERT0(src && is_ir_equal(src, true) && ru);
         ASSERT0(src != this);
         if (is_memory_ref()) {
-            set_ref_md(src->get_ref_md(), ru);
-            set_ref_mds(src->get_ref_mds(), ru);
+            setRefMD(src->getRefMD(), ru);
+            setRefMDSet(src->getRefMDSet(), ru);
         }
 
         for (UINT i = 0; i < IR_MAX_KID_NUM(this); i++) {
@@ -521,7 +521,7 @@ public:
     IR * getOpndPR(UINT prno);
 
     //Get the MD that IR referrenced.
-    MD const* get_ref_md() const
+    MD const* getRefMD() const
     {
         DU * du = get_du();
         return du == NULL ? NULL : DU_md(du);
@@ -538,7 +538,7 @@ public:
     }
 
     //Get the MDSet that IR referrenced.
-    MDSet const* get_ref_mds() const
+    MDSet const* getRefMDSet() const
     {
         DU * du = get_du();
         return du == NULL ? NULL : DU_mds(du);
@@ -547,20 +547,20 @@ public:
     //Return exact MD if ir defined.
     inline MD const* get_exact_ref() const
     {
-        MD const* md = get_ref_md();
+        MD const* md = getRefMD();
         return (md == NULL || !md->is_exact()) ? NULL : md;
     }
 
     inline MD const* get_effect_ref() const
     {
-        MD const* md = get_ref_md();
+        MD const* md = getRefMD();
         ASSERT0(md == NULL || !MD_is_may(md));
         return md;
     }
 
-    //Return true if ir may compute at least one result.
+    //Return true if ir compute produce a result.
     bool has_result() const
-    { return IRDES_has_result(g_ir_desc[IR_code(this)]); }
+    { return IRDES_has_result(g_ir_desc[get_code()]); }
 
     //Return true if ir is call and does have a return value.
     inline bool hasReturnValue() const;
@@ -618,7 +618,7 @@ public:
     bool is_bool() const { return IR_dt(this)->is_bool(); }
 
     //Return true if ir is label.
-    bool is_lab() const { return IR_code(this) == IR_LABEL; }
+    bool is_lab() const { return get_code() == IR_LABEL; }
 
     //Return true if current ir equal to src.
     bool is_ir_equal(IR const* src, bool is_cmp_kid = true) const;
@@ -641,7 +641,7 @@ public:
 
     //Return true if current ir is stmt.
     //Only statement can be chained.
-    bool is_stmt() const { return IRDES_is_stmt(g_ir_desc[IR_code(this)]); }
+    bool is_stmt() const { return IRDES_is_stmt(g_ir_desc[get_code()]); }
 
     //Return true if current ir is expression.
     bool is_exp() const { return !is_stmt(); }
@@ -650,10 +650,10 @@ public:
     bool is_may_throw() const { return IR_may_throw(this); }
 
     //Return true if current ir is binary operation.
-    bool is_binary_op() const { return IRDES_is_bin(g_ir_desc[IR_code(this)]); }
+    bool is_binary_op() const { return IRDES_is_bin(g_ir_desc[get_code()]); }
 
     //Return true if current ir is unary operation.
-    bool is_unary_op() const { return IRDES_is_una(g_ir_desc[IR_code(this)]); }
+    bool is_unary_op() const { return IRDES_is_una(g_ir_desc[get_code()]); }
 
     //Return true if k is kid node of right-hand-side of current ir.
     bool is_rhs(IR const* k) const { return !is_lhs(k) && k != this; }
@@ -682,73 +682,73 @@ public:
     //arguments.
     inline bool is_readonly_call() const;
 
-    bool is_undef() const { return IR_code(this) == IR_UNDEF; }
-    bool is_dowhile() const { return IR_code(this) == IR_DO_WHILE; }
-    bool is_whiledo() const { return IR_code(this) == IR_WHILE_DO; }
-    bool is_doloop() const { return IR_code(this) == IR_DO_LOOP; }
-    bool is_if() const { return IR_code(this) == IR_IF; }
-    bool is_label() const { return IR_code(this) == IR_LABEL; }
-    bool is_case() const { return IR_code(this) == IR_CASE; }
-    bool is_id() const { return IR_code(this) == IR_ID; }
-    bool is_break() const { return IR_code(this) == IR_BREAK; }
-    bool is_continue() const { return IR_code(this) == IR_CONTINUE; }
-    bool is_const() const { return IR_code(this) == IR_CONST; }
-    bool is_ld() const { return IR_code(this) == IR_LD; }
-    bool is_st() const { return IR_code(this) == IR_ST; }
+    bool is_undef() const { return get_code() == IR_UNDEF; }
+    bool is_dowhile() const { return get_code() == IR_DO_WHILE; }
+    bool is_whiledo() const { return get_code() == IR_WHILE_DO; }
+    bool is_doloop() const { return get_code() == IR_DO_LOOP; }
+    bool is_if() const { return get_code() == IR_IF; }
+    bool is_label() const { return get_code() == IR_LABEL; }
+    bool is_case() const { return get_code() == IR_CASE; }
+    bool is_id() const { return get_code() == IR_ID; }
+    bool is_break() const { return get_code() == IR_BREAK; }
+    bool is_continue() const { return get_code() == IR_CONTINUE; }
+    bool is_const() const { return get_code() == IR_CONST; }
+    bool is_ld() const { return get_code() == IR_LD; }
+    bool is_st() const { return get_code() == IR_ST; }
     //True if store to specified element of pseduo register.
     //The pseduo register must be D_MC or vector type.
-    bool is_setelem() const { return IR_code(this) == IR_SETELEM; }
+    bool is_setelem() const { return get_code() == IR_SETELEM; }
 
     //True if picking up specified element of givne PR and store the value
     //to a new PR. The base PR must be D_MC or vector type.
     //And the result PR must be element type of base PR.
-    bool is_getelem() const { return IR_code(this) == IR_GETELEM; }
-    bool is_call() const { return IR_code(this) == IR_CALL; }
-    bool is_icall() const { return IR_code(this) == IR_ICALL; }
-    bool is_starray() const { return IR_code(this) == IR_STARRAY; }
-    bool is_ild() const { return IR_code(this) == IR_ILD; }
-    bool is_array() const { return IR_code(this) == IR_ARRAY; }
-    bool is_ist() const { return IR_code(this) == IR_IST; }
-    bool is_lda() const { return IR_code(this) == IR_LDA; }
-    bool is_switch() const { return IR_code(this) == IR_SWITCH; }
-    bool is_return() const { return IR_code(this) == IR_RETURN; }
-    bool is_cvt() const { return IR_code(this) == IR_CVT; }
-    bool is_truebr() const { return IR_code(this) == IR_TRUEBR; }
-    bool is_falsebr() const { return IR_code(this) == IR_FALSEBR; }
-    bool is_select() const { return IR_code(this) == IR_SELECT; }
-    bool is_phi() const { return IR_code(this) == IR_PHI; }
-    bool is_region() const { return IR_code(this) == IR_REGION; }
-    bool is_goto() const { return IR_code(this) == IR_GOTO; }
-    bool is_igoto() const { return IR_code(this) == IR_IGOTO; }
-    bool is_add() const { return IR_code(this) == IR_ADD; }
-    bool is_sub() const { return IR_code(this) == IR_SUB; }
-    bool is_mul() const { return IR_code(this) == IR_MUL; }
-    bool is_div() const { return IR_code(this) == IR_DIV; }
-    bool is_rem() const { return IR_code(this) == IR_REM; }
-    bool is_mod() const { return IR_code(this) == IR_MOD; }
-    bool is_land() const { return IR_code(this) == IR_LAND; }
-    bool is_lor() const { return IR_code(this) == IR_LOR; }
-    bool is_band() const { return IR_code(this) == IR_BAND; }
-    bool is_bor() const { return IR_code(this) == IR_BOR; }
-    bool is_xor() const { return IR_code(this) == IR_XOR; }
-    bool is_asr() const { return IR_code(this) == IR_ASR; }
-    bool is_lsr() const { return IR_code(this) == IR_LSR; }
-    bool is_lsl() const { return IR_code(this) == IR_LSL; }
-    bool is_lt() const { return IR_code(this) == IR_LT; }
-    bool is_le() const { return IR_code(this) == IR_LE; }
-    bool is_gt() const { return IR_code(this) == IR_GT; }
-    bool is_ge() const { return IR_code(this) == IR_GE; }
-    bool is_eq() const { return IR_code(this) == IR_EQ; }
-    bool is_ne() const { return IR_code(this) == IR_NE; }
-    bool is_bnot() const { return IR_code(this) == IR_BNOT; }
-    bool is_lnot() const { return IR_code(this) == IR_LNOT; }
-    bool is_neg() const { return IR_code(this) == IR_NEG; }
+    bool is_getelem() const { return get_code() == IR_GETELEM; }
+    bool is_call() const { return get_code() == IR_CALL; }
+    bool is_icall() const { return get_code() == IR_ICALL; }
+    bool is_starray() const { return get_code() == IR_STARRAY; }
+    bool is_ild() const { return get_code() == IR_ILD; }
+    bool is_array() const { return get_code() == IR_ARRAY; }
+    bool is_ist() const { return get_code() == IR_IST; }
+    bool is_lda() const { return get_code() == IR_LDA; }
+    bool is_switch() const { return get_code() == IR_SWITCH; }
+    bool is_return() const { return get_code() == IR_RETURN; }
+    bool is_cvt() const { return get_code() == IR_CVT; }
+    bool is_truebr() const { return get_code() == IR_TRUEBR; }
+    bool is_falsebr() const { return get_code() == IR_FALSEBR; }
+    bool is_select() const { return get_code() == IR_SELECT; }
+    bool is_phi() const { return get_code() == IR_PHI; }
+    bool is_region() const { return get_code() == IR_REGION; }
+    bool is_goto() const { return get_code() == IR_GOTO; }
+    bool is_igoto() const { return get_code() == IR_IGOTO; }
+    bool is_add() const { return get_code() == IR_ADD; }
+    bool is_sub() const { return get_code() == IR_SUB; }
+    bool is_mul() const { return get_code() == IR_MUL; }
+    bool is_div() const { return get_code() == IR_DIV; }
+    bool is_rem() const { return get_code() == IR_REM; }
+    bool is_mod() const { return get_code() == IR_MOD; }
+    bool is_land() const { return get_code() == IR_LAND; }
+    bool is_lor() const { return get_code() == IR_LOR; }
+    bool is_band() const { return get_code() == IR_BAND; }
+    bool is_bor() const { return get_code() == IR_BOR; }
+    bool is_xor() const { return get_code() == IR_XOR; }
+    bool is_asr() const { return get_code() == IR_ASR; }
+    bool is_lsr() const { return get_code() == IR_LSR; }
+    bool is_lsl() const { return get_code() == IR_LSL; }
+    bool is_lt() const { return get_code() == IR_LT; }
+    bool is_le() const { return get_code() == IR_LE; }
+    bool is_gt() const { return get_code() == IR_GT; }
+    bool is_ge() const { return get_code() == IR_GE; }
+    bool is_eq() const { return get_code() == IR_EQ; }
+    bool is_ne() const { return get_code() == IR_NE; }
+    bool is_bnot() const { return get_code() == IR_BNOT; }
+    bool is_lnot() const { return get_code() == IR_LNOT; }
+    bool is_neg() const { return get_code() == IR_NEG; }
 
     //True if load from pseudo register.
-    bool is_pr() const { return IR_code(this) == IR_PR; }
+    bool is_pr() const { return get_code() == IR_PR; }
 
     //True if store to pseudo register.
-    bool is_stpr() const { return IR_code(this) == IR_STPR; }
+    bool is_stpr() const { return get_code() == IR_STPR; }
 
     //Return true if ir indicate conditional branch to a label.
     bool is_cond_br() const { return is_truebr() || is_falsebr(); }
@@ -781,13 +781,13 @@ public:
     //Return true if current operation references memory.
     //These kinds of operation always define or use MD.
     bool is_memory_ref() const
-    { return IRDES_is_mem_ref(g_ir_desc[IR_code(this)]); }
+    { return IRDES_is_mem_ref(g_ir_desc[get_code()]); }
 
     //Return true if current operation references memory, and
     //it is the rhs of stmt.
     //These kinds of operation always use MD.
     bool is_memory_opnd() const
-    { return IRDES_is_mem_opnd(g_ir_desc[IR_code(this)]); }
+    { return IRDES_is_mem_opnd(g_ir_desc[get_code()]); }
 
     //Return true if current ir is integer constant, and the number
     //is equal to 'value'.
@@ -797,7 +797,7 @@ public:
     //the PR memory.
     inline bool isMemoryRefNotOperatePR() const
     {
-        switch (IR_code(this)) {
+        switch (get_code()) {
         case IR_ID:
         case IR_LD:
         case IR_ILD:
@@ -819,23 +819,23 @@ public:
     bool is_judge() const { return is_relation() || is_logical(); }
 
     bool is_logical() const
-    { return IRDES_is_logical(g_ir_desc[IR_code(this)]); }
+    { return IRDES_is_logical(g_ir_desc[get_code()]); }
 
     bool is_relation() const
-    { return IRDES_is_relation(g_ir_desc[IR_code(this)]); }
+    { return IRDES_is_relation(g_ir_desc[get_code()]); }
 
     //IR meet commutative, e.g: a+b = b+a
     bool is_commutative() const
-    { return IRDES_is_commutative(g_ir_desc[IR_code(this)]); }
+    { return IRDES_is_commutative(g_ir_desc[get_code()]); }
 
     //IR meet associative, e.g: (a+b)+c = a+(b+c)
     bool is_associative() const
-    { return IRDES_is_associative(g_ir_desc[IR_code(this)]); }
+    { return IRDES_is_associative(g_ir_desc[get_code()]); }
 
     //Return true if current ir is leaf node at IR tree.
     //Leaf node must be expression node and it does not have any kids.
     bool is_leaf() const
-    { return IRDES_is_leaf(g_ir_desc[IR_code(this)]); }
+    { return IRDES_is_leaf(g_ir_desc[get_code()]); }
 
     //Return true if kid is the kid node of current ir.
     inline bool is_kids(IR const* exp) const;
@@ -850,7 +850,7 @@ public:
     //This function invert the operation accroding to it semantics.
     inline void invertIRType(Region * ru)
     {
-        switch (IR_code(this)) {
+        switch (get_code()) {
         case IR_LT: IR_code(this) = IR_GE; break;
         case IR_LE: IR_code(this) = IR_GT; break;
         case IR_GT: IR_code(this) = IR_LE; break;
@@ -875,7 +875,7 @@ public:
     //Return true if current ir can be placed in BB.
     bool isStmtInBB() const
     {
-        switch (IR_code(this)) {
+        switch (get_code()) {
         case IR_ST:
         case IR_STPR:
         case IR_STARRAY:
@@ -934,8 +934,8 @@ public:
         TY_ptr_base_size(&d) = pointer_base_size;
         IR_dt(this) = TC_type(tm->registerPointer(&d));
     }
-    void set_ref_md(MD const* md, Region * ru);
-    void set_ref_mds(MDSet const* mds, Region * ru);
+    void setRefMD(MD const* md, Region * ru);
+    void setRefMDSet(MDSet const* mds, Region * ru);
 
     //Find and substitute 'newk' for 'oldk'.
     //Return true if replaced the 'oldk'.
@@ -1017,6 +1017,7 @@ public:
 #define ID_info(ir)          (((CId*)CK_IRT(ir, IR_ID))->id_info)
 #define ID_du(ir)            (((CId*)CK_IRT(ir, IR_ID))->du)
 class CId : public DuProp, public VarProp {
+//ID need DU info, some Passes need it, e.g. GVN.
 public:
 };
 
@@ -1217,9 +1218,6 @@ public:
 //SSA info of result PR.
 #define CALL_ssainfo(ir)         (((CCall*)CK_IRT_CALL(ir))->ssainfo)
 
-//Record MayUsed MD set if any.
-#define CALL_mayuse(ir)          (((CCall*)CK_IRT_CALL(ir))->mayuse)
-
 //True if this call is intrinsic function.
 #define CALL_is_intrinsic(ir)    (((CCall*)CK_IRT_CALL(ir))->is_intrinsic)
 
@@ -1263,8 +1261,6 @@ public:
 
     UINT prno; //Result PR number if any.
 
-    MDSet const* mayuse; //indicates may used MD if any.
-
     SSAInfo * ssainfo; //indicates ssa def and use set.
 
     //NOTE: 'opnd' must be the last member.
@@ -1274,7 +1270,7 @@ public:
     VAR const* get_callee_var() const { return CALL_idinfo(this); }
     IR const* get_param_list() const { return CALL_param_list(this); }
     CHAR const* get_callee_name() const
-    { return SYM_name(VAR_name(CALL_idinfo(this))); }
+    { return SYM_name(CALL_idinfo(this)->get_name()); }
 
     bool isMustBBbound()
     {
@@ -1801,7 +1797,7 @@ public:
 //
 IR * IR::get_rhs() const
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_ST: return ST_rhs(this);
     case IR_STPR: return STPR_rhs(this);
     case IR_STARRAY: return STARR_rhs(this);
@@ -1814,7 +1810,7 @@ IR * IR::get_rhs() const
 
 UINT IR::get_prno() const
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_PR: ASSERT0(PR_no(this) != 0); return PR_no(this);
     case IR_STPR: ASSERT0(STPR_no(this) != 0); return STPR_no(this);
     case IR_GETELEM: ASSERT0(GETELEM_prno(this) != 0); return GETELEM_prno(this);
@@ -1822,7 +1818,7 @@ UINT IR::get_prno() const
     case IR_CALL:
     case IR_ICALL: ASSERT0(CALL_prno(this) != 0); return CALL_prno(this);
     case IR_PHI: ASSERT0(PHI_prno(this) != 0); return PHI_prno(this);
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     return 0;
 }
@@ -1830,7 +1826,7 @@ UINT IR::get_prno() const
 
 SSAInfo * IR::get_ssainfo() const
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_PR: return PR_ssainfo(this);
     case IR_STPR: return STPR_ssainfo(this);
     case IR_PHI: return PHI_ssainfo(this);
@@ -1846,7 +1842,7 @@ SSAInfo * IR::get_ssainfo() const
 
 IR * IR::get_kid(UINT idx) const
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_UNDEF: ASSERT(0, ("ir should not be undef")); break;
     case IR_CONST:
     case IR_ID:
@@ -1912,7 +1908,7 @@ IR * IR::get_kid(UINT idx) const
 
 IRBB * IR::get_bb() const
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_ST: return ST_bb(this);
     case IR_STPR: return STPR_bb(this);
     case IR_STARRAY: return STARR_bb(this);
@@ -1937,7 +1933,7 @@ IRBB * IR::get_bb() const
 
 DU * IR::get_du() const
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_ID:
     case IR_LD:
     case IR_ILD:
@@ -1962,7 +1958,7 @@ DU * IR::get_du() const
 void IR::set_du(DU * du)
 {
     #ifdef _DEBUG_
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_ID:
     case IR_LD:
     case IR_ILD:
@@ -1978,7 +1974,7 @@ void IR::set_du(DU * du)
     case IR_ICALL:
     case IR_PHI:
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     #endif
     DU_PROP_du(this) = du;
@@ -1987,7 +1983,7 @@ void IR::set_du(DU * du)
 
 UINT IR::get_offset() const
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_LD: return LD_ofst(this);
     case IR_ILD: return ILD_ofst(this);
     case IR_ARRAY: return ARR_ofst(this);
@@ -2004,7 +2000,7 @@ UINT IR::get_offset() const
 //Return label info if exist.
 LabelInfo const* IR::get_label() const
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_TRUEBR:
     case IR_FALSEBR: return BR_lab(this);
     case IR_GOTO: return GOTO_lab(this);
@@ -2037,7 +2033,7 @@ bool IR::is_const_exp() const
 bool IR::is_readonly_exp() const
 {
     ASSERT0(is_exp());
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_CONST: return true;
     case IR_CVT: return CVT_exp(this)->is_readonly_exp();
     case IR_LD:
@@ -2055,7 +2051,7 @@ bool IR::is_readonly_exp() const
 
 bool IR::is_readonly_call() const
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_CALL: return CALL_is_readonly(this);
     case IR_ICALL: return ICALL_is_readonly(this);
     default: ASSERT(0, ("not a call"));
@@ -2084,7 +2080,7 @@ bool IR::isDirectArrayRef() const
 
 void IR::set_bb(IRBB * bb)
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_ST: ST_bb(this) = bb; return;
     case IR_STPR: STPR_bb(this) = bb; return;
     case IR_STARRAY: STARR_bb(this) = bb; return;
@@ -2111,7 +2107,7 @@ void IR::set_bb(IRBB * bb)
 
 void IR::set_rhs(IR * rhs)
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_ST: ST_rhs(this) = rhs; return;
     case IR_STPR: STPR_rhs(this) = rhs; return;
     case IR_STARRAY: STARR_rhs(this) = rhs; return;
@@ -2124,7 +2120,7 @@ void IR::set_rhs(IR * rhs)
 
 void IR::set_ofst(UINT ofst)
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_LD: LD_ofst(this) = ofst; return;
     case IR_ST: ST_ofst(this) = ofst; return;
     case IR_ILD: ILD_ofst(this) = ofst; return;
@@ -2139,7 +2135,7 @@ void IR::set_ofst(UINT ofst)
 
 void IR::clearSSAInfo()
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_PR: PR_ssainfo(this) = NULL; return;
     case IR_STPR: STPR_ssainfo(this) = NULL; return;
     case IR_SETELEM: SETELEM_ssainfo(this) = NULL; return;
@@ -2154,7 +2150,7 @@ void IR::clearSSAInfo()
 
 void IR::set_ssainfo(SSAInfo * ssa)
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_PR: PR_ssainfo(this) = ssa; return;
     case IR_STPR: STPR_ssainfo(this) = ssa; return;
     case IR_SETELEM: SETELEM_ssainfo(this) = ssa; return;
@@ -2169,7 +2165,7 @@ void IR::set_ssainfo(SSAInfo * ssa)
 
 void IR::set_prno(UINT prno)
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_PR: PR_no(this) = prno; return;
     case IR_STPR: STPR_no(this) = prno; return;
     case IR_SETELEM: SETELEM_prno(this) = prno; return;
@@ -2185,7 +2181,7 @@ void IR::set_prno(UINT prno)
 //Return label or NULL.
 void IR::set_label(LabelInfo const* li)
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_TRUEBR:
     case IR_FALSEBR: BR_lab(this) = li; return;
     case IR_GOTO: GOTO_lab(this) = li; return;
@@ -2195,7 +2191,7 @@ void IR::set_label(LabelInfo const* li)
     case IR_LABEL: LAB_lab(this) = li; return;
     case IR_CASE: CASE_lab(this) = li; return;
     case IR_SWITCH: SWITCH_deflab(this) = li; return;
-    default: ASSERT(0, ("%s has not label", IRTNAME(IR_code(this))));
+    default: ASSERT(0, ("%s has not label", IRTNAME(get_code())));
     }
 }
 
@@ -2203,7 +2199,7 @@ void IR::set_label(LabelInfo const* li)
 //Set the No.idx child to be 'kid', and update the IR_parent of kid.
 void IR::set_kid(UINT idx, IR * kid)
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_UNDEF: ASSERT(0, ("ir should not be undef")); return;
     case IR_CONST:
     case IR_ID:
@@ -2280,13 +2276,15 @@ bool IR::is_pr_equal(IR const* src) const
 bool IR::is_rmw() const
 {
     if (IR_is_read_mod_write(this)) {
+        //Code pattern: $x = call(oldvalue, newvalue)
+        //newvalue may be [ld|pr|const].
         ASSERT0(is_call() &&
                 CALL_param_list(this) != NULL &&
-                IR_code(CALL_param_list(this)) == IR_ID &&
-                IR_next(CALL_param_list(this)) != NULL &&
-                (IR_next(CALL_param_list(this))->is_ld() ||
-                 IR_next(CALL_param_list(this))->is_pr() ||
-                 IR_next(CALL_param_list(this))->is_const()) &&
+                CALL_param_list(this)->is_ld() &&
+                CALL_param_list(this)->get_next() != NULL &&
+                (CALL_param_list(this)->get_next()->is_ld() ||
+                 CALL_param_list(this)->get_next()->is_pr() ||
+                 CALL_param_list(this)->get_next()->is_const()) &&
                 CALL_prno(this) != 0);
         return true;
     }
@@ -2321,7 +2319,7 @@ bool IR::is_kids(IR const* exp) const
 bool IR::is_lhs(IR const* k) const
 {
     ASSERT0(is_stmt());
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_ST:
     case IR_STPR:
     case IR_STARRAY:
@@ -2351,7 +2349,7 @@ bool IR::is_lhs(IR const* k) const
         return k == this;
     case IR_REGION:
         return false;
-    default: ASSERT0(0);
+    default: UNREACH();
     } //end switch
     return false;
 }
@@ -2362,7 +2360,7 @@ bool IR::is_exact_def(MD const* md, MDSet const* mds) const
 {
     ASSERT0(is_stmt());
 
-    MD const* cur_ir_defined_md = get_ref_md();
+    MD const* cur_ir_defined_md = getRefMD();
 
     if (cur_ir_defined_md != NULL && cur_ir_defined_md->is_exact()) {
         if (cur_ir_defined_md == md || cur_ir_defined_md->is_overlap(md)) {
@@ -2385,7 +2383,7 @@ bool IR::is_exact_def(MD const* md) const
     ASSERT0(is_stmt() && md);
     if (!md->is_exact()) { return false; }
 
-    MD const* cur_ir_defined_md = get_ref_md();
+    MD const* cur_ir_defined_md = getRefMD();
     if (cur_ir_defined_md != NULL &&
         cur_ir_defined_md->is_exact() &&
         (cur_ir_defined_md == md || cur_ir_defined_md->is_overlap(md))) {
@@ -2398,7 +2396,7 @@ bool IR::is_exact_def(MD const* md) const
 //Set ir DU to be NULL, return the DU pointer.
 DU * IR::cleanDU()
 {
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_ID:
     case IR_LD:
     case IR_ILD:
@@ -2427,7 +2425,7 @@ DU * IR::cleanDU()
 IR * IR::getResultPR()
 {
     ASSERT0(is_stmt());
-    switch (IR_code(this)) {
+    switch (get_code()) {
     case IR_ST: return NULL;
     case IR_STPR:
     case IR_SETELEM:
@@ -2456,7 +2454,7 @@ IR * IR::getResultPR()
         return this;
     case IR_REGION:
         return NULL;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     return NULL;
 }

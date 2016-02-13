@@ -104,20 +104,20 @@ bool IR_DCE::check_stmt(IR const* ir)
         return true;
     }
 
-    MD const* mustdef = ir->get_ref_md();
+    MD const* mustdef = ir->getRefMD();
     if (mustdef != NULL) {
-        if (is_effect_write(MD_base(mustdef))) {
+        if (is_effect_write(mustdef->get_base())) {
             return true;
         }
     } else {
-        MDSet const* maydefs = ir->get_ref_mds();
+        MDSet const* maydefs = ir->getRefMDSet();
         if (maydefs != NULL) {
             SEGIter * iter;
             for (INT i = maydefs->get_first(&iter);
                  i >= 0; i = maydefs->get_next(i, &iter)) {
                 MD * md = m_md_sys->get_md(i);
                 ASSERT0(md);
-                if (is_effect_write(MD_base(md))) {
+                if (is_effect_write(md->get_base())) {
                     return true;
                 }
             }
@@ -136,20 +136,20 @@ bool IR_DCE::check_stmt(IR const* ir)
         //Check if using volatile variable.
         //e.g: volatile int g = 0;
         //    while(g); # The stmt has effect.
-        MD const* md = x->get_ref_md();
+        MD const* md = x->getRefMD();
         if (md != NULL) {
-            if (is_effect_read(MD_base(md))) {
+            if (is_effect_read(md->get_base())) {
                 return true;
             }
         } else {
-            MDSet const* mds = x->get_ref_mds();
+            MDSet const* mds = x->getRefMDSet();
             if (mds != NULL) {
                 SEGIter * iter;
                 for (INT i = mds->get_first(&iter);
                      i != -1; i = mds->get_next(i, &iter)) {
                     MD * md = m_md_sys->get_md(i);
                     ASSERT0(md != NULL);
-                    if (is_effect_read(MD_base(md))) {
+                    if (is_effect_read(md->get_base())) {
                         return true;
                     }
                 }
@@ -265,7 +265,7 @@ bool IR_DCE::find_effect_kid(IN IRBB * bb,
             ecp = EC_next(ecp);
         }
     } else {
-        ASSERT0(0);
+        UNREACH();
     }
     return false;
 }

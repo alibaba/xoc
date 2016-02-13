@@ -1751,9 +1751,9 @@ FIN:
 }
 
 
-/* Return true if matrix is nonsingular, otherwise return false.
-'e': inverted matrix.
-Note matrix must be use row convention. */
+//Return true if matrix is nonsingular, otherwise return false.
+//'e': inverted matrix.
+//Note matrix must be use row convention.
 template <class T>
 bool Matrix<T>::inv(OUT Matrix<T> & e)
 {

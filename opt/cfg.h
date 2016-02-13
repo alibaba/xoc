@@ -613,7 +613,7 @@ bool CFG<BB, XR>::verifyIfBBRemoved(IN CDG * cdg, OptCtx & oc)
 
                 if (!cdg->is_cd(bb->id, succ->id)) {
                     //bb should not be empty, need goto.
-                    ASSERT0(0);
+                    UNREACH();
                 }
             }
         } //end if
@@ -1603,7 +1603,7 @@ void CFG<BB, XR>::dump_vcg(CHAR const* name)
                     "\nedge: { sourcename:\"%d\" targetname:\"%d\" linestyle:dotted }",
                     VERTEX_id(EDGE_from(e)), VERTEX_id(EDGE_to(e)));
         } else {
-            ASSERT0(0);
+            UNREACH();
         }
     }
     fprintf(hvcg, "\n}\n");
@@ -1637,8 +1637,9 @@ void CFG<BB, XR>::compute_rpo_core(
 template <class BB, class XR>
 void CFG<BB, XR>::compute_rpo(OptCtx & oc)
 {
-    START_TIMER("Compute Rpo");
     if (m_bb_list->get_elem_count() == 0) { return; }
+
+    START_TIMER("Compute Rpo");
 
     #ifdef _DEBUG_
     //Only for verify.

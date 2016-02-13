@@ -110,12 +110,15 @@ bool g_do_aa = true;
 //Perform DU analysis for MD to build du chain.
 bool g_do_md_du_ana = true;
 
+//Compute DU chain.
+bool g_compute_du_chain = true;
+
 //Computem available expression during du analysis to
 //build more precise du chain.
 bool g_compute_available_exp = false;
 
-//Computem def and use MDSet for region.
-bool g_compute_region_defuse_mdset = false;
+//Computem imported MD which are defined and used in region.
+bool g_compute_region_imported_defuse_md = false;
 
 //Build expression table to record lexicographic equally IR expression.
 bool g_do_expr_tab = true;

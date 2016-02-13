@@ -123,11 +123,11 @@ static bool isAllElementDerivedFromSameEffectVar(
         return false;
     }
 
-    VAR * base = MD_base(md);
+    VAR * base = md->get_base();
     i = mds.get_next((UINT)i, &iter);
     for (; i >= 0; i = mds.get_next((UINT)i, &iter)) {
         MD const* md = mdsys->get_md((UINT)i);
-        if (MD_base(md) != base || !md->is_effect() || MD_is_may(md)) {
+        if (md->get_base() != base || !md->is_effect() || MD_is_may(md)) {
             return false;
         }
 
@@ -270,18 +270,17 @@ void IR_AA::clean()
 }
 
 
-/* MD size should be determined by 'pointer base type' of a pointer.
-e.g:
-    char v[]
-    int * p = &v
-    *p = ...
-
-    The memory size that '*p' modified is 4,
-    the size of pointer-base of *p.
-
-'size': pointer base size.
-
-NOTICE: MD should be taken address. */
+//MD size should be determined by 'pointer base type' of a pointer.
+//e.g:
+//    char v[]
+//    int * p = &v
+//    *p = ...
+//
+//    The memory size that '*p' modified is 4,
+//    the size of pointer-base of *p.
+//
+//'size': pointer base size.
+//NOTICE: MD should be taken address.
 void IR_AA::reviseMDsize(IN OUT MDSet & mds, UINT size)
 {
     ASSERT0(size > 0);
@@ -363,7 +362,7 @@ void IR_AA::processLda(
     MD const* t = NULL;
     VAR * v = LDA_idinfo(ir);
     if (v->is_string()) {
-        t = allocStringMD(VAR_name(v));
+        t = allocStringMD(v->get_name());
     } else {
         t = m_ru->genMDforVAR(v);
     }
@@ -517,7 +516,7 @@ void IR_AA::computeMayPointTo(IR * pointer, IN MD2MDSet * mx, OUT MDSet & mds)
         return;
     }
 
-    MD const* emd = pointer->get_ref_md();
+    MD const* emd = pointer->getRefMD();
     if (emd != NULL) {
         //pointer has an exact or effect MD.
         MDSet const* ptset = getPointTo(emd, *mx);
@@ -539,7 +538,7 @@ void IR_AA::computeMayPointTo(IR * pointer, IN MD2MDSet * mx, OUT MDSet & mds)
         }
     }
 
-    MDSet const* maymds = pointer->get_ref_mds();
+    MDSet const* maymds = pointer->getRefMDSet();
     if (maymds != NULL) {
         //pointer has a set of may-referenced-MDs.
         SEGIter * iter;
@@ -606,10 +605,10 @@ void IR_AA::inferArrayExpBase(
             mds_is_may_pt = true;
         }
     } else {
-        /* Intent to look for original array base that the base-pointer
-        pointed to.
-        e.g: (ld(p))[i], looking for where p pointed to.
-        Each MD in 'tmp' should be pointer. */
+        //Intent to look for original array base that the base-pointer
+        //pointed to.
+        //e.g: (ld(p))[i], looking for where p pointed to.
+        //Each MD in 'tmp' should be pointer.
         mds.clean(*m_misc_bs_mgr);
         UINT mdsz = ir->get_dtype_size(m_tm);
         SEGIter * iter;
@@ -889,13 +888,12 @@ MD const* IR_AA::allocSetelemMD(IR * ir)
         ASSERT(MD_id(entry) > 0, ("Not yet registered"));
         md = entry; //regard MD with offset as return result.
     } else {
-        /* Offset is variable.
-        e.g: vector<4xi32> v; v[i] = 0;
-        will generate:
-            st pr1(v)
-            sete pr1(ofst:i), 10)
-            st(v, pr1)
-        */
+        //Offset is variable.
+        //e.g: vector<4xi32> v; v[i] = 0;
+        //will generate:
+        //    st pr1(v)
+        //    sete pr1(ofst:i), 10)
+        //    st(v, pr1)
 
         MD t(*md);
         ASSERT0(t.is_exact());
@@ -1297,7 +1295,7 @@ MD const* IR_AA::assignIdMD(
     if (!m_is_visit.is_contain(IR_id(ir))) {
         m_is_visit.bunion(IR_id(ir));
         if (ID_info(ir)->is_string()) {
-            t = allocStringMD(VAR_name(ID_info(ir)));
+            t = allocStringMD(ID_info(ir)->get_name());
             set_must_addr(ir, t);
             ir->cleanRefMDSet();
         } else {
@@ -1317,7 +1315,7 @@ MD const* IR_AA::assignIdMD(
 
 
 //Alloc MD for const string.
-MD const* IR_AA::allocStringMD(SYM * string)
+MD const* IR_AA::allocStringMD(SYM const* string)
 {
     ASSERT0(string);
     MD const* strmd;
@@ -1415,9 +1413,9 @@ void IR_AA::processIld(
             if (pts != NULL && !pts->is_empty()) {
                 mds.copy(*pts, *m_misc_bs_mgr);
             } else {
-                /* We do NOT known where p pointed to, and compute
-                the offset as well.
-                e.g: If p->? (p+2)->?? */
+                //We do NOT known where p pointed to, and compute
+                //the offset as well.
+                //e.g: If p->? (p+2)->??
                 mds.copy(*m_hashed_maypts, *m_misc_bs_mgr);
             }
         } else {
@@ -1431,9 +1429,9 @@ void IR_AA::processIld(
                     tmp.bunion(*pts, *m_misc_bs_mgr);
                 } else if (!has_unified_may_pt) {
                     has_unified_may_pt = true;
-                    /* We do NOT known where p pointed to, and compute
-                    the offset as well.
-                    e.g: If p->? (p+2)->?? */
+                    //We do NOT known where p pointed to, and compute
+                    //the offset as well.
+                    //e.g: If p->? (p+2)->??
                     tmp.bunion(*m_hashed_maypts, *m_misc_bs_mgr);
                 }
             }
@@ -1506,13 +1504,13 @@ void IR_AA::inferStoreValue(
 {
     ASSERT0(ir->is_st() || ir->is_stpr() || ir->is_setelem());
 
-    /* Considering the STORE operation, there
-    are three situations should be processed:
-        1. The RHS's address was taken.
-        2. The RHS is ILD, that cause indirect POINT-TO generated.
-            e.g: p=ILD(q), if q->a->w, then p->w.
-        3. Propagate the MDSet that RHS pointed to.
-            e.g: p=q, if q->a, then p->a. */
+    //Considering the STORE operation, there
+    //are three situations should be processed:
+    //    1. The RHS's address was taken.
+    //    2. The RHS is ILD, that cause indirect POINT-TO generated.
+    //        e.g: p=ILD(q), if q->a->w, then p->w.
+    //    3. Propagate the MDSet that RHS pointed to.
+    //        e.g: p=q, if q->a, then p->a.
     ASSERT0(lhs_md);
     if (!g_is_support_dynamic_type) {
         //lhs of IR_ST may be inexact because IR_ST may be VOID.
@@ -1582,17 +1580,17 @@ void IR_AA::inferStoreValue(
         }
     } else {
         ASSERT0(!ir->is_ptr() && !ir->is_void());
-        /* 1. p = q, q is pointer, if q->x, add p->x.
-        Given a pointer, if its point-to is empty, the pointer
-        points to MAY_POINT_TO_SET.
-
-        May be unify MAY_PT_SET is correct in comprehension,
-        but it  will occupy more memory.
-        e.g: For pr1->MAY_PT_SET, and if we set
-        pr1->NULL here, that might cause convert_md2mds_to_ptpair()
-        can not recog pr1's POINT-TO set, and its pt-pair info
-        is missing. That will cause a dead cycle at global
-        iterative solver. */
+        //1. p = q, q is pointer, if q->x, add p->x.
+        //Given a pointer, if its point-to is empty, the pointer
+        //points to MAY_POINT_TO_SET.
+        //
+        //May be unify MAY_PT_SET is correct in comprehension,
+        //but it  will occupy more memory.
+        //e.g: For pr1->MAY_PT_SET, and if we set
+        //pr1->NULL here, that might cause convert_md2mds_to_ptpair()
+        //can not recog pr1's POINT-TO set, and its pt-pair info
+        //is missing. That will cause a dead cycle at global
+        //iterative solver.
         if (m_flow_sensitive) {
             cleanPointTo(lhs_md, *mx);
         }
@@ -1601,14 +1599,14 @@ void IR_AA::inferStoreValue(
 }
 
 
-/* Caculate pointer info accroding to rules for individiual ir, and
-constructing the mapping table that maps MD to an unique VAR.
-e.g For given four point-to pairs {p->a,p->b,q->c,q->d}.
-    store can be shown as
-        p = q;
-    this make the point-to set of 'p' to be {p->c, p->d}.
-    and the formally formular form is:
-    MDSet(p) = MDSet(q) */
+//Caculate pointer info accroding to rules for individiual ir, and
+//constructing the mapping table that maps MD to an unique VAR.
+//e.g For given four point-to pairs {p->a,p->b,q->c,q->d}.
+//    store can be shown as
+//        p = q;
+//    this make the point-to set of 'p' to be {p->c, p->d}.
+//    and the formally formular form is:
+//    MDSet(p) = MDSet(q)
 void IR_AA::processStore(IN IR * ir, IN MD2MDSet * mx)
 {
     ASSERT0(ir->is_st());
@@ -1625,14 +1623,14 @@ void IR_AA::processStore(IN IR * ir, IN MD2MDSet * mx)
 }
 
 
-/* Caculate pointer info accroding to rules for individiual ir, and
-constructing the mapping table that maps MD to an unique VAR.
-e.g For given four point-to pairs {p->a,p->b,q->c,q->d}.
-    store can be shown as
-        p = q;
-    this make the point-to set of 'p' to be {p->c, p->d}.
-    and the formally formular form is:
-    MDSet(p) = MDSet(q) */
+//Caculate pointer info accroding to rules for individiual ir, and
+//constructing the mapping table that maps MD to an unique VAR.
+//e.g For given four point-to pairs {p->a,p->b,q->c,q->d}.
+//    store can be shown as
+//        p = q;
+//    this make the point-to set of 'p' to be {p->c, p->d}.
+//    and the formally formular form is:
+//    MDSet(p) = MDSet(q)
 void IR_AA::processStorePR(IN IR * ir, IN MD2MDSet * mx)
 {
     ASSERT0(ir->is_stpr());
@@ -1752,13 +1750,13 @@ void IR_AA::inferIstoreValue(IN IR * ir, IN AACtx * ic, IN MD2MDSet * mx)
     ASSERT0(ist_mustaddr != NULL ||
             (ist_mayaddr != NULL && !ist_mayaddr->is_empty()));
 
-    /* Considering the ISTORE operation, there are three
-    situations should be handled:
-        1. The RHS is LDA.
-        2. The RHS is ILD, that caused indirect POINT-TO generated.
-            e.g: *p=ILD(q), and p->x,q->a,a->w, then x->w,
-        3. Propagate the MDSet that RHS pointed to the LHS.
-            e.g: *p=q, and p->x,q->a, then x->a. */
+    //Considering the ISTORE operation, there are three
+    //situations should be handled:
+    //    1. The RHS is LDA.
+    //    2. The RHS is ILD, that caused indirect POINT-TO generated.
+    //        e.g: *p=ILD(q), and p->x,q->a,a->w, then x->w,
+    //    3. Propagate the MDSet that RHS pointed to the LHS.
+    //        e.g: *p=q, and p->x,q->a, then x->a.
     AACtx tic(*ic);
     if (ir->is_ptr() || ir->is_void()) {
         AC_comp_pt(&tic) = true;
@@ -1773,17 +1771,17 @@ void IR_AA::inferIstoreValue(IN IR * ir, IN AACtx * ic, IN MD2MDSet * mx)
 
     ASSERT0(pts);
     if (AC_has_comp_lda(&tic) || AC_comp_pt(&tic)) {
-        /* If result type of IST is pointer, and the ptset is empty, then
-        it might point to anywhere.
-        e.g: Given p=&q and *p=(int*)0x1000;
-        => q=0x1000, and q is pointer, so q may point to anywhere.
-
-        *p = q, if p->{x}, q->{a}, add {x}->{a}
-        *p = q, if p->{x}, q->{¦µ}, add {x}->{¦µ}
-        *p = q, if p->{¦µ}, q->{x}, add {all mem}->{x}
-
-        Update the POINT-TO of elems in p's point-to set.
-        Aware of whether if the result of IST is pointer. */
+        //If result type of IST is pointer, and the ptset is empty, then
+        //it might point to anywhere.
+        //e.g: Given p=&q and *p=(int*)0x1000;
+        //=> q=0x1000, and q is pointer, so q may point to anywhere.
+        //
+        //*p = q, if p->{x}, q->{a}, add {x}->{a}
+        //*p = q, if p->{x}, q->{¦µ}, add {x}->{¦µ}
+        //*p = q, if p->{¦µ}, q->{x}, add {all mem}->{x}
+        //
+        //Update the POINT-TO of elems in p's point-to set.
+        //Aware of whether if the result of IST is pointer.
         if (AC_has_comp_lda(&tic)) {
             ASSERT0(!pts->is_empty());
 
@@ -1945,12 +1943,11 @@ void IR_AA::inferStoreArrayValue(IN IR * ir, IN AACtx * ic, IN MD2MDSet * mx)
 }
 
 
-/* Infer point-to set for array element.
-
-e.g For given four point-to pairs {q->c,q->d}.
-    store array can be shown as
-        a[x] = q;
-    this make the point-to set of a[x] to be {a[x]->c, a[x]->d}. */
+//Infer point-to set for array element.
+//e.g For given four point-to pairs {q->c,q->d}.
+//    store array can be shown as
+//        a[x] = q;
+//    this make the point-to set of a[x] to be {a[x]->c, a[x]->d}.
 void IR_AA::processStoreArray(IN IR * ir, IN MD2MDSet * mx)
 {
     ASSERT0(ir->is_starray());
@@ -2149,9 +2146,9 @@ void IR_AA::processRegionSideeffect(IN OUT MD2MDSet & mx)
         MD * t = id2md->get((UINT)j);
         if (t == NULL) { continue; }
 
-        VAR const* v = MD_base(t);
+        VAR const* v = t->get_base();
         if (v->is_pointer() ||
-            v->is_void()/* v may be pointer if its type is VOID */) {
+            v->is_void() /* v may be pointer if its type is VOID */) {
             setPointTo(t, mx, m_hashed_maypts);
 
             //Set the point-to set of 't' to be empty in order
@@ -2187,10 +2184,10 @@ void IR_AA::processCallSideeffect(
         MD const* t = id2md->get((UINT)j);
         if (t == NULL) { continue; }
 
-        VAR const* v = MD_base(t);
+        VAR const* v = t->get_base();
         if (VAR_is_global(v) &&
             (v->is_pointer() ||
-             v->is_void()/* v may be pointer if its type is VOID */)) {
+             v->is_void() /* v may be pointer if its type is VOID */)) {
             setPointTo(t, mx, m_hashed_maypts);
 
             //Set the point-to set of 't' to be empty in order
@@ -2206,10 +2203,10 @@ void IR_AA::processCallSideeffect(
              j >= 0; j = by_addr_mds.get_next((UINT)j, &iter)) {
             MD const* t = m_md_sys->get_md((UINT)j);
             ASSERT0(t != NULL);
-            VAR const* v = MD_base(t);
+            VAR const* v = t->get_base();
             if (VAR_is_addr_taken(v) &&
                 (v->is_pointer() ||
-                 v->is_void()/* v may be pointer if its type is VOID */)) {
+                 v->is_void() /* v may be pointer if its type is VOID */)) {
                 setPointTo(t, mx, m_hashed_maypts);
 
                 //Set the point-to set of 't' to be empty in order
@@ -2235,11 +2232,11 @@ MD const* IR_AA::allocHeapobj(IR * ir)
     VAR * tv = m_ru->get_var_mgr()->registerVar(
             name, m_tm->getMCType(0), 0, VAR_GLOBAL);
 
-    /* Set the var to be unallocable, means do NOT add
-    var immediately as a memory-variable.
-    For now, it is only be regarded as a placeholder.
-    And set it to allocable if the var is in essence need to be
-    allocated in memory. */
+    //Set the var to be unallocable, means do NOT add
+    //var immediately as a memory-variable.
+    //For now, it is only be regarded as a placeholder.
+    //And set it to allocable if the var is in essence need to be
+    //allocated in memory.
     VAR_allocable(tv) = false;
 
     //Will be freed region destruction.
@@ -2267,17 +2264,20 @@ void IR_AA::processCall(IN IR * ir, IN MD2MDSet * mx)
     }
 
     //Analyz parameters.
-    IR * param = CALL_param_list(ir);
     bool by_addr = false;
     MDSet by_addr_mds;
-    while (param != NULL) {
+    for (IR * p = CALL_param_list(ir); p != NULL; p = p->get_next()) {
         AACtx tic;
-        inferExpression(param, tmp, &tic, mx);
+        inferExpression(p, tmp, &tic, mx);
         if (AC_has_comp_lda(&tic)) {
             by_addr = true;
             by_addr_mds.bunion(tmp, *m_misc_bs_mgr);
         }
-        param = IR_next(param);
+    }
+
+    for (IR * p = CALL_dummyuse(ir); p != NULL; p = p->get_next()) {
+        AACtx tic;
+        inferExpression(p, tmp, &tic, mx);
     }
 
     if (CALL_is_alloc_heap(ir)) {
@@ -2496,7 +2496,7 @@ void IR_AA::inferExpression(
             }
         }
         return;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 }
 
@@ -2794,7 +2794,7 @@ void IR_AA::dumpPtPairSet(PtPairSet & pps)
                         MD_id(PP_from(pp)), MD_id(PP_to(pp)));
 
         if (detail) {
-            fprintf(g_tfile, "%s", MD_base(PP_from(pp))->dump(buf, m_tm));
+            fprintf(g_tfile, "%s", PP_from(pp)->get_base()->dump(buf, m_tm));
             if (PP_from(pp)->is_exact()) {
                 fprintf(g_tfile, ":ofst(%d):size(%d)",
                         MD_ofst(PP_from(pp)), MD_size(PP_from(pp)));
@@ -2804,7 +2804,7 @@ void IR_AA::dumpPtPairSet(PtPairSet & pps)
 
             fprintf(g_tfile, " ------> ");
 
-            fprintf(g_tfile, "%s", MD_base(PP_to(pp))->dump(buf, m_tm));
+            fprintf(g_tfile, "%s", PP_to(pp)->get_base()->dump(buf, m_tm));
             if (PP_to(pp)->is_exact()) {
                 fprintf(g_tfile, ":ofst(%d):size(%d)",
                         MD_ofst(PP_to(pp)), MD_size(PP_to(pp)));
@@ -3073,7 +3073,7 @@ void IR_AA::dumpIRPointToForBB(IRBB * bb, bool dump_kid)
             }
             break;
         case IR_REGION: break;
-        default: ASSERT0(0);
+        default: UNREACH();
         } //end switch
     }
 }
@@ -3356,7 +3356,7 @@ bool IR_AA::verifyIR(IR * ir)
                      (mayaddr && !mayaddr->is_empty()));
             if (mustaddr != NULL) {
                 //PR's address can not be taken.
-                ASSERT0(!MD_is_pr(mustaddr));
+                ASSERT0(!mustaddr->is_pr());
             }
             if (mayaddr != NULL && !mayaddr->is_empty()) {
                 //PR's address can not be taken.
@@ -3365,7 +3365,7 @@ bool IR_AA::verifyIR(IR * ir)
                      i >= 0; i = mayaddr->get_next((UINT)i, &iter)) {
                     MD const* x = m_md_sys->get_md((UINT)i);
                     CK_USE(x);
-                    ASSERT0(!MD_is_pr(x));
+                    ASSERT0(!x->is_pr());
                 }
             }
         }
@@ -3389,7 +3389,7 @@ bool IR_AA::verifyIR(IR * ir)
                      (mayaddr && !mayaddr->is_empty()));
             if (mustaddr != NULL) {
                 //PR's address can not be taken.
-                ASSERT0(!MD_is_pr(mustaddr));
+                ASSERT0(!mustaddr->is_pr());
             }
             if (mayaddr != NULL && !mayaddr->is_empty()) {
                 //PR's address can not be taken.
@@ -3398,7 +3398,7 @@ bool IR_AA::verifyIR(IR * ir)
                      i >= 0; i = mayaddr->get_next((UINT)i, &iter)) {
                     MD const* x = m_md_sys->get_md((UINT)i);
                     CK_USE(x);
-                    ASSERT0(!MD_is_pr(x));
+                    ASSERT0(!x->is_pr());
                 }
             }
         }
@@ -3450,10 +3450,10 @@ bool IR_AA::verify()
 }
 
 
-/* This method is accurate than Andersen's algo.
-NOTICE: Do NOT clean 'md2mds' of BB at the last iter,
-it supplied the POINT TO information for subsequently
-optimizations. */
+//This method is accurate than Andersen's algo.
+//NOTICE: Do NOT clean 'md2mds' of BB at the last iter,
+//it supplied the POINT TO information for subsequently
+//optimizations.
 void IR_AA::computeFlowSensitive(List<IRBB*> const& bbl)
 {
     bool change = true;
@@ -3484,16 +3484,15 @@ void IR_AA::computeFlowSensitive(List<IRBB*> const& bbl)
                     change = true;
                 }
 
-                /* Regard 'mx' as a reservation table to hold
-                the tmp info for MD->MDSet during each iteration.
-                Note that we must preserve MD->MDSet at the last
-                iteration. And it will be used during computing POINT-TO
-                info and DU analysis. */
+                //Regard 'mx' as a reservation table to hold
+                //the tmp info for MD->MDSet during each iteration.
+                //Note that we must preserve MD->MDSet at the last
+                //iteration. And it will be used during computing POINT-TO
+                //info and DU analysis.
                 md2mds->clean();
                 convertPT2MD2MDSet(*pps, m_pt_pair_mgr, md2mds);
             }
             computeStmt(bb, md2mds);
-
             tmp.clean();
             convertMD2MDSet2PT(tmp, m_pt_pair_mgr, md2mds);
 
@@ -3535,11 +3534,11 @@ void IR_AA::initGlobalAndParameterVarPtset(
                                 name, m_tm->getMCType(0),
                                 0, VAR_GLOBAL|VAR_ADDR_TAKEN);
 
-            /* Set the var to be unallocable, means do NOT add
-            var immediately as a memory-variable.
-            For now, it is only be regarded as a pseduo-register.
-            And set it to allocable if the PR is in essence need to be
-            allocated in memory. */
+            //Set the var to be unallocable, means do NOT add
+            //var immediately as a memory-variable.
+            //For now, it is only be regarded as a pseduo-register.
+            //And set it to allocable if the PR is in essence need to be
+            //allocated in memory.
             VAR_allocable(tv) = false;
             m_ru->addToVarTab(tv);
 
@@ -3605,15 +3604,15 @@ void IR_AA::initGlobalAndParameterVarPtset(
 }
 
 
-/* Initialize POINT_TO set for input MD at the entry of Region.
-e.g:char * q;
-    void f(int * p)
-    {
-        *q='c';
-        *p=0;
-    }
-    where p and q are entry MD.
-ptset_arr: used to record all the PtPair set. It will be deleted by caller */
+//Initialize POINT_TO set for input MD at the entry of Region.
+//e.g:char * q;
+//    void f(int * p)
+//    {
+//        *q='c';
+//        *p=0;
+//    }
+//    where p and q are entry MD.
+//ptset_arr: used to record all the PtPair set. It will be deleted by caller.
 void IR_AA::initEntryPtset(PtPairSet ** ptset_arr)
 {
     ConstMDIter iter;
@@ -3682,7 +3681,7 @@ void IR_AA::initMayPointToSet()
     Region * ru = m_ru;
     RegionMgr * rm = m_ru->get_region_mgr();
     VarTabIter c;
-    MDIter iter;
+    ConstMDIter iter;
     MDSet tmp;
     for (;;) {
         VarTab * vtab = ru->get_var_tab();
@@ -3699,25 +3698,25 @@ void IR_AA::initMayPointToSet()
             }
 
             //General md.
-            MDTab * mdt = m_md_sys->get_md_tab(v);
-            ASSERT0(mdt != NULL);
-
-            MD const* x = mdt->get_effect_md();
+            ASSERT0(m_md_sys->get_md_tab(v));
+            MD const* x = m_md_sys->get_md_tab(v)->get_effect_md();
             if (x != NULL) {
-                ASSERT0(MD_ty(x) == MD_UNBOUND);
+                //Record effect MD of v into the MayPointTo if exist.
+                ASSERT0(x->is_unbound() || x->is_range());
                 tmp.bunion(x, *m_misc_bs_mgr);
             }
 
-            /* OffsetTab * ofstab = mdt->get_ofst_tab();
+            //Record each exact MD of v into the MayPointTo.
+            OffsetTab * ofstab = m_md_sys->get_md_tab(v)->get_ofst_tab();
             ASSERT0(ofstab);
             if (ofstab->get_elem_count() > 0) {
                 iter.clean();
-                for (MD * md = ofstab->get_first(iter, NULL);
+                for (MD const* md = ofstab->get_first(iter, NULL);
                      md != NULL; md = ofstab->get_next(iter, NULL)) {
-                    ASSERT0(md->is_effect());
-                    m_hashed_maypts->bunion(md);
+                    ASSERT0(md->is_exact());
+                    tmp.bunion(md, *m_misc_bs_mgr);
                 }
-            } */
+            }
         }
 
         if (ru->is_function() || ru->is_program()) {
@@ -3765,10 +3764,9 @@ void IR_AA::initAliasAnalysis()
 bool IR_AA::perform(IN OUT OptCtx & oc)
 {
     ASSERT(m_hashed_maypts, ("Should invoke initAliasAnalysis() first."));
+    if (m_ru->get_bb_list()->get_elem_count() == 0) { return true; }
 
     START_TIMER_AFTER();
-
-    if (m_ru->get_bb_list()->get_elem_count() == 0) { return true; }
 
     //Initialization.
     m_pt_pair_mgr.init();

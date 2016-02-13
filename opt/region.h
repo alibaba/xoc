@@ -160,8 +160,14 @@ protected:
     void scanCallListImpl(
             OUT UINT & num_inner_region,
             IR * irlst,
-            OUT List<IR const*> & call_list,
+            OUT List<IR const*> * call_list,
+            OUT List<IR const*> * ret_list,
             bool scan_inner_region);
+    void processIRList(OptCtx & oc);
+    void processBBList(OptCtx & oc);
+    void prescan(IR const* ir);
+    bool partitionRegion();
+    void HighProcessImpl(OptCtx & oc);
 
 public:
     RefInfo * m_ref_info; //record use/def info if Region has.
@@ -217,13 +223,33 @@ public:
     void addToIRList(IR * irs)
     { add_next(&REGION_analysis_instrument(this)->m_ir_list, irs); }
 
-    //The function generates new MD for given pr.
+    //The function generates new MD for all operations to PR.
     //It should be called if new PR generated in optimzations.
     inline MD const* allocRefForPR(IR * pr)
     {
         MD const* md = genMDforPR(pr);
-        pr->set_ref_md(md, this);
+        pr->setRefMD(md, this);
         pr->cleanRefMDSet();
+        return md;
+    }
+
+    //The function generates new MD for given LD.
+    //It should be called if new PR generated in optimzations.
+    inline MD const* allocRefForLoad(IR * ld)
+    {
+        MD const* md = genMDforLoad(ld);
+        ld->setRefMD(md, this);
+        ld->cleanRefMDSet();
+        return md;
+    }
+
+    //The function generates new MD for given ST.
+    //It should be called if new PR generated in optimzations.
+    inline MD const* allocRefForStore(IR * st)
+    {
+        MD const* md = genMDforStore(st);
+        st->setRefMD(md, this);
+        st->cleanRefMDSet();
         return md;
     }
 
@@ -379,7 +405,7 @@ public:
     IR * foldConst(IR * ir, bool & change);
     void findFormalParam(OUT List<VAR const*> & varlst, bool in_decl_order);
 
-    UINT get_irt_size(IR * ir)
+    UINT get_irt_size(IR * ir) const
     {
         #ifdef CONST_IRT_SZ
         return IR_irt_size(ir);
@@ -387,11 +413,14 @@ public:
         return IRTSIZE(IR_code(ir));
         #endif
     }
-    SMemPool * get_pool() { return REGION_analysis_instrument(this)->m_pool; }
-    MDSystem * get_md_sys() { return get_region_mgr()->get_md_sys(); }
+
+    MDSystem * get_md_sys() const { return get_region_mgr()->get_md_sys(); }
     TypeMgr * get_type_mgr() const { return get_region_mgr()->get_type_mgr(); }
     TargInfo * get_targ_info() const
     { return get_region_mgr()->get_targ_info(); }
+
+    SMemPool * get_pool() const
+    { return REGION_analysis_instrument(this)->m_pool; }
 
     UINT get_pr_count() const
     { return REGION_analysis_instrument(this)->m_pr_count; }
@@ -410,37 +439,37 @@ public:
 
     VarMgr * get_var_mgr() const { return get_region_mgr()->get_var_mgr(); }
 
-    VarTab * get_var_tab()
+    VarTab * get_var_tab() const
     { return &REGION_analysis_instrument(this)->m_ru_var_tab; }
 
-    BitSetMgr * get_bs_mgr()
+    BitSetMgr * get_bs_mgr() const
     { return &REGION_analysis_instrument(this)->m_bs_mgr; }
 
-    DefMiscBitSetMgr * getMiscBitSetMgr()
+    DefMiscBitSetMgr * getMiscBitSetMgr() const
     { return &REGION_analysis_instrument(this)->m_sbs_mgr; }
 
-    MDSetMgr * get_mds_mgr()
+    MDSetMgr * get_mds_mgr() const
     { return &REGION_analysis_instrument(this)->m_mds_mgr; }
 
-    BBList * get_bb_list()
+    BBList * get_bb_list() const
     { return &REGION_analysis_instrument(this)->m_ir_bb_list; }
 
-    IRBBMgr * get_bb_mgr()
+    IRBBMgr * get_bb_mgr() const
     { return &REGION_analysis_instrument(this)->m_ir_bb_mgr; }
 
     //Get MDSetHash.
-    MDSetHash * get_mds_hash()
+    MDSetHash * get_mds_hash() const
     { return &REGION_analysis_instrument(this)->m_mds_hash; }
 
     //Return IR pointer via the unique IR_id.
-    inline IR * get_ir(UINT irid)
+    IR * get_ir(UINT irid) const
     {
         ASSERT0(REGION_analysis_instrument(this)->m_ir_vector.get(irid));
         return REGION_analysis_instrument(this)->m_ir_vector.get(irid);
     }
 
     //Return the vector that record all allocated IRs.
-    Vector<IR*> * get_ir_vec()
+    Vector<IR*> * get_ir_vec() const
     { return &REGION_analysis_instrument(this)->m_ir_vector; }
 
     //Return PassMgr.
@@ -467,12 +496,12 @@ public:
                 (IR_DU_MGR*)get_pass_mgr()->queryPass(PASS_DU_MGR) : NULL;
     }
 
+    Region * get_parent() const { return REGION_parent(this); }
     CHAR const* get_ru_name() const;
     Region * get_func_unit();
 
-    //Allocate and return a list of call, that indicate all IR_CALL in
-    //current Region.
-    inline List<IR const*> * get_call_list()
+    //Allocate and return all CALL in the region.
+    inline List<IR const*> * gen_call_list()
     {
         if (REGION_analysis_instrument(this)->m_call_list == NULL) {
             REGION_analysis_instrument(this)->m_call_list =
@@ -481,8 +510,12 @@ public:
         return REGION_analysis_instrument(this)->m_call_list;
     }
 
+    //Read and return Call list in the Region.
+    List<IR const*> * get_call_list() const
+    { return REGION_analysis_instrument(this)->m_call_list; }
+
     //Allocate and return a list of IR_RETURN in current Region.
-    inline List<IR const*> * get_return_list()
+    inline List<IR const*> * gen_return_list()
     {
         if (REGION_analysis_instrument(this)->m_return_list == NULL) {
             REGION_analysis_instrument(this)->m_return_list =
@@ -491,19 +524,23 @@ public:
         return REGION_analysis_instrument(this)->m_return_list;
     }
 
+    //Return a list of IR_RETURN in current Region.
+    List<IR const*> * get_return_list() const
+    { return REGION_analysis_instrument(this)->m_return_list; }
+
     //Get the MayDef MDSet of Region.
-    MDSet * get_may_def()
+    MDSet * get_may_def() const
     { return m_ref_info != NULL ? &REF_INFO_maydef(m_ref_info) : NULL; }
 
     //Get the MayUse MDSet of Region.
-    MDSet * get_may_use()
+    MDSet * get_may_use() const
     { return m_ref_info != NULL ? &REF_INFO_mayuse(m_ref_info) : NULL; }
 
     Region * getTopRegion()
     {
         Region * ru = this;
-        while (REGION_parent(ru) != NULL) {
-            ru = REGION_parent(ru);
+        while (ru->get_parent() != NULL) {
+            ru = ru->get_parent();
         }
         return ru;
     }
@@ -751,19 +788,29 @@ public:
     void set_ir_list(IR * irs) { REGION_analysis_instrument(this)->m_ir_list = irs; }
     void set_blx_data(void * d) { REGION_blx_data(this) = d; }
     IR * StrengthReduce(IN OUT IR * ir, IN OUT bool & change);
-    void scanCallList(
+
+    //num_inner_region: count the number of inner regions.
+    void scanCallAndReturnList(
             OUT UINT & num_inner_region,
-            OUT List<IR const*> & call_list,
+            OUT List<IR const*> * call_list,
+            OUT List<IR const*> * ret_list,
             bool scan_inner_region);
+    void scanCallAndReturnList(
+            OUT UINT & num_inner_region,
+            bool scan_inner_region)
+    {
+        gen_call_list()->clean();
+        gen_return_list()->clean(); //Scan RETURN as well.
+        scanCallAndReturnList(num_inner_region, get_call_list(),
+                              get_return_list(), scan_inner_region);
+    }
 
     void lowerIRTreeToLowestHeight(OptCtx & oc);
 
-    void prescan(IR const* ir);
-    bool partitionRegion();
     virtual void process(); //Entry to process region-unit.
 
     //Check and rescan call list of region if one of elements in list changed.
-    void updateCallList();
+    void updateCallAndReturnList(bool scan_inner_region);
 
     bool verifyBBlist(BBList & bbl);
     bool verifyIRinRegion();

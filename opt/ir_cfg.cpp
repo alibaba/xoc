@@ -132,6 +132,12 @@ void IR_CFG::cf_opt()
 //Do early control flow optimization.
 void IR_CFG::initCfg(OptCtx & oc)
 {
+    if (get_bb_list()->get_elem_count() == 0) {
+        //If bb is empty, set CFG is invalid.
+        //OC_is_cfg_valid(oc) = true;
+        return;
+    }
+
     //cfg->removeEmptyBB();
     build(oc);
     buildEHEdge();
@@ -338,6 +344,11 @@ void IR_CFG::findTargetBBOfIndirectBranch(IR const* ir, OUT List<IRBB*> & tgtlst
 //Find natural loop and scan loop body to find call and early exit, etc.
 void IR_CFG::LoopAnalysis(OptCtx & oc)
 {
+    if (get_bb_list()->get_elem_count() == 0) {
+        //If bb is empty, set LoopInfo to be invalid.
+        //OC_is_loopinfo_valid(oc) = true;
+        return;
+    }
     m_ru->checkValidAndRecompute(&oc, PASS_DOM, PASS_UNDEF);
     find_loop();
     collect_loop_info();
@@ -1128,6 +1139,8 @@ void IR_CFG::dump_vcg(CHAR const* name, bool detail, bool dump_eh)
 
 void IR_CFG::computeDomAndIdom(IN OUT OptCtx & oc, BitSet const* uni)
 {
+    if (get_bb_list()->get_elem_count() == 0) { return; }
+
     UNUSED(uni);
     START_TIMER_AFTER();
     ASSERT0(OC_is_cfg_valid(oc));
@@ -1161,6 +1174,8 @@ void IR_CFG::computeDomAndIdom(IN OUT OptCtx & oc, BitSet const* uni)
 
 void IR_CFG::computePdomAndIpdom(IN OUT OptCtx & oc, BitSet const* uni)
 {
+    if (get_bb_list()->get_elem_count() == 0) { return; }
+
     START_TIMER("Compute PDom,IPDom");
     ASSERT0(OC_is_cfg_valid(oc));
 

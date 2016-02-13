@@ -94,7 +94,7 @@ CHAR * VAR::dump(CHAR * buf, TypeMgr const* dm) const
     } else if (HAVE_FLAG(VAR_flag(this), VAR_LOCAL)) {
         strcat(buf, "local");
     } else {
-        ASSERT0(0);
+        UNREACH();
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_STATIC)) {
@@ -270,7 +270,7 @@ VAR * VarMgr::registerVar(
 //otherwise create a new VAR.
 //'var_name': name of the variable, it is optional.
 //'s': string's content.
-VAR * VarMgr::registerStringVar(CHAR const* var_name, SYM * s, UINT align)
+VAR * VarMgr::registerStringVar(CHAR const* var_name, SYM const* s, UINT align)
 {
     ASSERT0(s != NULL);
     VAR * v;

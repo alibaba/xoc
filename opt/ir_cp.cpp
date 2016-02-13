@@ -67,20 +67,20 @@ bool IR_CP::checkTypeConsistency(IR const* ir, IR const* cand_expr) const
 }
 
 
-/* Check and replace 'exp' with 'cand_expr' if they are
-equal, and update SSA info. If 'cand_expr' is NOT leaf,
-that will create redundant computation, and
-depends on later Redundancy Elimination to reverse back.
-
-'cand_expr': substitute cand_expr for exp.
-    e.g: exp is pr1 of S2, cand_expr is 10.
-        pr1 = 10 //S1
-        g = pr1 //S2
-    =>
-        pr1 = 10
-        g = 10
-
-NOTE: Do NOT handle stmt. */
+//Check and replace 'exp' with 'cand_expr' if they are
+//equal, and update SSA info. If 'cand_expr' is NOT leaf,
+//that will create redundant computation, and
+//depends on later Redundancy Elimination to reverse back.
+//
+//'cand_expr': substitute cand_expr for exp.
+//    e.g: exp is pr1 of S2, cand_expr is 10.
+//        pr1 = 10 //S1
+//        g = pr1 //S2
+//    =>
+//        pr1 = 10
+//        g = 10
+//
+//NOTE: Do NOT handle stmt.
 void IR_CP::replaceExpViaSSADu(IR * exp, IR const* cand_expr,
                                     IN OUT CPCtx & ctx)
 {
@@ -137,21 +137,21 @@ void IR_CP::replaceExpViaSSADu(IR * exp, IR const* cand_expr,
 }
 
 
-/* Check and replace 'ir' with 'cand_expr' if they are
-equal, and update DU info. If 'cand_expr' is NOT leaf,
-that will create redundant computation, and
-depends on later Redundancy Elimination to reverse back.
-exp: expression which will be replaced.
-
-cand_expr: substitute cand_expr for exp.
-    e.g: cand_expr is *p, cand_expr_md is MD3
-        *p(MD3) = 10 //p point to MD3
-        ...
-        g = *q(MD3) //q point to MD3
-
-exp_use_ssadu: true if exp used SSA du info.
-
-NOTE: Do NOT handle stmt. */
+//Check and replace 'ir' with 'cand_expr' if they are
+//equal, and update DU info. If 'cand_expr' is NOT leaf,
+//that will create redundant computation, and
+//depends on later Redundancy Elimination to reverse back.
+//exp: expression which will be replaced.
+//
+//cand_expr: substitute cand_expr for exp.
+//    e.g: cand_expr is *p, cand_expr_md is MD3
+//        *p(MD3) = 10 //p point to MD3
+//        ...
+//        g = *q(MD3) //q point to MD3
+//
+//exp_use_ssadu: true if exp used SSA du info.
+//
+//NOTE: Do NOT handle stmt.
 void IR_CP::replaceExp(IR * exp, IR const* cand_expr,
                         IN OUT CPCtx & ctx, bool exp_use_ssadu)
 {
@@ -212,25 +212,25 @@ bool IR_CP::is_copy(IR * ir) const
 }
 
 
-/* Return true if 'occ' does not be modified till meeting 'use_ir'.
-e.g:
-    xx = occ  //def_ir
-    ..
-    ..
-    yy = xx  //use_ir
-
-'def_ir': ir stmt.
-'occ': opnd of 'def_ir'
-'use_ir': stmt in use-list of 'def_ir'. */
+//Return true if 'occ' does not be modified till meeting 'use_ir'.
+//e.g:
+//    xx = occ  //def_ir
+//    ..
+//    ..
+//    yy = xx  //use_ir
+//
+//'def_ir': ir stmt.
+//'occ': opnd of 'def_ir'
+//'use_ir': stmt in use-list of 'def_ir'.
 bool IR_CP::is_available(IR const* def_ir, IR const* occ, IR * use_ir)
 {
     if (def_ir == use_ir) {    return false; }
     if (occ->is_const()) { return true; }
 
-    /* Need check overlapped MDSet.
-    e.g: Suppose occ is '*p + *q', p->a, q->b.
-    occ can NOT reach 'def_ir' if one of p, q, a, b
-    modified during the path. */
+    //Need check overlapped MDSet.
+    //e.g: Suppose occ is '*p + *q', p->a, q->b.
+    //occ can NOT reach 'def_ir' if one of p, q, a, b
+    //modified during the path.
 
     IRBB * defbb = def_ir->get_bb();
     IRBB * usebb = use_ir->get_bb();
@@ -305,7 +305,7 @@ inline static IR * get_propagated_value(IR * stmt)
     case IR_PHI: return PHI_opnd_list(stmt);
     default:;
     }
-    ASSERT0(0);
+    UNREACH();
     return NULL;
 }
 
@@ -374,39 +374,39 @@ bool IR_CP::doProp(IN IRBB * bb, Vector<IR*> & usevec)
             if (!ssadu &&
                 !(bb == use_bb && bb->is_dom(def_stmt, use_stmt, true)) &&
                 !m_cfg->is_dom(BB_id(bb), BB_id(use_bb))) {
-                /* 'def_stmt' must dominate 'use_stmt'.
-                e.g:
-                    if (...) {
-                        g = 10; //S1
-                    }
-                    ... = g; //S2
-                g can not be propagted since S1 is not dominate S2. */
+                //'def_stmt' must dominate 'use_stmt'.
+                //e.g:
+                //    if (...) {
+                //        g = 10; //S1
+                //    }
+                //    ... = g; //S2
+                //g can not be propagted since S1 is not dominate S2.
                 continue;
             }
 
             if (!is_available(def_stmt, prop_value, use_stmt)) {
-                /* The value that will be propagated can
-                not be killed during 'ir' and 'use_stmt'.
-                e.g:
-                    g = a; //S1
-                    if (...) {
-                        a = ...; //S3
-                    }
-                    ... = g; //S2
-                g can not be propagted since a is killed by S3. */
+                //The value that will be propagated can
+                //not be killed during 'ir' and 'use_stmt'.
+                //e.g:
+                //    g = a; //S1
+                //    if (...) {
+                //        a = ...; //S3
+                //    }
+                //    ... = g; //S2
+                //g can not be propagted since a is killed by S3.
                 continue;
             }
 
             if (!ssadu && !m_du->isExactAndUniqueDef(def_stmt, use)) {
-                /* Only single definition is allowed.
-                e.g:
-                    g = 20; //S3
-                    if (...) {
-                        g = 10; //S1
-                    }
-                    ... = g; //S2
-                g can not be propagted since there are
-                more than one definitions are able to get to S2. */
+                //Only single definition is allowed.
+                //e.g:
+                //    g = 20; //S3
+                //    if (...) {
+                //        g = 10; //S1
+                //    }
+                //    ... = g; //S2
+                //g can not be propagted since there are
+                //more than one definitions are able to get to S2.
                 continue;
             }
 

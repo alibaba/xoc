@@ -59,7 +59,7 @@ void MDId2MD::dump() const
 bool MD::is_cover(MD const* m) const
 {
     ASSERT0(m && this != m);
-    if (MD_base(this) != MD_base(m)) {
+    if (get_base() != m->get_base()) {
         return false;
     }
     if (MD_ty(this) == MD_UNBOUND) {
@@ -131,7 +131,7 @@ void MD::dump(TypeMgr * dm) const
     //CHAR buf[MAX_BUF_LEN];
     CHAR buf[4096];
     buf[0] = 0;
-    fprintf(g_tfile, "\n%s", dump(buf, 4096, dm));
+    note("\n%s", dump(buf, 4096, dm));
     fflush(g_tfile);
 }
 //END MD
@@ -488,7 +488,7 @@ void MD2MDSet::dump(Region * ru)
 
     //Dump set of MD that corresponding to an individual VAR.
     fprintf(g_tfile, "\n*** Dump the mapping from VAR to set of MD ***");
-    ID2VAR * var_tab = ru->get_var_mgr()->get_var_vec();
+    VarVec * var_tab = ru->get_var_mgr()->get_var_vec();
     Vector<MD const*> mdv;
     ConstMDIter iter;
     for (INT i = 0; i <= var_tab->get_last_idx(); i++) {
@@ -524,25 +524,25 @@ void MD2MDSet::dump(Region * ru)
 //
 //START MDSystem
 //
-/* Register MD and generating unique id for it, with the followed method:
-1. Generating MD hash table for any unique VAR.
-2. Entering 'md' into MD hash table, the hash-value comes
-    from an evaluating binary-Tree that the branch of
-    tree-node indicate determination data related with MD fields.
-Return the registered element.
-
-NOTICE:
-1. DO NOT free the registered element!
-2. If you want to register an new MD, keep the id is 0. */
+//Register MD and generating unique id for it, with the followed method:
+//1. Generating MD hash table for any unique VAR.
+//2. Entering 'md' into MD hash table, the hash-value comes
+//    from an evaluating binary-Tree that the branch of
+//    tree-node indicate determination data related with MD fields.
+//Return the registered element.
+//
+//NOTE:
+//1. DO NOT free the registered element!
+//2. If you want to register an new MD, keep the id is 0.
 MD const* MDSystem::registerMD(MD const& m)
 {
     ASSERT0(MD_base(&m));
     if (MD_id(&m) > 0) {
-        //Find the entry accroding to m.
+        //Find the entry in MDTab accroding to m.
         MDTab * mdtab = get_md_tab(MD_base(&m));
-        ASSERT(mdtab != NULL, ("md has registered"));
+        ASSERT(mdtab != NULL, ("md has not been registered"));
         MD const* entry = mdtab->find(&m);
-        ASSERT(entry, ("md has registered"));
+        ASSERT(entry, ("md has not been registered"));
         return entry;
     }
 
@@ -585,12 +585,10 @@ MD const* MDSystem::registerMD(MD const& m)
     entry->copy(&m);
     if (mdtab == NULL) {
         mdtab = allocMDTab();
-
-        //MDTab indexed by VAR's id.
         m_var2mdtab.set(MD_base(entry), mdtab);
     }
 
-    //Insert into MD-table.
+    //Insert entry into MDTab of VAR.
     mdtab->append(entry);
     m_id2md_map.set(MD_id(entry), entry);
     return entry;
@@ -711,7 +709,7 @@ void MDSystem::computeOverlap(
     ASSERT0(MD_id(md) != MD_ALL_MEM);
 
     if (strictly && md->is_global()) {
-        output.bunion(get_md(MD_GLOBAL_MEM), mbsmgr);
+        output.bunion(MD_GLOBAL_MEM, mbsmgr);
     }
 
     MDTab * mdt = get_md_tab(MD_base(md));

@@ -1064,7 +1064,7 @@ bool IR_SSA_MGR::stripPhi(IR * phi, C<IR*> * phict)
 
     //Temprarory RP to hold the result of PHI.
     IR * phicopy = m_ru->buildPR(IR_dt(phi));
-    phicopy->set_ref_md(m_ru->genMDforPR(PR_no(phicopy),
+    phicopy->setRefMD(m_ru->genMDforPR(PR_no(phicopy),
                                 IR_dt(phicopy)), m_ru);
     phicopy->cleanRefMDSet();
 
@@ -1614,7 +1614,7 @@ static IR * replace_res_pr(
         CALL_prno(stmt) = newprno;
         IR_dt(stmt) = newprty;
         return stmt;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     return NULL;
 }
@@ -1640,7 +1640,7 @@ void IR_SSA_MGR::stripSpecifiedVP(VP * vp)
     def->freeDUset(*m_ru->getMiscBitSetMgr());
 
     MD const* md = m_ru->genMDforPR(newprno, newprty);
-    replaced_one->set_ref_md(md, m_ru);
+    replaced_one->setRefMD(md, m_ru);
     replaced_one->cleanRefMDSet();
 
     SSAUseIter vit = NULL;
@@ -1653,7 +1653,7 @@ void IR_SSA_MGR::stripSpecifiedVP(VP * vp)
 
         //Keep the data type of reference unchanged.
         //IR_dt(use) = newprty;
-        use->set_ref_md(md, m_ru);
+        use->setRefMD(md, m_ru);
 
         //MD du is useless. Free it for other use.
         use->freeDUset(*m_ru->getMiscBitSetMgr());
@@ -1741,7 +1741,7 @@ void IR_SSA_MGR::constructMDDUChainForPR()
              vit != NULL; i = SSA_uses(v).get_next(i, &vit)) {
             IR * use = m_ru->get_ir(i);
             ASSERT0(use->is_pr());
-            ASSERT0(def->is_exact_def(use->get_ref_md()));
+            ASSERT0(def->is_exact_def(use->getRefMD()));
             m_ru->get_du_mgr()->buildDUChain(def, use);
         }
     }

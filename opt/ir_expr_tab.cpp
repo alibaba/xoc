@@ -151,15 +151,6 @@ UINT IR_EXPR_TAB::compute_hash_key(IR const* ir)
     UINT hval = IR_code(ir) + (ir->get_offset() + 1) + (UINT)(size_t)IR_dt(ir);
     if (ir->is_id()) {
         VAR * var = ID_info(ir);
-        /*
-        SYM * name = VAR_name(id_info);
-        CHAR * s = SYM_name(name);
-        UINT v = 0 ;
-        while (*s != 0) {
-            v += (UINT)(*s++);
-        }
-        hval += v;
-        */
         hval += 5 * (UINT)(size_t)var;
     }
     return hval;
@@ -178,9 +169,9 @@ UINT IR_EXPR_TAB::compute_hash_key_for_tree(IR * ir)
 }
 
 
-/* Append IR tree expression into HASH table and return the entry-info.
-If 'ir' has already been inserted in the table with an ExpRep,
-get that and return. */
+//Append IR tree expression into HASH table and return the entry-info.
+//If 'ir' has already been inserted in the table with an ExpRep,
+//get that and return.
 ExpRep * IR_EXPR_TAB::append_expr(IR * ir)
 {
     if (ir == NULL) return NULL;
@@ -334,7 +325,7 @@ void IR_EXPR_TAB::remove_occs(IR * ir)
     case IR_CONTINUE:
     case IR_PHI:
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 }
 
@@ -373,10 +364,8 @@ ExpRep * IR_EXPR_TAB::remove_expr(IR * ir)
 }
 
 
-/*
-Return entry-info if expression has been entered into HASH table,
-otherwise return NULL.
-*/
+//Return entry-info if expression has been entered into HASH table,
+//otherwise return NULL.
 ExpRep * IR_EXPR_TAB::find_expr(IR * ir)
 {
     if (ir == NULL) return NULL;
@@ -453,16 +442,16 @@ ExpRep * IR_EXPR_TAB::encode_expr(IN IR * ir)
             EXPR_occ_list(ie).append_tail(ir);
             return ie;
         }
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     return NULL;
 }
 
 
-/* Encode expression for single BB.
-Scan IR statement literally, and encoding it for generating
-the unique id for each individual expressions, and update
-the 'GEN-SET' and 'KILL-SET' of IR-EXPR for BB as well as. */
+//Encode expression for single BB.
+//Scan IR statement literally, and encoding it for generating
+//the unique id for each individual expressions, and update
+//the 'GEN-SET' and 'KILL-SET' of IR-EXPR for BB as well as.
 void IR_EXPR_TAB::encode_bb(IRBB * bb)
 {
     C<IR*> * ct;
@@ -582,7 +571,7 @@ void IR_EXPR_TAB::encode_bb(IRBB * bb)
             break;
         case IR_PHI:
             break;
-        default: ASSERT0(0);
+        default: UNREACH();
         } //end switch
     } //end for IR
     //dump_ir_expr_tab();
@@ -596,13 +585,15 @@ void IR_EXPR_TAB::reperform(IN OUT OptCtx & oc)
 }
 
 
-/* Encode expression for a list of BB.
-Scan IR statement literally, and encoding it for generating
-the unique id for each individual expressions, and update
-the 'GEN-SET' and 'KILL-SET' of IR-EXPR for BB as well as. */
+//Encode expression for a list of BB.
+//Scan IR statement literally, and encoding it for generating
+//the unique id for each individual expressions, and update
+//the 'GEN-SET' and 'KILL-SET' of IR-EXPR for BB as well as.
 bool IR_EXPR_TAB::perform(IN OUT OptCtx & oc)
 {
     BBList * bbl = m_ru->get_bb_list();
+    if (bbl->get_elem_count() == 0) { return false; }
+
     C<IRBB*> * cb;
     for (IRBB * bb = bbl->get_head(&cb);
          bb != NULL; bb = bbl->get_next(&cb)) {

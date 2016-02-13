@@ -62,7 +62,7 @@ IR * Region::refineIload1(IR * ir, bool & change)
         //newIR is IR_LD.
         //Consider the ir->get_offset() and copying MDSet info from 'ir'.
         if (ir->get_exact_ref() == NULL) {
-            ld->set_ref_md(genMDforLoad(ld), this);
+            ld->setRefMD(genMDforLoad(ld), this);
         } else {
             ld->copyRef(ir, this);
         }
@@ -163,8 +163,8 @@ IR * Region::refineIstore(IR * ir, bool & change, RefineCtx & rc)
             newir->copyRef(ir, this);
 
             bool maybe_exist_expired_du = false;
-            if (newir->get_ref_md() == NULL) {
-                newir->set_ref_md(genMDforStore(newir), this);
+            if (newir->getRefMD() == NULL) {
+                newir->setRefMD(genMDforStore(newir), this);
                 newir->cleanRefMDSet();
 
                 //Change IST to ST may result the du chain invalid.
@@ -1177,7 +1177,7 @@ IR * Region::refineBinaryOp(IR * ir, bool & change, RefineCtx & rc)
         }
         break;
     default:
-        ASSERT0(0);
+        UNREACH();
     }
 
     //Insert convert if need.
@@ -1513,7 +1513,7 @@ IR * Region::refineIR(IR * ir, bool & change, RefineCtx & rc)
         break;
     case IR_REGION:
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 
     if (tmpc && ir != NULL && ir->is_stmt()) {
@@ -1696,7 +1696,7 @@ IR * Region::insertCvt(IR * parent, IR * kid, bool & change)
     case IR_ID:
     case IR_BREAK:
     case IR_CONTINUE:
-        ASSERT0(0);
+        UNREACH();
         return kid;
     case IR_ST:
     case IR_STPR:
@@ -1861,7 +1861,7 @@ HOST_INT Region::calcIntVal(IR_TYPE ty, HOST_INT v0, HOST_INT v1)
         v1 = v0 << v1;
         break;
     default:
-        ASSERT0(0);
+        UNREACH();
     } //end switch
     return v1;
 }
@@ -1966,7 +1966,7 @@ IR * Region::foldConstIntBinary(IR * ir, bool & change)
             lchange = true;
         }
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     } //end switch
 
     if (lchange) {

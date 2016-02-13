@@ -173,6 +173,8 @@ public:
         u2.s1v = md->u2.s1v;
     }
 
+    VAR * get_base() const { return MD_base(this); }
+
     /* Return true if current md exactly cover 'm', such as:
     current md: |-------|
     m:            |----|
@@ -185,11 +187,11 @@ public:
     */
     bool is_overlap(MD const* m) const;
 
-    /* Return true if md represent real object that would be emitted to
-    target machine. Fake object is not effect object.
-    NOTE: Effect MD inexact represent the memory object which may or may
-    not occur at run time. If stmt modified effect but inexact MD,
-    it is non-killing definition. */
+    //Return true if md represent real object that would be emitted to
+    //target machine. Fake object is not effect object.
+    //NOTE: Effect MD inexact represent the memory object which may or may
+    //not occur at run time. If stmt modified effect but inexact MD,
+    //it is non-killing definition.
     bool is_effect() const { return !VAR_is_fake(MD_base(this)); }
 
     //Return true if md is exact object.

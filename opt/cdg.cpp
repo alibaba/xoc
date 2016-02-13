@@ -130,6 +130,7 @@ void CDG::rebuild(IN OUT OptCtx & oc, DGraph & cfg)
 void CDG::build(IN OUT OptCtx & oc, DGraph & cfg)
 {
     if (cfg.get_vertex_num() == 0) { return; }
+
     START_TIMER("CDG");
     ASSERT0(OC_is_cfg_valid(oc));
     m_ru->checkValidAndRecompute(&oc, PASS_PDOM, PASS_UNDEF);

@@ -1110,6 +1110,8 @@ static D2Dpool* doCopyAndFixup(DexFile* pDexFile, char const* dexfilename)
     copyDexMiscData(pDexFile, pool);
 
     g_do_dex_ra = false;
+    g_do_expr_tab = false;
+    g_do_cdg = false;
 
     //transform class and write the code item.
     processClass(pDexFile, pool);

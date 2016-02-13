@@ -68,58 +68,6 @@ bool DexRegion::MiddleProcess(OptCtx & oc)
 }
 
 
-void DexRegion::HighProcessImpl(OptCtx & oc)
-{
-    PassMgr * passmgr = get_pass_mgr();
-    ASSERT0(passmgr);
-
-    if (g_do_cfg) {
-        ASSERT0(g_cst_bb_list);
-        IR_CFG * cfg = (IR_CFG*)passmgr->registerPass(PASS_CFG);
-        ASSERT0(cfg);
-        cfg->initCfg(oc);
-        if (g_do_loop_ana) {
-            ASSERT0(g_do_cfg_dom);
-            cfg->LoopAnalysis(oc);
-        }
-    }
-
-    if (g_do_ssa) {
-        IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)passmgr->registerPass(PASS_SSA_MGR);
-        ASSERT0(ssamgr);
-        ssamgr->construction(oc);
-    }
-
-    if (g_do_aa) {
-        ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc));
-        IR_AA * aa = (IR_AA*)passmgr->registerPass(PASS_AA);
-        ASSERT0(aa);
-        aa->initAliasAnalysis();
-        aa->perform(oc);
-    }
-
-    if (g_do_md_du_ana) {
-        ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc) && OC_is_aa_valid(oc));
-        IR_DU_MGR * dumgr = (IR_DU_MGR*)passmgr->registerPass(PASS_DU_MGR);
-        ASSERT0(dumgr);
-
-        UINT f = SOL_REACH_DEF|SOL_REF;
-        //f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR|SOL_RU_REF;
-
-        if (g_do_ivr) {
-            f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR;
-        }
-
-        if (g_compute_available_exp) {
-            f |= SOL_AVAIL_EXPR;
-        }
-
-        dumgr->perform(oc, f);
-        dumgr->computeMDDUChain(oc);
-    }
-}
-
-
 bool DexRegion::HighProcess(OptCtx & oc)
 {
     CHAR const* ru_name = get_ru_name();
@@ -133,8 +81,7 @@ bool DexRegion::HighProcess(OptCtx & oc)
     SIMP_break(&simp) = true;
     SIMP_continue(&simp) = true;
 
-    REGION_analysis_instrument(this)->m_ir_list =
-                    simplifyStmtList(get_ir_list(), &simp);
+    set_ir_list(simplifyStmtList(get_ir_list(), &simp));
 
     ASSERT0(verify_simp(get_ir_list(), simp));
     ASSERT0(verify_irs(get_ir_list(), NULL, this));
@@ -144,7 +91,7 @@ bool DexRegion::HighProcess(OptCtx & oc)
     ASSERT0(verifyIRandBB(get_bb_list(), this));
 
     //All IRs have been moved to each IRBB.
-    REGION_analysis_instrument(this)->m_ir_list = NULL;
+    set_ir_list(NULL);
 
     HighProcessImpl(oc);
     return true;
@@ -231,7 +178,8 @@ void DexRegion::processSimply()
 
     ASSERT0(verifyIRandBB(get_bb_list(), this));
 
-    REGION_analysis_instrument(this)->m_ir_list = NULL; //All IRs have been moved to each IRBB.
+    //All IRs have been moved to each IRBB.
+    set_ir_list(NULL);
 
     PassMgr * passmgr = initPassMgr();
     ASSERT0(passmgr);

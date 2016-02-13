@@ -82,7 +82,7 @@ void dumpLabel(LabelInfo const* li)
     } else if (LABEL_INFO_type(li) == L_PRAGMA) {
         fprintf(g_tfile, "\npragms(%s)",
                 SYM_name(LABEL_INFO_pragma(li)));
-    } else { ASSERT0(0); }
+    } else { UNREACH(); }
 
     if (LABEL_INFO_b1(li) != 0) {
         fprintf(g_tfile, "(");

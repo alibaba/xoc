@@ -1555,9 +1555,9 @@ void DGraph::get_pdom_tree(OUT Graph & pdom)
 }
 
 
-/* Dump dom set, pdom set, idom, ipdom.
-'dump_dom_tree': set to be true to dump dominate
-    tree, and post dominate Tree. */
+//Dump dom set, pdom set, idom, ipdom.
+//'dump_dom_tree': set to be true to dump dominate
+//  tree, and post dominate Tree.
 void DGraph::dump_dom(FILE * h, bool dump_dom_tree)
 {
     if (h == NULL) return;

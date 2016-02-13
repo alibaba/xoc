@@ -110,7 +110,7 @@ IR * IR_RCE::calcCondMustVal(
             }
         }
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 
     return ir;

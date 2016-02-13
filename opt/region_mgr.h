@@ -87,7 +87,11 @@ protected:
     TargInfo * m_targinfo;
 
 protected:
-    void estimateEV(UINT & num_call, UINT & num_ru, bool scan_call);
+    void estimateEV(
+            OUT UINT & num_call,
+            OUT UINT & num_ru,
+            bool scan_call,
+            bool scan_inner_region);
 
 public:
     explicit RegionMgr() : m_sym_tab(0)
@@ -138,7 +142,10 @@ public:
     VarMgr * get_var_mgr() const { return m_var_mgr; }
     TargInfo * get_targ_info() const { return m_targinfo; }
 
-    void registerGlobalMDS();
+    //Register exact MD for each global variable.
+    //Note you should call this function as early as possible, e.g, before process
+    //all regions. Because that will assign smaller MD id to global variable.
+    void registerGlobalMD();
 
     //Initialize VarMgr structure and MD system.
     //It is the first thing you should do after you declared a RegionMgr.
@@ -150,7 +157,7 @@ public:
     }
 
     //Scan call site and build call graph.
-    CallGraph * initCallGraph(bool scan_call);
+    CallGraph * initCallGraph(bool scan_call, bool scan_inner_region);
 
     Region * newRegion(REGION_TYPE rt);
 

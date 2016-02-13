@@ -209,18 +209,14 @@ INT xceiling(INT a, INT b)
 {
     ASSERT(b != 0, ("div zero"));
     if (a % b == 0) {
-        /*
-        (a+b-1)/b will be errorneous
-        CASE:ceil(-4, 2)
-        */
+        //(a+b-1)/b will be errorneous
+        //CASE:ceil(-4, 2)
         return a / b;
     } else if ((a < 0 && b < 0) || (a > 0 && b > 0)) {
         return ((a + b) / b);
     } else {
-        /*
-        (a+b-1)/b will be errorneous
-        CASE:ceil(5,-2)
-        */
+        //(a+b-1)/b will be errorneous
+        //CASE:ceil(5,-2)
         return (a / b);
     }
 }
@@ -456,13 +452,13 @@ LONGLONG xabs(LONGLONG a)
 }
 
 
-/* Find partial string, return the subscript-index if substring found,
-otherwise return -1.
-
-'src': input string.
-'par': partial string.
-'i': find the ith partial string. And 'i' get started with 0.
-    If one only want to find the first partial string, i equals to 0. */
+//Find partial string, return the subscript-index if substring found,
+//otherwise return -1.
+//
+//'src': input string.
+//'par': partial string.
+//'i': find the ith partial string. And 'i' get started with 0.
+//    If one only want to find the first partial string, i equals to 0.
 INT xstrstr(CHAR const* src, CHAR const* par, INT i)
 {
     CHAR const* s = src;
@@ -1327,11 +1323,9 @@ LETTER:
     switch (ch) {
     case 'c': //ANSI CHAR
         {
-            /*
-            CHAR is promoted to INT when passed through '...'.
-            So you should pass 'INT' not 'CHAR' to 'va_arg'.
-            If this code is reached, the program will abort.
-            */
+            //CHAR is promoted to INT when passed through '...'.
+            //So you should pass 'INT' not 'CHAR' to 'va_arg'.
+            //If this code is reached, the program will abort.
             CHAR c = (CHAR)va_arg(stack_start, INT);
             if (!prtchar(buf, buflen, bufpos, c)) goto OVER;
         }

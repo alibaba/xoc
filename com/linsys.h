@@ -61,29 +61,45 @@ public:
 class Lineq {
     bool m_is_init;
 
-    /* Index of right-hand-side, also the column index of constant coefficient
-    vector, start from zero, named by Mathematical Programming System.
-    If 'rhs_idx' does not equal to 'm_col_size - 1', it means,
-    each column from 'rhs_idx + 1' to 'm_col_size -1' represent one
-    constant symbol.
-    e.g: x+y <= 10 + M + N, where M, N represent constant symbols respectively.
-    Default value is -1, indicate last column is constant vector. */
+    //Index of right-hand-side, also the column index of constant coefficient
+    //vector, start from zero, named by Mathematical Programming System.
+    //If 'rhs_idx' does not equal to 'm_col_size - 1', it means,
+    //each column from 'rhs_idx + 1' to 'm_col_size -1' represent one
+    //constant symbol.
+    //e.g: x+y <= 10 + M + N, where M, N represent constant symbols respectively.
+    //Default value is -1, indicate last column is constant vector.
     INT m_rhs_idx;
 
-    /* Record coeff of inequality: Ax <= b+C(x), where C(x) is function of
-    symbolic constant. */
+    //Record coeff of inequality: Ax <= b+C(x), where C(x) is function of
+    //symbolic constant.
     RMat * m_coeff;
-    INT compareConstIterm(RMat const& m, UINT rhs_idx,
-                          INT idx_of_eqt1, Rational v);
-    INT compareConstIterm(RMat const& m, UINT rhs_idx,
-                          INT idx_of_eqt1, INT idx_of_eqt2);
-    INT selectLeadingColumn(INTMat const& coeff,
-                            IN Vector<bool> const& is_noneg,
-                            UINT rhs_part);
-    void combine(OUT INTMat & res, INTMat const& coeff,
-                 UINT nc, UINT pc, UINT lc, UINT pos);
-    void combineRays(OUT INTMat & res, IN OUT INTMat & coeff,
-                     UINT r1, UINT r2, UINT lc, UINT pos);
+    INT compareConstIterm(
+            RMat const& m,
+            UINT rhs_idx,
+            INT idx_of_eqt1,
+            Rational v);
+    INT compareConstIterm(
+            RMat const& m,
+            UINT rhs_idx,
+            INT idx_of_eqt1,
+            INT idx_of_eqt2);
+    INT selectLeadingColumn(
+            INTMat const& coeff,
+            IN Vector<bool> const& is_noneg,
+            UINT rhs_part);
+    void combine(OUT INTMat & res,
+                 INTMat const& coeff,
+                 UINT nc,
+                 UINT pc,
+                 UINT lc,
+                 UINT pos);
+    void combineRays(
+            OUT INTMat & res,
+            IN OUT INTMat & coeff,
+            UINT r1,
+            UINT r2,
+            UINT lc,
+            UINT pos);
     bool omit(INTMat const& coeff,
               UINT ncv,
               UINT pcv,
@@ -119,31 +135,46 @@ public:
                       UINT rhs_idx,
                       bool is_int_sol,
                       bool is_unique_sol);
-    void initVarConstraint(IN Vector<INT> const* sign,
-                           IN OUT RMat & vc, UINT rhs_idx);
-    void substituteAndExpand(IN OUT RMat & coeff,
-                             UINT rhs_idx,
-                             RMat const& p,
-                             UINT sub_var);
+    void initVarConstraint(
+            IN Vector<INT> const* sign,
+            IN OUT RMat & vc,
+            UINT rhs_idx);
+    void substituteAndExpand(
+            IN OUT RMat & coeff,
+            UINT rhs_idx,
+            RMat const& p,
+            UINT sub_var);
     //Represent variable, forms as
     //    ak*xk <= const + F(x) + a0x0 + a1x1 + ... + a(k-1)x(k-1) +
     //             a(k+1)x(k+1) + ... + anxn.
     void formatBound(UINT u, OUT RMat & ineqt_of_u);
     bool calcBound(IN OUT List<RMat*> & limits);
 
-    void move2cstsym(IN RMat & ieq, UINT rhs_idx,
-                     UINT first_var, UINT last_var,
-                     OUT UINT * first_sym_idx, OUT UINT * last_sym_idx);
-    void move2var(IN RMat & ieq, UINT rhs_idx,
-                  UINT first_sym, UINT last_sym,
-                  OUT UINT * first_var_idx, OUT UINT * last_var_idx);
+    void move2cstsym(
+            IN RMat & ieq,
+            UINT rhs_idx,
+            UINT first_var,
+            UINT last_var,
+            OUT UINT * first_sym_idx,
+            OUT UINT * last_sym_idx);
+    void move2var(IN RMat & ieq,
+                  UINT rhs_idx,
+                  UINT first_sym,
+                  UINT last_sym,
+                  OUT UINT * first_var_idx,
+                  OUT UINT * last_var_idx);
     void removeIdenRow(IN OUT RMat & m);
 
     //Polyhedra operation
-    bool convertConstraint2Ray(OUT INTMat & gmat, INTMat const& cs,
-                               UINT rhs_idx, UINT raylimit = 1000);
-    bool convertRay2Constraint(INTMat const& gmat,
-                               OUT INTMat & cs, UINT cslimit = 100);
+    bool convertConstraint2Ray(
+            OUT INTMat & gmat,
+            INTMat const& cs,
+            UINT rhs_idx,
+            UINT raylimit = 1000);
+    bool convertRay2Constraint(
+            INTMat const& gmat,
+            OUT INTMat & cs,
+            UINT cslimit = 100);
     void PolyDiff(OUT RMat & res, IN RMat & a, IN RMat & b, UINT rhs_idx);
     void PolyImage(OUT RMat & res, IN RMat & a, UINT rhs_idx);
     void EhartPoly(OUT RMat & res, IN RMat & a, UINT rhs_idx);

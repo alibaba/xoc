@@ -45,9 +45,9 @@ public:
 };
 
 
-class Inliner {
+class Inliner : public Pass {
 protected:
-    RegionMgr * m_ru_mgr;
+    RegionMgr * m_rumgr;
     SMemPool * m_pool;
     CallGraph * m_call_graph;
     Region * m_program;
@@ -81,12 +81,14 @@ protected:
             IR * new_irs,
             LabelInfo * el);
 public:
-    Inliner(RegionMgr * rumgr, Region * program)
+    Inliner(Region * program)
     {
-        ASSERT0(rumgr && program);
-        m_ru_mgr = rumgr;
+        ASSERT0(program && program->is_program());
+        m_rumgr = program->get_region_mgr();
+        ASSERT0(m_rumgr);
         m_program = program;
-        m_call_graph = rumgr->get_call_graph();
+        m_call_graph = m_rumgr->get_call_graph();
+        ASSERT0(m_call_graph);
         m_pool = smpoolCreate(16, MEM_COMM);
     }
     virtual ~Inliner() { smpoolDelete(m_pool); }
@@ -98,6 +100,7 @@ public:
 
     inline bool is_call_site(IR * call, Region * ru);
 
+    virtual PASS_TYPE get_pass_type() const { return PASS_INLINER; }
     virtual CHAR const* get_pass_name() const { return "Inliner"; }
 
     IR * replaceReturn(

@@ -162,7 +162,7 @@ LIR * IR2Dex::buildMove(IN IR ** ir)
     } else if (ty == m_tr->i64 || ty == m_tr->f64 || ty == m_tr->u64) {
         LIR_dt(lir) = LIR_JDT_wide;
     } else {
-        ASSERT0(0);
+        UNREACH();
     }
     *ir = IR_next(*ir);
     return (LIR*)lir;
@@ -194,7 +194,7 @@ LIR * IR2Dex::buildCvt(IN IR ** ir)
         case D_B: x = LIR_convert_i2b; break;
         case D_I8: x = LIR_convert_i2c; break;
         case D_I16: x = LIR_convert_i2s; break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
         break;
     case D_I64:
@@ -202,7 +202,7 @@ LIR * IR2Dex::buildCvt(IN IR ** ir)
         case D_I32: x = LIR_convert_l2i; break;
         case D_F32: x = LIR_convert_l2f; break;
         case D_F64: x = LIR_convert_l2d; break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
         break;
     case D_F32:
@@ -210,7 +210,7 @@ LIR * IR2Dex::buildCvt(IN IR ** ir)
         case D_I32: x = LIR_convert_f2i; break;
         case D_I64: x = LIR_convert_f2l; break;
         case D_F64: x = LIR_convert_f2d; break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
         break;
     case D_F64:
@@ -218,11 +218,11 @@ LIR * IR2Dex::buildCvt(IN IR ** ir)
         case D_I32: x = LIR_convert_d2i; break;
         case D_I64: x = LIR_convert_d2l; break;
         case D_F32: x = LIR_convert_d2f; break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
         break;
     default:
-        ASSERT0(0);
+        UNREACH();
     }
     ASSERT0(x != LIR_convert_unknown);
     LIR_dt(lir) = x;
@@ -253,7 +253,7 @@ LIR * IR2Dex::buildMoveResult(IN IR ** ir)
     } else if (ty == m_tr->ptr) {
         LIR_dt(lir) = LIR_JDT_object;
     } else {
-        ASSERT0(0);
+        UNREACH();
     }
     *ir = IR_next(*ir);
     return (LIR*)lir;
@@ -330,7 +330,7 @@ LIR * IR2Dex::buildMoveException(IN IR ** ir)
     } else if (ty == m_tr->ptr) {
         LIR_dt(lir) = LIR_JDT_object;
     } else {
-        ASSERT0(0);
+        UNREACH();
     }
 
     lir->vA = get_vreg(CALL_prno(*ir));
@@ -410,7 +410,7 @@ LIR * IR2Dex::buildConst(IN IR ** ir)
     } else if (ty == m_tr->i64 || ty == m_tr->f64 || ty == m_tr->u64) {
         LIR_dt(lir) = LIR_JDT_wide;
     } else {
-        ASSERT0(0);
+        UNREACH();
     }
     *ir = IR_next(*ir);
     return (LIR*)lir;
@@ -431,7 +431,7 @@ enum LIR_JDT_Kind IR2Dex::get_lir_ty(DATA_TYPE dt)
     case D_F32    : return LIR_JDT_float;
     case D_F64  : return LIR_JDT_double;
     case D_PTR    : return LIR_JDT_object;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     return LIR_JDT_unknown;
 }
@@ -551,7 +551,7 @@ LIR * IR2Dex::buildBinRegLit(IN IR ** ir)
     case IR_ASR   : lty = LOP_SHR_LIT; break;
     case IR_LSR   : lty = LOP_USHR_LIT; break;
     case IR_LSL   : lty = LOP_SHL_LIT; break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 
     LIRABCOp * lir = (LIRABCOp*)ymalloc(sizeof(LIRABCOp));
@@ -605,7 +605,7 @@ LIR * IR2Dex::buildBinRegReg(IN IR ** ir)
     case IR_ASR   : lty = is_assign_equ ? LOP_SHR_ASSIGN : LOP_SHR; break;
     case IR_LSR   : lty = is_assign_equ ? LOP_USHR_ASSIGN : LOP_USHR; break;
     case IR_LSL   : lty = is_assign_equ ? LOP_SHL_ASSIGN : LOP_SHL; break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 
     LIR * lir;
@@ -639,7 +639,7 @@ LIR * IR2Dex::buildBinOp(IN IR ** ir)
     } else if (op0->is_pr() && op1->is_const()) {
         return buildBinRegLit(ir);
     } else {
-        ASSERT0(0);
+        UNREACH();
     }
     return NULL;
 }
@@ -658,7 +658,7 @@ LIR * IR2Dex::buildUniOp(IN IR ** ir)
     case IR_NEG   : lty = LOP_NEG; break;
     case IR_BNOT  : lty = LOP_NOT; break;
     default:
-        ASSERT0(0);
+        UNREACH();
     }
 
     LIR * lir = (LIR*)ymalloc(sizeof(LIRABOp));
@@ -679,7 +679,7 @@ LIR * IR2Dex::convertStoreVar(IN OUT IR ** ir, IN IR2DexCtx * cont)
     switch (rhs->get_code()) {
     case IR_PR  :
         return buildSput(ir);
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     return NULL;
 }
@@ -719,10 +719,10 @@ LIR * IR2Dex::convertStorePR(IN OUT IR ** ir, IN IR2DexCtx * cont)
         return buildBinOp(ir);
     case IR_LAND  :
     case IR_LOR   :
-        ASSERT0(0);
+        UNREACH();
         break;
     case IR_LNOT  :
-        ASSERT0(0);
+        UNREACH();
         break;
     case IR_BNOT  :
     case IR_NEG   :
@@ -733,9 +733,9 @@ LIR * IR2Dex::convertStorePR(IN OUT IR ** ir, IN IR2DexCtx * cont)
         return buildCvt(ir);
     case IR_PR  :
         return buildMove(ir);
-    default: ASSERT0(0);
+    default: UNREACH();
     }
-    ASSERT0(0);
+    UNREACH();
     return NULL;
 }
 
@@ -844,7 +844,7 @@ LIR * IR2Dex::buildInvoke(IN IR ** ir)
     case INVOKE_INTERFACE_RANGE:
         flag = LIR_invoke_interface; flag |= LIR_Range; break;
     case INVOKE_UNDEF:
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     LIR_dt(lir) = flag;
     p = p->get_next();
@@ -1142,7 +1142,7 @@ LIR * IR2Dex::buildCmpBias(IN IR ** ir)
         LIR_opcode(lir) = LOP_CMP_LONG;
         LIR_dt(lir) = LIR_convert_unknown;
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     *ir = IR_next(*ir);
     return (LIR*)lir;
@@ -1168,7 +1168,7 @@ LIR * IR2Dex::convertCall(IN OUT IR ** ir, IN IR2DexCtx * cont)
         case BLTIN_MONITOR_EXIT: return buildMonitorExit(ir);
         case BLTIN_INSTANCE_OF: return buildInstanceOf(ir);
         case BLTIN_CMP_BIAS: return buildCmpBias(ir);
-        default: ASSERT0(0);
+        default: UNREACH();
         }
         return NULL;
     }
@@ -1261,7 +1261,7 @@ LIR * IR2Dex::convertBranch(bool is_truebr, IN OUT IR ** ir, IN IR2DexCtx * cont
         case IR_GE: LIR_dt(lir) = LIR_cond_GE; break;
         case IR_EQ: LIR_dt(lir) = LIR_cond_EQ; break;
         case IR_NE: LIR_dt(lir) = LIR_cond_NE; break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
     } else {
         switch (IR_code(det)) {
@@ -1271,7 +1271,7 @@ LIR * IR2Dex::convertBranch(bool is_truebr, IN OUT IR ** ir, IN IR2DexCtx * cont
         case IR_GE: LIR_dt(lir) = LIR_cond_LT; break;
         case IR_EQ: LIR_dt(lir) = LIR_cond_NE; break;
         case IR_NE: LIR_dt(lir) = LIR_cond_EQ; break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
     }
 
@@ -1395,7 +1395,7 @@ LIR * IR2Dex::convert(IN OUT IR ** ir, IN IR2DexCtx * cont)
     case IR_REGION:
         ASSERT(0, ("TODO"));
     default:
-        ASSERT0(0);
+        UNREACH();
     }
     return NULL;
 }
@@ -1459,7 +1459,7 @@ void IR2Dex::reloc()
                 }
             }
             break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
     }
 }

@@ -158,11 +158,11 @@ public:
     UINT id; //unique id;
     Type const* type; //Data type.
     UINT align; //memory alignment of var.
-    SYM * name;
+    SYM const* name;
 
     union {
         //Record string contents if VAR is const string.
-        SYM * string;
+        SYM const* string;
 
         //Index to constant value table.
         //This value is 0 if no initial value.
@@ -239,12 +239,14 @@ public:
     }
 
     bool is_label() const { return VAR_is_label(this); }
+    bool is_allocable() const { return VAR_allocable(this); }
 
+    SYM const* get_name() const { return VAR_name(this); }
     Type const* get_type() const { return VAR_type(this); }
     UINT getStringLength() const
     {
         ASSERT0(VAR_type(this)->is_string());
-        return xstrlen(SYM_name(VAR_str(this)));
+        return VAR_str(this) == NULL ? 0 : xstrlen(SYM_name(VAR_str(this)));
     }
 
     //Return the byte size of variable accroding type.
@@ -311,23 +313,19 @@ public:
 };
 
 
-//Map from SYM to VAR.
-typedef TMap<SYM*, VAR*> Sym2Var;
-
 //Map from const SYM to VAR.
 typedef TMap<SYM const*, VAR*> ConstSym2Var;
 
 //Map from VAR id to VAR.
-//typedef TMap<UINT, VAR*> ID2VAR;
-typedef Vector<VAR*> ID2VAR;
+typedef Vector<VAR*> VarVec;
 
 //This class is responsible for allocation and deallocation of VAR.
 //User can only create VAR via VarMgr, as well as delete it in the same way.
 class VarMgr {
 protected:
     size_t m_var_count;
-    ID2VAR m_var_vec;
-    Sym2Var m_str_tab;
+    VarVec m_var_vec;
+    ConstSym2Var m_str_tab;
     size_t m_str_count;
     List<UINT> m_freelist_of_varid;
     RegionMgr * m_ru_mgr;
@@ -353,9 +351,9 @@ public:
     void dump(IN OUT CHAR * name = NULL);
 
     TypeMgr * get_type_mgr() const { return m_tm; }
-    ID2VAR * get_var_vec() { return &m_var_vec; }
+    VarVec * get_var_vec() { return &m_var_vec; }
 
-    VAR * findStringVar(SYM * str) { return m_str_tab.get(str); }
+    VAR * findStringVar(SYM const* str) { return m_str_tab.get(str); }
 
     //Interface to target machine.
     //Customer could specify additional attributions for specific purpose.
@@ -379,7 +377,7 @@ public:
     VAR * registerVar(SYM * var_name, Type const* type, UINT align, UINT flag);
 
     //Create a String VAR.
-    VAR * registerStringVar(CHAR const* var_name, SYM * s, UINT align);
+    VAR * registerStringVar(CHAR const* var_name, SYM const* s, UINT align);
 };
 
 } //namespace xoc

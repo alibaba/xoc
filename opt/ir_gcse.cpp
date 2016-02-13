@@ -106,7 +106,7 @@ void IR_GCSE::elimCseAtStore(IR * use, IR * use_stmt, IR * gen)
     //Assign MD to newrhs.
     MD const* r_md = m_ru->genMDforPR(newrhs_pr);
     ASSERT0(r_md);
-    newrhs_pr->set_ref_md(r_md, m_ru);
+    newrhs_pr->setRefMD(r_md, m_ru);
 
     m_ru->freeIRTree(use);
 }
@@ -147,7 +147,7 @@ void IR_GCSE::elimCseAtBranch(IR * use, IR * use_stmt, IN IR * gen)
     //Assign MD to PR.
     MD const* r_md = m_ru->genMDforPR(new_pr);
     ASSERT0(r_md);
-    new_pr->set_ref_md(r_md, m_ru);
+    new_pr->setRefMD(r_md, m_ru);
 
     IR * newdet = m_ru->buildCmp(IR_NE, new_pr,
                                 m_ru->buildImmInt(0, IR_dt(new_pr)));
@@ -196,7 +196,7 @@ void IR_GCSE::elimCseAtCall(IR * use, IR * use_stmt, IR * gen)
     //Allocate MD to use_pr to make up DU manager request.
     MD const* r_md = m_ru->genMDforPR(use_pr);
     ASSERT0(r_md);
-    use_pr->set_ref_md(r_md, m_ru);
+    use_pr->setRefMD(r_md, m_ru);
 
     //Add du chain from gen_pr's stmt to the use of pr.
     bool f = use_stmt->replaceKid(use, use_pr, false);
@@ -251,11 +251,11 @@ void IR_GCSE::prcessCseGen(IN IR * gen, IR * gen_stmt, bool & change)
     //Assign MD to PR.
     MD const* tmp_pr_md = m_ru->genMDforPR(tmp_pr);
     ASSERT0(tmp_pr_md);
-    tmp_pr->set_ref_md(tmp_pr_md, m_ru);
+    tmp_pr->setRefMD(tmp_pr_md, m_ru);
 
     //Assign MD to ST.
     IR * new_stpr = m_ru->buildStorePR(PR_no(tmp_pr), IR_dt(tmp_pr), gen);
-    new_stpr->set_ref_md(tmp_pr_md, m_ru);
+    new_stpr->setRefMD(tmp_pr_md, m_ru);
 
     ASSERT0(m_gvn && m_gvn->mapIR2VN(gen));
     m_gvn->set_mapIR2VN(new_stpr, m_gvn->mapIR2VN(gen));

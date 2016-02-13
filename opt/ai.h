@@ -169,7 +169,7 @@ public:
         case AI_EH_LABEL: return "EH";
         case AI_USER_DEF: return "UserDef";
         case AI_LAST:;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
         return NULL;
     }

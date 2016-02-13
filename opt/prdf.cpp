@@ -78,7 +78,7 @@ void PRDF::processMay(
 {
     if (!m_handle_may) { return; }
 
-    MDSet const* mds = pr->get_ref_mds();
+    MDSet const* mds = pr->getRefMDSet();
     if (mds != NULL) {
         MD const* prmd = pr->get_exact_ref();
         ASSERT0(prmd);
@@ -216,7 +216,7 @@ void PRDF::computeLocal(IRBB * bb, List<IR const*> & lst)
             processOpnd(PHI_opnd_list(x), lst, use, gen);
             break;
         case IR_REGION: break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
     }
 }

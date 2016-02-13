@@ -43,8 +43,8 @@ namespace xoc {
 bool Inliner::is_call_site(IR * call, Region * ru)
 {
     ASSERT0(call->is_calls_stmt());
-    SYM * name = VAR_name(CALL_idinfo(call));
-    CallNode const* cn1 = m_call_graph->map_sym2cn(name);
+    CallNode const* cn1 =
+        m_call_graph->map_sym2cn(CALL_idinfo(call)->get_name());
     CallNode const* cn2 = m_call_graph->map_ru2cn(ru);
     return cn1 == cn2;
 }
@@ -273,6 +273,7 @@ bool Inliner::can_be_cand(Region * ru)
 
 bool Inliner::perform(OptCtx & oc)
 {
+    START_TIMER_AFTER();
     UNUSED(oc);
     ASSERT0(OC_is_callg_valid(oc));
     ASSERT0(m_program && m_program->is_program());
@@ -286,6 +287,7 @@ bool Inliner::perform(OptCtx & oc)
         }
         irs = irs->get_next();
     }
+    END_TIMER_AFTER(get_pass_name());
     return false;
 }
 //END Inliner

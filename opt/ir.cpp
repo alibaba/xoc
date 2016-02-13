@@ -43,7 +43,7 @@ namespace xoc {
     #define PADDR(ir) (dump_addr ? fprintf(g_tfile, " 0x%lx",(ULONG)(ir)) : 0)
     //fprintf(g_tfile, " 0x%.16x",(ir)) : 0)
 #else
-    #define PADDR(ir) (ASSERT0(0))
+    #define PADDR(ir) (UNREACH())
 #endif
 
 IRDesc const g_ir_desc[] = {
@@ -524,7 +524,7 @@ void dump_ir(IR const* ir,
             CHAR tt[40];
             tt[0] = 0;
             CHAR * name = xstrcat(tt, 40, "%s",
-                                SYM_name(VAR_name(ST_idinfo(ir))));
+                                SYM_name(ST_idinfo(ir)->get_name()));
             buf[0] = 0;
 
             //Dump operator and variable name.
@@ -636,7 +636,7 @@ void dump_ir(IR const* ir,
 
             //Dump variable info.
             CHAR * name = xstrcat(tt, 40, "%s",
-                                SYM_name(VAR_name(LD_idinfo(ir))));
+                                SYM_name(LD_idinfo(ir)->get_name()));
             buf[0] = 0;
             if (LD_ofst(ir) != 0) {
                 note("\nld:%s:offset(%d) '%s'",
@@ -683,7 +683,8 @@ void dump_ir(IR const* ir,
             tt[0] = 0;
 
             //Dump ID name.
-            CHAR * name = xstrcat(tt, 40, "%s", SYM_name(VAR_name(ID_info(ir))));
+            CHAR * name =
+                xstrcat(tt, 40, "%s", SYM_name(ID_info(ir)->get_name()));
             note("\nid:%s '%s'", xdm->dump_type(d, buf), name);
             buf[0] = 0;
             if (ID_info(ir)->dumpVARDecl(buf, 40) != NULL) {
@@ -925,7 +926,7 @@ void dump_ir(IR const* ir,
                      CLABEL_CONT(LAB_lab(ir)));
             } else if (LABEL_INFO_type(li) == L_PRAGMA) {
                 note("\npragma(%s)", SYM_name(LABEL_INFO_pragma(LAB_lab(ir))));
-            } else { ASSERT0(0); }
+            } else { UNREACH(); }
 
             PADDR(ir);
 
@@ -992,7 +993,7 @@ void dump_ir(IR const* ir,
 
             //Dump variable info.
             CHAR * name = xstrcat(tt, 40, "%s",
-                                SYM_name(VAR_name(LDA_idinfo(ir))));
+                                SYM_name(LDA_idinfo(ir)->get_name()));
             buf[0] = 0;
             if (LDA_ofst(ir) != 0) {
                 note("\nlda:%s:offset(%d) '%s'",
@@ -1161,7 +1162,7 @@ void dump_ir(IR const* ir,
                 CHAR tt[44];
                 tt[0] = 0;
 
-                CHAR const* string = SYM_name(VAR_name(CALL_idinfo(ir)));
+                CHAR const* string = SYM_name(CALL_idinfo(ir)->get_name());
 
                 CHAR * name = xstrcat(tt, 40, "%s", string);
                 if (strlen(string) > 40) {
@@ -1245,7 +1246,7 @@ void dump_ir(IR const* ir,
             tt[0] = 0;
 
             //Dump variable info.
-            xstrcat(tt, 40, "%s", SYM_name(VAR_name(ruvar)));
+            xstrcat(tt, 40, "%s", SYM_name(ruvar->get_name()));
             fprintf(g_tfile, " \'%s\',ruid:%d", tt,
                     REGION_id(REGION_ru(ir)));
         }
@@ -1748,7 +1749,7 @@ bool IR::verify(Region const* ru) const
         ASSERT0(verifyPhi(ru));
         break;
     case IR_REGION: break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     return true;
 }
@@ -2034,7 +2035,7 @@ bool IR::is_ir_equal(IR const* src, bool is_cmp_kid) const
     case IR_REGION:
         //One should implement comparation function for your own region.
         return false;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 
     //Compare kids.
@@ -2266,7 +2267,7 @@ IR * IR::getOpndPR(UINT prno)
         }
         return NULL;
     case IR_REGION: return NULL;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     return NULL;
 }
@@ -2341,18 +2342,18 @@ IR * IR::getResultPR(UINT prno)
     case IR_PR:
     case IR_SELECT:
     case IR_RETURN:    //Does not have a result PR.
-        ASSERT0(0);
+        UNREACH();
     case IR_PHI:
         if (PHI_prno(this) == prno) { return this; }
         return NULL;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     return NULL;
 }
 
 
 //Copy MD that ir referenced accroding to 'mds'.
-void IR::set_ref_md(MD const* md, Region * ru)
+void IR::setRefMD(MD const* md, Region * ru)
 {
     DU * du = get_du();
     if (du == NULL) {
@@ -2367,7 +2368,7 @@ void IR::set_ref_md(MD const* md, Region * ru)
 
 
 //Copy the set of MD that ir referenced accroding to 'mds'.
-void IR::set_ref_mds(MDSet const* mds, Region * ru)
+void IR::setRefMDSet(MDSet const* mds, Region * ru)
 {
     DU * du = get_du();
     if (du == NULL) {

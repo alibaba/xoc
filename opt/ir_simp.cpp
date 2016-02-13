@@ -175,7 +175,7 @@ bool Region::isLowestHeightExp(IR const* ir, SimpCtx const* ctx) const
         return isLowest(ir);
     case IR_SELECT:
         return isLowestHeightSelect(ir);
-    default: ASSERT0(0);
+    default: UNREACH();
     }
 
     return true;
@@ -229,7 +229,7 @@ bool Region::isLowestHeight(IR const* ir, SimpCtx const* ctx) const
     case IR_SWITCH:
     case IR_IGOTO:
         return false;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     return true;
 }
@@ -1531,7 +1531,7 @@ IR * Region::simplifyJudgeDet(IR * ir, SimpCtx * ctx)
             return ir;
         }
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     } //end switch
     return NULL;
 }

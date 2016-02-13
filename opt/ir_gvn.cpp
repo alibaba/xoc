@@ -435,8 +435,8 @@ VN * IR_GVN::computePR(IR const* exp, bool & change)
 
     IR const* def = ssainfo->get_def();
     if (def == NULL) {
-        ASSERT0(exp->get_ref_md());
-        return allocLiveinVN(exp, exp->get_ref_md(), change);
+        ASSERT0(exp->getRefMD());
+        return allocLiveinVN(exp, exp->getRefMD(), change);
     }
 
     VN * defvn = m_ir2vn.get(IR_id(def));
@@ -1055,7 +1055,7 @@ void IR_GVN::processRegion(IR const* ir, bool & change)
 {
     UNUSED(change);
     UNUSED(ir);
-    ASSERT0(0); //TODO
+    UNREACH(); //TODO
 }
 
 
@@ -1153,7 +1153,7 @@ void IR_GVN::processBB(IRBB * bb, bool & change)
             processPhi(ir, change);
             break;
         case IR_GOTO: break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
     }
 }
@@ -1284,9 +1284,9 @@ void IR_GVN::dump_bb(UINT bbid)
             break;
         case IR_GOTO: break;
         case IR_REGION:
-            ASSERT0(0); //TODO
+            UNREACH(); //TODO
             break;
-        default: ASSERT0(0);
+        default: UNREACH();
         }
         fprintf(g_tfile, " }");
     }
@@ -1448,7 +1448,7 @@ bool IR_GVN::calcCondMustVal(IR const* ir, bool & must_true, bool & must_false)
             return true;
         }
         break;
-    default: ASSERT0(0);
+    default: UNREACH();
     }
     return false;
 }

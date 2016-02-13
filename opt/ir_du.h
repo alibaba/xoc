@@ -103,7 +103,7 @@ class MDId2IRlist : public TMap<UINT, DefSBitSetCore*> {
     DefSBitSetCore m_global_md;
 
     //Indicate if there exist stmt which only have MayDef.
-    bool m_has_stmt_which_only_have_maydef;
+    bool m_are_stmts_defed_ineffect_md;
 public:
     explicit MDId2IRlist(Region * ru);
     COPY_CONSTRUCTOR(MDId2IRlist);
@@ -129,13 +129,10 @@ public:
 
     void dump();
 
-    bool hasIneffectDef() const
-    { return m_has_stmt_which_only_have_maydef; }
+    bool hasIneffectDef() const { return m_are_stmts_defed_ineffect_md; }
 
     void set(UINT mdid, IR * ir);
-
-    void markStmtOnlyHasMaydef()
-    { m_has_stmt_which_only_have_maydef = true; }
+    void setHasIneffectDef() { m_are_stmts_defed_ineffect_md = true; }
 };
 
 
@@ -271,15 +268,24 @@ protected:
             MD const* expmd,
             DUSet * expdu,
             C<IR*> * ct);
-    void buildChainForMD(IR const* exp, MD const* expmd, DUSet * expdu);
-    void buildChainForMDSet(
+
+    void checkDefSetToBuildDUChain(
+            IR const* exp,
+            MD const* expmd,
+            MDSet const* expmds,
+            DUSet * expdu,
+            DefSBitSetCore const* defset,
+            IRBB * curbb);
+    void checkMDSetAndBuildDUChain(
             IR const* exp,
             MD const* expmd,
             MDSet const& expmds,
             DUSet * expdu);
-    void buildChainForMust(IR const* exp, MD const* expmd, DUSet * expdu);
-
-    bool checkIsTruelyDep(MD const* mustdef, MDSet const* maydef, IR const* use);
+    void checkMustMDAndBuildDUChain(
+            IR const* exp,
+            MD const* expmd,
+            DUSet * expdu);
+    bool checkIsTruelyDep(IR const* def, IR const* use);
     UINT checkIsLocalKillingDef(IR const* stmt, IR const* exp, C<IR*> * expct);
     UINT checkIsNonLocalKillingDef(IR const* stmt, IR const* exp);
     inline bool canBeLiveExprCand(IR const* ir) const;
@@ -333,6 +339,8 @@ protected:
     void resetLocalAuxSet(bool cleanMember);
     void resetGlobalSet(bool cleanMember);
     void resetReachDefOutSet(bool cleanMember);
+    void updateDefWithMustEffectMD(IR * ir, MD const* musteffect);
+    void updateDefWithMustExactMD(IR * ir, MD const* mustexact);
     void updateDef(IR * ir);
     void updateRegion(IR * ir);
 public:
@@ -604,7 +612,7 @@ public:
     MD const* get_must_def(IR const* ir)
     {
         ASSERT0(ir && ir->is_stmt());
-        return ir->get_ref_md();
+        return ir->getRefMD();
     }
 
     MD const* get_effect_def_md(IR const* ir)
@@ -626,7 +634,7 @@ public:
     MDSet const* get_may_def(IR const* ir)
     {
         ASSERT0(ir && ir->is_stmt());
-        return ir->get_ref_mds();
+        return ir->getRefMDSet();
     }
 
     //Return the MustUse MD.
@@ -640,7 +648,7 @@ public:
     MDSet const* get_may_use(IR const* ir)
     {
         ASSERT0(ir && ir->is_exp());
-        return ir->get_ref_mds();
+        return ir->getRefMDSet();
     }
 
     //Return exact MD if ir defined.
@@ -800,7 +808,7 @@ public:
 
     virtual bool perform(OptCtx &)
     {
-        ASSERT0(0);
+        UNREACH();
         return false;
     }
     bool perform(IN OUT OptCtx & oc,

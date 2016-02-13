@@ -41,6 +41,7 @@ PassMgr::PassMgr(Region * ru)
     ASSERT0(ru);
     m_pool = smpoolCreate(sizeof(TimeInfo) * 4, MEM_COMM);
     m_ru = ru;
+    m_rumgr = ru->get_region_mgr();
     m_tm = ru->get_type_mgr();
     ASSERT0(m_tm);
 }
@@ -195,6 +196,18 @@ Pass * PassMgr::allocCfsMgr()
 }
 
 
+Pass * PassMgr::allocIPA()
+{
+    return new IPA(m_ru);
+}
+
+
+Pass * PassMgr::allocInliner()
+{
+    return new Inliner(m_ru);
+}
+
+
 Pass * PassMgr::allocAA()
 {
     return new IR_AA(m_ru);
@@ -295,6 +308,12 @@ Pass * PassMgr::registerPass(PASS_TYPE opty)
         break;
     case PASS_CFS_MGR:
         pass = allocCfsMgr();
+        break;
+    case PASS_IPA:
+        pass = allocIPA();
+        break;
+    case PASS_INLINER:
+        pass = allocInliner();
         break;
     default: ASSERT(0, ("Unsupport Optimization."));
     }

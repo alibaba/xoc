@@ -76,14 +76,13 @@ MD const* RegionMgr::genDedicateStrMD()
 
     //Regard all string variables as same unbound MD.
     if (m_str_md == NULL) {
-        SYM * s  = addToSymbolTab("Dedicated_VAR_be_regarded_as_string");
-        VAR * sv = get_var_mgr()->
-                     registerStringVar("Dedicated_String_Var", s, 1);
+        SYM * s = addToSymbolTab("DedicatedVarBeRegardedAsString");
+        VAR * sv = get_var_mgr()->registerStringVar("DedicatedStringVar", s, 1);
         VAR_allocable(sv) = false;
         VAR_is_addr_taken(sv) = true;
         MD md;
         MD_base(&md) = sv;
-        MD_ty(&md) = MD_UNBOUND; //
+        MD_ty(&md) = MD_UNBOUND;
         ASSERT0(MD_base(&md)->is_string());
         MD const* e = m_md_sys->registerMD(md);
         ASSERT0(MD_id(e) > 0);
@@ -94,19 +93,16 @@ MD const* RegionMgr::genDedicateStrMD()
 
 
 //Register exact MD for each global variable.
-void RegionMgr::registerGlobalMDS()
+//Note you should call this function as early as possible, e.g, before process
+//all regions. Because that will assign smaller MD id to global variable.
+void RegionMgr::registerGlobalMD()
 {
     //Only top region can do initialize MD for global variable.
     ASSERT0(m_var_mgr);
-    ID2VAR * varvec = m_var_mgr->get_var_vec();
+    VarVec * varvec = m_var_mgr->get_var_vec();
     for (INT i = 0; i <= varvec->get_last_idx(); i++) {
         VAR * v = varvec->get(i);
-        if (v == NULL ||
-            VAR_is_fake(v) ||
-            VAR_is_local(v) ||
-            VAR_is_func_decl(v)) {
-            continue;
-        }
+        if (v == NULL || VAR_is_local(v)) { continue; }
 
         ASSERT0(VAR_is_global(v));
 
@@ -118,11 +114,17 @@ void RegionMgr::registerGlobalMDS()
             continue;
         }
 
+        //We allocate MDTab for VAR which is func-decl or fake as well.
+        //Since some Passes such as AA may need fake VAR to do analysis.
         MD md;
         MD_base(&md) = v;
         MD_ofst(&md) = 0;
         MD_size(&md) = v->getByteSize(get_type_mgr());
-        MD_ty(&md) = MD_EXACT;
+        if (VAR_is_fake(v) || VAR_is_func_decl(v)) {
+            MD_ty(&md) = MD_UNBOUND;
+        } else {
+            MD_ty(&md) = MD_EXACT;
+        }
         m_md_sys->registerMD(md);
     }
 }
@@ -162,7 +164,7 @@ Region * RegionMgr::newRegion(REGION_TYPE rt)
 void RegionMgr::addToRegionTab(Region * ru)
 {
     ASSERT(REGION_id(ru) > 0, ("should generate new region via newRegion()"));
-    ASSERT0(m_id2ru.get(REGION_id(ru)) == NULL);
+    ASSERT0(get_region(REGION_id(ru)) == NULL);
     ASSERT0(REGION_id(ru) < m_ru_count);
     m_id2ru.set(REGION_id(ru), ru);
 }
@@ -175,8 +177,8 @@ void RegionMgr::dumpRegion()
 
     g_indent = 0;
     note("\n==---- DUMP ALL Registered Region ----==");
-    for (INT id = 0; id <= m_id2ru.get_last_idx(); id++) {
-        Region * ru = m_id2ru.get(id);
+    for (UINT id = 0; id < getNumOfRegion(); id++) {
+        Region * ru = get_region(id);
         if (ru == NULL) { continue; }
         ru->dump();
     }
@@ -200,23 +202,11 @@ void RegionMgr::deleteRegion(Region * ru)
 }
 
 
-//Process a RU_FUNC region.
-void RegionMgr::processFuncRegion(IN Region * func)
-{
-    ASSERT0(func->is_function());
-    if (func->get_ir_list() == NULL) { return; }
-    func->process();
-    tfree();
-}
-
-
-IPA * RegionMgr::allocIPA(Region * program)
-{
-    return new IPA(this, program);
-}
-
-
-void RegionMgr::estimateEV(UINT & num_call, UINT & num_ru, bool scan_call)
+void RegionMgr::estimateEV(
+        OUT UINT & num_call,
+        OUT UINT & num_ru,
+        bool scan_call,
+        bool scan_inner_region)
 {
     for (UINT i = 0; i < getNumOfRegion(); i++) {
         Region * ru = get_region(i);
@@ -225,18 +215,14 @@ void RegionMgr::estimateEV(UINT & num_call, UINT & num_ru, bool scan_call)
         num_ru++;
 
         ASSERT0(ru->is_function() || ru->is_program());
-        List<IR const*> * call_list = ru->get_call_list();
-        ASSERT0(call_list);
         if (scan_call) {
-            call_list->clean();
-            ru->scanCallList(num_ru, *call_list, true);
+            ru->scanCallAndReturnList(num_ru, scan_inner_region);
         }
 
-        if (call_list->get_elem_count() == 0) {
-            continue;
+        List<IR const*> * call_list = ru->get_call_list();
+        if (call_list != NULL) {
+            num_call += call_list->get_elem_count();
         }
-
-        num_call += call_list->get_elem_count();
     }
     num_ru = MAX(4, xcom::getNearestPowerOf2(num_ru));
     num_call = MAX(4, xcom::getNearestPowerOf2(num_call));
@@ -244,50 +230,35 @@ void RegionMgr::estimateEV(UINT & num_call, UINT & num_ru, bool scan_call)
 
 
 //Scan call site and build call graph.
-CallGraph * RegionMgr::initCallGraph(bool scan_call)
+CallGraph * RegionMgr::initCallGraph(bool scan_call, bool scan_inner_region)
 {
     ASSERT0(m_call_graph == NULL);
     UINT vn = 0, en = 0;
-    estimateEV(en, vn, scan_call);
+    estimateEV(en, vn, scan_call, scan_inner_region);
     m_call_graph = allocCallGraph(vn, en);
     m_call_graph->build(this);
     return m_call_graph;
 }
 
 
-//Process top-level region unit.
-//Top level region unit should be program unit.
+//Process function level region.
+void RegionMgr::processFuncRegion(IN Region * func)
+{
+    ASSERT0(func->is_function());
+    g_indent = 0;
+    func->process();
+    tfree();
+}
+
+
+//Process top-level region.
+//Top level region should be program.
 void RegionMgr::processProgramRegion(Region * program)
 {
-    ASSERT0(program);
-    registerGlobalMDS();
-    ASSERT(program->is_program(), ("TODO: support more operation."));
-    OptCtx oc;
-    if (g_do_inline) {
-        //Need to scan call-list.
-        CallGraph * callg = initCallGraph(true);
-        UNUSED(callg);
-        //callg->dump_vcg(get_dt_mgr(), NULL);
-
-        OC_is_callg_valid(oc) = true;
-
-        Inliner inl(this, program);
-        inl.perform(oc);
-    }
-
+    ASSERT0(program && program->is_program());
+    g_indent = 0;
     program->process();
-    if (g_do_ipa) {
-        if (!OC_is_callg_valid(oc)) {
-            //processFuncRegion has scanned and collected call-list.
-            //Thus it does not need to scan call-list here.
-            initCallGraph(true);
-            OC_is_callg_valid(oc) = true;
-        }
-
-        IPA * ipa = allocIPA(program);
-        ipa->perform(oc);
-        delete ipa;
-    }
+    tfree();
 }
 //END RegionMgr
 

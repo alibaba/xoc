@@ -338,7 +338,7 @@ protected:
     MD const* allocCallResultPRMD(IR * ir);
     MD const* allocSetelemMD(IR * ir);
     MD const* allocGetelemMD(IR * ir);
-    MD const* allocStringMD(SYM * string);
+    MD const* allocStringMD(SYM const* string);
 
     bool computeConstOffset(
             IR const* ir,
@@ -535,10 +535,10 @@ public:
     { return ctx.get(mdid); }
 
     //Return the Memory Descriptor Set for given ir may describe.
-    MDSet const* get_may_addr(IR const* ir) { return ir->get_ref_mds(); }
+    MDSet const* get_may_addr(IR const* ir) { return ir->getRefMDSet(); }
 
     //Return the MemoryAddr for 'ir' must be.
-    MD const* get_must_addr(IR const* ir) { return ir->get_ref_md(); }
+    MD const* get_must_addr(IR const* ir) { return ir->getRefMD(); }
 
     MD2MDSet * get_unique_md2mds() { return &m_unique_md2mds; }
 
@@ -567,12 +567,12 @@ public:
     void set_must_addr(IR * ir, MD const* md)
     {
         ASSERT0(ir != NULL && md);
-        ir->set_ref_md(md, m_ru);
+        ir->setRefMD(md, m_ru);
     }
     void set_may_addr(IR * ir, MDSet const* mds)
     {
         ASSERT0(ir && mds && !mds->is_empty());
-        ir->set_ref_mds(mds, m_ru);
+        ir->setRefMDSet(mds, m_ru);
     }
 
     //For given MD2MDSet, set the point-to set to 'md'.

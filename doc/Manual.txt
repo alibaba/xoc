@@ -957,10 +957,11 @@ Programming Guides
             endwhile
 
     ¡ñ IR_CONTINUE
-        This operation represents high level control structure, that re-execute
-        current loop immediately without any other operations. This operation
-        is used by IR_DO_LOOP, IR_DO_WHILE, IR_WHILE_DO. It is used to specify
-        an unconditional branch from a loop body to the start label of loop.
+        This operation represents high level control structure, that stop the
+        current loop iteration, immediately continue with the next one.
+        This operation is used by IR_DO_LOOP, IR_DO_WHILE, IR_WHILE_DO.
+        It is used to specify an unconditional branch from a loop body to the
+        start label of loop.
 
         Semantics: Jump to the start of loop, the following loop can not terminate.
             while (i < 10)
@@ -1024,9 +1025,11 @@ Programming Guides
     ¡ñ Alias Analysis
         We implement three analyses: address-taken, flow sensitive, flow
         insensitive. Our analysis has a subtle difference with other algorithms,
-        we perform alias analysis and compute the exact and inexact MD. After
-        alias analysis, we define an unique VAR for each alias group, which
-        are sets of MD that share the same aliases.
+        we perform alias analysis and compute the exact and inexact MD.
+        These MDs describe the shape of the store and load and every function
+        uses them to specify the store and load that it expects.
+        When alias analysis is finished, we define an unique VAR for each alias
+        group, which are sets of MD that share the same aliases.
 
     ¡ñ DU Manager
         This is one of the most important data structure used in XOC. This
