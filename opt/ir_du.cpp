@@ -5056,7 +5056,7 @@ void IR_DU_MGR::computeRegionMDDU(
             MD const* md = m_md_sys->get_md(i);
             ASSERT0(md->get_base());
             if (!md->is_pr() && !vtab->find(md->get_base())) {
-                //Do NOT record local used VAR.
+                //Do NOT record local used VAR and PR.
                 ru_maydef->bunion(md, *m_misc_bs_mgr);
             }
         }
@@ -5068,7 +5068,7 @@ void IR_DU_MGR::computeRegionMDDU(
             MD const* md = m_md_sys->get_md(i);
             ASSERT0(md->get_base());
             if (!md->is_pr() && !vtab->find(md->get_base())) {
-                //Do NOT record local used VAR.
+                //Do NOT record local used VAR and PR.
                 ru_maydef->bunion(md, *m_misc_bs_mgr);
             }
         }

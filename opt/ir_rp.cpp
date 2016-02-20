@@ -2084,10 +2084,10 @@ bool IR_RP::tryPromote(
         }
     }
 
-    m_dont_promot.dump();
-    dump_access(exact_access, m_tm);
-    dump_occ_list(exact_occ_list, m_tm);
-    dump_access2(inexact_access, m_tm);
+    //m_dont_promot.dump();
+    //dump_access(exact_access, m_tm);
+    //dump_occ_list(exact_occ_list, m_tm);
+    //dump_access2(inexact_access, m_tm);
 
     IRBB * preheader = NULL;
     if (exact_access.get_elem_count() != 0 ||

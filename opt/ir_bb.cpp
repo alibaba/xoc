@@ -77,7 +77,7 @@ bool IRBB::is_bb_down_boundary(IR * ir)
 }
 
 
-void IRBB::dump(Region * ru)
+void IRBB::dump(Region * ru, bool dump_inner_region)
 {
     if (g_tfile == NULL) { return; }
 
@@ -112,7 +112,7 @@ void IRBB::dump(Region * ru)
     for (IR * ir = BB_first_ir(this);
          ir != NULL; ir = BB_irlist(this).get_next()) {
         ASSERT0(ir->is_single() && ir->get_bb() == this);
-        dump_ir(ir, dm, NULL, true, true, false);
+        dump_ir(ir, dm, NULL, true, true, false, dump_inner_region);
     }
     g_indent -= 3;
     fprintf(g_tfile, "\n");
@@ -305,7 +305,10 @@ void dumpBBLabel(List<LabelInfo const*> & lablist, FILE * h)
 }
 
 
-void dumpBBList(BBList * bbl, Region * ru, CHAR const* name)
+void dumpBBList(BBList * bbl, 
+                Region * ru, 
+                CHAR const* name, 
+                bool dump_inner_region)
 {
     ASSERT0(ru && bbl);
     FILE * h = NULL;
@@ -327,7 +330,7 @@ void dumpBBList(BBList * bbl, Region * ru, CHAR const* name)
         }
 
         for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
-            bb->dump(ru);
+            bb->dump(ru, dump_inner_region);
         }
     }
 

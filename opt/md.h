@@ -128,10 +128,10 @@ Effect, Exact, Range, Unbound.
 //or it is not available.
 #define MD_size(md)              ((md)->size)
 
-/* Memory object type. If it is MD_EXACT, there will be exact use/def.
-If it is MD_RANGE, there will be inexact use/def, but the accessing restricted
-into a computable range. If it is MD_UNBOUND, there will be inexact use/def,
-and we do not know where to be access. */
+//Memory object type. If it is MD_EXACT, there will be exact use/def.
+//If it is MD_RANGE, there will be inexact use/def, but the accessing restricted
+//into a computable range. If it is MD_UNBOUND, there will be inexact use/def,
+//and we do not know where to be access.
 #define MD_ty(md)                ((md)->u2.s1.type)
 
 //The memory object is a PR.

@@ -2636,17 +2636,25 @@ void Region::dumpVARInRegion()
         if (has_param) {
             note("\nFORMAL PARAMETERS:");
             c.clean();
+            Vector<VAR*> fpvec;
             for (VAR * v = get_var_tab()->get_first(c);
                  v != NULL; v = get_var_tab()->get_next(c)) {
                 if (VAR_is_formal_param(v)) {
-                    buf[0] = 0;
-                    v->dump(buf, get_type_mgr());
-                    g_indent += 2;
-                    note("\n%s", buf);
-                    fflush(g_tfile);
-                    dump_var_md(v, g_indent);
-                    g_indent -= 2;
+                    fpvec.set(VAR_formal_param_pos(v), v);
                 }
+            }
+
+            for (INT i = 0; i <= fpvec.get_last_idx(); i++) {
+                VAR * v = fpvec.get(i);
+                ASSERT0(v);
+                buf[0] = 0;
+                v->dump(buf, get_type_mgr());
+                g_indent += 2;
+                note("\n%s", buf);
+                fprintf(g_tfile, " param%d", i);
+                fflush(g_tfile);
+                dump_var_md(v, g_indent);
+                g_indent -= 2;                
             }
         }
     }

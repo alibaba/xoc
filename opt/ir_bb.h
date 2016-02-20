@@ -244,7 +244,7 @@ public:
     //Clean attached label.
     void cleanLabelInfoList() { getLabelList().clean(); }
 
-    void dump(Region * ru);
+    void dump(Region * ru, bool dump_inner_region);
     void dupSuccessorPhiOpnd(CFG<IRBB, IR> * cfg, Region * ru, UINT opnd_pos);
 
     List<LabelInfo const*> & getLabelList() { return lab_list; }
@@ -526,7 +526,10 @@ public:
 
 //Exported Functions
 void dumpBBLabel(List<LabelInfo const*> & lablist, FILE * h);
-void dumpBBList(BBList * bbl, Region * ru, CHAR const* name = NULL);
+void dumpBBList(BBList * bbl, 
+                Region * ru, 
+                CHAR const* name = NULL, 
+                bool dump_inner_region = true);
 
 } //namespace xoc
 #endif

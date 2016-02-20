@@ -110,6 +110,109 @@ bool IR_IVR::findInitVal(IV * iv)
 }
 
 
+IR * IR_IVR::findMatchedOcc(MD const* biv, IR * start)
+{
+    ASSERT0(start->is_exp());
+    IRIter ii;
+    for (IR * x = iterInit(start, ii); x != NULL; x = iterNext(ii)) {
+        MD const* xmd = x->getRefMD();
+        if (xmd != NULL && xmd == biv) { 
+            //Note there may be multiple occurrences matched biv.
+            //We just return the first if meet.
+            return x; 
+        }
+    }
+    return NULL;
+}
+
+
+bool IR_IVR::matchIVUpdate(
+        MD const* biv, 
+        IR const* def, 
+        IR ** occ, 
+        IR ** delta, 
+        bool & is_increment)
+{
+    ASSERT0(def->is_st());
+    IR * rhs = ST_rhs(def);
+    if (rhs->is_add()) {
+        is_increment = true;
+    } else if (rhs->is_sub()) {
+        is_increment = false;
+    } else {
+        //Not monotonic operation.
+        return false;
+    }
+
+    //Make sure self modify stmt is monotonic.
+    IR * op0 = BIN_opnd0(rhs);
+    if (m_is_strictly_match_pattern) {
+        //Strictly match the pattern: i = i + 1.
+        MD const* occmd = op0->getRefMD();
+        if (occmd == NULL || occmd != biv) {
+            return false;
+        }
+    } else {
+        op0 = findMatchedOcc(biv, op0);
+        if (op0 == NULL) { return false; }
+    }
+
+    IR * op1 = BIN_opnd1(rhs);
+    if (op1->is_int()) {
+        ;
+    } else if (g_is_support_dynamic_type && op1->is_const()) {
+        //TODO: support dynamic const type as the addend of ADD/SUB.
+        return false;
+    } else {
+        return false; 
+    }
+
+    if (m_is_only_handle_exact_md) {
+        MD const* op0md = op0->get_exact_ref();
+        if (op0md == NULL || op0md != biv) { 
+            return false; 
+        }
+    }
+
+    ASSERT0(op0 && op1);
+    *occ = op0;
+    *delta = op1;
+    return true;
+}
+
+
+void IR_IVR::recordIV(
+        MD * biv, 
+        LI<IRBB> const* li, 
+        IR * def, 
+        IR * occ, 
+        IR * delta,
+        bool is_increment)
+{
+    ASSERT0(biv && li && def && occ && delta && delta->is_const());    
+    IV * x = allocIV();
+    IV_iv(x) = biv;
+    IV_li(x) = li;
+    IV_iv_occ(x) = occ;
+    IV_iv_def(x) = def;
+    IV_step(x) = CONST_int_val(delta);
+    IV_is_inc(x) = is_increment;
+    findInitVal(x);
+
+    m_ir2iv.set(occ, x);
+    m_ir2iv.set(def, x);
+
+    SList<IV*> * ivlst = m_li2bivlst.get(LI_id(li));
+    if (ivlst == NULL) {
+        ivlst = (SList<IV*>*)xmalloc(sizeof(SList<IV*>));
+        ivlst->init();
+        ivlst->set_pool(m_sc_pool);
+        m_li2bivlst.set(LI_id(li), ivlst);
+    }
+    ivlst->append_head(x);
+}
+
+
 //Find Basic IV.
 //'map_md2defcount': record the number of definitions to MD.
 //'map_md2defir': map MD to define stmt.
@@ -220,50 +323,15 @@ void IR_IVR::findBIV(
                 break;
             }
         }
+
         if (!selfmod) { continue; }
-
-        IR * stv = ST_rhs(def);
-        if (!stv->is_add() && !stv->is_sub()) { continue; }
-
-        //Make sure self modify stmt is monotonic.
-        IR * op0 = BIN_opnd0(stv);
-        IR * op1 = BIN_opnd1(stv);
-        if (op1->is_int()) {;}
-        else if (g_is_support_dynamic_type && op1->is_const()) {
-            //TODO: support dynamic const type as the addend of ADD/SUB.
-            continue;
-        } else { continue; }
-
-        if (m_is_only_handle_exact_md) {
-            MD const* op0md = op0->get_exact_ref();
-            if (op0md == NULL || op0md != biv) { continue; }
-        }
-
-        //Work out IV.
-        IV * x = allocIV();
-        IV_iv(x) = biv;
-        IV_li(x) = li;
-        IV_iv_occ(x) = op0;
-        IV_iv_def(x) = def;
-        IV_step(x) = CONST_int_val(op1);
-        if (stv->is_add()) {
-            IV_is_inc(x) = true;
-        } else {
-            IV_is_inc(x) = false;
-        }
-        findInitVal(x);
-
-        m_ir2iv.set(op0, x);
-        m_ir2iv.set(def, x);
-
-        SList<IV*> * ivlst = m_li2bivlst.get(LI_id(li));
-        if (ivlst == NULL) {
-            ivlst = (SList<IV*>*)xmalloc(sizeof(SList<IV*>));
-            ivlst->init();
-            ivlst->set_pool(m_sc_pool);
-            m_li2bivlst.set(LI_id(li), ivlst);
-        }
-        ivlst->append_head(x);
+        
+        IR * occ = NULL;
+        IR * delta = NULL;
+        bool is_increment = false;
+        if (!matchIVUpdate(biv, def, &occ, &delta, is_increment)) { continue; }
+        
+        recordIV(biv, li, def, occ, delta, is_increment);
     }
 }
 
@@ -524,7 +592,8 @@ bool IR_IVR::perform(OptCtx & oc)
     START_TIMER_AFTER();
     UINT n = m_ru->get_bb_list()->get_elem_count();
     if (n == 0) { return false; }
-
+    ASSERT0(m_cfg && m_du && m_md_sys && m_tm);
+    
     m_ru->checkValidAndRecompute(&oc, PASS_REACH_DEF, PASS_DU_REF,
                                  PASS_DOM, PASS_LOOP_INFO, PASS_DU_CHAIN,
                                  PASS_RPO, PASS_UNDEF);

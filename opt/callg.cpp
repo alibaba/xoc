@@ -83,6 +83,7 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
 
     bool dump_src_line = HAVE_FLAG(flag, CALLG_DUMP_SRC_LINE);
     bool dump_ir_detail = HAVE_FLAG(flag, CALLG_DUMP_IR);
+    bool dump_inner_region = HAVE_FLAG(flag, CALLG_DUMP_INNER_REGION);
 
     //Print comment
     fprintf(h, "\n/*");
@@ -166,10 +167,12 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
                 for (; irs != NULL; irs = irs->get_next()) {
                     //fprintf(h, "%s\n", dump_ir_buf(ir, buf));
                     //TODO: implement dump_ir_buf();
-                    dump_ir(irs, m_tm, NULL, true, dump_src_line, false, true);
+                    dump_ir(irs, m_tm, NULL, true, 
+                            dump_src_line, false, dump_inner_region);
                 }
             } else {
-                dumpBBList(CN_ru(cn)->get_bb_list(), CN_ru(cn));
+                dumpBBList(CN_ru(cn)->get_bb_list(),
+                           CN_ru(cn), NULL, dump_inner_region);
             }
         }
         fprintf(h, "\"}");

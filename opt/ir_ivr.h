@@ -97,9 +97,12 @@ protected:
     Vector<SList<IV*>*> m_li2bivlst;
     Vector<SList<IR const*>*> m_li2divlst;
 
-    //True if this pass only find BIV and DIV for exact MD IR.
+    //True if IVR pass only find BIV and DIV for exact MD IR.
     //Note if IR_ST, IR_LD, IR_PR, IR_STPR are VOID, the MD is inexact.
     bool m_is_only_handle_exact_md;
+
+    //True if only strictly match the monotonic code pattern: i=i+1.
+    bool m_is_strictly_match_pattern;
 
     //Map from a Def and Occ of basic induction var to its IV info.
     //This field will supply fast accessing to IV when giving an IR.
@@ -122,6 +125,7 @@ protected:
     //Find initialze value of IV, if found return true,
     //otherwise return false.
     bool findInitVal(IV * iv);
+    IR * findMatchedOcc(MD const* biv, IR * start);
 
     inline IV * allocIV() { return (IV*)xmalloc(sizeof(IV)); }
 
@@ -133,7 +137,20 @@ protected:
         memset(p, 0, size);
         return p;
     }
+    bool matchIVUpdate(
+            MD const* biv, 
+            IR const* def, 
+            IR ** occ, 
+            IR ** delta, 
+            bool & is_increment);
     bool scanExp(IR const* ir, LI<IRBB> const* li, BitSet const& ivmds);
+    void recordIV(
+            MD * biv, 
+            LI<IRBB> const* li, 
+            IR * def, 
+            IR * occ, 
+            IR * delta,
+            bool is_increment);
 public:
     explicit IR_IVR(Region * ru)
     {
@@ -142,11 +159,11 @@ public:
         m_md_sys = ru->get_md_sys();
         m_du = ru->get_du_mgr();
         m_cfg = ru->get_cfg();
-        m_tm = ru->get_type_mgr();
-        ASSERT0(m_cfg && m_du && m_md_sys && m_tm);
+        m_tm = ru->get_type_mgr();        
         m_pool = smpoolCreate(sizeof(IV) * 4, MEM_COMM);
         m_sc_pool = smpoolCreate(sizeof(SC<IV*>) * 4, MEM_CONST_SIZE);
         m_is_only_handle_exact_md = true;
+        m_is_strictly_match_pattern = false;
     }
     COPY_CONSTRUCTOR(IR_IVR);
     virtual ~IR_IVR()
@@ -172,6 +189,8 @@ public:
     bool is_loop_invariant(LI<IRBB> const* li, IR const* ir);
 
     void setOnlyHandleExactMD(bool doit) { m_is_only_handle_exact_md = doit; }
+    void setStrictlyMatchPattern(bool strictly)
+    { m_is_strictly_match_pattern = strictly; }
 
     virtual bool perform(OptCtx & oc);
 };

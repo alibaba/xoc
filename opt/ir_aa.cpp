@@ -1945,9 +1945,9 @@ void IR_AA::inferStoreArrayValue(IN IR * ir, IN AACtx * ic, IN MD2MDSet * mx)
 
 //Infer point-to set for array element.
 //e.g For given four point-to pairs {q->c,q->d}.
-//    store array can be shown as
-//        a[x] = q;
-//    this make the point-to set of a[x] to be {a[x]->c, a[x]->d}.
+//  store array can be shown as
+//      a[x] = q;
+//  this make the point-to set of a[x] to be {a[x]->c, a[x]->d}.
 void IR_AA::processStoreArray(IN IR * ir, IN MD2MDSet * mx)
 {
     ASSERT0(ir->is_starray());
@@ -2000,8 +2000,9 @@ void IR_AA::processStoreArray(IN IR * ir, IN MD2MDSet * mx)
             mayaddr.copy(tmp, *m_misc_bs_mgr);
 
             //Assign the address to ir.
-            //If the MD in mayaddr is single and exact, regarding ir as referencing
-            //single and exact MD, or else regard ir as referencing a set of MD.
+            //If the MD in mayaddr is single and exact, 
+            //regarding ir as referencing single and exact MD, 
+            //or else regard ir as referencing a set of MD.
             MD const* x;
             SEGIter * iter;
             if (mayaddr.get_elem_count() == 1 &&
