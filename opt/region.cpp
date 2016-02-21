@@ -1759,6 +1759,16 @@ bool Region::isSafeToOptimize(IR const* ir)
 }
 
 
+bool Region::isRegionIR(IR const* ir)
+{
+    Vector<IR*> * vec = get_ir_vec();
+    for (INT i = 0; i <= vec->get_last_idx(); i++) {
+        if (ir == vec->get(i)) { return true; }
+    }
+    return false;
+}
+
+
 //Generate MD corresponding to PR load or write.
 MD const* Region::genMDforPR(UINT prno, Type const* type)
 {

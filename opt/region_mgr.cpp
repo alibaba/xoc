@@ -173,7 +173,7 @@ void RegionMgr::addToRegionTab(Region * ru)
 //Dump regions recorded via addToRegionTab().
 void RegionMgr::dumpRegion()
 {
-    if (g_tfile == NULL) { return; }
+    if (g_tfile == NULL || getNumOfRegion() == 0) { return; }
 
     g_indent = 0;
     note("\n==---- DUMP ALL Registered Region ----==");

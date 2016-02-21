@@ -191,21 +191,23 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
 }
 
 
-//Create a CallNode accroding to caller instruction.
+//Create a CallNode accroding to caller.
 //This CallNode will corresponding to an unqiue Region.
 //Ensure CallNode for Region is unique.
-CallNode * CallGraph::newCallNode(IR const* ir)
+//'ru': the region that ir resident in.
+CallNode * CallGraph::newCallNode(IR const* ir, Region * ru)
 {
-    ASSERT0(ir->is_calls_stmt());
+    ASSERT0(ir->is_calls_stmt() && ru);
     if (ir->is_call()) {
         SYM const* name = CALL_idinfo(ir)->get_name();
-        CallNode * cn  = m_sym2cn_map.get(name);
+        CallNode * cn  = map_sym2cn(name, ru);
         if (cn != NULL) { return cn; }
 
+        //ir invoked imported region.
         cn = allocCallNode();
         CN_sym(cn) = name;
         CN_id(cn) = m_cn_count++;
-        m_sym2cn_map.set(name, cn);
+        genSYM2CN(ru->getTopRegion())->set(name, cn);
         return cn;
     }
 
@@ -219,15 +221,32 @@ CallNode * CallGraph::newCallNode(IR const* ir)
 //To guarantee CallNode of Region is unique.
 CallNode * CallGraph::newCallNode(Region * ru)
 {
-    ASSERT0(ru->is_function() || ru->is_program());
+    ASSERT0(ru);
     SYM const* name = ru->get_ru_var()->get_name();
-    CallNode * cn = m_sym2cn_map.get(name);
+    if (ru->is_program()) {
+        CallNode * cn = map_ru2cn(ru);
+        if (cn != NULL) {
+            ASSERT(CN_ru(cn) == ru, ("more than 2 ru with same id"));
+            return cn;
+        }        
+
+        cn = allocCallNode();
+        CN_sym(cn) = name;
+        CN_id(cn) = m_cn_count++;
+        CN_ru(cn) = ru;        
+        m_ruid2cn.set(REGION_id(ru), cn);
+        return cn;
+    } 
+
+    ASSERT0(ru->get_parent());        
+    SYM2CN * sym2cn = genSYM2CN(ru->get_parent());
+    CallNode * cn = sym2cn->get(name);
     if (cn != NULL) {
         if (CN_ru(cn) == NULL) {
             CN_ru(cn) = ru;
             m_ruid2cn.set(REGION_id(ru), cn);
         }
-        ASSERT(CN_ru(cn) == ru, ("more than 2 ru with same name"));
+        ASSERT(CN_ru(cn) == ru, ("more than 2 ru with same id"));
         return cn;
     }
 
@@ -235,7 +254,8 @@ CallNode * CallGraph::newCallNode(Region * ru)
     CN_sym(cn) = name;
     CN_id(cn) = m_cn_count++;
     CN_ru(cn) = ru;
-    m_sym2cn_map.set(name, cn);
+    sym2cn->set(name, cn);
+    ASSERT0(m_ruid2cn.get(REGION_id(ru)) == NULL);
     m_ruid2cn.set(REGION_id(ru), cn);
     return cn;
 }
@@ -246,10 +266,17 @@ void CallGraph::build(RegionMgr * rumgr)
 {
     for (UINT i = 0; i < rumgr->getNumOfRegion(); i++) {
         Region * ru = rumgr->get_region(i);
+        if (ru == NULL) { continue; }    
+        ASSERT0(ru->is_function() || ru->is_program());
+        add_node(newCallNode(ru));
+    }
+
+    for (UINT i = 0; i < rumgr->getNumOfRegion(); i++) {
+        Region * ru = rumgr->get_region(i);
         if (ru == NULL) { continue; }
 
         ASSERT0(ru->is_function() || ru->is_program());
-        CallNode * caller = newCallNode(ru);
+        CallNode * caller = map_ru2cn(ru);
         add_node(caller);
         List<IR const*> * call_list = ru->gen_call_list();
         ASSERT0(call_list);
@@ -264,7 +291,7 @@ void CallGraph::build(RegionMgr * rumgr)
 
             if (!shouldAddEdge(ir)) { continue; }
 
-            CallNode * callee = newCallNode(ir);
+            CallNode * callee = newCallNode(ir, ru);
             if (ir->is_icall()) {
                 //Indirect call.
                 CN_unknown_callee(callee) = true;

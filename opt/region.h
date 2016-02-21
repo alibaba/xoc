@@ -650,6 +650,9 @@ public:
 
     bool isSafeToOptimize(IR const* ir);
 
+    //Return true if ir belongs to current region.
+    bool isRegionIR(IR const* ir);
+
     //Check and insert data type CVT if it is necessary.
     IR * insertCvt(IR * parent, IR * kid, bool & change);
     void insertCvtForBinaryOp(IR * ir, bool & change);

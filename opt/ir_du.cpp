@@ -1376,7 +1376,7 @@ void IR_DU_MGR::dumpIRRef(IN IR * ir, UINT indent)
         bool doit = false;
         CallGraph * callg = m_ru->get_region_mgr()->get_call_graph();
         if (callg != NULL) {
-            Region * ru = callg->map_call2ru(ir);
+            Region * ru = callg->map_call2ru(ir, m_ru);
             if (ru != NULL && REGION_is_mddu_valid(ru)) {
                 MDSet const* muse = ru->get_may_use();
                 //May use
@@ -2547,7 +2547,7 @@ void IR_DU_MGR::collectMayUse(IR const* ir, MDSet & may_use, bool computePR)
             bool done = false;
             CallGraph * callg = m_ru->get_region_mgr()->get_call_graph();
             if (callg != NULL) {
-                Region * ru = callg->map_call2ru(ir);
+                Region * ru = callg->map_call2ru(ir, m_ru);
                 if (ru != NULL && REGION_is_mddu_valid(ru)) {
                     MDSet const* muse = ru->get_may_use();
                     if (muse != NULL) {
@@ -2645,7 +2645,7 @@ void IR_DU_MGR::collectMayUseRecursive(
             bool done = false;
             CallGraph * callg = m_ru->get_region_mgr()->get_call_graph();
             if (callg != NULL) {
-                Region * ru = callg->map_call2ru(ir);
+                Region * ru = callg->map_call2ru(ir, m_ru);
                 if (ru != NULL && REGION_is_mddu_valid(ru)) {
                     MDSet const* muse = ru->get_may_use();
                     if (muse != NULL) {

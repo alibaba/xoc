@@ -67,6 +67,8 @@ public:
 
 //Mapping from SYM to CallNode.
 typedef TMap<SYM const*, CallNode*> SYM2CN;
+typedef TMap<Region*, SYM2CN*> Region2SYM2CN;
+typedef TMapIter<Region*, SYM2CN*> Region2SYM2CNIter;
 
 
 //Call Graph
@@ -82,7 +84,7 @@ class CallGraph : public DGraph {
     UINT m_cn_count;
     Vector<CallNode*> m_cnid2cn;
     Vector<CallNode*> m_ruid2cn;
-    SYM2CN m_sym2cn_map;
+    Region2SYM2CN m_ru2sym2cn;
 
     CallNode * allocCallNode()
     {
@@ -93,6 +95,25 @@ class CallGraph : public DGraph {
         memset(p, 0, sizeof(CallNode));
         return p;
     }
+
+    //Generate map between Symbol and CallNode for current region.
+    SYM2CN * genSYM2CN(Region * ru)
+    {
+        ASSERT0(ru);
+        SYM2CN * sym2cn = m_ru2sym2cn.get(ru);
+        if (sym2cn == NULL) {
+            sym2cn = new SYM2CN();
+            m_ru2sym2cn.set(ru, sym2cn);
+        }
+        return sym2cn;
+    }
+
+    //Read map between Symbol and CallNode for current region if exist.
+    SYM2CN * getSYM2CN(Region * ru) const { return m_ru2sym2cn.get(ru); }
+
+    CallNode * newCallNode(IR const* ir, Region * ru);
+    CallNode * newCallNode(Region * ru);
+    
 public:
     CallGraph(UINT edge_hash,
               UINT vex_hash,
@@ -105,7 +126,16 @@ public:
         m_cn_pool = smpoolCreate(sizeof(CallNode) * 2, MEM_CONST_SIZE);
     }
     COPY_CONSTRUCTOR(CallGraph);
-    virtual ~CallGraph() { smpoolDelete(m_cn_pool); }
+    virtual ~CallGraph() 
+    { 
+        SYM2CN * sym2cn = NULL;
+        Region2SYM2CNIter iter;
+        for (Region * ru = m_ru2sym2cn.get_first(iter, &sym2cn);
+             ru != NULL; ru = m_ru2sym2cn.get_next(iter, &sym2cn)) {
+            delete sym2cn;
+        }
+        smpoolDelete(m_cn_pool); 
+    }
 
     void add_node(CallNode * cn)
     {
@@ -128,22 +158,27 @@ public:
     CallNode * map_ru2cn(Region const* ru) const
     { return m_ruid2cn.get(REGION_id(ru)); }
 
-    CallNode * map_sym2cn(SYM const* name) const
-    { return m_sym2cn_map.get(name); }
+    CallNode * map_sym2cn(SYM const* sym, Region * start) const
+    { 
+        for (; start != NULL; start = start->get_parent()) {
+            SYM2CN * sym2cn = getSYM2CN(start);
+            if (sym2cn == NULL) { continue; }
+            CallNode * cn = sym2cn->get(sym);
+            if (cn != NULL) { return cn; }
+        }
+        return NULL;
+    }
 
-    Region * map_call2ru(IR const* ir)
+    Region * map_call2ru(IR const* ir, Region * ru)
     {
-        if (ir->is_call()) {
-            CallNode * cn = map_sym2cn(CALL_idinfo(ir)->get_name());
+        if (ir->is_call()) {            
+            CallNode * cn = map_sym2cn(CALL_idinfo(ir)->get_name(), ru);
             if (cn != NULL) { return CN_ru(cn); }
             return NULL;
         }
         ASSERT0(ir->is_icall());
         return NULL; //TODO: implement icall analysis.
     }
-
-    CallNode * newCallNode(IR const* ir);
-    CallNode * newCallNode(Region * ru);
 
     void erase()
     {

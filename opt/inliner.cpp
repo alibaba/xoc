@@ -44,7 +44,7 @@ bool Inliner::is_call_site(IR * call, Region * ru)
 {
     ASSERT0(call->is_calls_stmt());
     CallNode const* cn1 =
-        m_call_graph->map_sym2cn(CALL_idinfo(call)->get_name());
+        m_call_graph->map_sym2cn(CALL_idinfo(call)->get_name(), ru);
     CallNode const* cn2 = m_call_graph->map_ru2cn(ru);
     return cn1 == cn2;
 }
