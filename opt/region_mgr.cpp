@@ -171,7 +171,7 @@ void RegionMgr::addToRegionTab(Region * ru)
 
 
 //Dump regions recorded via addToRegionTab().
-void RegionMgr::dumpRegion()
+void RegionMgr::dump(bool dump_inner_region)
 {
     if (g_tfile == NULL || getNumOfRegion() == 0) { return; }
 
@@ -180,7 +180,7 @@ void RegionMgr::dumpRegion()
     for (UINT id = 0; id < getNumOfRegion(); id++) {
         Region * ru = get_region(id);
         if (ru == NULL) { continue; }
-        ru->dump();
+        ru->dump(dump_inner_region);
     }
     fflush(g_tfile);
 }

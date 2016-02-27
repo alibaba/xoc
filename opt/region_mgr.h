@@ -128,7 +128,9 @@ public:
 
     //Destroy specific region by given id.
     void deleteRegion(Region * ru);
-    void dumpRegion(); //Dump regions recorded via addToRegionTab().
+
+    //Dump regions recorded via addToRegionTab().
+    void dump(bool dump_inner_region);
 
     BitSetMgr * get_bs_mgr() { return &m_bs_mgr; }
     virtual Region * get_region(UINT id) { return m_id2ru.get(id); }

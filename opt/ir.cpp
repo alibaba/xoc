@@ -285,18 +285,26 @@ void dump_irs_h(IR * ir_list , TypeMgr const* tm)
 
 
 //Dump IR, and both its kids and siblings.
-void dump_irs(IR * ir_list, TypeMgr const* tm, CHAR * attr)
+void dump_irs(IR * ir_list, 
+              TypeMgr const* tm,
+              CHAR * attr,
+              bool dump_kid,
+              bool dump_src_line,
+              bool dump_addr,
+              bool dump_inner_region)
 {
     if (g_tfile == NULL) { return; }
+    
     bool first_one = true;
-    while (ir_list != NULL) {
+    for (; ir_list != NULL; ir_list = ir_list->get_next()) {
         if (first_one) {
             first_one = false;
-            dump_ir(ir_list, tm, attr);
+            dump_ir(ir_list, tm, attr, dump_kid, 
+                    dump_src_line, dump_addr, dump_inner_region);
         } else {
-            dump_ir(ir_list, tm);
-        }
-        ir_list = IR_next(ir_list);
+            dump_ir(ir_list, tm, attr, dump_kid, 
+                    dump_src_line, dump_addr, dump_inner_region);
+        }        
     }
 }
 
@@ -544,8 +552,9 @@ void dump_ir(IR const* ir,
             fprintf(g_tfile, "%s", attr);
 
             if (dump_kid) {
-                g_indent += dn;
-                dump_irs(ST_rhs(ir), tm);
+                g_indent += dn;              
+                dump_irs(ST_rhs(ir), tm, NULL, dump_kid, 
+                         dump_src_line, dump_addr, dump_inner_region);
                 g_indent -= dn;
             }
         }
@@ -557,7 +566,8 @@ void dump_ir(IR const* ir,
 
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(STPR_rhs(ir), tm);
+            dump_irs(STPR_rhs(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
         }
         break;
@@ -599,15 +609,18 @@ void dump_ir(IR const* ir,
                  sub != NULL; sub = sub->get_next()) {
                 CHAR tt[40];
                 sprintf(tt, " dim%d", dim);
-                dump_ir(sub, tm, (CHAR*)tt);
+                dump_ir(sub, tm, (CHAR*)tt, dump_kid, 
+                        dump_src_line, dump_addr, dump_inner_region);
                 dim++;
             }
             g_indent -= dn;
         }
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(ARR_base(ir), tm, (CHAR*)" array_base");
-            dump_irs(STARR_rhs(ir), tm, (CHAR*)" rhs");
+            dump_irs(ARR_base(ir), tm, (CHAR*)" array_base", dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
+            dump_irs(STARR_rhs(ir), tm, (CHAR*)" rhs", dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
         }
         break;
@@ -624,8 +637,10 @@ void dump_ir(IR const* ir,
 
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(IST_base(ir), tm, (CHAR*)" base");
-            dump_irs(IST_rhs(ir), tm);
+            dump_irs(IST_base(ir), tm, (CHAR*)" base", dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
+            dump_irs(IST_rhs(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
         }
         break;
@@ -667,7 +682,8 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(ILD_base(ir), tm);
+            dump_irs(ILD_base(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
         }
         break;
@@ -772,8 +788,10 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(BIN_opnd0(ir), tm);
-            dump_irs(BIN_opnd1(ir), tm);
+            dump_irs(BIN_opnd0(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
+            dump_irs(BIN_opnd1(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
         }
         break;
@@ -783,12 +801,14 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(IF_det(ir), tm);
+            dump_irs(IF_det(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
 
             note("\n{");
             g_indent += dn;
-            dump_irs(IF_truebody(ir), tm);
+            dump_irs(IF_truebody(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
             note("\n}");
 
@@ -796,7 +816,8 @@ void dump_ir(IR const* ir,
                 note("\nelse");
                 note("\n{");
                 g_indent += dn;
-                dump_irs(IF_falsebody(ir), tm);
+                dump_irs(IF_falsebody(ir), tm, NULL, dump_kid, 
+                         dump_src_line, dump_addr, dump_inner_region);
                 g_indent -= dn;
                 note("\n}");
             }
@@ -809,12 +830,14 @@ void dump_ir(IR const* ir,
         if (dump_kid) {
             note("\nbody:");
             g_indent += dn;
-            dump_irs(LOOP_body(ir), tm);
+            dump_irs(LOOP_body(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
 
             note("\ndet:");
             g_indent += dn;
-            dump_irs(LOOP_det(ir), tm);
+            dump_irs(LOOP_det(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
 
             note("\nend_dowhile");
@@ -828,13 +851,15 @@ void dump_ir(IR const* ir,
         if (dump_kid) {
             note("\ndet:");
             g_indent += dn;
-            dump_irs(LOOP_det(ir), tm);
+            dump_irs(LOOP_det(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
 
             note("\nbody:");
 
             g_indent += dn;
-            dump_irs(LOOP_body(ir), tm);
+            dump_irs(LOOP_body(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
 
             note("\nend_whiledo");
@@ -844,32 +869,32 @@ void dump_ir(IR const* ir,
         note("\ndoloop");
         PADDR(ir);
         fprintf(g_tfile, "%s", attr);
-
-        if (dump_kid) {
-            g_indent += dn;
+        if (dump_kid) {            
             note("\ninit:");
 
             g_indent += dn;
-            dump_irs(LOOP_init(ir), tm);
+            dump_irs(LOOP_init(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
 
             note("\ndet:");
-
             g_indent += dn;
-            dump_irs(LOOP_det(ir), tm);
+            dump_irs(LOOP_det(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
 
             note("\nstep:");
-
             g_indent += dn;
-            dump_irs(LOOP_step(ir), tm);
+            dump_irs(LOOP_step(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
 
             note("\nbody:");
-
             g_indent += dn;
-            dump_irs(LOOP_body(ir), tm);
+            dump_irs(LOOP_body(ir), tm, NULL, dump_kid,
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
+            
             note("\nend_doloop");
         }
         break;
@@ -906,12 +931,14 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(IGOTO_vexp(ir), tm);
+            dump_irs(IGOTO_vexp(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
 
             note("\ncase_list");
             g_indent += dn;
-            dump_irs(IGOTO_case_list(ir), tm);
+            dump_irs(IGOTO_case_list(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
         }
         break;
@@ -963,15 +990,18 @@ void dump_ir(IR const* ir,
         PADDR(ir); fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(SELECT_pred(ir), tm);
+            dump_irs(SELECT_pred(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
 
             g_indent += dn;
-            dump_irs(SELECT_trueexp(ir), tm, (CHAR*)" true_exp");
+            dump_irs(SELECT_trueexp(ir), tm, (CHAR*)" true_exp", dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
 
             g_indent += dn;
-            dump_irs(SELECT_falseexp(ir), tm, (CHAR*)" false_exp");
+            dump_irs(SELECT_falseexp(ir), tm, (CHAR*)" false_exp", dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
         }
         break;
@@ -982,7 +1012,8 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(CVT_exp(ir), tm, (CHAR*)" cvtbase");
+            dump_irs(CVT_exp(ir), tm, (CHAR*)" cvtbase", dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
         }
         break;
@@ -1019,7 +1050,8 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(UNA_opnd0(ir), tm);
+            dump_irs(UNA_opnd0(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
         }
         break;
@@ -1032,7 +1064,8 @@ void dump_ir(IR const* ir,
             g_indent += dn;
             IR * opnd = PHI_opnd_list(ir);
             while (opnd != NULL) {
-                dump_ir(opnd, tm, NULL);
+                dump_ir(opnd, tm, NULL, dump_kid, 
+                        dump_src_line, dump_addr, dump_inner_region);
                 opnd = opnd->get_next();
             }
             g_indent -= dn;
@@ -1045,7 +1078,8 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(UNA_opnd0(ir), tm);
+            dump_irs(UNA_opnd0(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
         }
         break;
@@ -1056,7 +1090,8 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(UNA_opnd0(ir), tm);
+            dump_irs(UNA_opnd0(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
         }
         break;
@@ -1070,20 +1105,23 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(SWITCH_vexp(ir), tm);
+            dump_irs(SWITCH_vexp(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
 
             if (SWITCH_case_list(ir) != NULL) {
                 note("\ncase_list:");
                 g_indent += dn;
-                dump_irs(SWITCH_case_list(ir), tm);
+                dump_irs(SWITCH_case_list(ir), tm, NULL, dump_kid, 
+                         dump_src_line, dump_addr, dump_inner_region);
                 g_indent -= dn;
             }
 
             if (SWITCH_body(ir) != NULL) {
                 note("\nbody:");
                 g_indent += dn;
-                dump_irs(SWITCH_body(ir), tm);
+                dump_irs(SWITCH_body(ir), tm, NULL, dump_kid, 
+                         dump_src_line, dump_addr, dump_inner_region);
                 g_indent -= dn;
             }
             note("\nend_switch");
@@ -1137,7 +1175,8 @@ void dump_ir(IR const* ir,
                  sub != NULL; sub = sub->get_next()) {
                 CHAR tt[40];
                 sprintf(tt, " dim%d", dim);
-                dump_ir(sub, tm, (CHAR*)tt);
+                dump_ir(sub, tm, (CHAR*)tt, dump_kid,
+                        dump_src_line, dump_addr, dump_inner_region);
                 dim++;
             }
             g_indent -= dn;
@@ -1145,7 +1184,8 @@ void dump_ir(IR const* ir,
 
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(ARR_base(ir), tm, (CHAR*)" array_base");
+            dump_irs(ARR_base(ir), tm, (CHAR*)" array_base", dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
         }
         break;
@@ -1197,8 +1237,8 @@ void dump_ir(IR const* ir,
                 for (IR * p = CALL_param_list(ir); p != NULL; p = p->get_next()) {
                     sprintf(tmpbuf, " param%d", i);
                     g_indent += dn;
-                    dump_ir(p, tm, tmpbuf, dump_kid,
-                            dump_src_line, dump_addr);
+                    dump_ir(p, tm, tmpbuf, dump_kid, 
+                            dump_src_line, dump_addr, dump_inner_region);
                     g_indent -= dn;
                     i++;
                 }
@@ -1208,8 +1248,8 @@ void dump_ir(IR const* ir,
                 for (IR * p = CALL_dummyuse(ir); p != NULL; p = p->get_next()) {
                     sprintf(tmpbuf, " dummy%d", i);
                     g_indent += dn;
-                    dump_ir(p, tm, tmpbuf, dump_kid,
-                            dump_src_line, dump_addr);
+                    dump_ir(p, tm, tmpbuf, dump_kid, 
+                            dump_src_line, dump_addr, dump_inner_region);
                     g_indent -= dn;
                     i++;
                 }
@@ -1223,7 +1263,8 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(BR_det(ir), tm);
+            dump_irs(BR_det(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
         }
         break;
@@ -1234,7 +1275,8 @@ void dump_ir(IR const* ir,
         fprintf(g_tfile, "%s", attr);
         if (dump_kid) {
             g_indent += dn;
-            dump_irs(BR_det(ir), tm);
+            dump_irs(BR_det(ir), tm, NULL, dump_kid, 
+                     dump_src_line, dump_addr, dump_inner_region);
             g_indent -= dn;
         }
         break;
@@ -1259,7 +1301,7 @@ void dump_ir(IR const* ir,
             //Inner region.
             ASSERT0(REGION_ru(ir));
             g_indent += dn;
-            REGION_ru(ir)->dump();
+            REGION_ru(ir)->dump(dump_inner_region);
             g_indent -= dn;
         }
         break;

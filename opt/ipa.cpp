@@ -132,10 +132,16 @@ void IPA::createCallDummyuse(OptCtx & oc)
         Region * ru = m_rumgr->get_region(i);
         if (ru == NULL) { continue; }
         createCallDummyuse(ru);
-        recomputeDUChain(ru, oc);
+        OptCtx loc(oc);
+        recomputeDUChain(ru, loc);
         if (!m_is_keep_dumgr && ru->get_pass_mgr() != NULL) {
             ru->get_pass_mgr()->destroyPass(PASS_DU_MGR);
         }
+    }
+
+    OC_is_du_chain_valid(oc) = true;
+    if (m_is_keep_reachdef) {
+        OC_is_reach_def_valid(oc) = true;
     }
 }
 
@@ -146,13 +152,35 @@ void IPA::recomputeDUChain(Region * ru, OptCtx & oc)
         ru->initPassMgr();
     }
 
-    OC_is_du_chain_valid(oc) = false;
+    ASSERT0(!OC_is_du_chain_valid(oc));
     if (m_is_recompute_du_ref) {
-        ru->checkValidAndRecompute(&oc, PASS_CFG, PASS_DU_REF,
-                                   PASS_DU_CHAIN, PASS_UNDEF);
-
+        if (m_is_keep_reachdef) {
+            ru->checkValidAndRecompute(&oc, 
+                    PASS_REACH_DEF, 
+                    PASS_DU_REF, 
+                    PASS_CFG, 
+                    PASS_DU_CHAIN, 
+                    PASS_UNDEF);
+        } else {
+            ru->checkValidAndRecompute(&oc, 
+                    PASS_DU_REF, 
+                    PASS_CFG, 
+                    PASS_DU_CHAIN, 
+                    PASS_UNDEF);
+        }
     } else {
-        ru->checkValidAndRecompute(&oc, PASS_CFG, PASS_DU_CHAIN, PASS_UNDEF);
+        if (m_is_keep_reachdef) {
+            ru->checkValidAndRecompute(&oc, 
+                    PASS_REACH_DEF, 
+                    PASS_CFG, 
+                    PASS_DU_CHAIN, 
+                    PASS_UNDEF);
+        } else {
+            ru->checkValidAndRecompute(&oc, 
+                    PASS_CFG, 
+                    PASS_DU_CHAIN, 
+                    PASS_UNDEF);
+        }
     }
 }
 

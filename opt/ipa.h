@@ -43,6 +43,7 @@ protected:
     SMemPool * m_pool;
     MDSystem * m_mdsys;
     bool m_is_keep_dumgr; //true to keep AA and DU mgr if computed.
+    bool m_is_keep_reachdef; //true to keep Reachdef.
     bool m_is_recompute_du_ref; //true to recompute DU reference.
 
 protected:
@@ -71,11 +72,13 @@ public:
         m_mdsys = m_rumgr->get_md_sys();
         m_pool = smpoolCreate(16, MEM_COMM);
         m_is_keep_dumgr = false;
+        m_is_keep_reachdef = false;
         m_is_recompute_du_ref = true;
     }
     virtual ~IPA() { smpoolDelete(m_pool); }
 
     void setKeepDUMgr(bool keep) { m_is_keep_dumgr = keep; }
+    void setKeepReachdef(bool keep) { m_is_keep_reachdef = keep; }
     void setRecomputeDURef(bool doit) { m_is_recompute_du_ref = doit; }
     virtual CHAR const* get_pass_name() const { return "IPA"; }
     virtual PASS_TYPE get_pass_type() const { return PASS_IPA; }

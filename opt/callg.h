@@ -169,6 +169,8 @@ public:
         return NULL;
     }
 
+    //Map a call/icall to its target Region.
+    //ru: the region that ir resident in.
     Region * map_call2ru(IR const* ir, Region * ru)
     {
         if (ir->is_call()) {            

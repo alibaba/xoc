@@ -2827,7 +2827,7 @@ void IR_AA::dumpIRPointTo(IN IR * ir, bool dump_kid, IN MD2MDSet * mx)
     MDSet const* may = get_may_addr(ir);
     if (must != NULL ||
         (may != NULL && may->get_elem_count() > 0)) {
-        dump_ir(ir, m_tm, NULL, false, false);
+        dump_ir(ir, m_tm, NULL, false, false, false, false);
     }
 
     switch (IR_code(ir)) {
@@ -2896,7 +2896,7 @@ void IR_AA::dumpIRPointToForBB(IRBB * bb, bool dump_kid)
          ir != NULL; ir = BB_irlist(bb).get_next(&ct)) {
         fprintf(g_tfile, "\n---------");
         g_indent = 4;
-        dump_irs(ir, m_tm);
+        dump_irs(ir, m_tm, NULL, true, true, false, false);
         fprintf(g_tfile, "\n");
 
         ASSERT0(isValidStmtToAA(ir));
@@ -3260,7 +3260,7 @@ void IR_AA::computeStmt(IRBB const* bb, IN OUT MD2MDSet * mx)
     for (IR * ir = BB_irlist(readonly_bb).get_head(&ct);
          ir != NULL; ir = BB_irlist(readonly_bb).get_next(&ct)) {
         ASSERT0(isValidStmtToAA(ir));
-        switch (IR_code(ir)) {
+        switch (ir->get_code()) {
         case IR_ST:
             processStore(ir, mx);
             break;

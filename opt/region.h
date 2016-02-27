@@ -390,9 +390,9 @@ public:
     void dumpVARInRegion();
     void dump_var_md(VAR * v, UINT indent);
     void dump_free_tab();
-    void dump_mem_usage(FILE * h);
+    void dump_mem_usage();
     void dump_bb_usage(FILE * h);
-    void dump();
+    void dump(bool dump_inner_region);
 
     void freeIR(IR * ir);
     void freeIRTree(IR * ir);

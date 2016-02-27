@@ -2493,7 +2493,13 @@ void dump_ir(IR const* ir,
              bool dump_addr = false,
              bool dump_inner_region = true);
 void dump_irs_h(IR * ir_list , TypeMgr const* tm);
-void dump_irs(IR * ir_list, TypeMgr const* tm, CHAR * attr = NULL);
+void dump_irs(IR * ir_list, 
+              TypeMgr const* tm,
+              CHAR * attr = NULL,
+              bool dump_kid = true,
+              bool dump_src_line = true,
+              bool dump_addr = false,
+              bool dump_inner_region = true);
 void dump_irs(IRList & ir_list, TypeMgr const* tm);
 void dump_irs(List<IR*> & ir_list, TypeMgr const* tm);
 bool verify_irs(IR * ir, IRAddressHash * irh, Region const* ru);

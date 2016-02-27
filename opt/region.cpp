@@ -2337,10 +2337,18 @@ void Region::dump_bb_usage(FILE * h)
 
 
 //Dump IR and memory usage.
-void Region::dump_mem_usage(FILE * h)
+void Region::dump_mem_usage()
 {
-    if (h == NULL) { return; }
-    note("\n'%s' use %dKB memory", get_ru_name(), count_mem() / 1024);
+    if (g_tfile == NULL) { return; }
+
+    UINT count = count_mem();
+    CHAR const* str = NULL;
+    if (count < 1024) { str = "B"; }
+    else if (count < 1024 * 1024) { count /= 1024; str = "KB"; }
+    else if (count < 1024 * 1024 * 1024) { count /= 1024 * 1024; str = "MB"; }    
+    else { count /= 1024 * 1024 * 1024; str = "GB"; }
+    
+    note("\n'%s' use %d%s memory", get_ru_name(), count, str);
     Vector<IR*> * v = get_ir_vec();
     float nid = 0.0;
     float nld = 0.0;
@@ -2384,7 +2392,7 @@ void Region::dump_mem_usage(FILE * h)
 }
 
 
-void Region::dump()
+void Region::dump(bool dump_inner_region)
 {
     if (g_tfile == NULL) { return; }
 
@@ -2403,18 +2411,19 @@ void Region::dump()
         ru_mayuse->dump(get_md_sys(), true);
     }
 
-    dump_mem_usage(g_tfile);
+    dump_mem_usage();
 
     IR * irlst = get_ir_list();
     if (irlst != NULL) {
         note("\n==---- IR List ----==");
-        dump_irs(irlst, get_type_mgr(), NULL);
+        dump_irs(irlst, get_type_mgr(), NULL, true, 
+                 true, false, dump_inner_region);
         return;
     }
 
     BBList * bblst = get_bb_list();
     if (bblst != NULL) {
-        dumpBBList(bblst, this);
+        dumpBBList(bblst, this, NULL, dump_inner_region);
     }
 }
 
