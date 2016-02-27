@@ -23,10 +23,10 @@ Truly open.
 	You can tune its syntax, add new instructions, integrate arbitrary system
 	capabilities,  enforce custom policies, add specific optimizations ...
 
-XOC is a compiler infrastructure that provides multi-level operations,
+XOC is a compiler infrastructure that provides multi-level IR operations,
 flexibility, and the capability of representing almost all popular languages.
 There are two level IR representations used throughout all phases of the
-compilation.
+compilation. You can use XOC to perform optimization, program analysis or build diagnostic tools.
 
 Build :
 	cd xoc &
