@@ -226,7 +226,8 @@ IR * Region::refineIstore(IR * ir, bool & change, RefineCtx & rc)
 static inline bool is_redundant_cvt(IR * ir)
 {
     if (ir->is_cvt()) {
-        if (CVT_exp(ir)->is_cvt() || IR_dt(CVT_exp(ir)) == ir->get_type()) {
+        if (CVT_exp(ir)->is_cvt() || 
+            CVT_exp(ir)->get_type() == ir->get_type()) {
             return true;
         }
     }
@@ -435,7 +436,7 @@ IR * Region::refinePhi(IR * ir, bool & change, RefineCtx & rc)
          u >= 0; u = SSA_uses(ssainfo).get_next(u, &sc)) {
         IR * use = get_ir(u);
         ASSERT0(use && use->is_pr());
-        IR * lit = buildImmInt(val, IR_dt(use));
+        IR * lit = buildImmInt(val, use->get_type());
         ASSERT0(IR_parent(use));
         IR_parent(use)->replaceKid(use, lit,  false);
         freeIR(use);
@@ -695,7 +696,7 @@ IR * Region::refineDiv(IR * ir, bool & change, RefineCtx & rc)
         if (op0->is_mc() || op0->is_str() || op0->is_ptr()) {
             ty = dm->getSimplexTypeEx(D_U32);
         } else {
-            ty = IR_dt(op0);
+            ty = op0->get_type();
         }
 
         if (ty->is_fp()) {
@@ -931,7 +932,7 @@ IR * Region::refineSub(IR * ir, bool & change)
         if (op0->is_mc() || op0->is_str() || op0->is_ptr()) {
             ty = dm->getSimplexTypeEx(D_U32);
         } else {
-            ty = IR_dt(op0);
+            ty = op0->get_type();
         }
 
         if (ty->is_fp()) {
@@ -967,7 +968,7 @@ IR * Region::refineXor(IR * ir, bool & change)
         if (op0->is_mc() || op0->is_str() || op0->is_ptr()) {
             ty = dm->getSimplexTypeEx(D_U32);
         } else {
-            ty = IR_dt(op0);
+            ty = op0->get_type();
         }
         ASSERT0(ty->is_sint() || ty->is_uint());
         ir = buildImmInt(0, ty);
@@ -1308,7 +1309,7 @@ IR * Region::refineCvt(IR * ir, bool & change, RefineCtx & rc)
         change = true;
     }
 
-    if (ir->get_type() == IR_dt(CVT_exp(ir))) {
+    if (ir->get_type() == CVT_exp(ir)->get_type()) {
         //cvt(i64, ld(i64)) => ld(i64)
         IR * tmp = CVT_exp(ir);
         IR_parent(tmp) = IR_parent(ir);
@@ -1647,7 +1648,7 @@ void Region::insertCvtForBinaryOp(IR * ir, bool & change)
 
     if (op0->is_ptr()) {
         if (op1->get_dtype_size(get_type_mgr()) > op0->get_dtype_size(get_type_mgr())) {
-            ASSERT(IR_dt(op1)->is_ptr_addend() && !op1->is_ptr(),
+            ASSERT(op1->get_type()->is_ptr_addend() && !op1->is_ptr(),
                    ("illegal pointer arith"));
             DATA_TYPE t = get_type_mgr()->getPointerSizeDtype();
             BIN_opnd1(ir) = buildCvt(op1, get_type_mgr()->getSimplexTypeEx(t));
@@ -1777,7 +1778,7 @@ IR * Region::insertCvt(IR * parent, IR * kid, bool & change)
                 return kid;
             }
 
-            IR * new_kid = buildCvt(kid, IR_dt(parent));
+            IR * new_kid = buildCvt(kid, parent->get_type());
             copyDbx(new_kid, kid, this);
             change = true;
             return new_kid;
@@ -1876,7 +1877,7 @@ IR * Region::foldConstIntUnary(IR * ir, bool & change)
     ASSERT0(UNA_opnd0(ir)->is_const());
     HOST_INT v0 = CONST_int_val(UNA_opnd0(ir));
     if (ir->is_neg()) {
-        ASSERT(dm->get_bytesize(IR_dt(UNA_opnd0(ir))) <= 8, ("TODO"));
+        ASSERT(dm->get_bytesize(UNA_opnd0(ir)->get_type()) <= 8, ("TODO"));
         IR * oldir = ir;
         ir = buildImmInt(-v0, ir->get_type());
         copyDbx(ir, oldir, this);
@@ -1884,7 +1885,7 @@ IR * Region::foldConstIntUnary(IR * ir, bool & change)
         change = true;
         return ir;
     } else if (ir->is_lnot()) {
-        ASSERT(dm->get_bytesize(IR_dt(UNA_opnd0(ir))) <= 8, ("TODO"));
+        ASSERT(dm->get_bytesize(UNA_opnd0(ir)->get_type()) <= 8, ("TODO"));
         IR * oldir = ir;
         ir = buildImmInt(!v0, ir->get_type());
         copyDbx(ir, oldir, this);
@@ -1892,7 +1893,7 @@ IR * Region::foldConstIntUnary(IR * ir, bool & change)
         change = true;
         return ir;
     } else if (ir->is_bnot()) {
-        ASSERT(dm->get_bytesize(IR_dt(UNA_opnd0(ir))) <= 8, ("TODO"));
+        ASSERT(dm->get_bytesize(UNA_opnd0(ir)->get_type()) <= 8, ("TODO"));
         IR * oldir = ir;
         ir = buildImmInt(~v0, ir->get_type());
         copyDbx(ir, oldir, this);
@@ -1914,8 +1915,8 @@ IR * Region::foldConstIntBinary(IR * ir, bool & change)
 
     ASSERT0(BIN_opnd1(ir)->is_const());
     HOST_INT v1 = CONST_int_val(BIN_opnd1(ir));
-    INT tylen = MAX(dm->get_bytesize(IR_dt(BIN_opnd0(ir))),
-                    dm->get_bytesize(IR_dt(BIN_opnd1(ir))));
+    INT tylen = MAX(dm->get_bytesize(BIN_opnd0(ir)->get_type()),
+                    dm->get_bytesize(BIN_opnd1(ir)->get_type()));
     UNUSED(tylen);
 
     ASSERT(tylen <= 8, ("TODO"));
@@ -2027,7 +2028,7 @@ IR * Region::foldConstFloatUnary(IR * ir, bool & change)
     UNUSED(dm);
 
     if (ir->is_neg()) {
-        ASSERT(dm->get_bytesize(IR_dt(UNA_opnd0(ir))) <= 8, ("TODO"));
+        ASSERT(dm->get_bytesize(UNA_opnd0(ir)->get_type()) <= 8, ("TODO"));
         IR * oldir = ir;
         ir = buildImmFp(-CONST_fp_val(UNA_opnd0(ir)), ir->get_type());
         copyDbx(ir, oldir, this);
@@ -2035,7 +2036,7 @@ IR * Region::foldConstFloatUnary(IR * ir, bool & change)
         change = true;
         return ir; //No need to update DU.
     } else if (ir->is_lnot()) {
-        ASSERT(dm->get_bytesize(IR_dt(UNA_opnd0(ir))) <= 8, ("TODO"));
+        ASSERT(dm->get_bytesize(UNA_opnd0(ir)->get_type()) <= 8, ("TODO"));
         IR * oldir = ir;
         HOST_FP t = CONST_fp_val(UNA_opnd0(ir));
         if (t == 0.0) {
@@ -2062,8 +2063,8 @@ IR * Region::foldConstFloatBinary(IR * ir, bool & change)
             BIN_opnd1(ir)->is_const() && BIN_opnd1(ir)->is_fp());
     double v0 = CONST_fp_val(BIN_opnd0(ir));
     double v1 = CONST_fp_val(BIN_opnd1(ir));
-    INT tylen = MAX(dm->get_bytesize(IR_dt(BIN_opnd0(ir))),
-                    dm->get_bytesize(IR_dt(BIN_opnd1(ir))));
+    INT tylen = MAX(dm->get_bytesize(BIN_opnd0(ir)->get_type()),
+                    dm->get_bytesize(BIN_opnd1(ir)->get_type()));
     UNUSED(tylen);
 
     ASSERT(tylen <= 8, ("TODO"));

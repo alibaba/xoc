@@ -198,7 +198,15 @@ void IR_IVR::recordIV(
     IV_step(x) = CONST_int_val(delta);
     IV_is_inc(x) = is_increment;
     findInitVal(x);
-
+    
+    //same occ may correspond to multiple LI.
+    //e.g: c4.c 
+    //  while () {
+    //    while () {
+    //      ...
+    //      i++;
+    //    }
+    //  }
     m_ir2iv.set(occ, x);
     m_ir2iv.set(def, x);
 

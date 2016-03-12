@@ -1483,7 +1483,7 @@ bool IR::verify(Region const* ru) const
         if (d->is_vector()) {
             ASSERT0(TY_vec_ety(d) != D_UNDEF);
             ASSERT0(tm->get_dtype_bytesize(TY_vec_ety(d)) >=
-                    tm->get_bytesize(IR_dt(ST_rhs(this))));
+                    tm->get_bytesize(ST_rhs(this)->get_type()));
         }
         break;
     case IR_STPR:
@@ -1551,7 +1551,7 @@ bool IR::verify(Region const* ru) const
             //Note if the rhssize less than elemsize, it will be hoist to
             //elemsize.
             ASSERT0(tm->get_dtype_bytesize(TY_vec_ety(d)) >=
-                    tm->get_bytesize(IR_dt(ST_rhs(this))));
+                    tm->get_bytesize(ST_rhs(this)->get_type()));
         }
 
         ASSERT0(SETELEM_rhs(this)->is_exp());
@@ -1567,7 +1567,7 @@ bool IR::verify(Region const* ru) const
 
             IR const* base = GETELEM_base(this);
             ASSERT0(base && GETELEM_ofst(this));
-            Type const* basedtd = IR_dt(base);
+            Type const* basedtd = base->get_type();
             ASSERT0(basedtd->is_mc() || basedtd->is_vector());
 
             if (basedtd->is_vector()) {
@@ -2494,6 +2494,18 @@ static void removeSSAUseRecur(IR * ir)
 void IR::removeSSAUse()
 {
     removeSSAUseRecur(this);
+}
+
+
+//Copy memory reference only for current ir node.
+//'src': copy MD reference from 'src', it may be different to current ir.
+void IR::copyRef(IR const* src, Region * ru)
+{
+    ASSERT0(src && ru);
+    ASSERT(is_memory_ref(), ("not memory reference"));
+    setRefMD(src->getRefMD(), ru);
+    if ((is_read_pr() || is_write_pr()) && ru->isPRUniqueForSameNo()) {;}
+    else { setRefMDSet(src->getRefMDSet(), ru); }
 }
 //END IR
 

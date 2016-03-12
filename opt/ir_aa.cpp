@@ -162,7 +162,6 @@ IR_AA::IR_AA(Region * ru)
     m_misc_bs_mgr = ru->getMiscBitSetMgr();
     ASSERT0(m_cfg && m_mds_hash && m_md_sys && m_tm && m_mds_mgr);
     m_flow_sensitive = true;
-    m_is_pr_unique_for_same_no = REGION_is_pr_unique_for_same_number(ru);
     m_pool = smpoolCreate(128, MEM_COMM);
     m_dummy_global = NULL;
     m_hashed_maypts = NULL;
@@ -688,7 +687,7 @@ void IR_AA::inferArrayLdabase(
             MD_ofst(&tmd) += ofst;
             //MD_ty(&tmd) = MD_EXACT;
         } else {
-            UINT basesz = m_tm->getPointerBaseByteSize(IR_dt(array_base));
+            UINT basesz = m_tm->getPointerBaseByteSize(array_base->get_type());
             ASSERT0(basesz);
 
             MD_ofst(&tmd) = LDA_ofst(array_base);

@@ -392,13 +392,7 @@ public:
 
     //Copy memory reference only for current ir node.
     //'src': copy MD reference from 'src', it may be different to current ir.
-    void copyRef(IR const* src, Region * ru)
-    {
-        ASSERT0(src && ru);
-        ASSERT(is_memory_ref(), ("not memory reference"));
-        setRefMD(src->getRefMD(), ru);
-        setRefMDSet(src->getRefMDSet(), ru);
-    }
+    void copyRef(IR const* src, Region * ru);
 
     //Copy each memory reference for whole ir tree.
     //'src': copy MD reference from 'src', it must be equal to current ir tree.

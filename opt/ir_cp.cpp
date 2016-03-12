@@ -45,8 +45,8 @@ namespace xoc {
 //Return true if ir's type is consistent with 'cand_expr'.
 bool IR_CP::checkTypeConsistency(IR const* ir, IR const* cand_expr) const
 {
-    Type const* t1 = IR_dt(ir);
-    Type const* t2 = IR_dt(cand_expr);
+    Type const* t1 = ir->get_type();
+    Type const* t2 = cand_expr->get_type();
 
     //Do copy-prog even if data type is VOID.
     if (t1 == t2) { return true; }

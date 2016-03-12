@@ -55,15 +55,16 @@ public:
         ASSERT0(bucket_size != 0 && isPowerOf2(bucket_size));
         UINT hval = 0;
         ConstIRIter iter;
-        switch (IR_code(t)) {
+        switch (t->get_code()) {
         case IR_LD:
-            hval = IR_code(t) + (t->get_offset() + 1) + (UINT)(size_t)IR_dt(t);
+            hval = t->get_code() + (t->get_offset() + 1) + 
+                   (UINT)(size_t)t->get_type();
             break;
         case IR_ILD:
             for (IR const* x = iterInitC(t, iter);
                  x != NULL; x = iterNextC(iter)) {
                 UINT v = IR_code(x) + (x->get_offset() + 1) +
-                         (UINT)(size_t)IR_dt(x);
+                         (UINT)(size_t)x->get_type();
                 if (x->is_id()) {
                     v += ((UINT)(size_t)ID_info(x)) * 5;
                 }
@@ -72,26 +73,26 @@ public:
             break;
         case IR_ST:
             hval = ((UINT)IR_LD) + (t->get_offset() + 1) +
-                   (UINT)(size_t)IR_dt(t);
+                   (UINT)(size_t)t->get_type();
             break;
         case IR_IST:
             for (IR const* x = iterInitC(IST_base(t), iter);
                  x != NULL; x = iterNextC(iter)) {
                 UINT v = IR_code(x) + (x->get_offset() + 1) +
-                        (UINT)(size_t)IR_dt(x);
+                        (UINT)(size_t)x->get_type();
                 if (x->is_id()) {
                     v += ((UINT)(size_t)ID_info(x)) * 5;
                 }
                 hval += v;
             }
             hval += ((UINT)IR_ILD) + (t->get_offset() + 1) +
-                    (UINT)(size_t)IR_dt(t);
+                    (UINT)(size_t)t->get_type();
             break;
         case IR_ARRAY:
             for (IR const* x = iterInitC(t, iter);
                  x != NULL; x = iterNextC(iter)) {
                 UINT v = IR_code(x) + (x->get_offset() + 1) +
-                        (UINT)(size_t)IR_dt(x);
+                        (UINT)(size_t)x->get_type();
                 if (x->is_id()) {
                     v += ((UINT)(size_t)ID_info(x)) * 5;
                 }

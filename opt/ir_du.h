@@ -153,15 +153,15 @@ If ir is expression, this class indicate the DEF stmt set. */
 typedef HMap<IR*, DUSet*> IR2DU;
 
 //Def|Use information manager.
-#define COMP_EXP_RECOMPUTE             1 //Recompute DU, completely
+#define COMP_EXP_RECOMPUTE             1 //Recompute MD reference, completely
                                          //needs POINT-TO info.
 #define COMP_EXP_UPDATE_DU             2
 #define COMP_EXP_COLLECT_MUST_USE      4
 
 #define SOL_UNDEF                      0
-#define SOL_AVAIL_REACH_DEF            1  //available reach-definition.
-#define SOL_REACH_DEF                  2  //may reach-definition.
-#define SOL_AVAIL_EXPR                 4  //live expr.
+#define SOL_AVAIL_REACH_DEF            1  //must be available reach-definition.
+#define SOL_REACH_DEF                  2  //may be reach-definition.
+#define SOL_AVAIL_EXPR                 4  //must be available expression.
 #define SOL_RU_REF                     8  //region's def/use mds.
 #define SOL_REF                        16 //referrenced mds.
 class IR_DU_MGR : public Pass {
@@ -678,7 +678,6 @@ public:
         if (du == NULL) { return false; }
         return du->is_contain(IR_id(use));
     }
-    bool isPRUniqueForSameNo() const { return m_is_pr_unique_for_same_no; }
     bool is_stpr_may_def(IR const* def, IR const* use, bool is_recur);
     bool is_call_may_def(IR const* def, IR const* use, bool is_recur);
     bool is_may_def(IR const* def, IR const* use, bool is_recur);

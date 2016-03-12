@@ -591,7 +591,7 @@ IR * Region::simplifyLogicalNot(IN IR * ir, SimpCtx * ctx)
     IR * opnd0 = UNA_opnd0(ir);
     UNA_opnd0(ir) = NULL;
     if (!opnd0->is_judge()) {
-        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, IR_dt(opnd0)));
+        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, opnd0->get_type()));
     }
     IR * true_br = buildBranch(true, opnd0, label1);
     copyDbx(true_br, ir, this);
@@ -696,7 +696,7 @@ IR * Region::simplifyLogicalAndAtTruebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd0 = BIN_opnd0(ir);
     BIN_opnd0(ir) = NULL;
     if (!opnd0->is_judge()) {
-        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, IR_dt(opnd0)));
+        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, opnd0->get_type()));
     }
     //Generate falsebranch label.
     LabelInfo * lab = genIlabel();
@@ -709,7 +709,7 @@ IR * Region::simplifyLogicalAndAtTruebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd1 = BIN_opnd1(ir);
     BIN_opnd1(ir) = NULL;
     if (!opnd1->is_judge()) {
-        opnd1 = buildCmp(IR_NE, opnd1, buildImmInt(0, IR_dt(opnd1)));
+        opnd1 = buildCmp(IR_NE, opnd1, buildImmInt(0, opnd1->get_type()));
     }
     br = buildBranch(true, opnd1, tgt_label);
     copyDbx(br, ir, this);
@@ -740,7 +740,7 @@ IR * Region::simplifyLogicalAndAtFalsebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd0 = BIN_opnd0(ir);
     BIN_opnd0(ir) = NULL;
     if (!opnd0->is_judge()) {
-        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, IR_dt(opnd0)));
+        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, opnd0->get_type()));
     }
     IR * false_br = buildBranch(false, opnd0, tgt_label);
     copyDbx(false_br, ir, this);
@@ -750,7 +750,7 @@ IR * Region::simplifyLogicalAndAtFalsebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd1 = BIN_opnd1(ir);
     BIN_opnd1(ir) = NULL;
     if (!opnd1->is_judge()) {
-        opnd1 = buildCmp(IR_NE, opnd1,    buildImmInt(0, IR_dt(opnd1)));
+        opnd1 = buildCmp(IR_NE, opnd1, buildImmInt(0, opnd1->get_type()));
     }
     false_br = buildBranch(false, opnd1, tgt_label);
     copyDbx(false_br, ir, this);
@@ -781,7 +781,7 @@ IR * Region::simplifyLogicalOrAtTruebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd0 = BIN_opnd0(ir);
     BIN_opnd0(ir) = NULL;
     if (!opnd0->is_judge()) {
-        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, IR_dt(opnd0)));
+        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, opnd0->get_type()));
     }
     IR * true_br = buildBranch(true, opnd0, tgt_label);
     copyDbx(true_br, ir, this);
@@ -791,7 +791,7 @@ IR * Region::simplifyLogicalOrAtTruebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd1 = BIN_opnd1(ir);
     BIN_opnd1(ir) = NULL;
     if (!opnd1->is_judge()) {
-        opnd1 = buildCmp(IR_NE, opnd1, buildImmInt(0, IR_dt(opnd1)));
+        opnd1 = buildCmp(IR_NE, opnd1, buildImmInt(0, opnd1->get_type()));
     }
     IR * op = NULL;
     //if (SIMP_lnot(ctx)) {
@@ -825,7 +825,7 @@ IR * Region::simplifyLogicalOrAtFalsebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd0 = BIN_opnd0(ir);
     BIN_opnd0(ir) = NULL;
     if (!opnd0->is_judge()) {
-        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, IR_dt(opnd0)));
+        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, opnd0->get_type()));
     }
     LabelInfo * true_lab = genIlabel();
     IR * true_br = buildBranch(true, opnd0, true_lab);
@@ -835,7 +835,7 @@ IR * Region::simplifyLogicalOrAtFalsebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd1 = BIN_opnd1(ir);
     BIN_opnd1(ir) = NULL;
     if (!opnd1->is_judge()) {
-        opnd1 = buildCmp(IR_NE, opnd1, buildImmInt(0, IR_dt(opnd1)));
+        opnd1 = buildCmp(IR_NE, opnd1, buildImmInt(0, opnd1->get_type()));
     }
     IR * false_br = buildBranch(false, opnd1, tgt_label);
     copyDbx(false_br, ir, this);
@@ -1030,7 +1030,7 @@ IR * Region::simplifySelect(IR * ir, SimpCtx * ctx)
     add_next(&lst, &last, falsebr);
 
     ASSERT0(SELECT_trueexp(ir)->get_type() == SELECT_falseexp(ir)->get_type());
-    IR * res = buildPR(IR_dt(SELECT_trueexp(ir)));
+    IR * res = buildPR(SELECT_trueexp(ir)->get_type());
     allocRefForPR(res);
 
     //Simp true exp.
@@ -1038,7 +1038,7 @@ IR * Region::simplifySelect(IR * ir, SimpCtx * ctx)
     SIMP_ret_array_val(&truectx) = true;
     IR * true_exp = simplifyExpression(SELECT_trueexp(ir), &truectx);
     ctx->append_irs(truectx);
-    IR * mv = buildStorePR(PR_no(res), IR_dt(res), true_exp);
+    IR * mv = buildStorePR(PR_no(res), res->get_type(), true_exp);
     copyDbx(mv, true_exp, this);
     add_next(&lst, &last, mv);
 
@@ -1058,7 +1058,7 @@ IR * Region::simplifySelect(IR * ir, SimpCtx * ctx)
     SIMP_ret_array_val(&falsectx) = true;
     IR * else_exp = simplifyExpression(SELECT_falseexp(ir), &falsectx);
     ctx->append_irs(falsectx);
-    IR * mv2 = buildStorePR(PR_no(res), IR_dt(res), else_exp);
+    IR * mv2 = buildStorePR(PR_no(res), res->get_type(), else_exp);
     copyDbx(mv2, else_exp, this);
     add_next(&lst, &last, mv2);
     //---
@@ -1315,8 +1315,8 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCtx * ctx)
             ctx->append_irs(ttcont);
             ctx->union_bottomup_flag(ttcont);
 
-            //IR * t = buildPR(IR_dt(array_addr));
-            //IR * mv = buildStorePR(PR_no(t), IR_dt(t), array_addr);
+            //IR * t = buildPR(array_addr->get_type());
+            //IR * mv = buildStorePR(PR_no(t), t->get_type(), array_addr);
             //ctx->append_irs(mv);
             //array_addr = t;
     }
@@ -1660,7 +1660,7 @@ IR * Region::simplifyArray(IR * ir, SimpCtx * ctx)
     }
 
     if (array_addr->is_id()) {
-        IR * ld = buildLoad(ID_info(array_addr), IR_dt(array_addr));
+        IR * ld = buildLoad(ID_info(array_addr), array_addr->get_type());
         freeIRTree(array_addr);
         return ld;
     }
@@ -1671,7 +1671,7 @@ IR * Region::simplifyArray(IR * ir, SimpCtx * ctx)
         }
 
         array_addr = buildIload(array_addr, res_rtype);
-        IR * pr = buildPR(IR_dt(array_addr));
+        IR * pr = buildPR(array_addr->get_type());
         allocRefForPR(pr);
         IR * stpr = buildStorePR(PR_no(pr), pr->get_type(), array_addr);
 
@@ -1687,7 +1687,7 @@ IR * Region::simplifyArray(IR * ir, SimpCtx * ctx)
         }
 
         array_addr = buildIload(array_addr, res_rtype);
-        IR * pr = buildPR(IR_dt(array_addr));
+        IR * pr = buildPR(array_addr->get_type());
         allocRefForPR(pr);
         IR * st = buildStorePR(PR_no(pr), pr->get_type(), array_addr);
 

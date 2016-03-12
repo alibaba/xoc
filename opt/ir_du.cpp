@@ -188,9 +188,6 @@ IR_DU_MGR::IR_DU_MGR(Region * ru)
     //That will free SEG back to MiscBitSetMgr.
     m_misc_bs_mgr = ru->getMiscBitSetMgr();
 
-    //zfor conservative purpose.
-    m_is_pr_unique_for_same_no = REGION_is_pr_unique_for_same_number(ru);
-
     ASSERT0(m_aa && m_cfg && m_md_sys && m_tm && m_mds_mgr && m_mds_hash);
 }
 
@@ -563,7 +560,7 @@ bool IR_DU_MGR::is_stpr_may_def(IR const* def, IR const* use, bool is_recur)
              x != NULL; x = iterNextC(m_citer)) {
             if (!x->is_pr()) { continue; }
             if (PR_no(x) == prno) { return true; }
-            if (!isPRUniqueForSameNo() && maydef != NULL) {
+            if (!m_ru->isPRUniqueForSameNo() && maydef != NULL) {
                 MDSet const* mayuse = get_may_use(x);
                 if (mayuse != NULL &&
                     (mayuse == maydef ||
@@ -575,7 +572,7 @@ bool IR_DU_MGR::is_stpr_may_def(IR const* def, IR const* use, bool is_recur)
     } else {
         if (!use->is_pr()) { return false; }
         if (PR_no(use) == prno) { return true; }
-        if (!isPRUniqueForSameNo() && maydef != NULL) {
+        if (!m_ru->isPRUniqueForSameNo() && maydef != NULL) {
             MDSet const* mayuse = get_may_use(use);
             if (mayuse != NULL &&
                 (mayuse == maydef ||
@@ -716,7 +713,7 @@ bool IR_DU_MGR::is_may_kill(IR const* def1, IR const* def2)
 
         MDSet const* maydef1;
         MDSet const* maydef2;
-        if (!isPRUniqueForSameNo() &&
+        if (!m_ru->isPRUniqueForSameNo() &&
             (maydef1 = def1->getRefMDSet()) != NULL &&
             (maydef2 = def2->getRefMDSet()) != NULL) {
             return maydef1->is_intersect(*maydef2);
@@ -903,7 +900,7 @@ void IR_DU_MGR::computeExpression(IR * ir, OUT MDSet * ret_mds, UINT flag)
             //         ... = PR(U32)
             //PR1(U8) is correspond to MD7,
             //PR1(U32) is correspond to MD9, therefore MD7 and MD9 are overlapped.
-            if (!isPRUniqueForSameNo()) {
+            if (!m_ru->isPRUniqueForSameNo()) {
                 computeOverlapUseMDSet(ir, false);
             }
         } else if (HAVE_FLAG(flag, COMP_EXP_COLLECT_MUST_USE)) {
@@ -2406,7 +2403,7 @@ void IR_DU_MGR::inferStoreArray(IR * ir)
 void IR_DU_MGR::inferStorePR(IR * ir)
 {
     ASSERT0(ir->is_stpr() && ir->getRefMD() && ir->getRefMDSet() == NULL);
-    if (!isPRUniqueForSameNo()) {
+    if (!m_ru->isPRUniqueForSameNo()) {
         computeOverlapUseMDSet(ir, false);
     }
     computeExpression(STPR_rhs(ir), NULL, COMP_EXP_RECOMPUTE);
@@ -2416,7 +2413,7 @@ void IR_DU_MGR::inferStorePR(IR * ir)
 void IR_DU_MGR::inferPhi(IR * ir)
 {
     ASSERT0(ir->is_phi() && ir->getRefMD() && ir->getRefMDSet() == NULL);
-    if (!isPRUniqueForSameNo()) {
+    if (!m_ru->isPRUniqueForSameNo()) {
         computeOverlapUseMDSet(ir, false);
     }
 
@@ -2452,7 +2449,7 @@ void IR_DU_MGR::inferIstore(IR * ir)
 void IR_DU_MGR::inferCall(IR * ir, IN MD2MDSet * mx)
 {
     ASSERT0(ir->is_calls_stmt());
-    if (!isPRUniqueForSameNo()) {
+    if (!m_ru->isPRUniqueForSameNo()) {
         computeOverlapUseMDSet(ir, false);
     }
 
@@ -2520,7 +2517,7 @@ void IR_DU_MGR::collectMayUse(IR const* ir, MDSet & may_use, bool computePR)
 
             may_use.bunion_pure(MD_id(get_must_use(x)), *m_misc_bs_mgr);
 
-            if (!isPRUniqueForSameNo()) {
+            if (!m_ru->isPRUniqueForSameNo()) {
                 MDSet const* ts = get_may_use(x);
                 if (ts != NULL) {
                     may_use.bunion_pure(*ts, *m_misc_bs_mgr);
@@ -2731,7 +2728,7 @@ void IR_DU_MGR::collectMayUseRecursive(
         ASSERT0(get_must_use(ir));
         may_use.bunion_pure(MD_id(get_must_use(ir)), *m_misc_bs_mgr);
 
-        if (!isPRUniqueForSameNo()) {
+        if (!m_ru->isPRUniqueForSameNo()) {
             MDSet const* ts = get_may_use(ir);
             if (ts != NULL) {
                 may_use.bunion_pure(*ts, *m_misc_bs_mgr);
@@ -2774,7 +2771,7 @@ void IR_DU_MGR::computeMayDef(
         MDSet * bb_maydefmds,
         DefDBitSetCore * maygen_stmt)
 {
-    if (!ir->is_stpr() || !isPRUniqueForSameNo()) {
+    if (!ir->is_stpr() || !m_ru->isPRUniqueForSameNo()) {
         MD const* ref = get_effect_def_md(ir);
         if (ref != NULL && !ref->is_exact()) {
             bb_maydefmds->bunion(ref, *m_misc_bs_mgr);
@@ -4614,7 +4611,10 @@ bool IR_DU_MGR::verifyMDRef()
                                ("MD must present a PR."));
                     }
 
-                    if (isPRUniqueForSameNo()) {
+                    if (m_ru->isPRUniqueForSameNo()) {
+                        if (get_may_use(t)) {
+                            get_may_use(t)->dump(m_md_sys,true);
+                        }
                         ASSERT0(get_may_use(t) == NULL);
                     } else {
                         //If the mapping between pr and md is not unique,
@@ -4708,7 +4708,7 @@ bool IR_DU_MGR::verifyMDRef()
                                ("MD must present a PR."));
                     }
 
-                    if (isPRUniqueForSameNo()) {
+                    if (m_ru->isPRUniqueForSameNo()) {
                         ASSERT0(get_may_def(t) == NULL);
                     } else {
                         //If the mapping between pr and md is not unique,
@@ -4757,7 +4757,7 @@ bool IR_DU_MGR::verifyMDRef()
                     break;
                 case IR_PHI:
                     ASSERT0(t->get_exact_ref() && t->get_exact_ref()->is_pr());
-                    if (isPRUniqueForSameNo()) {
+                    if (m_ru->isPRUniqueForSameNo()) {
                         ASSERT0(get_may_def(t) == NULL);
                     } else {
                         //If the mapping between pr and md is not unique,

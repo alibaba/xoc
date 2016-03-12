@@ -310,9 +310,6 @@ protected:
     //Or perform flow insensitive.
     BYTE m_flow_sensitive:1;
 
-    //If the flag is true, PR is correspond to a unique MD.
-    BYTE m_is_pr_unique_for_same_no:1;
-
 protected:
     MD const* allocHeapobj(IR * ir);
     MD const* assignIdMD(
@@ -558,7 +555,6 @@ public:
     }
 
     //Return true if the MD of each PR corresponded is unique.
-    bool isPRUniqueForSameNo() const { return m_is_pr_unique_for_same_no; }
     void initMayPointToSet();
 
     void cleanContext(OptCtx & oc);

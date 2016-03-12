@@ -208,13 +208,19 @@ static bool ck_max_ir_size()
 
 void Region::init(REGION_TYPE rt, RegionMgr * rm)
 {
-    m_ru_type = rt;
+    REGION_type(this) = rt;
     m_var = NULL;
-    id = 0;
-    m_parent = NULL;
-    m_ref_info = NULL;
+    REGION_id(this) = 0;
+    REGION_parent(this) = NULL;
+    REGION_refinfo(this) = NULL;
     REGION_analysis_instrument(this) = NULL;
+    REGION_is_pr_unique_for_same_number(this) = true;
+    REGION_blx_data(this) = NULL;
+
+    //Reset REGION_is_expect_inline(r),
+    //REGION_is_inlinable(r), REGION_is_mddu_valid(r), REGION_is_readonly(r)
     m_u2.s1b1 = 0;
+    
     if (is_program() ||
         is_function() ||
         is_eh() ||
@@ -1797,9 +1803,9 @@ MD const* Region::genMDforPR(UINT prno, Type const* type)
     MD_base(&md) = pr_var; //correspond to VAR
     MD_ofst(&md) = 0;
 
-    if (REGION_is_pr_unique_for_same_number(this)) {
+    if (isPRUniqueForSameNo()) {
         MD_size(&md) = get_type_mgr()->get_bytesize(
-                            get_type_mgr()->getSimplexTypeEx(D_I32));
+                           get_type_mgr()->getSimplexTypeEx(D_I32));
     } else {
         MD_size(&md) = get_type_mgr()->get_bytesize(type);
     }

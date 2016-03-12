@@ -519,7 +519,7 @@ void IR_SSA_MGR::insertPhi(UINT prno, IN IRBB * bb)
 
     //Here each operand and result of phi set to same type.
     //They will be revised to correct type during renaming.
-    IR * phi = m_ru->buildPhi(pr->get_prno(), IR_dt(pr), num_opnd);
+    IR * phi = m_ru->buildPhi(pr->get_prno(), pr->get_type(), num_opnd);
 
     m_ru->allocRefForPR(phi);
 
@@ -856,7 +856,7 @@ void IR_SSA_MGR::handleBBRename(
                     ASSERT0(defres);
 
                     IR * new_opnd = m_ru->buildPRdedicated(
-                                            defres->get_prno(), IR_dt(defres));
+                                    defres->get_prno(), defres->get_type());
                     new_opnd->copyRef(defres, m_ru);
                     replace(&PHI_opnd_list(ir), opnd, new_opnd);
                     IR_parent(new_opnd) = ir;
@@ -1063,9 +1063,9 @@ bool IR_SSA_MGR::stripPhi(IR * phi, C<IR*> * phict)
     ASSERT0(vex);
 
     //Temprarory RP to hold the result of PHI.
-    IR * phicopy = m_ru->buildPR(IR_dt(phi));
-    phicopy->setRefMD(m_ru->genMDforPR(PR_no(phicopy),
-                                IR_dt(phicopy)), m_ru);
+    IR * phicopy = m_ru->buildPR(phi->get_type());
+    phicopy->setRefMD(m_ru->genMDforPR(
+                PR_no(phicopy), phicopy->get_type()), m_ru);
     phicopy->cleanRefMDSet();
 
     bool insert_stmt_after_call = false;
@@ -1087,8 +1087,8 @@ bool IR_SSA_MGR::stripPhi(IR * phi, C<IR*> * phict)
         }
 
         //The copy will be inserted into related predecessor.
-        IR * store_to_phicopy = m_ru->buildStorePR(PR_no(phicopy),
-                                    IR_dt(phicopy), opndcopy);
+        IR * store_to_phicopy = m_ru->buildStorePR(
+                    PR_no(phicopy), phicopy->get_type(), opndcopy);
         store_to_phicopy->copyRef(phicopy, m_ru);
 
         IRBB * p = m_cfg->get_bb(pred);
@@ -1122,7 +1122,7 @@ bool IR_SSA_MGR::stripPhi(IR * phi, C<IR*> * phict)
     }
 
     IR * substitue_phi = m_ru->buildStorePR(PHI_prno(phi),
-                                            IR_dt(phi), phicopy);
+                                            phi->get_type(), phicopy);
     substitue_phi->copyRef(phi, m_ru);
 
     BB_irlist(bb).insert_before(substitue_phi, phict);
@@ -1432,7 +1432,7 @@ static void revise_phi_dt(IR * phi, Region * ru)
     ASSERT0(ru->get_ir(i)->is_pr());
     ASSERT0(PR_no(ru->get_ir(i)) == PHI_prno(phi));
 
-    IR_dt(phi) = IR_dt(ru->get_ir(i));
+    IR_dt(phi) = ru->get_ir(i)->get_type();
 }
 
 
@@ -1631,7 +1631,7 @@ void IR_SSA_MGR::stripSpecifiedVP(VP * vp)
     IR * res = def->getResultPR(VP_prno(vp));
     ASSERT(res, ("Stmt does not modified PR%d", VP_prno(vp)));
 
-    Type const* newprty = IR_dt(res);
+    Type const* newprty = res->get_type();
     UINT newprno = m_ru->buildPrno(newprty);
 
     IR * replaced_one = replace_res_pr(def, VP_prno(vp), newprno, newprty);

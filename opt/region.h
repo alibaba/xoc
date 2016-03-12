@@ -665,6 +665,8 @@ public:
     bool isLowestHeightExp(IR const* ir, SimpCtx const* ctx) const;
     bool isLowestHeightSelect(IR const* ir) const;
     bool isLowestHeightArrayOp(IR const* ir) const;
+    bool isPRUniqueForSameNo() const 
+    { return REGION_is_pr_unique_for_same_number(this); }    
 
     //Return true if Region name is equivalent to 'n'.
     bool isRegionName(CHAR const* n) const
