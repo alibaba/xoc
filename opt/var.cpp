@@ -213,7 +213,7 @@ void VarMgr::assignVarId(VAR * v)
     if (id != 0) {
         VAR_id(v) = id;
     } else {
-        VAR_id(v) = m_var_count++;
+        VAR_id(v) = (UINT)m_var_count++;
     }
     ASSERT(VAR_id(v) < 5000000, ("too many variables"));
     ASSERT0(m_var_vec.get(VAR_id(v)) == NULL);

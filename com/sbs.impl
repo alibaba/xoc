@@ -35,9 +35,9 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //'h': dump mem usage detail to file.
 template <UINT BitsPerSeg>
-UINT MiscBitSetMgr<BitsPerSeg>::count_mem(FILE * h) const
+size_t MiscBitSetMgr<BitsPerSeg>::count_mem(FILE * h) const
 {
-	UINT count = 0;
+	size_t count = 0;
 	for (SC<SBitSet<BitsPerSeg>*> * st = m_sbitset_list.get_head();
 		 st != m_sbitset_list.end(); st = m_sbitset_list.get_next(st)) {
 		ASSERT0(st->val());
@@ -60,14 +60,14 @@ UINT MiscBitSetMgr<BitsPerSeg>::count_mem(FILE * h) const
 	#ifdef _DEBUG_
 	if (h != NULL) {
 		//Dump mem usage into file.
-		List<UINT> lst;
+		List<size_t> lst;
 		for (SC<SBitSet<BitsPerSeg>*> * st = m_sbitset_list.get_head();
 			 st != m_sbitset_list.end(); st = m_sbitset_list.get_next(st)) {
 			SBitSet<BitsPerSeg> const* bs = st->val(); 
 			ASSERT0(bs);
 
-			UINT c = bs->count_mem();
-			C<UINT> * ct;
+			size_t c = bs->count_mem();
+			C<size_t> * ct;
 			UINT n = lst.get_elem_count();
 			lst.get_head(&ct);
 			UINT i;
@@ -82,7 +82,7 @@ UINT MiscBitSetMgr<BitsPerSeg>::count_mem(FILE * h) const
 			}
 		}
 		
-		UINT v = lst.get_head();
+		size_t v = lst.get_head();
 		fprintf(h, "\n== DUMP BitSetMgr: total %d "
 					"bitsets, mem usage are:\n",
 					m_sbitset_list.get_elem_count());
@@ -95,11 +95,11 @@ UINT MiscBitSetMgr<BitsPerSeg>::count_mem(FILE * h) const
 				b = 0;
 			}
 			if (v < 1024) {
-				fprintf(h, "%dB,", v);
+				fprintf(h, "%luB,", (ULONG)v);
 			} else if (v < 1024 * 1024) {
-				fprintf(h, "%dKB,", v/1024);
+				fprintf(h, "%luKB,", (ULONG)v/1024);
 			} else {
-				fprintf(h, "%dMB,", v/1024/1024);
+				fprintf(h, "%luMB,", (ULONG)v/1024/1024);
 			}
 		}
 		fflush(h);
@@ -263,9 +263,9 @@ void SBitSetCore<BitsPerSeg>::destroy_seg_and_clean(
 
 
 template <UINT BitsPerSeg>
-UINT SBitSetCore<BitsPerSeg>::count_mem() const
+size_t SBitSetCore<BitsPerSeg>::count_mem() const
 {
-	UINT c = 0;
+	size_t c = 0;
 	for (TSEGIter * st = segs.get_head(); 
 		 st != segs.end(); st = segs.get_next(st)) {
 		SEG<BitsPerSeg> * s = st->val();
@@ -674,9 +674,9 @@ void SBitSetCore<BitsPerSeg>::intersect(
 //START SBitSet
 //
 template <UINT BitsPerSeg>
-UINT SBitSet<BitsPerSeg>::count_mem() const
+size_t SBitSet<BitsPerSeg>::count_mem() const
 {
-	UINT c = 0;
+	size_t c = 0;
 	for (TSEGIter * st = SBitSetCore<BitsPerSeg>::segs.get_head(); 
 		 st != SBitSetCore<BitsPerSeg>::segs.end(); 
 		 st = SBitSetCore<BitsPerSeg>::segs.get_next(st)) {

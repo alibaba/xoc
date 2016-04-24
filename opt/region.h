@@ -89,7 +89,7 @@ public:
     COPY_CONSTRUCTOR(AnalysisInstrument);
     ~AnalysisInstrument();
 
-    UINT count_mem();
+    size_t count_mem();
     bool verify_var(VarMgr * vm, VAR * v);
 };
 
@@ -102,9 +102,9 @@ public:
     MDSet may_def_mds; //Record the MD set for Region usage
     MDSet may_use_mds; //Record the MD set for Region usage
 
-    UINT count_mem()
+    size_t count_mem()
     {
-        UINT c = sizeof(RefInfo);
+        size_t c = sizeof(RefInfo);
         c += may_def_mds.count_mem();
         c += may_use_mds.count_mem();
         return c;
@@ -377,7 +377,7 @@ public:
     void constructIRBBlist();
     HOST_INT calcIntVal(IR_TYPE ty, HOST_INT v0, HOST_INT v1);
     double calcFloatVal(IR_TYPE ty, double v0, double v1);
-    UINT count_mem();
+    size_t count_mem();
     void checkValidAndRecompute(OptCtx * oc, ...);
 
     virtual void destroy();

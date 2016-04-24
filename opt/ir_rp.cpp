@@ -57,7 +57,7 @@ public:
         ConstIRIter iter;
         switch (t->get_code()) {
         case IR_LD:
-            hval = t->get_code() + (t->get_offset() + 1) + 
+            hval = t->get_code() + (t->get_offset() + 1) +
                    (UINT)(size_t)t->get_type();
             break;
         case IR_ILD:

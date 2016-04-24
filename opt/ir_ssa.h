@@ -260,7 +260,7 @@ public:
 
     void construction(OptCtx & oc);
     void construction(DomTree & domtree);
-    UINT count_mem();
+    size_t count_mem();
 
     inline Vector<VP*> const* get_vp_vec() const { return &m_vp_vec; }
     inline VP * get_vp(UINT id) const { return m_vp_vec.get(id); }

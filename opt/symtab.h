@@ -142,7 +142,7 @@ public:
         if (s == NULL) {
             return NULL;
         }
-        UINT l = strlen(s);
+        size_t l = strlen(s);
         CHAR * ns = (CHAR*)smpoolMalloc(l + 1, m_pool);
         memcpy(ns, s, l);
         ns[l] = 0;

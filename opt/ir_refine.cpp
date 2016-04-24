@@ -226,7 +226,7 @@ IR * Region::refineIstore(IR * ir, bool & change, RefineCtx & rc)
 static inline bool is_redundant_cvt(IR * ir)
 {
     if (ir->is_cvt()) {
-        if (CVT_exp(ir)->is_cvt() || 
+        if (CVT_exp(ir)->is_cvt() ||
             CVT_exp(ir)->get_type() == ir->get_type()) {
             return true;
         }

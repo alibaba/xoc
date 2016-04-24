@@ -41,9 +41,9 @@ namespace xoc {
 //
 //START IRBB
 //
-UINT IRBB::count_mem() const
+size_t IRBB::count_mem() const
 {
-    UINT count = sizeof(IRBB);
+    size_t count = sizeof(IRBB);
     count += ir_list.count_mem();
     count += lab_list.count_mem();
     return count;

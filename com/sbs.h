@@ -72,7 +72,7 @@ public:
         bs.copy(src.bs);
     }
 
-    inline UINT count_mem() const
+    inline size_t count_mem() const
     { return sizeof(start) + bs.count_mem(); }
 
     inline void clean()
@@ -181,9 +181,9 @@ public:
         return s;
     }
 
-    UINT count_mem() const
+    size_t count_mem() const
     {
-        UINT count = 0;
+        size_t count = 0;
         for (TSEGIter * sc = m_free_list.get_head();
              sc != m_free_list.end(); sc = m_free_list.get_next(sc)) {
             SEG<BitsPerSeg> * s = sc->val();
@@ -261,7 +261,7 @@ public:
     void copy(SBitSetCore<BitsPerSeg> const& src, MiscBitSetMgr<BitsPerSeg> & m)
     { copy(src, &m.sm, &m.scflst, m.ptr_pool); }
 
-    UINT count_mem() const;
+    size_t count_mem() const;
 
     void destroy_seg_and_clean(SegMgr<BitsPerSeg> * sm, TSEGIter ** free_list);
     void diff(UINT elem, SegMgr<BitsPerSeg> * sm, TSEGIter ** free_list);
@@ -361,7 +361,7 @@ public:
         //Do NOT change current m_sm.
         SBitSetCore<BitsPerSeg>::copy(src, m_sm, &m_flst, m_pool);
     }
-    UINT count_mem() const;
+    size_t count_mem() const;
 
     void diff(UINT elem)
     { SBitSetCore<BitsPerSeg>::diff(elem, m_sm, &m_flst); }
@@ -510,7 +510,7 @@ public:
     }
     //inline void copy(DBitSetCore const& src, MiscBitSetMgr<BitsPerSeg> & m);
 
-    UINT count_mem() const { return SBitSetCore<BitsPerSeg>::count_mem() + 1; }
+    size_t count_mem() const { return SBitSetCore<BitsPerSeg>::count_mem() + 1; }
 
     void diff(UINT elem, SegMgr<BitsPerSeg> * sm, TSEGIter ** free_list)
     {
@@ -693,9 +693,9 @@ public:
     void copy(DBitSet<BitsPerSeg> const& src)
     { DBitSetCore<BitsPerSeg>::copy(src, m_sm, &m_flst, m_pool); }
 
-    UINT count_mem() const
+    size_t count_mem() const
     {
-        UINT count = sizeof(m_pool);
+        size_t count = sizeof(m_pool);
         count += sizeof(m_flst);
         count += sizeof(m_sm);
         count += smpoolGetPoolSize(m_pool);
@@ -878,7 +878,7 @@ public:
     //Note that this function does not add up the memory allocated by
     //create_sbitsetc() and create_dbitsetc(). You should count these
     //objects additionally.
-    UINT count_mem(FILE * h = NULL) const;
+    size_t count_mem(FILE * h = NULL) const;
 
     //free bs for next use.
     inline void free_sbitset(SBitSet<BitsPerSeg> * bs)

@@ -66,9 +66,9 @@ IR_EXPR_TAB::~IR_EXPR_TAB()
 }
 
 
-UINT IR_EXPR_TAB::count_mem()
+size_t IR_EXPR_TAB::count_mem()
 {
-    UINT count = 0;
+    size_t count = 0;
     count += sizeof(m_expr_count);
     count += sizeof(m_ru);
     count += m_ir_expr_vec.count_mem();

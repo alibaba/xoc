@@ -521,9 +521,9 @@ public:
         init();
     }
 
-    UINT count_mem()
+    size_t count_mem()
     {
-        UINT count = smpoolGetPoolSize(m_pool);
+        size_t count = smpoolGetPoolSize(m_pool);
         for (SC<BSVec<T>*> * ct = m_bs_list.get_head();
              ct != m_bs_list.end(); ct = m_bs_list.get_next(ct)) {
             BSVec<T> * bs = ct->val();

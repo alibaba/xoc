@@ -348,7 +348,7 @@ public:
     void computeRpoNoRecursive(IN OUT Vertex * root,
                                OUT List<Vertex const*> & vlst);
     bool clone(Graph const& src);
-    UINT count_mem() const;
+    size_t count_mem() const;
 
     void dump_dot(CHAR const* name = NULL);
     void dump_vcg(CHAR const* name = NULL);
@@ -537,7 +537,7 @@ public:
     bool computeIdom();
     bool computeIdom2(List<Vertex const*> const& vlst);
     bool computeIpdom();
-    UINT count_mem() const;
+    size_t count_mem() const;
 
     void dump_dom(FILE * h, bool dump_dom_tree = true);
 

@@ -324,8 +324,8 @@ public:
         m_ofst_tab.clean();
     }
 
-    UINT count_mem() const
-    { return m_ofst_tab.count_mem() + sizeof(m_invalid_ofst_md); }
+    size_t count_mem() const
+    { return m_ofst_tab.count_mem() + (size_t)sizeof(m_invalid_ofst_md); }
 
     MD const* find(MD const* md)
     {
@@ -588,7 +588,7 @@ public:
         next.destroy();
     }
 
-    UINT count_mem() const { return next.count_mem() + sizeof(mds); }
+    size_t count_mem() const { return next.count_mem() + (size_t)sizeof(mds); }
 };
 
 #define _MD2NODE2_
@@ -809,9 +809,9 @@ public:
         return mn->mds;
     }
 
-    UINT count_mem() const
+    size_t count_mem() const
     {
-        UINT count = smpoolGetPoolSize(m_pool);
+        size_t count = smpoolGetPoolSize(m_pool);
         count += get_root()->count_mem();
         return count;
     }

@@ -45,7 +45,7 @@ namespace xoc {
 //
 //START PPSetMgr
 //
-UINT PPSetMgr::count_mem()
+size_t PPSetMgr::count_mem()
 {
     UINT count = 0;
     for (SC<PtPairSet*> * sc = m_pp_set_list.get_head();
@@ -64,9 +64,9 @@ UINT PPSetMgr::count_mem()
 //
 //START PtPairMgr
 //
-UINT PtPairMgr::count_mem() const
+size_t PtPairMgr::count_mem() const
 {
-    UINT count = 0;
+    size_t count = 0;
     TMapIter<UINT, TMap<UINT, PtPair*>*> ti;
     TMap<UINT, PtPair*> * v = NULL;
     count += m_from_tmap.count_mem();
@@ -176,9 +176,9 @@ IR_AA::~IR_AA()
 }
 
 
-UINT IR_AA::count_mem()
+size_t IR_AA::count_mem()
 {
-    UINT count = 0;
+    size_t count = 0;
     count += sizeof(m_cfg);
     count += sizeof(m_var_mgr);
     count += sizeof(m_ru);
@@ -201,9 +201,9 @@ UINT IR_AA::count_mem()
 }
 
 
-UINT IR_AA::countMD2MDSetMemory()
+size_t IR_AA::countMD2MDSetMemory()
 {
-    UINT count = 0;
+    size_t count = 0;
     BBList * bbl = m_ru->get_bb_list();
     MD2MDSetIter iter;
     for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
@@ -1326,7 +1326,7 @@ MD const* IR_AA::allocStringMD(SYM const* string)
     //VAR_is_addr_taken(v) = true;
     MD md;
     MD_base(&md) = v;
-    MD_size(&md) = strlen(SYM_name(string)) + 1;
+    MD_size(&md) = (UINT)strlen(SYM_name(string)) + 1;
     MD_ofst(&md) = 0;
     MD_ty(&md) = MD_EXACT;
     ASSERT0(v->is_string());

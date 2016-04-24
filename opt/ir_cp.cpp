@@ -197,7 +197,7 @@ void IR_CP::replaceExp(IR * exp, IR const* cand_expr,
 
 bool IR_CP::is_copy(IR * ir) const
 {
-    switch (IR_code(ir)) {
+    switch (ir->get_code()) {
     case IR_ST:
     case IR_STPR:
     case IR_IST:

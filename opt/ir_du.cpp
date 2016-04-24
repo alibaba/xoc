@@ -1074,21 +1074,21 @@ void IR_DU_MGR::dumpMemUsageForMDRef()
                     //MustDef
                     MD const* md = get_must_def(x);
                     if (md != NULL) {
-                        fprintf(g_tfile, "MustD%dB, ", (INT)sizeof(MD));
+                        fprintf(g_tfile, "MustD%uB, ", (UINT)sizeof(MD));
                         count += sizeof(MD);
                     }
 
                     //MayDef
                     MDSet const* mds = get_may_def(x);
                     if (mds != NULL) {
-                        UINT n = mds->count_mem();
+                        size_t n = mds->count_mem();
                         if (n < 1024) { str = "B"; }
                         else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
                         else  { n /= 1024*1024; str = "MB"; }
 
                         SEGIter * iter;
-                        fprintf(g_tfile, "MayDs(%d%s, %d elems, last %d), ",
-                                         n, str,
+                        fprintf(g_tfile, "MayDs(%lu%s, %d elems, last %d), ",
+                                         (ULONG)n, str,
                                          mds->get_elem_count(),
                                          mds->get_last(&iter));
                         count += n;
@@ -1104,14 +1104,14 @@ void IR_DU_MGR::dumpMemUsageForMDRef()
                     //MayUse
                     MDSet const* mds = get_may_use(x);
                     if (mds != NULL) {
-                        UINT n = mds->count_mem();
+                        size_t n = mds->count_mem();
                         if (n < 1024) { str = "B"; }
                         else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
                         else { n /= 1024*1024; str = "MB"; }
 
                         SEGIter * iter;
-                        fprintf(g_tfile, "MayUs(%d%s, %d elems, last %d), ",
-                                n, str,
+                        fprintf(g_tfile, "MayUs(%lu%s, %d elems, last %d), ",
+                                (ULONG)n, str,
                                 mds->get_elem_count(),
                                 mds->get_last(&iter));
                         count += n;
@@ -1142,7 +1142,7 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
     CHAR const* str = NULL;
     for (IRBB * bb = bbs->get_head(); bb != NULL; bb = bbs->get_next()) {
         fprintf(g_tfile, "\n--- BB%d ---", BB_id(bb));
-        UINT n;
+        size_t n;
         SEGIter * st = NULL;
         DefDBitSetCore * irs = m_bb_avail_in_reach_def.get(BB_id(bb));
         if (irs != NULL) {
@@ -1151,8 +1151,8 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
-            fprintf(g_tfile, "\n\tAvaInReachDef:%d%s, %d elems, last %d",
-                             n, str, irs->get_elem_count(), irs->get_last(&st));
+            fprintf(g_tfile, "\n\tAvaInReachDef:%lu%s, %d elems, last %d",
+                    (ULONG)n, str, irs->get_elem_count(), irs->get_last(&st));
         }
 
         irs = m_bb_avail_out_reach_def.get(BB_id(bb));
@@ -1162,8 +1162,8 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
-            fprintf(g_tfile, "\n\tAvaOutReachDef:%d%s, %d elems, last %d",
-                             n, str, irs->get_elem_count(), irs->get_last(&st));
+            fprintf(g_tfile, "\n\tAvaOutReachDef:%lu%s, %d elems, last %d",
+                    (ULONG)n, str, irs->get_elem_count(), irs->get_last(&st));
         }
 
         irs = m_bb_in_reach_def.get(BB_id(bb));
@@ -1173,8 +1173,8 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
-            fprintf(g_tfile, "\n\tInReachDef:%d%s, %d elems, last %d",
-                             n, str, irs->get_elem_count(), irs->get_last(&st));
+            fprintf(g_tfile, "\n\tInReachDef:%lu%s, %d elems, last %d",
+                    (ULONG)n, str, irs->get_elem_count(), irs->get_last(&st));
         }
 
         irs = m_bb_out_reach_def.get(BB_id(bb));
@@ -1184,8 +1184,8 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
-            fprintf(g_tfile, "\n\tOutReachDef:%d%s, %d elems, last %d",
-                             n, str, irs->get_elem_count(), irs->get_last(&st));
+            fprintf(g_tfile, "\n\tOutReachDef:%lu%s, %d elems, last %d",
+                    (ULONG)n, str, irs->get_elem_count(), irs->get_last(&st));
         }
 
         irs = m_bb_may_gen_def.get(BB_id(bb));
@@ -1195,8 +1195,8 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
-            fprintf(g_tfile, "\n\tMayGenDef:%d%s, %d elems, last %d",
-                             n, str, irs->get_elem_count(), irs->get_last(&st));
+            fprintf(g_tfile, "\n\tMayGenDef:%lu%s, %d elems, last %d",
+                    (ULONG)n, str, irs->get_elem_count(), irs->get_last(&st));
         }
 
         irs = m_bb_must_gen_def.get(BB_id(bb));
@@ -1206,8 +1206,8 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
-            fprintf(g_tfile, "\n\tMustGenDef:%d%s, %d elems, last %d",
-                             n, str, irs->get_elem_count(), irs->get_last(&st));
+            fprintf(g_tfile, "\n\tMustGenDef:%lu%s, %d elems, last %d",
+                    (ULONG)n, str, irs->get_elem_count(), irs->get_last(&st));
         }
 
         irs = m_bb_may_killed_def.get(BB_id(bb));
@@ -1217,8 +1217,8 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
-            fprintf(g_tfile, "\n\tMayKilledDef:%d%s, %d elems, last %d",
-                             n, str, irs->get_elem_count(), irs->get_last(&st));
+            fprintf(g_tfile, "\n\tMayKilledDef:%lu%s, %d elems, last %d",
+                    (ULONG)n, str, irs->get_elem_count(), irs->get_last(&st));
         }
 
         irs = m_bb_must_killed_def.get(BB_id(bb));
@@ -1228,8 +1228,8 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
-            fprintf(g_tfile, "\n\tMustKilledDef:%d%s, %d elems, last %d",
-                             n, str, irs->get_elem_count(), irs->get_last(&st));
+            fprintf(g_tfile, "\n\tMustKilledDef:%lu%s, %d elems, last %d",
+                    (ULONG)n, str, irs->get_elem_count(), irs->get_last(&st));
         }
 
         //
@@ -1240,8 +1240,8 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
-            fprintf(g_tfile, "\n\tMayKilledDef:%d%s, %d elems, last %d",
-                             n, str, bs->get_elem_count(), bs->get_last(&st));
+            fprintf(g_tfile, "\n\tMayKilledDef:%lu%s, %d elems, last %d",
+                    (ULONG)n, str, bs->get_elem_count(), bs->get_last(&st));
         }
 
         bs = m_bb_killed_ir_expr.get(BB_id(bb));
@@ -1251,8 +1251,8 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
-            fprintf(g_tfile, "\n\tKilledIrExp:%d%s, %d elems, last %d",
-                             n, str, bs->get_elem_count(), bs->get_last(&st));
+            fprintf(g_tfile, "\n\tKilledIrExp:%lu%s, %d elems, last %d",
+                    (ULONG)n, str, bs->get_elem_count(), bs->get_last(&st));
         }
 
         bs = m_bb_availin_ir_expr.get(BB_id(bb));
@@ -1262,8 +1262,8 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
-            fprintf(g_tfile, "\n\tLiveInIrExp:%d%s, %d elems, last %d",
-                             n, str, bs->get_elem_count(), bs->get_last(&st));
+            fprintf(g_tfile, "\n\tLiveInIrExp:%lu%s, %d elems, last %d",
+                    (ULONG)n, str, bs->get_elem_count(), bs->get_last(&st));
         }
 
         bs = m_bb_availout_ir_expr.get(BB_id(bb));
@@ -1273,8 +1273,8 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
-            fprintf(g_tfile, "\n\tLiveOutIrExp:%d%s, %d elems, last %d",
-                             n, str, bs->get_elem_count(), bs->get_last(&st));
+            fprintf(g_tfile, "\n\tLiveOutIrExp:%lu%s, %d elems, last %d",
+                    (ULONG)n, str, bs->get_elem_count(), bs->get_last(&st));
         }
     }
 
@@ -1677,7 +1677,8 @@ void IR_DU_MGR::dumpSet(bool is_bs)
 
         INT i;
 
-        fprintf(g_tfile, "\nDEF IN STMT: %dbyte ", def_in->count_mem());
+        fprintf(g_tfile, "\nDEF IN STMT: %lu byte ", 
+				(ULONG)def_in->count_mem());
         SEGIter * st = NULL;
         for (i = def_in->get_first(&st);
              i != -1; i = def_in->get_next(i, &st)) {
@@ -1690,7 +1691,8 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             def_in->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nDEF OUT STMT: %dbyte ", def_out->count_mem());
+        fprintf(g_tfile, "\nDEF OUT STMT: %lu byte ", 
+				(ULONG)def_out->count_mem());
         for (i = def_out->get_first(&st);
              i != -1; i = def_out->get_next(i, &st)) {
             IR * ir = m_ru->get_ir(i);
@@ -1702,7 +1704,8 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             def_out->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nDEF AVAIL_IN STMT: %dbyte ", avail_def_in->count_mem());
+        fprintf(g_tfile, "\nDEF AVAIL_IN STMT: %lu byte ", 
+				(ULONG)avail_def_in->count_mem());
         for (i = avail_def_in->get_first(&st);
              i != -1; i = avail_def_in->get_next(i, &st)) {
             IR * ir = m_ru->get_ir(i);
@@ -1714,8 +1717,8 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             avail_def_in->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nDEF AVAIL_OUT STMT: %dbyte ",
-                avail_def_out->count_mem());
+        fprintf(g_tfile, "\nDEF AVAIL_OUT STMT: %lu byte ",
+                (ULONG)avail_def_out->count_mem());
         for (i = avail_def_out->get_first(&st);
              i != -1; i = avail_def_out->get_next(i, &st)) {
             IR * ir = m_ru->get_ir(i);
@@ -1727,7 +1730,8 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             avail_def_out->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nMAY GEN STMT: %dbyte ", may_def_gen->count_mem());
+        fprintf(g_tfile, "\nMAY GEN STMT: %lu byte ", 
+				(ULONG)may_def_gen->count_mem());
         for (i = may_def_gen->get_first(&st);
              i != -1; i = may_def_gen->get_next(i, &st)) {
             IR * ir = m_ru->get_ir(i);
@@ -1739,7 +1743,8 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             may_def_gen->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nMUST GEN STMT: %dbyte ", must_def_gen->count_mem());
+        fprintf(g_tfile, "\nMUST GEN STMT: %lu byte ", 
+				(ULONG)must_def_gen->count_mem());
         for (i = must_def_gen->get_first(&st);
              i != -1; i = must_def_gen->get_next(i, &st)) {
             IR * ir = m_ru->get_ir(i);
@@ -1751,7 +1756,8 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             must_def_gen->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nMUST KILLED STMT: %dbyte ", must_def_kill->count_mem());
+        fprintf(g_tfile, "\nMUST KILLED STMT: %lu byte ", 
+				(ULONG)must_def_kill->count_mem());
         for (i = must_def_kill->get_first(&st);
              i != -1; i = must_def_kill->get_next(i, &st)) {
             IR * ir = m_ru->get_ir(i);
@@ -1763,7 +1769,8 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             must_def_kill->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nMAY KILLED STMT: %dbyte ", may_def_kill->count_mem());
+        fprintf(g_tfile, "\nMAY KILLED STMT: %lu byte ", 
+				(ULONG)may_def_kill->count_mem());
         for (i = may_def_kill->get_first(&st);
              i != -1; i = may_def_kill->get_next(i, &st)) {
             IR * ir = m_ru->get_ir(i);
@@ -1775,7 +1782,8 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             may_def_kill->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nLIVEIN EXPR: %dbyte ", livein_ir->count_mem());
+        fprintf(g_tfile, "\nLIVEIN EXPR: %lu byte ", 
+				(ULONG)livein_ir->count_mem());
         for (i = livein_ir->get_first(&st);
              i != -1; i = livein_ir->get_next(i, &st)) {
             IR * ir = m_ru->get_ir(i);
@@ -1787,7 +1795,8 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             livein_ir->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nLIVEOUT EXPR: %dbyte ", liveout_ir->count_mem());
+        fprintf(g_tfile, "\nLIVEOUT EXPR: %lu byte ", 
+				(ULONG)liveout_ir->count_mem());
         for (i = liveout_ir->get_first(&st);
              i != -1; i = liveout_ir->get_next(i, &st)) {
             IR * ir = m_ru->get_ir(i);
@@ -1799,7 +1808,7 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             liveout_ir->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nGEN EXPR: %dbyte ", gen_ir->count_mem());
+        fprintf(g_tfile, "\nGEN EXPR: %lu byte ", (ULONG)gen_ir->count_mem());
         for (i = gen_ir->get_first(&st);
              i != -1; i = gen_ir->get_next(i, &st)) {
             IR * ir = m_ru->get_ir(i);
@@ -1811,7 +1820,8 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             gen_ir->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nKILLED EXPR: %dbyte ", kill_ir->count_mem());
+        fprintf(g_tfile, "\nKILLED EXPR: %lu byte ", 
+			    (ULONG)kill_ir->count_mem());
         for (i = kill_ir->get_first(&st);
              i != -1; i = kill_ir->get_next(i, &st)) {
             IR * ir = m_ru->get_ir(i);
@@ -2184,11 +2194,11 @@ void IR_DU_MGR::removeIROutFromDUMgr(IR * ir)
 
 
 //Count up the memory has been allocated.
-UINT IR_DU_MGR::count_mem()
+size_t IR_DU_MGR::count_mem()
 {
     Vector<DefDBitSetCore*> * ptr;
 
-    UINT count = sizeof(m_mds_mgr);
+    size_t count = sizeof(m_mds_mgr);
     count += smpoolGetPoolSize(m_pool);
 
     count += m_bb_avail_in_reach_def.count_mem();
@@ -2304,9 +2314,9 @@ UINT IR_DU_MGR::count_mem()
 
 
 //Count up memory of DUSet for all irs.
-UINT IR_DU_MGR::count_mem_duset()
+size_t IR_DU_MGR::count_mem_duset()
 {
-    UINT count = 0;
+    size_t count = 0;
     Vector<IR*> * vec = m_ru->get_ir_vec();
     INT l = vec->get_last_idx();
     for (INT i = 1; i <= l; i++) {
@@ -5086,7 +5096,7 @@ void IR_DU_MGR::computeRegionMDDU(
 }
 
 
-UINT IR_DU_MGR::count_mem_local_data(
+size_t IR_DU_MGR::count_mem_local_data(
         DefDBitSetCore * expr_univers,
         Vector<MDSet*> * maydef_mds,
         Vector<MDSet*> * mustexactdef_mds,
@@ -5267,9 +5277,10 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
     }
 
 #if 0
-    int cnt += count_mem_local_data(expr_univers, maydef_mds, mustexactdef_mds,
-                            mayuse_mds, mds_arr_for_must, mds_arr_for_may,
-                            bbl->get_elem_count());
+    size_t cnt += count_mem_local_data(
+                    expr_univers, maydef_mds, mustexactdef_mds,
+                    mayuse_mds, mds_arr_for_must, mds_arr_for_may,
+                    bbl->get_elem_count());
 #endif
 
     if (expr_univers != NULL) {

@@ -2162,9 +2162,9 @@ public:
         m_typename2holder.clean();
     }
 
-    UINT count_mem() const
+    size_t count_mem() const
     {
-        UINT count = m_typename2holder.count_mem();
+        size_t count = m_typename2holder.count_mem();
         count += ((List<T>*)this)->count_mem();
         return count;
     }
@@ -3190,9 +3190,9 @@ public:
     }
 
     //Count up the memory which hash table used.
-    UINT count_mem() const
+    size_t count_mem() const
     {
-        UINT count = smpoolGetPoolSize(m_free_list_pool);
+        size_t count = smpoolGetPoolSize(m_free_list_pool);
         count += m_free_list.count_mem();
         count += sizeof(m_bucket_size);
         count += sizeof(m_bucket);
@@ -3754,9 +3754,9 @@ public:
         m_free_list = NULL;
     }
 
-    UINT count_mem() const
+    size_t count_mem() const
     {
-        UINT c = sizeof(m_num_of_tn);
+        size_t c = sizeof(m_num_of_tn);
         c += sizeof(m_root);
         c += sizeof(m_pool);
         c += sizeof(m_free_list);

@@ -127,9 +127,9 @@ void note(CHAR const* format, ...)
     va_start(arg, format);
     vsnprintf(buf, buflen, format, arg);
     buf[buflen-1] = 0;
-    UINT len = strlen(buf);
+    size_t len = strlen(buf);
     ASSERT0(len < buflen);
-    UINT i = 0;
+    size_t i = 0;
     while (i < len) {
         if (real_buf[i] == '\n') {
             if (g_prt_carriage_return_for_dot) {

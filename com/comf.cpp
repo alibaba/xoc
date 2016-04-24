@@ -169,14 +169,14 @@ UINT computeConstBitLen(LONGLONG v)
 //Append string to buf.
 //This function will guarantee that the length of string does
 //not exceed bufl.
-CHAR * xstrcat(CHAR * buf, UINT bufl, CHAR const* info, ...)
+CHAR * xstrcat(CHAR * buf, size_t bufl, CHAR const* info, ...)
 {
     //CHAR * ptr = (CHAR*)&info;
     //ptr += sizeof(CHAR*);
-    UINT l = ::strlen(buf);
+    size_t l = ::strlen(buf);
     if (l >= bufl) { return buf; }
 
-    UINT x = bufl - l;
+    size_t x = bufl - l;
 
     va_list ptr;
     va_start(ptr, info);
@@ -380,7 +380,7 @@ INT xctoi(CHAR const* cl)
     #endif
 
     if (cl == NULL || strcmp(cl, "") == 0) return 0;
-    INT l = strlen(cl);
+    INT l = (INT)strlen(cl);
     if (l > BYTE_PER_INT) {
         ASSERT(0, ("too many characters in integer"));
         return 0;
@@ -459,7 +459,7 @@ LONGLONG xabs(LONGLONG a)
 //'par': partial string.
 //'i': find the ith partial string. And 'i' get started with 0.
 //    If one only want to find the first partial string, i equals to 0.
-INT xstrstr(CHAR const* src, CHAR const* par, INT i)
+LONG xstrstr(CHAR const* src, CHAR const* par, INT i)
 {
     CHAR const* s = src;
     while (*s != 0) {
@@ -521,9 +521,9 @@ UINT xsplit(CHAR const* str, OUT Vector<CHAR*> & ret, CHAR const* sep)
 }
 
 
-void xstrcpy(CHAR * tgt, CHAR const* src, UINT size)
+void xstrcpy(CHAR * tgt, CHAR const* src, size_t size)
 {
-    UINT l = strlen(src);
+    size_t l = strlen(src);
     if (l >= size) {
         l = size - 1;
     }
@@ -535,7 +535,7 @@ void xstrcpy(CHAR * tgt, CHAR const* src, UINT size)
 //Reverse the string.
 UCHAR * reverseString(UCHAR * v)
 {
-    INT end = strlen((CHAR*)v) - 1;
+    INT end = (INT)strlen((CHAR*)v) - 1;
     INT start = 0;
     while (start <= end - 1) {
         BYTE b = v[start];
@@ -756,7 +756,7 @@ INT findstr(CHAR * src, CHAR * s)
     CHAR * startp = src, * p, * q;
     INT l = 0;
     INT i = 0;
-    srclen = strlen(src);
+    srclen = (INT)strlen(src);
     p = startp;
     while (p[i] != 0) {
         if (p[i] == s[0]) {
@@ -799,7 +799,7 @@ CHAR * getfilepath(CHAR const* n, OUT CHAR * buf, UINT bufl)
     if (n == NULL) { return NULL; }
 
     ASSERT0(buf);
-    INT l = strlen(n);
+    INT l = (INT)strlen(n);
     INT i = l;
     while (n[i] != '\\' && n[i] != '/' && i >= 0) {
         i--;
@@ -823,7 +823,7 @@ CHAR * getfilepath(CHAR const* n, OUT CHAR * buf, UINT bufl)
 //   means shifting string to left.
 void strshift(IN OUT CHAR * string, INT ofst)
 {
-    INT len = strlen(string), i;
+    INT len = (INT)strlen(string), i;
     if (string == NULL) { return; }
 
     if (ofst >= 0) { //shift to right
@@ -855,7 +855,7 @@ CHAR * getfilename(CHAR const* path, OUT CHAR * buf, UINT bufl)
 {
     UNUSED(bufl);
     if (path == NULL) { return NULL; }
-    INT l = strlen(path);
+    INT l = (INT)strlen(path);
     INT i = l;
     INT dotpos = -1;
     while (path[i] != '\\' && path[i] != '/' && i >= 0) {
@@ -889,7 +889,7 @@ CHAR * getfilesuffix(CHAR const* n, OUT CHAR * buf, UINT bufl)
 {
     if (n == NULL) { return NULL; }
 
-    INT l = strlen(n);
+    INT l = (INT)strlen(n);
     INT i = l;
     while (n[i] != '.' && i >= 0) {
         i--;
@@ -907,7 +907,7 @@ CHAR * getfilesuffix(CHAR const* n, OUT CHAR * buf, UINT bufl)
 //e.g: Given string is a\b\c, separator is '\', return c;
 CHAR const* extractRightMostSubString(CHAR const* string, CHAR separator)
 {
-    UINT l = strlen(string);
+    size_t l = strlen(string);
     CHAR const* p = string + l;
     for (; l != 0; l--, p--) {
         if (*p == separator) {
@@ -930,7 +930,7 @@ void extractLeftMostSubString(CHAR * tgt, CHAR const* string, CHAR separator)
         }
     }
 
-    UINT l = p - string;
+    size_t l = p - string;
     memcpy(tgt, string, l);
     tgt[l] = 0;
 }
@@ -1176,7 +1176,7 @@ static bool prt_ulong_hex(CHAR * buf, UINT buflen, UINT * pbufpos,
     }
 
     for (INT digno = 0; digno < format_size; digno++) {
-        INT digit = (v & mask) >> shift;
+        UINT digit = (UINT)(v & mask) >> shift;
         if (!prtchar(buf, buflen, pbufpos, g_hexdigits[digit])) {
             return false;
         }

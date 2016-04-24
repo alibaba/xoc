@@ -285,7 +285,7 @@ INT slcm(INT x, INT y);
 //   means shifting string to left.
 void strshift(CHAR * src, INT ofst);
 
-CHAR * xstrcat(CHAR * buf, UINT bufl, CHAR const* info, ...);
+CHAR * xstrcat(CHAR * buf, size_t bufl, CHAR const* info, ...);
 UINT xstrlen(CHAR const* p);
 
 //Compare the first 'n' char of two string.
@@ -314,7 +314,7 @@ INT xctoi(CHAR const* cl);
 UCHAR * xltoa(LONG v, OUT UCHAR * buf);
 INT xceiling(INT a, INT b);
 INT xfloor(INT a, INT b);
-INT xstrstr(CHAR const* src, CHAR const* par, INT i);
+LONG xstrstr(CHAR const* src, CHAR const* par, INT i);
 
 //Split string by given separetor, and return the number of substring.
 //str: input string.
@@ -322,7 +322,7 @@ INT xstrstr(CHAR const* src, CHAR const* par, INT i);
 //sep: separator.
 //Note caller is responsible for the free of each string memory in ret.
 UINT xsplit(CHAR const* str, OUT Vector<CHAR*, 8> & ret, CHAR const* sep);
-void xstrcpy(CHAR * tgt, CHAR const* src, UINT size);
+void xstrcpy(CHAR * tgt, CHAR const* src, size_t size);
 inline bool xisspace(CHAR c) { return c == ' ' || c == '\t'; }
 inline bool xisdigit(CHAR c) { return c >= '0' && c <= '9'; }
 inline bool xisdigithex(CHAR d)

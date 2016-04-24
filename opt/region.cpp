@@ -68,8 +68,8 @@ static void destroyVARandMD(Region * ru, AnalysisInstrument * anainstr)
     VarTabIter c;
     ConstMDIter iter;
     for (VAR * v = ANA_INS_var_tab(anainstr).get_first(c);
-         v != NULL; v = ANA_INS_var_tab(anainstr).get_next(c)) {
-        ASSERT0(anainstr->verify_var(varmgr, v));
+         v != NULL; v = ANA_INS_var_tab(anainstr).get_next(c)) {        
+        ASSERT0(anainstr->verify_var(varmgr, v));        
         mdsys->removeMDforVAR(v, iter);
         varmgr->destroyVar(v);
     }
@@ -157,8 +157,10 @@ bool AnalysisInstrument::verify_var(VarMgr * vm, VAR * v)
         //unablable global variable is legal.
         ASSERT0(VAR_is_local(v) || !VAR_allocable(v));
     } else if (m_ru->is_program()) {
-        //For program region, only global variable is legal.
-        ASSERT0(VAR_is_global(v));
+        //Theoretically, only global variable is legal in program region.
+        //However even if the program region there may be local 
+        //variables, e.g: PR, a kind of local variable.
+        //ASSERT0(VAR_is_global(v));
     } else {
         ASSERT(0, ("unsupport variable type."));
     }
@@ -166,9 +168,9 @@ bool AnalysisInstrument::verify_var(VarMgr * vm, VAR * v)
 }
 
 
-UINT AnalysisInstrument::count_mem()
+size_t AnalysisInstrument::count_mem()
 {
-    UINT count = 0;
+    size_t count = 0;
     if (m_call_list != NULL) {
         count += m_call_list->count_mem();
     }
@@ -260,9 +262,9 @@ void Region::destroy()
 }
 
 
-UINT Region::count_mem()
+size_t Region::count_mem()
 {
-    UINT count = 0;
+    size_t count = 0;
     if ((is_subregion() ||
          is_function() ||
          is_eh() ||
@@ -2026,8 +2028,13 @@ IR * Region::allocIR(IR_TYPE irt)
 }
 
 
-//Just append freed 'ir' into free_list.
-//Do NOT free its kids and siblings.
+//This function erase all informations of ir and append it into free_list for
+//next allocation.
+//If Attach Info exist, this function will erase it rather than delete.
+//If DU info exist, this function will return it back to region for next
+//allocation.
+//Note that this function does NOT free ir's kids and siblings, and delete
+//any memory.
 void Region::freeIR(IR * ir)
 {
     ASSERT0(ir);
@@ -2347,14 +2354,14 @@ void Region::dump_mem_usage()
 {
     if (g_tfile == NULL) { return; }
 
-    UINT count = count_mem();
+    size_t count = count_mem();
     CHAR const* str = NULL;
     if (count < 1024) { str = "B"; }
     else if (count < 1024 * 1024) { count /= 1024; str = "KB"; }
     else if (count < 1024 * 1024 * 1024) { count /= 1024 * 1024; str = "MB"; }    
     else { count /= 1024 * 1024 * 1024; str = "GB"; }
     
-    note("\n'%s' use %d%s memory", get_ru_name(), count, str);
+    note("\n'%s' use %lu%s memory", get_ru_name(), count, str);
     Vector<IR*> * v = get_ir_vec();
     float nid = 0.0;
     float nld = 0.0;

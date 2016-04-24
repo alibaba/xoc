@@ -127,9 +127,9 @@ public:
     void computeLocal(IRBB * bb, List<IR const*> & lst);
     void computeGlobal();
 
-    UINT count_mem() const
+    size_t count_mem() const
     {
-        UINT count = m_sbs_mgr.count_mem();
+        size_t count = m_sbs_mgr.count_mem();
         count += m_def.count_mem();
         count += m_use.count_mem();
         count += m_livein.count_mem();

@@ -301,9 +301,9 @@ void SSAGraph::dump(IN CHAR const* name, bool detail)
 //
 //START IR_SSA_MGR
 //
-UINT IR_SSA_MGR::count_mem()
+size_t IR_SSA_MGR::count_mem()
 {
-    UINT count = 0;
+    size_t count = 0;
     count += smpoolGetPoolSize(m_vp_pool);
     count += m_map_prno2vp_vec.count_mem();
     count += m_map_prno2stack.count_mem();

@@ -90,9 +90,10 @@ public:
     }
 
     //Count up memory size of BBIRList
-    UINT count_mem() const
+    size_t count_mem() const
     {
-        return sizeof(m_bb) + ((EList<IR*, IR2Holder>*)this)->count_mem();
+        return (size_t)sizeof(m_bb) + 
+               ((EList<IR*, IR2Holder>*)this)->count_mem();
     }
 
     //Insert 'ir' before 'marker'.
@@ -239,7 +240,7 @@ public:
         }
     }
 
-    UINT count_mem() const;
+    size_t count_mem() const;
 
     //Clean attached label.
     void cleanLabelInfoList() { getLabelList().clean(); }
@@ -512,9 +513,9 @@ public:
         return bb;
     }
 
-    UINT count_mem()
+    size_t count_mem()
     {
-        UINT count = 0;
+        size_t count = 0;
         for (IRBB * bb = m_bbs_list.get_head();
              bb != NULL; bb = m_bbs_list.get_next()) {
             count += bb->count_mem();

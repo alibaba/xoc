@@ -389,18 +389,16 @@ void MDSetMgr::dump()
     }
 
     //Dump mem usage into file.
-    List<UINT> lst;
+    List<size_t> lst;
     for (SC<MDSet*> * sc = m_md_set_list.get_head();
          sc != m_md_set_list.end(); sc = m_md_set_list.get_next(sc)) {
         MDSet const* bs = sc->val();
         ASSERT0(bs);
-        UINT c = bs->count_mem();
-
+        size_t c = bs->count_mem();
         bool inserted = false;
-
         if (m_md_set_list.get_elem_count() < 10000) {
             //Inserting sort complexity is quadratic.
-            C<UINT> * ct;
+            C<size_t> * ct;
             UINT n = lst.get_elem_count();
             lst.get_head(&ct);
             UINT i;
@@ -418,7 +416,7 @@ void MDSetMgr::dump()
         }
     }
 
-    UINT v = lst.get_head();
+    size_t v = lst.get_head();
 
     fprintf(h,
         "\n==---- DUMP MDSetMgr: total %d MD_SETs, "
@@ -434,11 +432,11 @@ void MDSetMgr::dump()
         }
 
         if (v < 1024) {
-            fprintf(h, "%dB,", v);
+            fprintf(h, "%luB,", (ULONG)v);
         } else if (v < 1024 * 1024) {
-            fprintf(h, "%dKB,", v/1024);
+            fprintf(h, "%luKB,", (ULONG)v/1024);
         } else {
-            fprintf(h, "%dMB,", v/1024/1024);
+            fprintf(h, "%luMB,", (ULONG)v/1024/1024);
         }
     }
     fflush(h);

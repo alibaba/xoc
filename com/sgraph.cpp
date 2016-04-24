@@ -129,9 +129,9 @@ void Graph::resize(UINT vertex_hash_sz, UINT edge_hash_sz)
 }
 
 
-UINT Graph::count_mem() const
+size_t Graph::count_mem() const
 {
-    UINT count = 0;
+    size_t count = 0;
     count += sizeof(BYTE);
     count += sizeof(m_edge_hash_size);
     count += sizeof(m_vex_hash_size);
@@ -992,7 +992,7 @@ bool DGraph::cloneDomAndPdom(DGraph const& src)
 }
 
 
-UINT DGraph::count_mem() const
+size_t DGraph::count_mem() const
 {
     UINT count = 0;
     count += m_dom_set.count_mem();
@@ -1004,11 +1004,11 @@ UINT DGraph::count_mem() const
 }
 
 
-/* Vertices should have been sorted in topological order.
-And we access them by reverse-topological order.
-'vlst': compute dominator for vertices in vlst if it
-    is not empty or else compute all graph.
-'uni': universe. */
+//Vertices should have been sorted in topological order.
+//And we access them by reverse-topological order.
+//'vlst': compute dominator for vertices in vlst if it
+//    is not empty or else compute all graph.
+//'uni': universe.
 bool DGraph::computeDom(List<Vertex const*> const* vlst, BitSet const* uni)
 {
     List<Vertex const*> tmpvlst;

@@ -532,7 +532,7 @@ void dump_ir(IR const* ir,
             CHAR tt[40];
             tt[0] = 0;
             CHAR * name = xstrcat(tt, 40, "%s",
-                                SYM_name(ST_idinfo(ir)->get_name()));
+                            SYM_name(ST_idinfo(ir)->get_name()));
             buf[0] = 0;
 
             //Dump operator and variable name.

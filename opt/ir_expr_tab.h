@@ -99,7 +99,7 @@ public:
 
     ExpRep * append_expr(IR * ir);
     void clean_occ_list();
-    UINT count_mem();
+    size_t count_mem();
 
     void dump_ir_expr_tab();
     ExpRep * encode_expr(IN IR * ir);

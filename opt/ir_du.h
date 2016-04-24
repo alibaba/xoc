@@ -409,9 +409,9 @@ public:
     void copyIRTreeDU(IR * to, IR const* from, bool copy_du_info);
 
     //Count the memory usage to IR_DU_MGR.
-    UINT count_mem();
-    UINT count_mem_duset();
-    UINT count_mem_local_data(
+    size_t count_mem();
+    size_t count_mem_duset();
+    size_t count_mem_local_data(
             DefDBitSetCore * expr_univers,
             Vector<MDSet*> * maydef_mds,
             Vector<MDSet*> * mustexactdef_mds,

@@ -91,7 +91,7 @@ public:
         smpoolDelete(m_pool);
     }
 
-    UINT count_mem();
+    size_t count_mem();
 
     void free(PtPairSet * pps)
     {
@@ -187,7 +187,7 @@ public:
 
     PtPair * add(MD const* from, MD const* to);
 
-    UINT count_mem() const;
+    size_t count_mem() const;
 };
 
 
@@ -478,8 +478,8 @@ public:
     void computeFlowInsensitive();
     void computeMayPointTo(IR * pointer, IN MD2MDSet * mx, OUT MDSet & mds);
     void computeMayPointTo(IR * pointer, OUT MDSet & mds);
-    UINT count_mem();
-    UINT countMD2MDSetMemory();
+    size_t count_mem();
+    size_t countMD2MDSetMemory();
 
     void dumpMD2MDSet(IN MD2MDSet * mx, bool dump_ptg);
     void dumpMD2MDSet(MD const* md, IN MD2MDSet * mx);

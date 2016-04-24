@@ -1634,7 +1634,7 @@ public:
     {
         ASSERT0(get_code() == IR_CVT);
         IR * v;
-        for (v = this; v->get_code() == IR_CVT; v = CVT_exp(v));
+        for (v = this; v->get_code() == IR_CVT; v = CVT_exp(v)) {;}
         ASSERT0(v);
         return v;
     }
