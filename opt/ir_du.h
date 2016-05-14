@@ -178,15 +178,6 @@ protected:
     MDSetHash * m_mds_hash;
     DefMiscBitSetMgr * m_misc_bs_mgr;
 
-    //Set to true if there is single map between
-    //PR and MD. If PR may corresponde to multiple
-    //MD, set it to false.
-    //
-    //e.g: If one use same pr with different type U8 and U32,
-    //there will have two mds refer to pr1(U8) and pr1(U32),
-    //MD2->pr1(U8), MD8->pr1(U32).
-    BYTE m_is_pr_unique_for_same_no:1;
-
     //Indicate whether compute the DU chain for PR.
     //This flag is often set to false if PR SSA has constructed to reduce
     //compilation time and memory consumption.
@@ -795,7 +786,7 @@ public:
     bool removeExpiredDUForOperand(IR * stmt);
     bool removeExpiredDU(IR * stmt);
     void removeDef(IR const* ir, IR const* def);
-    void removeUseOutFromDefset(IR * stmt);
+    void removeUseOutFromDefset(IR * ir);
     void removeDefOutFromUseset(IR * def);
     void removeIROutFromDUMgr(IR * ir);
     void resetReachDefInSet(bool cleanMember);

@@ -138,11 +138,12 @@ IR * Region::refineIstore(IR * ir, bool & change, RefineCtx & rc)
     bool t = false;
     bool lchange = false;
     IST_base(ir) = refineIR(IST_base(ir), t, rc);
-    change |= t;
+    if (t) { ir->setParent(IST_base(ir)); }
     lchange |= t;
+
     t = false;
     IST_rhs(ir) = refineIR(IST_rhs(ir), t, rc);
-    change |= lchange;
+    if (t) { ir->setParent(IST_rhs(ir)); }
     lchange |= t;
 
     IR * lhs = IST_base(ir);
@@ -184,7 +185,7 @@ IR * Region::refineIstore(IR * ir, bool & change, RefineCtx & rc)
         IST_rhs(ir) = NULL;
         freeIR(ir);
         ir = newir;
-        change = true; //Keep the result type of ST unchanged.
+        lchange = true; //Keep the result type of ST unchanged.
         rhs = ST_rhs(ir); //No need to update DU.
     }
 
@@ -202,7 +203,7 @@ IR * Region::refineIstore(IR * ir, bool & change, RefineCtx & rc)
 
         ASSERT(rhs->is_single(), ("expression cannot be linked to chain"));
         freeIRTree(rhs);
-        change = true;
+        lchange = true;
         rhs = newrhs;
     }
 
@@ -210,13 +211,15 @@ IR * Region::refineIstore(IR * ir, bool & change, RefineCtx & rc)
         ir->set_rhs(insertCvt(ir, rhs, change));
     }
 
-    if (change) {
+    if (lchange) {
         ir->setParentPointer(false);
     }
 
     if (lchange && dumgr != NULL) {
         ASSERT0(!dumgr->removeExpiredDU(ir));
     }
+
+    change |= lchange;
     return ir;
 }
 
@@ -226,7 +229,7 @@ IR * Region::refineIstore(IR * ir, bool & change, RefineCtx & rc)
 static inline bool is_redundant_cvt(IR * ir)
 {
     if (ir->is_cvt()) {
-        if (CVT_exp(ir)->is_cvt() ||
+        if (CVT_exp(ir)->is_cvt() || 
             CVT_exp(ir)->get_type() == ir->get_type()) {
             return true;
         }
@@ -272,7 +275,7 @@ IR * Region::refineStore(IR * ir, bool & change, RefineCtx & rc)
     if (RC_refine_stmt(rc)) {
         MD const* umd = rhs->get_exact_ref();
         if (umd != NULL && umd == ir->get_exact_ref()) {
-            //Result and operand refered the same md.
+            //Result and operand referenced the same md.
             if (rhs->is_cvt()) {
                 //CASE: pr(i64) = cvt(i64, pr(i32))
                 //Do NOT remove 'cvt'.
@@ -776,10 +779,9 @@ IR * Region::refineAdd(IR * ir, bool & change)
     ASSERT0(op0 != NULL && op1 != NULL);
     if (op1->is_const() && op1->is_int() && CONST_int_val(op1) == 0) {
         //add X,0 => X
-        IR * tmp = ir;
         BIN_opnd0(ir) = NULL;
-        ir = op0;
-        freeIRTree(tmp);
+        freeIRTree(ir);
+        ir = op0;        
         change = true;
         return ir; //No need to update DU.
     }

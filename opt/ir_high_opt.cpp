@@ -82,7 +82,7 @@ void Region::HighProcessImpl(OptCtx & oc)
             f |= SOL_REACH_DEF;
         }
 
-        dumgr->perform(oc, f);
+        dumgr->perform(oc, f);        
         if (g_compute_du_chain) {
             dumgr->computeMDDUChain(oc);
         }

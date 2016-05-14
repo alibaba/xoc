@@ -2143,12 +2143,12 @@ void IR_DU_MGR::removeUseOutFromDefset(IR * ir)
 }
 
 
-//Note do NOT use this function to remove SSA def.
-//This function handle the MD DU chain and it
-//cuts off the DU chain between MD def and its MD use expression.
+//Note that do NOT use this function to remove SSA def.
+//This function handle the MD DU chain and cut
+//off the DU chain between MD def and its MD use expression.
 //Remove 'def' out from its use's def-list.
 //e.g:u1, u2 are its use expressions.
-//cut off the du chain between def and u1, u2.
+//cut off the du chain between def->u1 and def->u2.
 void IR_DU_MGR::removeDefOutFromUseset(IR * def)
 {
     ASSERT0(def->is_stmt());
@@ -4002,6 +4002,13 @@ void IR_DU_MGR::checkAndBuildChain(IR * stmt, C<IR*> * ct)
             return;
         }
     case IR_CALL:
+        if (isComputePRDU()) {
+            DUSet * du = getAndAllocDUSet(stmt);
+            if (!m_is_init->is_contain(IR_id(stmt))) {
+                m_is_init->bunion(IR_id(stmt));
+                du->clean(*m_misc_bs_mgr);
+            }
+        }        
         for (IR * p = CALL_param_list(stmt); p != NULL; p = p->get_next()) {
             checkAndBuildChainRecursive(stmt->get_bb(), p, ct);
         }
@@ -4497,7 +4504,7 @@ bool IR_DU_MGR::verifyMDDUChainForIR(IR const* ir)
 
                 ASSERT0(use->is_exp());
 
-                //Check the existence to 'use'.
+                //Check the existence of 'use'.
                 ASSERT0(use->get_stmt() && use->get_stmt()->get_bb());
                 ASSERT0(BB_irlist(
                     use->get_stmt()->get_bb()).find(use->get_stmt()));
@@ -4505,10 +4512,10 @@ bool IR_DU_MGR::verifyMDDUChainForIR(IR const* ir)
                 //use must be a memory operation.
                 ASSERT0(use->is_memory_opnd());
 
-                //ir must be def of 'use'.
+                //ir must be DEF of 'use'.
                 ASSERT0(use->get_duset_c());
 
-                //Check consistence between ir and use du info.
+                //Check consistence between ir and use duchain.
                 ASSERT0(use->get_duset_c()->is_contain(IR_id(ir)));
 
                 if (precision_check) {
@@ -4766,10 +4773,11 @@ bool IR_DU_MGR::verifyMDRef()
                     }
                     break;
                 case IR_PHI:
-                    ASSERT0(t->get_exact_ref() && t->get_exact_ref()->is_pr());
                     if (m_ru->isPRUniqueForSameNo()) {
+                        ASSERT0(t->get_effect_ref() && t->get_effect_ref()->is_pr());
                         ASSERT0(get_may_def(t) == NULL);
                     } else {
+                        ASSERT0(t->get_exact_ref() && t->get_exact_ref()->is_pr());
                         //If the mapping between pr and md is not unique,
                         //maydef is not NULL.
                         //Same PR may have different referrence type.

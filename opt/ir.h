@@ -910,7 +910,7 @@ public:
     //Set the relationship between parent and its kid.
     void setParentPointer(bool recur = true);
 
-    //The current ir is set to kid's parent.
+    //The current ir is set to be kid's parent.
     void setParent(IR * kid)
     {
         ASSERT0(kid && is_kids(kid));
@@ -964,6 +964,11 @@ public:
     //             = pr1 //S1
     //If S1 will be deleted, pr1 should be removed from its SSA_uses.
     void removeSSAUse();
+
+    //This function only handle Call/Icall stmt, it find PR and remove 
+    //them out of UseSet.
+    //Note this function does not maintain DU chain between call and its use.
+    void removePROutFromUseset(DefMiscBitSetMgr & sbs_mgr, Region * ru);
 
     bool verify(Region const* ru) const;
     bool verifyPhi(Region const* ru) const;

@@ -725,15 +725,13 @@ void IR_SSA_MGR::rename_bb(IN IRBB * bb)
                     //prno has no top-version, it has no def, may be parameter.
                     ASSERT0(PR_ssainfo(opnd));
                     ASSERT(VP_ver((VP*)PR_ssainfo(opnd)) == 0,
-                            ("parameter only has first version"));
+                           ("parameter only has first version"));
                     continue;
                 }
 
-                /*
-                e.g: pr1 = pr2(vp1)
-                    vp1 will be renamed to vp2, so vp1 does not
-                    occur in current IR any more.
-                */
+                //e.g: pr1 = pr2(vp1)
+                //    vp1 will be renamed to vp2, so vp1 does not
+                //    occur in current IR any more.                
                 VP * curv = (VP*)PR_ssainfo(opnd);
                 ASSERT0(curv && VP_prno(curv) == PR_no(opnd));
 
@@ -1637,11 +1635,15 @@ void IR_SSA_MGR::stripSpecifiedVP(VP * vp)
     IR * replaced_one = replace_res_pr(def, VP_prno(vp), newprno, newprty);
     ASSERT0(replaced_one);
 
-    def->freeDUset(*m_ru->getMiscBitSetMgr());
-
     MD const* md = m_ru->genMDforPR(newprno, newprty);
     replaced_one->setRefMD(md, m_ru);
-    replaced_one->cleanRefMDSet();
+    if (replaced_one->is_calls_stmt()) {
+        //Call stmts may have sideeffect modify MDSet.
+        replaced_one->removePROutFromUseset(*m_ru->getMiscBitSetMgr(), m_ru);
+    } else {
+        def->freeDUset(*m_ru->getMiscBitSetMgr());
+        replaced_one->cleanRefMDSet();
+    }
 
     SSAUseIter vit = NULL;
     for (INT i = SSA_uses(vp).get_first(&vit);
@@ -1765,6 +1767,8 @@ void IR_SSA_MGR::construction(OptCtx & oc)
 }
 
 
+//Note: Non-SSA DU Chains of read/write PR will be clean and 
+//unusable after SSA construction.
 void IR_SSA_MGR::construction(DomTree & domtree)
 {
     ASSERT0(m_ru);

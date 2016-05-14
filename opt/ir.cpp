@@ -315,7 +315,7 @@ static void verifyIR(IR * ir, IRAddressHash * irh, Region const* ru)
     for (UINT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
         IR * k = ir->get_kid(i);
         if (k != NULL) {
-            ASSERT0(IR_parent(k) == ir);
+            ASSERT(k->get_parent() == ir, ("ir must be k's parent"));
             verify_irs(k, irh, ru);
         }
     }
@@ -2451,6 +2451,27 @@ void IR::invertLor(Region * ru)
     BIN_opnd1(this) = newop1;
     IR_parent(newop0) = this;
     IR_parent(newop1) = this;
+}
+
+
+//This function only handle Call/Icall stmt, it find PR and remove 
+//them out of UseSet.
+//Note this function does not maintain DU chain between call and its use.
+void IR::removePROutFromUseset(DefMiscBitSetMgr & sbs_mgr, Region * ru)
+{
+    ASSERT0(is_calls_stmt() && ru);
+    DUSet * useset = get_duset();
+    if (useset == NULL) { return; }
+
+    DUIter di = NULL;
+    INT next = -1;
+    for (INT i = useset->get_first(&di); i >= 0; i = next) {
+        next = useset->get_next(i, &di);
+        IR const* exp = ru->get_ir(i);
+        ASSERT0(exp->is_exp());
+        if (!exp->is_read_pr()) { continue; }
+        useset->remove(i, sbs_mgr);
+    }
 }
 
 

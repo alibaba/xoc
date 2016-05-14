@@ -1805,18 +1805,16 @@ MD const* Region::genMDforPR(UINT prno, Type const* type)
     MD_base(&md) = pr_var; //correspond to VAR
     MD_ofst(&md) = 0;
 
-    if (isPRUniqueForSameNo()) {
-        MD_size(&md) = get_type_mgr()->get_bytesize(
-                           get_type_mgr()->getSimplexTypeEx(D_I32));
-    } else {
-        MD_size(&md) = get_type_mgr()->get_bytesize(type);
-    }
-
-    if (type->is_void()) {
+    if (isPRUniqueForSameNo()) {        
         MD_ty(&md) = MD_UNBOUND;
     } else {
-        MD_ty(&md) = MD_EXACT;
-    }
+        MD_size(&md) = get_type_mgr()->get_bytesize(type);
+        if (type->is_void()) {
+            MD_ty(&md) = MD_UNBOUND;
+        } else {            
+            MD_ty(&md) = MD_EXACT;
+        }
+    }   
 
     MD const* e = get_md_sys()->registerMD(md);
     ASSERT0(MD_id(e) > 0);
@@ -3024,6 +3022,7 @@ void Region::processIRList(OptCtx & oc)
     END_TIMER();
 
     HighProcess(oc);
+    ASSERT0(get_du_mgr()->verifyMDDUChain());
     MiddleProcess(oc);
 }
 

@@ -258,6 +258,8 @@ public:
     CHAR * dump_vp(IN VP * v, OUT CHAR * buf);
     void dump_ssa_graph(CHAR * name = NULL);
 
+    //Note: Non-SSA DU Chains of read/write PR will be clean and
+    //unusable after SSA construction.
     void construction(OptCtx & oc);
     void construction(DomTree & domtree);
     size_t count_mem();
