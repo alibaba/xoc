@@ -198,6 +198,10 @@ extern UINT g_inline_threshold;
 extern bool g_is_opt_float; //Optimize float point operation.
 extern bool g_is_lower_to_pr_mode; //Lower IR to PR mode.
 
+//True if each type of PRs are assigned unique number.
+//e.g: PR:I32 and PR:F64 are the same one.
+extern bool g_is_pr_unique_for_same_number;
+
 //Enable XOC support dynamic type.
 //That means the type of IR_ST, IR_LD, IR_STPR, IR_PR may be VOID.
 extern bool g_is_support_dynamic_type;

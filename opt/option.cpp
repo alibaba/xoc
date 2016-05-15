@@ -45,6 +45,10 @@ bool g_is_lower_to_pr_mode = false;
 //That means the type of IR_ST may be VOID.
 bool g_is_support_dynamic_type = false;
 
+//True if each type of PRs are assigned unique number.
+//e.g: PR:I32 and PR:F64 are the same one.
+bool g_is_pr_unique_for_same_number = true;
+
 //If true to hoist short type to integer type.
 bool g_is_hoist_type = false;
 

@@ -210,18 +210,22 @@ static bool ck_max_ir_size()
 
 void Region::init(REGION_TYPE rt, RegionMgr * rm)
 {
+    //Reset 
+    //REGION_is_expect_inline(r),
+    //REGION_is_inlinable(r), 
+    //REGION_is_mddu_valid(r), 
+    //REGION_is_readonly(r)
+    m_u2.s1b1 = 0;
+
     REGION_type(this) = rt;
+    REGION_blx_data(this) = NULL;
     m_var = NULL;
+
     REGION_id(this) = 0;
     REGION_parent(this) = NULL;
     REGION_refinfo(this) = NULL;
     REGION_analysis_instrument(this) = NULL;
-    REGION_is_pr_unique_for_same_number(this) = true;
-    REGION_blx_data(this) = NULL;
-
-    //Reset REGION_is_expect_inline(r),
-    //REGION_is_inlinable(r), REGION_is_mddu_valid(r), REGION_is_readonly(r)
-    m_u2.s1b1 = 0;
+    REGION_is_pr_unique_for_same_number(this) = g_is_pr_unique_for_same_number;    
     
     if (is_program() ||
         is_function() ||
@@ -2676,7 +2680,16 @@ void Region::dumpVARInRegion()
 
             for (INT i = 0; i <= fpvec.get_last_idx(); i++) {
                 VAR * v = fpvec.get(i);
-                ASSERT0(v);
+                if (v == NULL) { 
+                    //This position may be reserved for other use.
+                    //ASSERT0(v);
+                    g_indent += 2;
+                    note("\n--");
+                    fprintf(g_tfile, " param%d", i);
+                    g_indent -= 2;
+                    continue;
+                }
+                
                 buf[0] = 0;
                 v->dump(buf, get_type_mgr());
                 g_indent += 2;
