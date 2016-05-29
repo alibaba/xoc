@@ -70,7 +70,7 @@ class SSAGraph : Graph {
 public:
     SSAGraph(Region * ru, IR_SSA_MGR * ssamgr);
     COPY_CONSTRUCTOR(SSAGraph);
-    void dump(IN CHAR const* name = NULL, bool detail = true);
+    void dump(CHAR const* name = NULL, bool detail = true);
 };
 
 

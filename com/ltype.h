@@ -100,7 +100,7 @@ author: Su Zhenyu
 #define LONG     long
 #define ULONG    unsigned long
 
-#ifdef _VC6_
+#ifdef _WINDOWS_
     #define LONGLONG   __int64
     #define ULONGLONG  unsigned __int64
 #else

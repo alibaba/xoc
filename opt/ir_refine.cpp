@@ -795,18 +795,35 @@ IR * Region::refineMul(IR * ir, bool & change, RefineCtx & rc)
     IR * op0 = BIN_opnd0(ir);
     IR * op1 = BIN_opnd1(ir);
     ASSERT0(op0 != NULL && op1 != NULL);
-    if (op1->is_const() &&
-        ((op1->is_fp() && CONST_fp_val(op1) == 2.0) ||
-         (op1->is_int() && CONST_int_val(op1) == 2))) {
+    if (g_is_opt_float && 
+        op1->is_const() && 
+        op1->is_fp() && 
+        CONST_fp_val(op1) == 2.0) {
         //mul X,2.0 => add.fp X,X
+        IR_code(ir) = IR_ADD;
+        freeIRTree(BIN_opnd1(ir));
+        BIN_opnd1(ir) = dupIRTree(BIN_opnd0(ir));
+
+        if (get_du_mgr() != NULL) {
+            get_du_mgr()->copyIRTreeDU(BIN_opnd1(ir), BIN_opnd0(ir), true);
+        }
+        
+        ir->setParentPointer(false);
+        change = true;
+        return ir; //No need to update DU.
+    } else if (op1->is_const() &&
+               op1->is_int() && 
+               CONST_int_val(op1) == 2) {
         //mul X,2 => add.int X,X
         IR_code(ir) = IR_ADD;
         freeIRTree(BIN_opnd1(ir));
         BIN_opnd1(ir) = dupIRTree(BIN_opnd0(ir));
+
         if (get_du_mgr() != NULL) {
             get_du_mgr()->copyIRTreeDU(BIN_opnd1(ir),
                                             BIN_opnd0(ir), true);
         }
+
         ir->setParentPointer(false);
         change = true;
         return ir; //No need to update DU.

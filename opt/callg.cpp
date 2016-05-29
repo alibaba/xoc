@@ -222,6 +222,7 @@ CallNode * CallGraph::newCallNode(IR const* ir, Region * ru)
 CallNode * CallGraph::newCallNode(Region * ru)
 {
     ASSERT0(ru);
+    ASSERT0(ru->get_ru_var() && ru->get_ru_var()->get_name());
     SYM const* name = ru->get_ru_var()->get_name();
     if (ru->is_program()) {
         CallNode * cn = map_ru2cn(ru);
@@ -246,7 +247,7 @@ CallNode * CallGraph::newCallNode(Region * ru)
             CN_ru(cn) = ru;
             m_ruid2cn.set(REGION_id(ru), cn);
         }
-        ASSERT(CN_ru(cn) == ru, ("more than 2 ru with same id"));
+        ASSERT(CN_ru(cn) == ru, ("more than 2 region with same id"));
         return cn;
     }
 

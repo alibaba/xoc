@@ -505,16 +505,18 @@ void IR_IVR::_dump(LI<IRBB> * li, UINT indent)
                 fprintf(g_tfile, "BIV(md%d", MD_id(IV_iv(iv)));
 
                 if (IV_is_inc(iv)) {
-                    fprintf(g_tfile, ",step=%lld", IV_step(iv));
+                    fprintf(g_tfile, ",step=%lld", (LONGLONG)IV_step(iv));
                 } else {
-                    fprintf(g_tfile, ",step=-%lld", IV_step(iv));
+                    fprintf(g_tfile, ",step=-%lld", (LONGLONG)IV_step(iv));
                 }
 
                 if (iv->has_init_val()) {
                     if (iv->isInitConst()) {
-                        fprintf(g_tfile, ",init=%lld", *IV_initv_i(iv));
+                        fprintf(g_tfile, ",init=%lld", 
+                                (LONGLONG)*IV_initv_i(iv));
                     } else {
-                        fprintf(g_tfile, ",init=md%d", MD_id(IV_initv_md(iv)));
+                        fprintf(g_tfile, ",init=md%d", 
+                                (INT)MD_id(IV_initv_md(iv)));
                     }
                 }
                 fprintf(g_tfile, ")");

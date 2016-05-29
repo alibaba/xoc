@@ -720,7 +720,7 @@ public:
     //Set element in 'set' as USE to stmt.
     //e.g: given set is {u3, u4}, and stmt->{u1},
     //=> stmt->{u1, u1, u2}
-    inline void unionUseSet(IR * stmt, IN DefSBitSetCore const* set)
+    inline void unionUseSet(IR * stmt, DefSBitSetCore const* set)
     {
         ASSERT0(stmt->is_stmt());
         if (set == NULL) { return; }
@@ -731,7 +731,7 @@ public:
     //Set element in 'set' as DEF to ir.
     //e.g: given set is {d1, d2}, and {d3}->ir,
     //=>{d1, d2, d3}->ir
-    inline void unionDefSet(IR * ir, IN DefSBitSetCore const* set)
+    inline void unionDefSet(IR * ir, DefSBitSetCore const* set)
     {
         ASSERT0(ir->is_exp());
         if (set == NULL) { return; }

@@ -62,7 +62,7 @@ author: Su Zhenyu
 #define GENERAL_REGISTER_SIZE (BYTE_PER_POINTER)
 #define WORD_LENGTH_OF_TARGET_MACHINE GENERAL_REGISTER_SIZE
 
-//Define target machine register word length.
+//Define target machine integer register byte size.
 #if WORD_LENGTH_OF_TARGET_MACHINE == 4
 #define TMWORD UINT
 #elif WORD_LENGTH_OF_TARGET_MACHINE == 8
@@ -74,26 +74,11 @@ author: Su Zhenyu
 //Bit size of word lenght of host machine.
 #define WORD_LENGTH_OF_HOST_MACHINE      32
 
-//Const float-point byte size.
-#define BYTE_PER_CONST_FP                4
-
-//Alignment with byte.
-#define PRAGMA_ALIGN                     1
-
-//Minimum pseudo register number.
-#define DEF_PR_START                     100
-
-//Does target machine support branch to a register?
-//e.g:
-//  reg0 = LABLE1 + 0x100
-//  BR reg0
-#define IS_TARGET_SUPPORT_BR_REGISTER     1
-
 //Target machine relatived heap memory allocate function name
 #define MALLOC_NAME                       "malloc"
 
 //Setting for compiler build-environment. Byte length.
-#define HOST_BITS_PER_BYTE                8
+#define HOST_BIT_PER_BYTE                8
 
 //Length of string buffer of OR and SR's name.
 #define MAX_OR_SR_NAME_BUF_LEN            1024
@@ -112,10 +97,9 @@ author: Su Zhenyu
 //The number of registers which be used to store return value.
 #define NUM_OF_RETURN_VAL_REGISTERS       2
 
-//The first opnd must be predicate register if target
-//support preidcate instruction.
-//The value is 0 if target does not have predicate register.
-#define HAS_PREDICATE_REGISTER            1
+//Define whether target machine support predicate register.
+//Note the first opnd must be predicate register if target support.
+#define HAS_PREDICATE_REGISTER            false
 
 #define MAX_INT_VALUE                     0x7fffFFFF
 #define MIN_INT_VALUE                     0x80000000

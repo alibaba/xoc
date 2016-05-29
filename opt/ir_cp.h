@@ -124,10 +124,8 @@ public:
             case IR_CONST:
             case IR_PR:
                 return true;
-            default:
-                return is_simp_cvt(ir);
+            default: return is_simp_cvt(ir);
             }
-            UNREACH();
         case CP_PROP_UNARY_AND_SIMPLEX:
             switch (IR_code(ir)) {
             case IR_LD:
@@ -140,10 +138,8 @@ public:
             case IR_LNOT:
             case IR_ILD:
                 return true;
-            default:
-                return is_simp_cvt(ir);
+            default: return is_simp_cvt(ir);
             }
-            UNREACH();
         default:;
         }
         UNREACH();

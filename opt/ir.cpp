@@ -36,15 +36,7 @@ author: Su Zhenyu
 
 namespace xoc {
 
-#if (WORD_LENGTH_OF_HOST_MACHINE == 32)
-    #define PADDR(ir) (dump_addr ? fprintf(g_tfile, " 0x%lx",(ULONG)(ir)) : 0)
-     //fprintf(g_tfile, " 0x%.8x",(ir)) : 0)
-#elif (WORD_LENGTH_OF_HOST_MACHINE == 64)
-    #define PADDR(ir) (dump_addr ? fprintf(g_tfile, " 0x%lx",(ULONG)(ir)) : 0)
-    //fprintf(g_tfile, " 0x%.16x",(ir)) : 0)
-#else
-    #define PADDR(ir) (UNREACH())
-#endif
+#define PADDR(ir) (dump_addr ? fprintf(g_tfile, " 0x%lx",(ULONG)(ir)) : 0)
 
 IRDesc const g_ir_desc[] = {
     {IR_UNDEF,      "undef",     0x0,    0,    0,                                              0                },
@@ -716,13 +708,13 @@ void dump_ir(IR const* ir,
         if (ir->is_sint()) {
             note("\nintconst:%s %lld|0x%llx",
                  xdm->dump_type(d, buf),
-                 CONST_int_val(ir),
-                 CONST_int_val(ir));
+                 (LONGLONG)CONST_int_val(ir),
+                 (ULONGLONG)CONST_int_val(ir));
         } else if (ir->is_uint()) {
             note("\nintconst:%s %llu|0x%llx",
                  xdm->dump_type(d, buf),
-                 CONST_int_val(ir),
-                 CONST_int_val(ir));
+                 (ULONGLONG)CONST_int_val(ir),
+                 (ULONGLONG)CONST_int_val(ir));
         } else if (ir->is_fp()) {
             note("\nfpconst:%s %f",
                  xdm->dump_type(d, buf),
@@ -748,15 +740,15 @@ void dump_ir(IR const* ir,
             //Imm may be MC type.
             note("\nintconst:%s %lld|0x%llx",
                  xdm->dump_type(d, buf),
-                 CONST_int_val(ir),
-                 CONST_int_val(ir));
+                 (LONGLONG)CONST_int_val(ir),
+                 (ULONGLONG)CONST_int_val(ir));
         } else {
             //Dump const even if it is illegal type, leave the assertion
             //work to verify().
             note("\nintconst:%s %lld|0x%llx",
                  xdm->dump_type(d, buf),
-                 CONST_int_val(ir),
-                 CONST_int_val(ir));
+                 (LONGLONG)CONST_int_val(ir),
+                 (ULONGLONG)CONST_int_val(ir));
             //ASSERT(0, ("unsupport immediate value DATA_TYPE:%d",
             //        ir->get_dtype(tm)));
         }
@@ -1432,8 +1424,8 @@ bool IR::verify(Region const* ru) const
     } else {
         //IR_mc_size may be not zero.
         //e.g: struct {int x;}s;
-        //    int a = s.x;
-        //    Here we get a IR_LD(s, offset=0, mc_size=4)
+        //    int w = s.x;
+        //    Here we get w IR_LD(s, offset=0, mc_size=4)
         //ASSERT0(IR_mc_size(this) == 0);
     }
 
@@ -1642,20 +1634,27 @@ bool IR::verify(Region const* ru) const
         //Opnd1 can not be pointer. e.g: &p-&q
         ASSERT0(!BIN_opnd1(this)->is_ptr());
         break;
-    case IR_SUB:
-    case IR_MUL:
-    case IR_DIV:
-    case IR_REM:
-    case IR_MOD:
     case IR_LAND:
     case IR_LOR:
-    case IR_XOR:
     case IR_LT:
     case IR_LE:
     case IR_GT:
     case IR_GE:
     case IR_EQ:
     case IR_NE:
+        ASSERT0(d);
+        ASSERT0(is_bool());
+        ASSERT0(BIN_opnd0(this) && BIN_opnd0(this)->is_exp() &&
+                BIN_opnd1(this) && BIN_opnd1(this)->is_exp());
+        ASSERT0(BIN_opnd0(this)->is_single());
+        ASSERT0(BIN_opnd1(this)->is_single());
+        break;
+    case IR_SUB:
+    case IR_MUL:
+    case IR_DIV:
+    case IR_REM:
+    case IR_MOD:
+    case IR_XOR:
     case IR_BAND:
     case IR_BOR:
         ASSERT0(d);
@@ -1668,14 +1667,14 @@ bool IR::verify(Region const* ru) const
     case IR_LNOT:
         ASSERT0(d);
         ASSERT0(is_bool());
-        ASSERT0(UNA_opnd0(this) != NULL && UNA_opnd0(this)->is_exp());
+        ASSERT0(UNA_opnd0(this) && UNA_opnd0(this)->is_exp());
         ASSERT0(UNA_opnd0(this)->is_single());
         break;
     case IR_BNOT:
     case IR_NEG:
         ASSERT0(d);
         ASSERT0(TY_dtype(d) != D_UNDEF);
-        ASSERT0(UNA_opnd0(this) != NULL && UNA_opnd0(this)->is_exp());
+        ASSERT0(UNA_opnd0(this) && UNA_opnd0(this)->is_exp());
         ASSERT0(UNA_opnd0(this)->is_single());
         break;
     case IR_GOTO:

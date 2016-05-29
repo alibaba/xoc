@@ -113,8 +113,8 @@ public:
     }
     virtual ~IR_DCE() {}
 
-    void dump(IN EFFECT_STMT const& is_stmt_effect,
-              IN BitSet const& is_bb_effect,
+    void dump(EFFECT_STMT const& is_stmt_effect,
+              BitSet const& is_bb_effect,
               IN Vector<Vector<IR*>*> & all_ir);
 
     virtual CHAR const* get_pass_name() const

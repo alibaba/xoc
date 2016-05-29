@@ -85,7 +85,7 @@ class Lineq {
             INT idx_of_eqt2);
     INT selectLeadingColumn(
             INTMat const& coeff,
-            IN Vector<bool> const& is_noneg,
+            Vector<bool> const& is_noneg,
             UINT rhs_part);
     void combine(OUT INTMat & res,
                  INTMat const& coeff,
@@ -104,8 +104,8 @@ class Lineq {
               UINT ncv,
               UINT pcv,
               UINT rhs_part,
-              IN Vector<UINT> const& combined,
-              IN Vector<UINT> const& noneg);
+              Vector<UINT> const& combined,
+              Vector<UINT> const& noneg);
     void removeRedRow(IN OUT INTMat & cs,
                       INTMat const& org_cone,
                       UINT rhs_part);
@@ -136,7 +136,7 @@ public:
                       bool is_int_sol,
                       bool is_unique_sol);
     void initVarConstraint(
-            IN Vector<INT> const* sign,
+            Vector<INT> const* sign,
             IN OUT RMat & vc,
             UINT rhs_idx);
     void substituteAndExpand(

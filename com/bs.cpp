@@ -1008,7 +1008,7 @@ void BitSet::rev(UINT last_bit_pos)
 
 
 //Complement set of s = univers - s.
-void BitSet::complement(IN BitSet const& univers)
+void BitSet::complement(BitSet const& univers)
 {
     BitSet tmp(univers);
     tmp.diff(*this);

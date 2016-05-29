@@ -475,7 +475,7 @@ bool IR_CFS_OPT::hoistIf(IR ** head, IR * ir)
 
 
 bool IR_CFS_OPT::perform_cfs_optimization(IN OUT IR ** ir_list,
-                                          IN SimpCtx const& sc)
+                                          SimpCtx const& sc)
 {
     bool change = false;
 
@@ -558,7 +558,7 @@ High Level Reshaping phase consist of:
     1. goto reduction
     2. if restructure
     3. loop restructure */
-bool IR_CFS_OPT::perform(IN SimpCtx const& sc)
+bool IR_CFS_OPT::perform(SimpCtx const& sc)
 {
     ASSERT0(!SIMP_if(&sc) &&
             !SIMP_doloop(&sc) &&

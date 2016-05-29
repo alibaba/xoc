@@ -833,8 +833,10 @@ FIN:
 }
 
 
-void Lineq::initVarConstraint(IN Vector<INT> const* sign,
-                    IN OUT RMat & vc, UINT rhs_idx)
+void Lineq::initVarConstraint(
+        Vector<INT> const* sign,
+        IN OUT RMat & vc, 
+        UINT rhs_idx)
 {
     UINT nvar = rhs_idx;
     vc.reinit(nvar, nvar + 1);
@@ -1320,9 +1322,10 @@ void Lineq::EhartPoly(OUT RMat & res, IN RMat & a, UINT rhs_idx)
 }
 
 
-INT Lineq::selectLeadingColumn(INTMat const& coeff,
-                                  IN Vector<bool> const& is_noneg,
-                                  UINT rhs_part)
+INT Lineq::selectLeadingColumn(
+        INTMat const& coeff,
+        Vector<bool> const& is_noneg,
+        UINT rhs_part)
 {
     /* The selecting criteria include static/dynamic ordering,
     they are MaxIndex, MinIndex, MinCutoff, MaxCutoff, MixCutoff,
@@ -1387,9 +1390,11 @@ intersects all such columns in zeros, we omit the pair.
 'combined': record rows whose coefficient is positive and has been combined.
 'noneg': record nonegative columns. */
 bool Lineq::omit(INTMat const& coeff,
-                  UINT ncv, UINT pcv, UINT rhs_part,
-                  IN Vector<UINT> const& combined,
-                  IN Vector<UINT> const& noneg)
+                 UINT ncv, 
+                 UINT pcv, 
+                 UINT rhs_part,
+                 Vector<UINT> const& combined,
+                 Vector<UINT> const& noneg)
 {
     Vector<UINT> sczero; //record idx of single common zero columns.
     UINT sczero_count = 0;

@@ -234,17 +234,17 @@ template <class Mat, class T> class SIX : public Element<T> {
             IN OUT Vector<INT> & bv2eqmap,
             IN OUT Vector<INT> & eq2bvmap,
             INT rhs_idx);
-    void verify(IN Mat const& leq,
-                IN Mat const& eq,
-                IN Mat const& tgtf,
-                IN Mat const& vc,
+    void verify(Mat const& leq,
+                Mat const& eq,
+                Mat const& tgtf,
+                Mat const& vc,
                 INT rhs_idx);
     INT normalize(OUT Mat & newleq,
                   OUT Mat & newvc,
                   OUT INTMat & vcmap,
                   OUT Mat & newtgtf,
                   IN Mat & vc,
-                  IN Mat const& eq,
+                  Mat const& eq,
                   Mat const& leq,
                   Mat const& tgtf);
     bool constItermIsFeasible(Mat & newleq, INT rhs_idx);
@@ -259,7 +259,7 @@ public:
     void destroy();
     void set_param(UINT indent, UINT max_iter = 0xFFFFFFFF);
     bool verifyEmptyVariableConstrain(
-            IN Mat const& tgtf,
+            Mat const& tgtf,
             IN Mat & vc,
             Mat const& eq,
             Mat const& leq,
@@ -306,7 +306,7 @@ public:
             IN INTMat & vcmap,
             Mat const& orignal_tgtf,
             INT rhs_idx);
-    void convertEq2Ineq(OUT Mat & leq, IN Mat const& eq);
+    void convertEq2Ineq(OUT Mat & leq, Mat const& eq);
     bool calcSolution(
             IN OUT Mat & sol,
             Vector<bool> const& has_val,
@@ -454,7 +454,7 @@ bool SIX<Mat, T>::dump_pivoting(UINT status, UINT iter_count)
 template <class Mat, class T>
 bool SIX<Mat, T>::calcSolution(
         IN OUT Mat & sol,
-        IN Vector<bool> const& has_val,
+        Vector<bool> const& has_val,
         Mat const& eqc,
         INT rhs_idx)
 {
@@ -782,10 +782,10 @@ FIN:
 //'vc': variable constraint
 template <class Mat, class T>
 bool SIX<Mat, T>::is_feasible(
-        IN Mat const& sol,
+        Mat const& sol,
         IN Mat & lc,
         bool is_eqc,
-        IN Mat const& vc,
+        Mat const& vc,
         INT rhs_idx)
 {
     ASSERT(m_is_init, ("not yet initialize"));
@@ -1663,7 +1663,7 @@ template <class Mat, class T>
 UINT SIX<Mat, T>::minm(
         OUT T & minv,
         OUT Mat & sol,
-        IN Mat const& tgtf,
+        Mat const& tgtf,
         IN OUT Mat & vc,
         Mat const& eq,
         Mat const& leq,
@@ -2096,10 +2096,10 @@ template <class Mat, class T> class MIP : public Element<T> {
     UINT RecusivePart(
             OUT T & v,
             OUT Mat & sol,
-            IN Mat const& tgtf,
+            Mat const& tgtf,
             IN Mat & vc,
-            IN Mat const& eq,
-            IN Mat const& leq,
+            Mat const& eq,
+            Mat const& leq,
             INT rhs_idx,
             bool is_max,
             bool is_bin,
@@ -2109,10 +2109,10 @@ public:
     virtual ~MIP();
     void init();
     void destroy();
-    void verify(IN Mat const& leq,
-                IN Mat const& eq,
-                IN Mat const& tgtf,
-                IN Mat const& vc,
+    void verify(Mat const& leq,
+                Mat const& eq,
+                Mat const& tgtf,
+                Mat const& vc,
                 INT rhs_idx);
     virtual bool is_satisfying(
                 OUT UINT & row,

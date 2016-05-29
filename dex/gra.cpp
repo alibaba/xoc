@@ -3186,7 +3186,7 @@ priorities of each of life times:
 
     TO BE ESTIMATED:
         Longer life time has higher priority. */
-void BBRA::buildPrioList(IN List<LT*> const& lts, OUT List<LT*> & prios)
+void BBRA::buildPrioList(List<LT*> const& lts, OUT List<LT*> & prios)
 {
     C<LT*> * ct;
     for (LT * lt = lts.get_head(&ct); lt != NULL; lt = lts.get_next(&ct)) {

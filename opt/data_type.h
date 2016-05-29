@@ -475,13 +475,13 @@ public:
     }
 
     //Return DATA-Type according to given byte size.
-    DATA_TYPE get_uint_dtype(INT bytesize) const
+    DATA_TYPE get_uint_dtype(UINT bytesize) const
     { return get_int_dtype(bytesize * BIT_PER_BYTE, false); }
 
     //Return DATA-Type according to given bit size and sign.
     //If bitsize is not equal to 1, 8, 16, 32, 64, 128, this
     //function will return D_MC.
-    DATA_TYPE get_int_dtype(INT bitsize, bool is_signed) const
+    DATA_TYPE get_int_dtype(UINT bitsize, bool is_signed) const
     {
         switch (bitsize) {
         case 1: return D_B;
@@ -500,6 +500,20 @@ public:
     DATA_TYPE get_dtype(UINT bit_size, bool is_signed) const
     { return hoistBSdtype(bit_size, is_signed); }
 
+    //Return bits size of 'dtype' refers to.
+    UINT get_dtype_bitsize(DATA_TYPE dtype) const
+    {
+        ASSERT(dtype != D_MC, ("this is memory chunk"));
+        return TYDES_bitsize(&g_type_desc[dtype]);
+    }
+
+    //Return bits size of 'dtype' refers to.
+    CHAR const* get_dtype_name(DATA_TYPE dtype) const
+    {
+        ASSERT0(dtype < D_LAST);
+        return TYDES_name(&g_type_desc[dtype]);
+    }
+
     //Return byte size of a pointer.
     //e.g: 32bit processor return 4, 64bit processor return 8.
     UINT get_pointer_bytesize() const { return BYTE_PER_POINTER; }
@@ -514,20 +528,6 @@ public:
     {
         ASSERT0(type->is_pointer());
         return TY_ptr_base_size(type);
-    }
-
-    //Return bits size of 'dtype' refers to.
-    UINT get_dtype_bitsize(DATA_TYPE dtype) const
-    {
-        ASSERT(dtype != D_MC, ("this is memory chunk"));
-        return TYDES_bitsize(&g_type_desc[dtype]);
-    }
-
-    //Return bits size of 'dtype' refers to.
-    CHAR const* get_dtype_name(DATA_TYPE dtype) const
-    {
-        ASSERT0(dtype < D_LAST);
-        return TYDES_name(&g_type_desc[dtype]);
     }
 
     //Return bytes size of 'dtype' refer to.

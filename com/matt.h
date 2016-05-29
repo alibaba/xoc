@@ -357,12 +357,12 @@ public:
     void setg(UINT row, UINT col, T v);
     void set_all(T v); //Set all element to 'v'
     void set_row(UINT rows, T row[], INT num);
-    void set_row(UINT rows, IN Matrix<T> const& v);
+    void set_row(UINT rows, Matrix<T> const& v);
     void set_row(UINT rows, T v);
     void set_rows(UINT from, UINT to, Matrix<T> const& m, UINT mfrom);
     void set_rows(UINT from, UINT to, T v);
     void set_col(UINT cols, T col[], INT num);
-    void set_col(UINT cols, IN Matrix<T> const& v);
+    void set_col(UINT cols, Matrix<T> const& v);
     void set_col(UINT cols, T v);
     void set_cols(UINT from, UINT to, Matrix<T> const& m, UINT mfrom);
     void set_cols(UINT from, UINT to, T v);
@@ -372,10 +372,10 @@ public:
     void trans(); //Transpose
 
     //Solve system of equaions, 'this' is coeff matirx
-    bool sse(OUT Matrix<T> & x, IN Matrix<T> const& b);
+    bool sse(OUT Matrix<T> & x, Matrix<T> const& b);
 
     //Method of least squares
-    void mls(OUT Matrix<T> & x, IN Matrix<T> const& b);
+    void mls(OUT Matrix<T> & x, Matrix<T> const& b);
 
     //Allow operation as 'x=y=z'
     Matrix<T> & operator = (Matrix<T> const& m)
@@ -397,9 +397,9 @@ public:
     bool is_rowvec() const; //matrix is row vector
     bool is_colvec() const; //matrix is col vector
     bool is_rowequ(UINT row, T v) const; //row entry equals 'v'.
-    bool is_rowequ(UINT row, IN Matrix<T> const& m, UINT mrow) const;
+    bool is_rowequ(UINT row, Matrix<T> const& m, UINT mrow) const;
     bool is_colequ(UINT col, T v) const; //col entry equals 'v'.
-    bool is_colequ(UINT col, IN Matrix<T> const& m, UINT mcol) const;
+    bool is_colequ(UINT col, Matrix<T> const& m, UINT mcol) const;
     bool is_vec() const; //matrix is vector
     bool isLowTriangular() const;
     bool isAntiLowTriangular() const;
@@ -407,9 +407,9 @@ public:
     bool isAntiUpTriangular() const;
     //Add row 'from' to row 'to', then row 'to' be modified
     void addRowToRow(UINT from, UINT to);
-    void addRowToRow(IN Matrix<T> const& m, UINT mfrom, UINT to);
+    void addRowToRow(Matrix<T> const& m, UINT mfrom, UINT to);
     void addColumnToColumn(UINT from, UINT to);
-    void addColumnToColumn(IN Matrix<T> const& m, UINT mfrom, UINT to);
+    void addColumnToColumn(Matrix<T> const& m, UINT mfrom, UINT to);
 
     void mul(T v); //scalar multiplification
 
@@ -452,10 +452,10 @@ public:
     bool adj(Matrix<T> & m); //Calculate adjoint
 
     //Initialize diagonal entry to 'v'
-    void setdiag(IN Vector<T> const& v, UINT vlen);
+    void setdiag(Vector<T> const& v, UINT vlen);
 
     //Initialize diagonal entry to 'v'
-    void setdiag(IN Matrix<T> const& v);
+    void setdiag(Matrix<T> const& v);
 
     //Set 'v' to row vector by diagonal entry.
     void getdiag(OUT Matrix<T> & v);
@@ -468,21 +468,21 @@ public:
     void eig(OUT Matrix<T> & eigv); //Eigenvalues and eigenvectors
     void eig(OUT Matrix<T> & eigv, OUT Matrix<T> & eigx);
     void cross(IN Matrix<T> & v, OUT Matrix<T> & u); //vector product.
-    T dot(IN Matrix<T> const& v) const;
+    T dot(Matrix<T> const& v) const;
     T dot(UINT srow, UINT scol, UINT erow,
-            UINT ecol, IN Matrix<T> const& v) const;
+          UINT ecol, Matrix<T> const& v) const;
     T dot(UINT srow, UINT scol, UINT erow, UINT ecol,
-                IN Matrix<T> const& v, UINT vsrow, UINT vscol,
-                UINT verow, UINT vecol) const;
-    T dotrow(UINT row, IN Matrix<T> const& v) const;
-    T dotcol(UINT col, IN Matrix<T> const& v) const;
+          Matrix<T> const& v, UINT vsrow, UINT vscol,
+          UINT verow, UINT vecol) const;
+    T dotrow(UINT row, Matrix<T> const& v) const;
+    T dotcol(UINT col, Matrix<T> const& v) const;
     void insertRowBefore(UINT ridx);
     void insertRowsBefore(UINT ridx, UINT rnum);
-    void insertRowsBefore(UINT ridx, IN Matrix<T> const& m,
-                            UINT mfrom, UINT mto);
+    void insertRowsBefore(UINT ridx, Matrix<T> const& m,
+                          UINT mfrom, UINT mto);
     void insertColumnBefore(UINT cidx);
     void insertColumnsBefore(UINT cidx, UINT cnum);
-    void insertColumnsBefore(UINT cidx, IN Matrix<T> const& m,
+    void insertColumnsBefore(UINT cidx, Matrix<T> const& m,
                              UINT mfrom, UINT mto);
 
     //Get inner matrix
@@ -516,7 +516,7 @@ public:
                     //if it has numberical error.
 
     //Computation of projection of vector 'v' in row space of 'this'.
-    void proj(OUT Matrix<T> & proj, IN Matrix<T> const& p);
+    void proj(OUT Matrix<T> & proj, Matrix<T> const& p);
 
     //Stranger value decomposition.
     bool svd(OUT Matrix<T> & u, OUT Matrix<T> & s, OUT Matrix<T> & eigx);
@@ -2371,7 +2371,7 @@ bool Matrix<T>::is_rowequ(UINT row, T v) const
 
 
 template <class T>
-bool Matrix<T>::is_rowequ(UINT row, IN Matrix<T> const& m, UINT mrow) const
+bool Matrix<T>::is_rowequ(UINT row, Matrix<T> const& m, UINT mrow) const
 {
     ASSERT(m_is_init, ("not yet initialize."));
     ASSERT(row < m_row_size &&
@@ -2401,7 +2401,7 @@ bool Matrix<T>::is_colequ(UINT col, T v) const
 
 
 template <class T>
-bool Matrix<T>::is_colequ(UINT col, IN Matrix<T> const& m, UINT mcol) const
+bool Matrix<T>::is_colequ(UINT col, Matrix<T> const& m, UINT mcol) const
 {
     ASSERT(m_is_init, ("not yet initialize."));
     ASSERT(col < m_col_size &&
@@ -2807,8 +2807,11 @@ void Matrix<T>::insertRowsBefore(UINT ridx, UINT rnum)
 //Insert rows before 'ridx' which rows copy from matrix 'm'
 //from 'from' to 'to'.
 template <class T>
-void Matrix<T>::insertRowsBefore(UINT ridx, IN Matrix<T> const& m,
-                                   UINT mfrom, UINT mto)
+void Matrix<T>::insertRowsBefore(
+        UINT ridx, 
+        Matrix<T> const& m,
+        UINT mfrom, 
+        UINT mto)
 {
     ASSERT(m_is_init && m.m_is_init, ("not yet initialize."));
     ASSERT(ridx < m_row_size && m_row_size > 0 &&
@@ -2877,8 +2880,11 @@ void Matrix<T>::insertColumnsBefore(UINT cidx, UINT cnum)
 //Inserting columns before 'cidx' which columns copy from matrix 'm'
 //from 'from' to 'to'.
 template <class T>
-void Matrix<T>::insertColumnsBefore(UINT cidx, IN Matrix<T> const& m,
-                                   UINT mfrom, UINT mto)
+void Matrix<T>::insertColumnsBefore(
+        UINT cidx, 
+        Matrix<T> const& m,
+        UINT mfrom, 
+        UINT mto)
 {
     ASSERT(m_is_init && m.m_is_init, ("not yet initialize."));
     ASSERT(cidx < m_col_size && m_col_size > 0 &&
@@ -3216,7 +3222,7 @@ bool Matrix<T>::pqr(Matrix<T> & p, Matrix<T> & q, Matrix<T> & r)
 
 //Compute Dot Product between referred 'row' and 'v'.
 template <class T>
-T Matrix<T>::dotrow(UINT row, IN Matrix<T> const& v) const
+T Matrix<T>::dotrow(UINT row, Matrix<T> const& v) const
 {
     ASSERT(m_is_init, ("not yet initialize."));
     ASSERT(v.is_vec() && v.size() == m_col_size, ("not a vector."));
@@ -3226,7 +3232,7 @@ T Matrix<T>::dotrow(UINT row, IN Matrix<T> const& v) const
 
 //Compute Dot Product between referred 'col' and 'v'.
 template <class T>
-T Matrix<T>::dotcol(UINT col, IN Matrix<T> const& v) const
+T Matrix<T>::dotcol(UINT col, Matrix<T> const& v) const
 {
     ASSERT(m_is_init, ("not yet initialize."));
     ASSERT(v.is_vec() && v.size() == m_row_size, ("not a vector."));
@@ -3237,7 +3243,7 @@ T Matrix<T>::dotcol(UINT col, IN Matrix<T> const& v) const
 //Compute Dot Product.
 //v: v must be a row/col vector.
 template <class T>
-T Matrix<T>::dot(IN Matrix<T> const& v) const
+T Matrix<T>::dot(Matrix<T> const& v) const
 {
     ASSERT(m_is_init, ("not yet initialize."));
     ASSERT(size() == v.size(), ("not a vector."));
@@ -3286,7 +3292,8 @@ T Matrix<T>::dot(IN Matrix<T> const& v) const
 NOTICE: 'srow, scol, erow, ecol'  must express one vector. */
 template <class T>
 T Matrix<T>::dot(UINT srow, UINT scol,
-                 UINT erow, UINT ecol, IN Matrix<T> const& v) const
+                 UINT erow, UINT ecol, 
+                 Matrix<T> const& v) const
 {
     ASSERT(m_is_init, ("not yet initialize."));
     ASSERT(srow <= erow && scol <= ecol &&
@@ -3334,8 +3341,8 @@ srow: starting row, scol:starting column, erow:end row, ecol:end column.
 'v': v must be a row/col vector. */
 template <class T>
 T Matrix<T>::dot(UINT srow, UINT scol, UINT erow, UINT ecol,
-                IN Matrix<T> const& v, UINT vsrow, UINT vscol,
-                UINT verow, UINT vecol) const
+                 Matrix<T> const& v, UINT vsrow, UINT vscol,
+                 UINT verow, UINT vecol) const
 {
     ASSERT(m_is_init, ("not yet initialize."));
     ASSERT(srow <= erow &&
@@ -3526,7 +3533,7 @@ void Matrix<T>::orth(OUT Matrix<T> & z)
 
 NOTICE: A is row convention, and each column indicate  the unknown. */
 template <class T>
-void Matrix<T>::mls(OUT Matrix<T> & x, IN Matrix<T> const& b)
+void Matrix<T>::mls(OUT Matrix<T> & x, Matrix<T> const& b)
 {
     //Method of least squares: trans(A)*A*x = trans(A)*b
     Matrix<T> A = *this;
@@ -3562,7 +3569,7 @@ NOTICE:
     2. A is row convention, and each column indicate the unknown.
     3.If 'this' is singular, compute the general solution utilize null(). */
 template <class T>
-bool Matrix<T>::sse(OUT Matrix<T> & x, IN Matrix<T> const& b)
+bool Matrix<T>::sse(OUT Matrix<T> & x, Matrix<T> const& b)
 {
     ASSERT(m_is_init, ("not yet initialize."));
     ASSERT(m_row_size == b.m_row_size, ("unmatch format"));
@@ -3775,7 +3782,7 @@ void Matrix<T>::eig(OUT Matrix<T> & eigv, OUT Matrix<T> & eigx)
 NOITCE: 1. each row of 'this' must be orthogonal base of one space.
         2. 'this' uses row convention. */
 template <class T>
-void Matrix<T>::proj(OUT Matrix<T> & p, IN Matrix<T> const& v)
+void Matrix<T>::proj(OUT Matrix<T> & p, Matrix<T> const& v)
 {
     ASSERT(m_is_init, ("not yet initialize."));
     ASSERT(is_orth(), ("need orthogonal"));

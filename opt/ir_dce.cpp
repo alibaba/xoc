@@ -42,8 +42,8 @@ namespace xoc {
 //
 //START IR_DCE
 //
-void IR_DCE::dump(IN EFFECT_STMT const& is_stmt_effect,
-                  IN BitSet const& is_bb_effect,
+void IR_DCE::dump(EFFECT_STMT const& is_stmt_effect,
+                  BitSet const& is_bb_effect,
                   IN Vector<Vector<IR*>*> & all_ir)
 {
     if (g_tfile == NULL) return;

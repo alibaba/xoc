@@ -278,8 +278,8 @@ public:
     virtual void findTargetBBOfIndirectBranch(XR const*, OUT List<BB*> &) = 0;
 
     UINT get_loop_num() const { return m_li_count - 1; }
-    void get_preds(IN OUT List<BB*> & preds, IN BB const* v);
-    void get_succs(IN OUT List<BB*> & succs, IN BB const* v);
+    void get_preds(IN OUT List<BB*> & preds, BB const* v);
+    void get_succs(IN OUT List<BB*> & succs, BB const* v);
     BB * get_entry() { return m_entry; }
     List<BB*> * get_exit_list() { return &m_exit_list; }
     List<BB*> * get_bblist_in_rpo() { return &m_rpo_bblst; }
@@ -1138,7 +1138,7 @@ void CFG<BB, XR>::chainPredAndSucc(UINT vid, bool is_single_pred_succ)
 
 //Return all successors.
 template <class BB, class XR>
-void CFG<BB, XR>::get_succs(IN OUT List<BB*> & succs, IN BB const* v)
+void CFG<BB, XR>::get_succs(IN OUT List<BB*> & succs, BB const* v)
 {
     ASSERT0(v);
     Vertex * vex = get_vertex(v->id);
@@ -1154,7 +1154,7 @@ void CFG<BB, XR>::get_succs(IN OUT List<BB*> & succs, IN BB const* v)
 
 //Return all predecessors.
 template <class BB, class XR>
-void CFG<BB, XR>::get_preds(IN OUT List<BB*> & preds, IN BB const* v)
+void CFG<BB, XR>::get_preds(IN OUT List<BB*> & preds, BB const* v)
 {
     ASSERT0(v);
     Vertex * vex = get_vertex(v->id);

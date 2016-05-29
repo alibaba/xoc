@@ -385,7 +385,7 @@ UINT TypeMgr::get_bytesize(Type const* type) const
 }
 
 
-CHAR * TypeMgr::dump_type(IN Type const* type, OUT CHAR * buf)
+CHAR * TypeMgr::dump_type(Type const* type, OUT CHAR * buf)
 {
     ASSERT0(type);
     CHAR * p = buf;

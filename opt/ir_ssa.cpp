@@ -173,7 +173,7 @@ SSAGraph::SSAGraph(Region * ru, IR_SSA_MGR * ssamgr)
 }
 
 
-void SSAGraph::dump(IN CHAR const* name, bool detail)
+void SSAGraph::dump(CHAR const* name, bool detail)
 {
     if (name == NULL) {
         name = "graph_ssa_graph.vcg";

@@ -350,7 +350,7 @@ protected:
                         bool always_consider_glt);
     void processExitBB(IN OUT List<LT*> * liveout_exitbb,
                               IN OUT BitSet & lived_lt,
-                              IN BitSet const& retval_regset, UINT pos);
+                              BitSet const& retval_regset, UINT pos);
     void processUse(IN IR * ir, ConstIRIter & cii, INT pos,
                      OUT BitSet & lived_lt, bool group_part);
     void processResult(IN IR * ir, INT pos, OUT BitSet & lived_lt,
@@ -785,7 +785,7 @@ protected:
 public:
     BBRA(IRBB * bb, RA * ra);
     ~BBRA() {}
-    void buildPrioList(IN List<LT*> const& lts, OUT List<LT*> & prios);
+    void buildPrioList(List<LT*> const& lts, OUT List<LT*> & prios);
     float computePrio(LT const* lt);
     void rename();
     bool assignRegister(LT * l, List<UINT> & nis);

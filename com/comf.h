@@ -297,7 +297,7 @@ bool xstrcmp(CHAR const* p1, CHAR const* p2, INT n);
 //'stack_start': point to the first args.
 CHAR * xsprintf(IN OUT CHAR * buf,
                 UINT buflen,
-                IN CHAR const* format,
+                CHAR const* format,
                 ...);
 
 //Convert a string into long integer.

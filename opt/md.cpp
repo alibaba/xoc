@@ -191,7 +191,7 @@ void MDSet::bunion(MD const* md, DefMiscBitSetMgr & mbsmgr)
 
 //Return true current set is equivalent to mds, and every element
 //in set is exact.
-bool MDSet::is_exact_equal(IN MDSet const& mds, MDSystem * ms) const
+bool MDSet::is_exact_equal(MDSet const& mds, MDSystem * ms) const
 {
     ASSERT0(ms);
     UINT count = 0;

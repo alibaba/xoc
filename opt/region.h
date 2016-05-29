@@ -386,12 +386,11 @@ public:
     IR * dupIRTree(IR const* ir);
     IR * dupIRTreeList(IR const* ir);
 
-    void dump_all_ir();
+    void dumpAllocatedIR();
     void dumpVARInRegion();
-    void dump_var_md(VAR * v, UINT indent);
-    void dump_free_tab();
-    void dump_mem_usage();
-    void dump_bb_usage(FILE * h);
+    void dumpVarMD(VAR * v, UINT indent);
+    void dumpFreeTab();
+    void dumpMemUsage();
     void dump(bool dump_inner_region);
 
     void freeIR(IR * ir);
@@ -627,7 +626,7 @@ public:
     inline Type const* getTargetMachineArrayIndexType()
     {
         return get_type_mgr()->getSimplexTypeEx(get_type_mgr()->
-                    get_uint_dtype(WORD_LENGTH_OF_TARGET_MACHINE));
+                    get_dtype(WORD_LENGTH_OF_TARGET_MACHINE, false));
     }
 
     //Perform high level optmizations.
@@ -816,7 +815,7 @@ public:
 
     //Check and rescan call list of region if one of elements in list changed.
     void updateCallAndReturnList(bool scan_inner_region);
-
+    
     bool verifyBBlist(BBList & bbl);
     bool verifyIRinRegion();
     bool verifyRPO(OptCtx & oc);

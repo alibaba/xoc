@@ -304,13 +304,13 @@ void IR_EXPR_TAB::remove_occs(IR * ir)
     case IR_IGOTO:
         ASSERT0(IGOTO_vexp(ir));
         if (!IGOTO_vexp(ir)->is_const()) {
-            this->remove_occ(IGOTO_vexp(ir));
+            remove_occ(IGOTO_vexp(ir));
         }
         break;
     case IR_RETURN:
         if (RET_exp(ir) != NULL) {
             if (!RET_exp(ir)->is_const()) {
-                this->remove_occ(RET_exp(ir));
+                remove_occ(RET_exp(ir));
             }
         }
         break;

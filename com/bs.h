@@ -104,7 +104,7 @@ public:
     void copy(BitSet const& src);
     void clean();
     UINT count_mem() const { return get_byte_size() + sizeof(BitSet); }
-    void complement(IN BitSet const& univers);
+    void complement(BitSet const& univers);
 
     void diff(UINT elem);
     void diff(BitSet const& bs);
@@ -170,7 +170,7 @@ public:
     void diff(BitSet const& bs);
     void copy(BitSet const& src);
     void clean();
-    void complement(IN BitSet const& univers);
+    void complement(BitSet const& univers);
     void alloc(UINT size);
     void bunion(BitSet const& bs);
     void bunion(UINT elem);
@@ -548,14 +548,14 @@ extern inline BitSet * bs_create(BitSetMgr & bs_mgr)
 {
     return bs_mgr.create();
 }
-extern BitSet * bs_union(IN BitSet const& set1,
-                         IN BitSet const& set2,
+extern BitSet * bs_union(BitSet const& set1,
+                         BitSet const& set2,
                          OUT BitSet & res);
-extern BitSet * bs_diff(IN BitSet const& set1,
-                        IN BitSet const& set2,
+extern BitSet * bs_diff(BitSet const& set1,
+                        BitSet const& set2,
                         OUT BitSet & res);
-extern BitSet * bs_intersect(IN BitSet const& set1,
-                             IN BitSet const& set2,
+extern BitSet * bs_intersect(BitSet const& set1,
+                             BitSet const& set2,
                              OUT BitSet & res);
 } //namespace xcom
 #endif

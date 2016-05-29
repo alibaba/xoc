@@ -95,7 +95,8 @@ protected:
 
 public:
     explicit RegionMgr() : m_sym_tab(0)
-    {
+    {    
+        ASSERT0(verifyPreDefinedInfo());
         m_ru_count = 1;
         m_label_count = 1;
         m_var_mgr = NULL;
@@ -171,6 +172,8 @@ public:
     //Process top-level region unit.
     //Top level region unit should be program unit.
     virtual void processProgramRegion(IN Region * program);
+
+    bool verifyPreDefinedInfo();
 };
 //END RegionMgr
 

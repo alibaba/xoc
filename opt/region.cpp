@@ -36,6 +36,75 @@ author: Su Zhenyu
 
 namespace xoc {
 
+static bool checkLogicalOp(IR_TYPE irt, Type const* type, TypeMgr * tm)
+{
+    switch (irt) {    
+    case IR_LT:
+    case IR_LE:
+    case IR_GT:
+    case IR_GE:
+    case IR_EQ:
+    case IR_NE:
+    case IR_LAND:
+    case IR_LOR:
+        ASSERT0(type == tm->getBool());
+        break;
+    default:;
+    }
+    return true;
+}
+
+
+#ifdef _DEBUG_
+static bool is_reduction(IR const* ir)
+{
+    ASSERT0(ir->is_stmt());
+    if (!ir->is_st() && !ir->is_stpr()) { return false; }
+    IR * rhs = ir->get_rhs();
+
+    //Make sure self modify stmt is monotonic.
+    if (!rhs->is_add() && !rhs->is_sub()) {
+        //TODO: support more reduction operation.
+        return false;
+    }
+
+    IR * op0 = BIN_opnd0(rhs);
+    IR * op1 = BIN_opnd1(rhs);
+
+    if (op0->is_const() && !op1->is_const()) {
+
+        IR * t = op0;
+        op0 = op1;
+        op1 = t;
+    } else if ((!op0->is_const() && !op1->is_const()) ||
+               (op0->is_const() && op1->is_const())) {
+        return false;
+    }
+
+    ASSERT0(!op0->is_const() && op1->is_const());
+
+    if (ir->is_st()) {
+
+        if (!op0->is_ld()) { return false; }
+        if (LD_idinfo(op0) != ST_idinfo(ir)) { return false; }
+        if (LD_ofst(op0) != ST_ofst(ir)) { return false; }
+    } else if (ir->is_stpr()) {
+
+        if (!op0->is_pr()) { return false; }
+        if (PR_no(op0) != STPR_no(ir)) { return false; }
+    }
+
+    if (!g_is_support_dynamic_type) {
+        if (!op1->is_int() && !op1->is_fp()) {
+            return false;
+        }
+    }
+
+    return true;
+}
+#endif
+
+
 //
 //START AnalysisInstrument
 //
@@ -536,6 +605,7 @@ IR * Region::buildIcall(
 IR * Region::buildRegion(Region * ru)
 {
     ASSERT0(ru && !ru->is_undef());
+    ASSERT(ru->get_ru_var(), ("region should bond with a variable"));
     IR * ir = allocIR(IR_REGION);
     IR_dt(ir) = get_type_mgr()->getVoid();
     REGION_ru(ir) = ru;
@@ -947,56 +1017,6 @@ IR * Region::buildCase(IR * casev_exp, LabelInfo const* jump_lab)
 }
 
 
-#ifdef _DEBUG_
-static bool is_reduction(IR const* ir)
-{
-    ASSERT0(ir->is_stmt());
-    if (!ir->is_st() && !ir->is_stpr()) { return false; }
-    IR * rhs = ir->get_rhs();
-
-    //Make sure self modify stmt is monotonic.
-    if (!rhs->is_add() && !rhs->is_sub()) {
-        //TODO: support more reduction operation.
-        return false;
-    }
-
-    IR * op0 = BIN_opnd0(rhs);
-    IR * op1 = BIN_opnd1(rhs);
-
-    if (op0->is_const() && !op1->is_const()) {
-
-        IR * t = op0;
-        op0 = op1;
-        op1 = t;
-    } else if ((!op0->is_const() && !op1->is_const()) ||
-               (op0->is_const() && op1->is_const())) {
-        return false;
-    }
-
-    ASSERT0(!op0->is_const() && op1->is_const());
-
-    if (ir->is_st()) {
-
-        if (!op0->is_ld()) { return false; }
-        if (LD_idinfo(op0) != ST_idinfo(ir)) { return false; }
-        if (LD_ofst(op0) != ST_ofst(ir)) { return false; }
-    } else if (ir->is_stpr()) {
-
-        if (!op0->is_pr()) { return false; }
-        if (PR_no(op0) != STPR_no(ir)) { return false; }
-    }
-
-    if (!g_is_support_dynamic_type) {
-        if (!op1->is_int() && !op1->is_fp()) {
-            return false;
-        }
-    }
-
-    return true;
-}
-#endif
-
-
 //Build Do Loop stmt.
 //'det': determinate expression.
 //'loop_body': stmt list.
@@ -1203,21 +1223,21 @@ IR * Region::buildImmInt(HOST_INT v, Type const* type)
 }
 
 
-//Build IR_ADD operation.
-//The expression indicates a pointer arithmetic.
-//For pointer arithemtic, the addend of pointer must be
+//The function will check and build pointer arithmetic operation.
+//To build pointer arithemtic, the addend of pointer must be
 //product of the pointer-base-size and rchild if lchild is pointer.
 IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
 {
     ASSERT0(lchild && rchild);
     if (!lchild->is_ptr() && rchild->is_ptr()) {
-        ASSERT0(irt == IR_ADD ||
-                irt == IR_MUL ||
-                irt == IR_XOR ||
-                irt == IR_BAND ||
-                irt == IR_BOR ||
-                irt == IR_EQ ||
-                irt == IR_NE);
+        ASSERT(irt == IR_ADD ||
+               irt == IR_MUL ||
+               irt == IR_XOR ||
+               irt == IR_BAND ||
+               irt == IR_BOR ||
+               irt == IR_EQ ||
+               irt == IR_NE, ("illegal pointer operation"));
+        ASSERT(lchild->is_int() || lchild->is_mc(), ("illegal pointer addend"));
         return buildPointerOp(irt, rchild, lchild);
     }
 
@@ -1226,12 +1246,13 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
     UNUSED(d1);
     if (lchild->is_ptr() && rchild->is_ptr()) {
         //CASE: Pointer substraction.
-        //    char *p, *q;
-        //    p-q => t1=p-q, t2=t1/4, return t2
+        //  char *p, *q;
+        //  p-q => t1=p-q, t2=t1/4, return t2
         switch (irt) {
         case IR_SUB:
             {
                 TypeMgr * dm = get_type_mgr();
+                
                 //Result is not pointer type.
                 ASSERT0(TY_ptr_base_size(d0) > 0);
                 ASSERT0(TY_ptr_base_size(d0) == TY_ptr_base_size(d1));
@@ -1244,9 +1265,9 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
                     IR * div = allocIR(IR_DIV);
                     BIN_opnd0(div) = ret;
                     BIN_opnd1(div) = buildImmInt(TY_ptr_base_size(d0),
-                                                  IR_dt(ret));
+                                                 ret->get_type());
                     IR_dt(div) = dm->getSimplexTypeEx(
-                                        dm->get_dtype(WORD_BITSIZE, true));
+                                     dm->get_dtype(WORD_BITSIZE, true));
                     ret = div;
                 }
 
@@ -1276,9 +1297,9 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
     } else if (lchild->is_ptr() && !rchild->is_ptr()) {
         //Result is pointer type.
         //CASE:
-        //    int * p;
-        //    p + 4 => t1 = p + (4 * sizeof(BASE_TYPE_OF(p)))
-        //    p - 4 => t1 = p - (4 * sizeof(BASE_TYPE_OF(p)))
+        //  int * p;
+        //  p + 4 => t1 = p + (4 * sizeof(BASE_TYPE_OF(p)))
+        //  p - 4 => t1 = p - (4 * sizeof(BASE_TYPE_OF(p)))
         switch (irt) {
         case IR_ADD:
         case IR_SUB:
@@ -1292,7 +1313,7 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
                                                 rchild->get_type());
                 IR_dt(addend) = rchild->get_type();
 
-                  IR * ret = allocIR(irt); //ADD or SUB
+                IR * ret = allocIR(irt); //ADD or SUB
                 BIN_opnd0(ret) = lchild; //lchild is pointer.
                 BIN_opnd1(ret) = addend; //addend is not pointer.
 
@@ -1309,7 +1330,8 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
                 ASSERT0(irt == IR_LT || irt == IR_LE ||
                         irt == IR_GT || irt == IR_GE ||
                         irt == IR_EQ || irt == IR_NE);
-                //Pointer operation will incur undefined behavior.
+                
+                //Pointer operation may give rise to undefined behavior.
                 IR * ret = allocIR(irt);
                 BIN_opnd0(ret) = lchild;
                 BIN_opnd1(ret) = rchild;
@@ -1320,15 +1342,16 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
             }
         }
     }
-    ASSERT(0, ("can not get here."));
+
+    UNREACH();
     return NULL; //just ceases warning.
 }
 
 
-//Helper function.
-//Det-expression should be a relation-operation,
-//so we create a node comparing with ZERO by NE node.
+//This function build operation that comparing with 0 by NE node.
 //e.g: output is (exp != 0).
+//This function always used as helper function to convient to
+//generate det-expression if it is not relational/logical.
 IR * Region::buildJudge(IR * exp)
 {
     ASSERT0(!exp->is_judge());
@@ -1337,10 +1360,12 @@ IR * Region::buildJudge(IR * exp)
     if (exp->is_ptr()) {
         type = dm->getSimplexTypeEx(dm->getPointerSizeDtype());
     }
+    
     if (!type->is_fp() && !type->is_int() && !type->is_mc()) {
 
         type = dm->getI32();
     }
+    
     return buildCmp(IR_NE, exp, buildImmInt(0, type));
 }
 
@@ -1353,11 +1378,13 @@ IR * Region::buildCmp(IR_TYPE irt, IR * lchild, IR * rchild)
             irt == IR_GT || irt == IR_GE ||
             irt == IR_NE || irt == IR_EQ);
     ASSERT0(lchild && rchild && lchild->is_exp() && rchild->is_exp());
+    
     if (lchild->is_const() &&
         !rchild->is_const() &&
         (irt == IR_EQ || irt == IR_NE)) {
         return buildCmp(irt, rchild, lchild);
     }
+    
     IR * ir = allocIR(irt);
     BIN_opnd0(ir) = lchild;
     BIN_opnd1(ir) = rchild;
@@ -1382,34 +1409,7 @@ IR * Region::buildUnaryOp(IR_TYPE irt, Type const* type, IN IR * opnd)
 }
 
 
-#ifdef _DEBUG_
-static bool checkLogical(
-        IR_TYPE irt,
-        Type const* type,
-        IR * lchild,
-        IR * rchild)
-{
-    UNUSED(lchild);
-    UNUSED(rchild);
-    switch (irt) {
-    case IR_LT:
-    case IR_LE:
-    case IR_GT:
-    case IR_GE:
-    case IR_EQ:
-    case IR_NE:
-    case IR_LAND:
-    case IR_LOR:
-        ASSERT0(type->is_bool());
-        break;
-    default:;
-    }
-    return true;
-}
-#endif
-
-
-//Build binary op without considering pointer arith.
+//Build binary operation without considering pointer arithmetic.
 IR * Region::buildBinaryOpSimp(
         IR_TYPE irt,
         Type const* type,
@@ -1417,8 +1417,21 @@ IR * Region::buildBinaryOpSimp(
         IR * rchild)
 {
     ASSERT0(type);
+
+    if (lchild->is_const() && !rchild->is_const() &&
+        (irt == IR_ADD ||
+         irt == IR_MUL ||
+         irt == IR_XOR ||
+         irt == IR_BAND ||
+         irt == IR_BOR ||
+         irt == IR_EQ ||
+         irt == IR_NE)) {
+        //Swap operands.
+        return buildBinaryOpSimp(irt, type, rchild, lchild);
+    }
+    
     ASSERT0(lchild && rchild && lchild->is_exp() && rchild->is_exp());
-    ASSERT0(checkLogical(irt, type, lchild, rchild));
+    ASSERT0(checkLogicalOp(irt, type, get_type_mgr()));
     IR * ir = allocIR(irt);
     BIN_opnd0(ir) = lchild;
     BIN_opnd1(ir) = rchild;
@@ -1430,7 +1443,8 @@ IR * Region::buildBinaryOpSimp(
 
 
 //Build binary operation.
-//'mc_size': record the memory-chunk size if rtype is D_MC, or else is 0.
+//If rchild/lchild is pointer, the function will attemp to generate pointer
+//arithmetic operation instead of normal binary operation.
 IR * Region::buildBinaryOp(
         IR_TYPE irt,
         Type const* type,
@@ -1438,30 +1452,22 @@ IR * Region::buildBinaryOp(
         IR * rchild)
 {
     ASSERT0(type);
+    ASSERT0(checkLogicalOp(irt, type, get_type_mgr()));
     ASSERT0(lchild && rchild && lchild->is_exp() && rchild->is_exp());
     if (lchild->is_ptr() || rchild->is_ptr()) {
         return buildPointerOp(irt, lchild, rchild);
     }
 
-    if (lchild->is_const() &&
-        !rchild->is_const() &&
-        (irt == IR_ADD ||
-         irt == IR_MUL ||
-         irt == IR_XOR ||
-         irt == IR_BAND ||
-         irt == IR_BOR ||
-         irt == IR_EQ ||
-         irt == IR_NE)) {
-        return buildBinaryOp(irt, type, rchild, lchild);
-    }
-
+    #ifdef _DEBUG_
     //Both lchild and rchild are NOT pointer.
     //Generic binary operation.
     if (type->is_mc()) {
+        //mc_size records the memory-chunk size if rtype is D_MC, or else is 0.
         ASSERT(TY_mc_size(type) != 0, ("Size of memory chunck can not be 0"));
         ASSERT0(TY_mc_size(type) == lchild->get_dtype_size(get_type_mgr()) &&
                 TY_mc_size(type) == rchild->get_dtype_size(get_type_mgr()));
     }
+    #endif
 
     return buildBinaryOpSimp(irt, type, lchild, rchild);
 }
@@ -1838,7 +1844,13 @@ Region * Region::get_func_unit()
 
 CHAR const* Region::get_ru_name() const
 {
-    return SYM_name(VAR_name(m_var));
+    if (get_ru_var() != NULL) {
+        ASSERT0(get_ru_var()->get_name());
+        return SYM_name(get_ru_var()->get_name());
+    }
+
+    //Miss region variable.
+    return NULL;
 }
 
 
@@ -1951,7 +1963,7 @@ IR_AA * Region::allocAliasAnalysis()
 }
 
 
-void Region::dump_free_tab()
+void Region::dumpFreeTab()
 {
     if (g_tfile == NULL) { return; }
     fprintf(g_tfile, "\n==-- DUMP Region Free Table --==");
@@ -2338,21 +2350,8 @@ void Region::prescan(IR const* ir)
 }
 
 
-void Region::dump_bb_usage(FILE * h)
-{
-    if (h == NULL) { return; }
-    BBList * bbl = get_bb_list();
-    if (bbl == NULL) { return; }
-    fprintf(h, "\nTotal BB num: %d", bbl->get_elem_count());
-    for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
-        fprintf(h, "\nBB%d: irnum%d", BB_id(bb), bb->getNumOfIR());
-    }
-    fflush(h);
-}
-
-
 //Dump IR and memory usage.
-void Region::dump_mem_usage()
+void Region::dumpMemUsage()
 {
     if (g_tfile == NULL) { return; }
 
@@ -2362,7 +2361,7 @@ void Region::dump_mem_usage()
     else if (count < 1024 * 1024) { count /= 1024; str = "KB"; }
     else if (count < 1024 * 1024 * 1024) { count /= 1024 * 1024; str = "MB"; }    
     else { count /= 1024 * 1024 * 1024; str = "GB"; }
-    
+
     note("\n'%s' use %lu%s memory", get_ru_name(), count, str);
     Vector<IR*> * v = get_ir_vec();
     float nid = 0.0;
@@ -2426,7 +2425,7 @@ void Region::dump(bool dump_inner_region)
         ru_mayuse->dump(get_md_sys(), true);
     }
 
-    dump_mem_usage();
+    dumpMemUsage();
 
     IR * irlst = get_ir_list();
     if (irlst != NULL) {
@@ -2444,7 +2443,7 @@ void Region::dump(bool dump_inner_region)
 
 
 //Dump all irs and ordering by IR_id.
-void Region::dump_all_ir()
+void Region::dumpAllocatedIR()
 {
     if (g_tfile == NULL) return;
     note("\n==---- DUMP ALL IR INFO ----==");
@@ -2611,7 +2610,7 @@ bool Region::verifyBBlist(BBList & bbl)
 
 
 //Dump all MD that related to VAR.
-void Region::dump_var_md(VAR * v, UINT indent)
+void Region::dumpVarMD(VAR * v, UINT indent)
 {
     CHAR buf[4096];
     buf[0] = 0;
@@ -2648,12 +2647,17 @@ void Region::dumpVARInRegion()
 {
     if (g_tfile == NULL) { return; }
 
-    //Dump Region name.
-    note("\n==---- REGION(%d):%s:", REGION_id(this), get_ru_name());
     static CHAR buf[8192]; //Is it too large?
-    buf[0] = 0;
-    m_var->dumpVARDecl(buf, 100);
-    fprintf(g_tfile, "%s ----==", buf);
+    
+    //Dump Region name.
+    if (get_ru_var() != NULL) {
+        note("\n==---- REGION(%d):%s:", REGION_id(this), get_ru_name());
+        buf[0] = 0;
+        get_ru_var()->dumpVARDecl(buf, 100);
+        fprintf(g_tfile, "%s ----==", buf);
+    } else {
+        note("\n==---- REGION(%d): ----==", REGION_id(this));
+    }
 
     //Dump formal parameter list.
     if (is_function()) {
@@ -2696,7 +2700,7 @@ void Region::dumpVARInRegion()
                 note("\n%s", buf);
                 fprintf(g_tfile, " param%d", i);
                 fflush(g_tfile);
-                dump_var_md(v, g_indent);
+                dumpVarMD(v, g_indent);
                 g_indent -= 2;                
             }
         }
@@ -2714,7 +2718,7 @@ void Region::dumpVARInRegion()
             note("\n%s", buf);
             fflush(g_tfile);
             g_indent += 2;
-            dump_var_md(v, g_indent);
+            dumpVarMD(v, g_indent);
             g_indent -= 2;
         }
         g_indent -= 2;
@@ -3043,6 +3047,7 @@ void Region::processIRList(OptCtx & oc)
 void Region::process()
 {
     ASSERT0(verifyIRinRegion());
+    
     note("\nREGION_NAME:%s", get_ru_name());
 
     OptCtx oc;
