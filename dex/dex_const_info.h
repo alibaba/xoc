@@ -42,11 +42,9 @@ author: Su Zhenyu
 #define HOST_UINT LONGLONG
 #define HOST_FP double
 
-
 //If the number of OR of one BB is larger than following value,
 //all local optimizations are disabled.
 #define MAX_OR_BB_OPT_BB_LEN    1000
-
 
 //Define machine word/half-word/byte/bit size
 #define BIT_PER_BYTE            8
@@ -59,20 +57,19 @@ author: Su Zhenyu
 #define BYTE_PER_DOUBLE         8
 #define BYTE_PER_ENUM           4
 #define BYTE_PER_POINTER        4
-#define GENERAL_REGISTER_SIZE (BYTE_PER_POINTER)
-#define WORD_LENGTH_OF_TARGET_MACHINE GENERAL_REGISTER_SIZE
+#define GENERAL_REGISTER_SIZE   (BYTE_PER_POINTER)
 
-//Define target machine integer register byte size.
-#if WORD_LENGTH_OF_TARGET_MACHINE == 4
-#define TMWORD UINT
-#elif WORD_LENGTH_OF_TARGET_MACHINE == 8
-#define TMWORD ULONGLONG
-#else
-#error need to define TMWORD
-#endif
+//Bit size of word length of host machine.
+#define WORD_LENGTH_OF_HOST_MACHINE    (sizeof(HOST_UINT) * HOST_BIT_PER_BYTE)
+
+//Bit size of word length of target machine.
+#define WORD_LENGTH_OF_TARGET_MACHINE  (GENERAL_REGISTER_SIZE * BIT_PER_BYTE)
+
+//Represent target machine word with host type.
+#define TMWORD                           UINT
 
 //Bit size of word lenght of host machine.
-#define WORD_LENGTH_OF_HOST_MACHINE      32
+#define WORD_LENGTH_OF_HOST_MACHINE      64
 
 //Target machine relatived heap memory allocate function name
 #define MALLOC_NAME                       "malloc"
@@ -81,30 +78,31 @@ author: Su Zhenyu
 #define HOST_BIT_PER_BYTE                8
 
 //Length of string buffer of OR and SR's name.
-#define MAX_OR_SR_NAME_BUF_LEN            1024
+#define MAX_OR_SR_NAME_BUF_LEN           1024
 
 //Length of string buffer of func-level/bb-level internal VAR name.
-#define MAX_VAR_NAME_BUF_LEN              64
+#define MAX_VAR_NAME_BUF_LEN             64
 
 //Maximum memory space of stack variables.
-#define MAX_STACK_VAR_SPACE               16*1024*1024
+#define MAX_STACK_VAR_SPACE              16*1024*1024
 
 //The order of push parameter when function was call.
-//1: from right to left
-//0: from left to right
-#define PUSH_PARAM_FROM_RIGHT_TO_LEFT     1
+//true: from right to left
+//false: from left to right
+#define PUSH_PARAM_FROM_RIGHT_TO_LEFT    true
 
 //The number of registers which be used to store return value.
-#define NUM_OF_RETURN_VAL_REGISTERS       2
+#define NUM_OF_RETURN_VAL_REGISTERS      2
 
 //Define whether target machine support predicate register.
 //Note the first opnd must be predicate register if target support.
-#define HAS_PREDICATE_REGISTER            false
+#define HAS_PREDICATE_REGISTER           false
 
-#define MAX_INT_VALUE                     0x7fffFFFF
-#define MIN_INT_VALUE                     0x80000000
-#define MAX_UINT_VALUE                    0xffffFFFF
-#define EPSILON                           0.000001
+//Define the max/min integer value range of target machine.
+#define MAX_INT_VALUE                    0x7fffFFFF
+#define MIN_INT_VALUE                    0x80000000
+#define MAX_UINT_VALUE                   0xffffFFFF
+#define EPSILON                          0.000001
 
 #define REG_UNDEF ((USHORT)-1) //Reserved undefined physical register id
 #endif

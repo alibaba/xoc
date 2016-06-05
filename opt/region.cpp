@@ -38,7 +38,7 @@ namespace xoc {
 
 static bool checkLogicalOp(IR_TYPE irt, Type const* type, TypeMgr * tm)
 {
-    switch (irt) {    
+    switch (irt) {
     case IR_LT:
     case IR_LE:
     case IR_GT:
@@ -137,8 +137,8 @@ static void destroyVARandMD(Region * ru, AnalysisInstrument * anainstr)
     VarTabIter c;
     ConstMDIter iter;
     for (VAR * v = ANA_INS_var_tab(anainstr).get_first(c);
-         v != NULL; v = ANA_INS_var_tab(anainstr).get_next(c)) {        
-        ASSERT0(anainstr->verify_var(varmgr, v));        
+         v != NULL; v = ANA_INS_var_tab(anainstr).get_next(c)) {
+        ASSERT0(anainstr->verify_var(varmgr, v));
         mdsys->removeMDforVAR(v, iter);
         varmgr->destroyVar(v);
     }
@@ -227,7 +227,7 @@ bool AnalysisInstrument::verify_var(VarMgr * vm, VAR * v)
         ASSERT0(VAR_is_local(v) || !VAR_allocable(v));
     } else if (m_ru->is_program()) {
         //Theoretically, only global variable is legal in program region.
-        //However even if the program region there may be local 
+        //However even if the program region there may be local
         //variables, e.g: PR, a kind of local variable.
         //ASSERT0(VAR_is_global(v));
     } else {
@@ -279,10 +279,10 @@ static bool ck_max_ir_size()
 
 void Region::init(REGION_TYPE rt, RegionMgr * rm)
 {
-    //Reset 
+    //Reset
     //REGION_is_expect_inline(r),
-    //REGION_is_inlinable(r), 
-    //REGION_is_mddu_valid(r), 
+    //REGION_is_inlinable(r),
+    //REGION_is_mddu_valid(r),
     //REGION_is_readonly(r)
     m_u2.s1b1 = 0;
 
@@ -294,8 +294,8 @@ void Region::init(REGION_TYPE rt, RegionMgr * rm)
     REGION_parent(this) = NULL;
     REGION_refinfo(this) = NULL;
     REGION_analysis_instrument(this) = NULL;
-    REGION_is_pr_unique_for_same_number(this) = g_is_pr_unique_for_same_number;    
-    
+    REGION_is_pr_unique_for_same_number(this) = g_is_pr_unique_for_same_number;
+
     if (is_program() ||
         is_function() ||
         is_eh() ||
@@ -1237,7 +1237,8 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
                irt == IR_BOR ||
                irt == IR_EQ ||
                irt == IR_NE, ("illegal pointer operation"));
-        ASSERT(lchild->is_int() || lchild->is_mc(), ("illegal pointer addend"));
+        ASSERT(lchild->is_int() || lchild->is_mc() || lchild->is_void(),
+               ("illegal pointer addend"));
         return buildPointerOp(irt, rchild, lchild);
     }
 
@@ -1252,7 +1253,7 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
         case IR_SUB:
             {
                 TypeMgr * dm = get_type_mgr();
-                
+
                 //Result is not pointer type.
                 ASSERT0(TY_ptr_base_size(d0) > 0);
                 ASSERT0(TY_ptr_base_size(d0) == TY_ptr_base_size(d1));
@@ -1330,7 +1331,7 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
                 ASSERT0(irt == IR_LT || irt == IR_LE ||
                         irt == IR_GT || irt == IR_GE ||
                         irt == IR_EQ || irt == IR_NE);
-                
+
                 //Pointer operation may give rise to undefined behavior.
                 IR * ret = allocIR(irt);
                 BIN_opnd0(ret) = lchild;
@@ -1360,12 +1361,12 @@ IR * Region::buildJudge(IR * exp)
     if (exp->is_ptr()) {
         type = dm->getSimplexTypeEx(dm->getPointerSizeDtype());
     }
-    
+
     if (!type->is_fp() && !type->is_int() && !type->is_mc()) {
 
         type = dm->getI32();
     }
-    
+
     return buildCmp(IR_NE, exp, buildImmInt(0, type));
 }
 
@@ -1378,13 +1379,13 @@ IR * Region::buildCmp(IR_TYPE irt, IR * lchild, IR * rchild)
             irt == IR_GT || irt == IR_GE ||
             irt == IR_NE || irt == IR_EQ);
     ASSERT0(lchild && rchild && lchild->is_exp() && rchild->is_exp());
-    
+
     if (lchild->is_const() &&
         !rchild->is_const() &&
         (irt == IR_EQ || irt == IR_NE)) {
         return buildCmp(irt, rchild, lchild);
     }
-    
+
     IR * ir = allocIR(irt);
     BIN_opnd0(ir) = lchild;
     BIN_opnd1(ir) = rchild;
@@ -1429,7 +1430,7 @@ IR * Region::buildBinaryOpSimp(
         //Swap operands.
         return buildBinaryOpSimp(irt, type, rchild, lchild);
     }
-    
+
     ASSERT0(lchild && rchild && lchild->is_exp() && rchild->is_exp());
     ASSERT0(checkLogicalOp(irt, type, get_type_mgr()));
     IR * ir = allocIR(irt);
@@ -1815,16 +1816,16 @@ MD const* Region::genMDforPR(UINT prno, Type const* type)
     MD_base(&md) = pr_var; //correspond to VAR
     MD_ofst(&md) = 0;
 
-    if (isPRUniqueForSameNo()) {        
+    if (isPRUniqueForSameNo()) {
         MD_ty(&md) = MD_UNBOUND;
     } else {
         MD_size(&md) = get_type_mgr()->get_bytesize(type);
         if (type->is_void()) {
             MD_ty(&md) = MD_UNBOUND;
-        } else {            
+        } else {
             MD_ty(&md) = MD_EXACT;
         }
-    }   
+    }
 
     MD const* e = get_md_sys()->registerMD(md);
     ASSERT0(MD_id(e) > 0);
@@ -2359,7 +2360,7 @@ void Region::dumpMemUsage()
     CHAR const* str = NULL;
     if (count < 1024) { str = "B"; }
     else if (count < 1024 * 1024) { count /= 1024; str = "KB"; }
-    else if (count < 1024 * 1024 * 1024) { count /= 1024 * 1024; str = "MB"; }    
+    else if (count < 1024 * 1024 * 1024) { count /= 1024 * 1024; str = "MB"; }
     else { count /= 1024 * 1024 * 1024; str = "GB"; }
 
     note("\n'%s' use %lu%s memory", get_ru_name(), count, str);
@@ -2430,7 +2431,7 @@ void Region::dump(bool dump_inner_region)
     IR * irlst = get_ir_list();
     if (irlst != NULL) {
         note("\n==---- IR List ----==");
-        dump_irs(irlst, get_type_mgr(), NULL, true, 
+        dump_irs(irlst, get_type_mgr(), NULL, true,
                  true, false, dump_inner_region);
         return;
     }
@@ -2648,7 +2649,7 @@ void Region::dumpVARInRegion()
     if (g_tfile == NULL) { return; }
 
     static CHAR buf[8192]; //Is it too large?
-    
+
     //Dump Region name.
     if (get_ru_var() != NULL) {
         note("\n==---- REGION(%d):%s:", REGION_id(this), get_ru_name());
@@ -2684,7 +2685,7 @@ void Region::dumpVARInRegion()
 
             for (INT i = 0; i <= fpvec.get_last_idx(); i++) {
                 VAR * v = fpvec.get(i);
-                if (v == NULL) { 
+                if (v == NULL) {
                     //This position may be reserved for other use.
                     //ASSERT0(v);
                     g_indent += 2;
@@ -2693,7 +2694,7 @@ void Region::dumpVARInRegion()
                     g_indent -= 2;
                     continue;
                 }
-                
+
                 buf[0] = 0;
                 v->dump(buf, get_type_mgr());
                 g_indent += 2;
@@ -2701,7 +2702,7 @@ void Region::dumpVARInRegion()
                 fprintf(g_tfile, " param%d", i);
                 fflush(g_tfile);
                 dumpVarMD(v, g_indent);
-                g_indent -= 2;                
+                g_indent -= 2;
             }
         }
     }
@@ -3047,7 +3048,7 @@ void Region::processIRList(OptCtx & oc)
 void Region::process()
 {
     ASSERT0(verifyIRinRegion());
-    
+
     note("\nREGION_NAME:%s", get_ru_name());
 
     OptCtx oc;
