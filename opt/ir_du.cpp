@@ -45,7 +45,7 @@ namespace xoc {
 #define SOL_SET_IS_SPARSE    (true)
 
 //Iterative methodology.
-//#define WORK_LIST_DRIVE
+#define WORK_LIST_DRIVE
 
 #define CK_UNKNOWN        0 //Can not determine if memory is overlap.
 #define CK_OVERLAP        1 //Can be confirmed memory is overlap.
@@ -1429,10 +1429,12 @@ void IR_DU_MGR::dumpBBDUChainDetail(IRBB * bb)
             note(ILABEL_STR_FORMAT, ILABEL_CONT(li));
             break;
         case L_PRAGMA:
-            note("%s", LABEL_INFO_pragma(li));
+            ASSERT0(LABEL_INFO_pragma(li));
+            note("%s", SYM_name(LABEL_INFO_pragma(li)));
             break;
-        default: ASSERT(0,("unsupport"));
+        default: UNREACH();
         }
+
         if (LABEL_INFO_is_try_start(li) ||
             LABEL_INFO_is_try_end(li) ||
             LABEL_INFO_is_catch_start(li)) {
@@ -1448,6 +1450,7 @@ void IR_DU_MGR::dumpBBDUChainDetail(IRBB * bb)
             }
             fprintf(g_tfile, ")");
         }
+
         fprintf(g_tfile, " ");
     }
 
@@ -1520,6 +1523,26 @@ void IR_DU_MGR::dumpBBDUChainDetail(IRBB * bb)
         }
         fprintf(g_tfile, "\n");
     } //end for each IR
+}
+
+
+void IR_DU_MGR::dump(CHAR const* name)
+{
+    FILE * old = NULL;
+    if (name != NULL) {
+        old = g_tfile;
+        //unlink(name);
+        g_tfile = fopen(name, "a+");
+        ASSERT(g_tfile, ("%s create failed!!!", name));
+    }
+
+    dumpDUChainDetail();
+
+    fflush(g_tfile);
+    if (name != NULL) {
+        fclose(g_tfile);
+        g_tfile = old;
+    }
 }
 
 
@@ -1677,7 +1700,7 @@ void IR_DU_MGR::dumpSet(bool is_bs)
 
         INT i;
 
-        fprintf(g_tfile, "\nDEF IN STMT: %lu byte ", 
+        fprintf(g_tfile, "\nDEF IN STMT: %lu byte ",
 				(ULONG)def_in->count_mem());
         SEGIter * st = NULL;
         for (i = def_in->get_first(&st);
@@ -1691,7 +1714,7 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             def_in->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nDEF OUT STMT: %lu byte ", 
+        fprintf(g_tfile, "\nDEF OUT STMT: %lu byte ",
 				(ULONG)def_out->count_mem());
         for (i = def_out->get_first(&st);
              i != -1; i = def_out->get_next(i, &st)) {
@@ -1704,7 +1727,7 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             def_out->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nDEF AVAIL_IN STMT: %lu byte ", 
+        fprintf(g_tfile, "\nDEF AVAIL_IN STMT: %lu byte ",
 				(ULONG)avail_def_in->count_mem());
         for (i = avail_def_in->get_first(&st);
              i != -1; i = avail_def_in->get_next(i, &st)) {
@@ -1730,7 +1753,7 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             avail_def_out->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nMAY GEN STMT: %lu byte ", 
+        fprintf(g_tfile, "\nMAY GEN STMT: %lu byte ",
 				(ULONG)may_def_gen->count_mem());
         for (i = may_def_gen->get_first(&st);
              i != -1; i = may_def_gen->get_next(i, &st)) {
@@ -1743,7 +1766,7 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             may_def_gen->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nMUST GEN STMT: %lu byte ", 
+        fprintf(g_tfile, "\nMUST GEN STMT: %lu byte ",
 				(ULONG)must_def_gen->count_mem());
         for (i = must_def_gen->get_first(&st);
              i != -1; i = must_def_gen->get_next(i, &st)) {
@@ -1756,7 +1779,7 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             must_def_gen->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nMUST KILLED STMT: %lu byte ", 
+        fprintf(g_tfile, "\nMUST KILLED STMT: %lu byte ",
 				(ULONG)must_def_kill->count_mem());
         for (i = must_def_kill->get_first(&st);
              i != -1; i = must_def_kill->get_next(i, &st)) {
@@ -1769,7 +1792,7 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             must_def_kill->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nMAY KILLED STMT: %lu byte ", 
+        fprintf(g_tfile, "\nMAY KILLED STMT: %lu byte ",
 				(ULONG)may_def_kill->count_mem());
         for (i = may_def_kill->get_first(&st);
              i != -1; i = may_def_kill->get_next(i, &st)) {
@@ -1782,7 +1805,7 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             may_def_kill->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nLIVEIN EXPR: %lu byte ", 
+        fprintf(g_tfile, "\nLIVEIN EXPR: %lu byte ",
 				(ULONG)livein_ir->count_mem());
         for (i = livein_ir->get_first(&st);
              i != -1; i = livein_ir->get_next(i, &st)) {
@@ -1795,7 +1818,7 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             livein_ir->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nLIVEOUT EXPR: %lu byte ", 
+        fprintf(g_tfile, "\nLIVEOUT EXPR: %lu byte ",
 				(ULONG)liveout_ir->count_mem());
         for (i = liveout_ir->get_first(&st);
              i != -1; i = liveout_ir->get_next(i, &st)) {
@@ -1820,7 +1843,7 @@ void IR_DU_MGR::dumpSet(bool is_bs)
             gen_ir->dump(g_tfile);
         }
 
-        fprintf(g_tfile, "\nKILLED EXPR: %lu byte ", 
+        fprintf(g_tfile, "\nKILLED EXPR: %lu byte ",
 			    (ULONG)kill_ir->count_mem());
         for (i = kill_ir->get_first(&st);
              i != -1; i = kill_ir->get_next(i, &st)) {
@@ -3637,7 +3660,7 @@ void IR_DU_MGR::solve(DefDBitSetCore const* expr_univers, UINT const flag)
     C<IRBB*> * ct;
     for (tbbl->get_head(&ct); ct != tbbl->end(); ct = tbbl->get_next(ct)) {
         IRBB * p = ct->val();
-        lst.append_tail(bb);
+        lst.append_tail(p);
     }
     UINT count = tbbl->get_elem_count() * 20;
     UINT i = 0; //time of bb accessed.
@@ -3658,6 +3681,7 @@ void IR_DU_MGR::solve(DefDBitSetCore const* expr_univers, UINT const flag)
         i++;
     } while (lst.get_elem_count() != 0);
     ASSERT0(i < count);
+    UNUSED(count);
 #else
     bool change;
     UINT count = 0;
@@ -4008,7 +4032,7 @@ void IR_DU_MGR::checkAndBuildChain(IR * stmt, C<IR*> * ct)
                 m_is_init->bunion(IR_id(stmt));
                 du->clean(*m_misc_bs_mgr);
             }
-        }        
+        }
         for (IR * p = CALL_param_list(stmt); p != NULL; p = p->get_next()) {
             checkAndBuildChainRecursive(stmt->get_bb(), p, ct);
         }
@@ -5142,7 +5166,7 @@ size_t IR_DU_MGR::count_mem_local_data(
 }
 
 
-//Compute all DEF,USE MD, MD-set, bb related IR-set info.
+//Compute MD reference, May-Must-Def-Use and related IR-Set info.
 bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
 {
     if (flag == 0) { return true; }
@@ -5159,6 +5183,12 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
 
     BBList * bbl = m_ru->get_bb_list();
     if (bbl->get_elem_count() == 0) { return true; }
+    if (bbl->get_elem_count() > g_thres_opt_bb_num) {
+        //Adjust g_thres_opt_bb_num to make sure you want to do DU analysis.
+        interwarn("IR_DU_MGR::perform() of Region(%d) is not applied.",
+                  REGION_id(m_ru));
+        return false;
+    }
 
     ASSERT0(OC_is_cfg_valid(oc)); //First, only cfg is needed.
 

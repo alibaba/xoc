@@ -578,7 +578,7 @@ public:
     Vector<GLT*> * get_pr2glt_map() { return &m_pr2glt; }
     UINT get_num_of_glt() const { return m_glt_count - 1; }
     Vector<GLT*> * get_gltvec() { return &m_gltid2glt_map; }
-    BitSet * get_usable_regs(GLT const* g, bool alloc)
+    BitSet * getUsableReg(GLT const* g, bool alloc)
     {
         BitSet * rs = m_glt2usable_regs.get(GLT_id(g));
         if (rs == NULL && alloc) {
@@ -760,7 +760,7 @@ protected:
     void collectUnalloc(List<LT*> & unalloc);
 
     void dump_prio(List<LT*> & prios);
-    bool get_max_hole(OUT INT * startpos, OUT INT * endpos, LT const* lt);
+    bool getMaxHole(OUT INT * startpos, OUT INT * endpos, LT const* lt);
 
     bool find_hole(OUT INT & startpos, OUT INT & endpos,
                    LT const* owner, LT const* inner);

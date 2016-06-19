@@ -819,7 +819,8 @@ static void processClass(DexFile* pDexFile, D2Dpool* pool)
     }
 
     if (g_do_ipa) {
-        rumgr->processProgramRegion(topru);
+        bool s = rumgr->processProgramRegion(topru);
+        ASSERT0(s);
         delete rumgr;
     }
 

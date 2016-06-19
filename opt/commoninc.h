@@ -49,6 +49,7 @@ author: Su Zhenyu
 #include "matt.h"
 #include "bs.h"
 #include "sbs.h"
+#include "sbs_hash.h"
 #include "sgraph.h"
 #include "rational.h"
 #include "flty.h"

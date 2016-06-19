@@ -167,7 +167,7 @@ void CallGraph::dump_vcg(CHAR const* name, INT flag)
                 for (; irs != NULL; irs = irs->get_next()) {
                     //fprintf(h, "%s\n", dump_ir_buf(ir, buf));
                     //TODO: implement dump_ir_buf();
-                    dump_ir(irs, m_tm, NULL, true, 
+                    dump_ir(irs, m_tm, NULL, true,
                             dump_src_line, false, dump_inner_region);
                 }
             } else {
@@ -229,17 +229,17 @@ CallNode * CallGraph::newCallNode(Region * ru)
         if (cn != NULL) {
             ASSERT(CN_ru(cn) == ru, ("more than 2 ru with same id"));
             return cn;
-        }        
+        }
 
         cn = allocCallNode();
         CN_sym(cn) = name;
         CN_id(cn) = m_cn_count++;
-        CN_ru(cn) = ru;        
+        CN_ru(cn) = ru;
         m_ruid2cn.set(REGION_id(ru), cn);
         return cn;
-    } 
+    }
 
-    ASSERT0(ru->get_parent());        
+    ASSERT0(ru->get_parent());
     SYM2CN * sym2cn = genSYM2CN(ru->get_parent());
     CallNode * cn = sym2cn->get(name);
     if (cn != NULL) {
@@ -267,7 +267,7 @@ void CallGraph::build(RegionMgr * rumgr)
 {
     for (UINT i = 0; i < rumgr->getNumOfRegion(); i++) {
         Region * ru = rumgr->get_region(i);
-        if (ru == NULL) { continue; }    
+        if (ru == NULL) { continue; }
         ASSERT0(ru->is_function() || ru->is_program());
         add_node(newCallNode(ru));
     }

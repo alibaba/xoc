@@ -697,6 +697,11 @@ bool IR_GCSE::perform(OptCtx & oc)
             (IR_EXPR_TAB*)m_ru->get_pass_mgr()->registerPass(PASS_EXPR_TAB);
     }
 
+    if (!OC_is_du_chain_valid(oc)) {
+        END_TIMER_AFTER(get_pass_name());
+        return false;
+    }
+
     m_is_in_ssa_form = false;
     IR_SSA_MGR * ssamgr =
             (IR_SSA_MGR*)(m_ru->get_pass_mgr()->queryPass(PASS_SSA_MGR));

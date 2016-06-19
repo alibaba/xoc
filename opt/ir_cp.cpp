@@ -478,6 +478,11 @@ bool IR_CP::perform(OptCtx & oc)
                                     PASS_LIVE_EXPR, PASS_DU_CHAIN, PASS_UNDEF);
     }
 
+    if (!OC_is_du_chain_valid(oc)) {
+        END_TIMER_AFTER(get_pass_name());
+        return false;
+    }
+
     bool change = false;
     IRBB * entry = m_ru->get_cfg()->get_entry();
     ASSERT(entry, ("Not unique entry, invalid Region"));

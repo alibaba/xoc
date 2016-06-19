@@ -965,7 +965,7 @@ public:
     //If S1 will be deleted, pr1 should be removed from its SSA_uses.
     void removeSSAUse();
 
-    //This function only handle Call/Icall stmt, it find PR and remove 
+    //This function only handle Call/Icall stmt, it find PR and remove
     //them out of UseSet.
     //Note this function does not maintain DU chain between call and its use.
     void removePROutFromUseset(DefMiscBitSetMgr & sbs_mgr, Region * ru);
@@ -2492,7 +2492,7 @@ void dump_ir(IR const* ir,
              bool dump_addr = false,
              bool dump_inner_region = true);
 void dump_irs_h(IR * ir_list , TypeMgr const* tm);
-void dump_irs(IR * ir_list, 
+void dump_irs(IR * ir_list,
               TypeMgr const* tm,
               CHAR * attr = NULL,
               bool dump_kid = true,

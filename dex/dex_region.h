@@ -57,7 +57,6 @@ protected:
 protected:
     bool is_64bit(IR const* ir)
     { return get_type_mgr()->get_bytesize(ir->get_type())== 8; }
-    void HighProcessImpl(OptCtx & oc);
 
 public:
     CHAR const* m_functype;
@@ -125,7 +124,7 @@ public:
     void process_group_bb(IRBB * bb, List<IR*> & lst);
     void process_group();
     void processSimply();
-    virtual void process();
+    virtual bool process();
 };
 
 #endif

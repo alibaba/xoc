@@ -3393,7 +3393,7 @@ bool BBRA::canBeSplit(LT const* lt) const
 
 //Return true if there is hole in lifetime of 'lt',
 //and 'startpos', 'endpos' represented the start and end position of hole.
-bool BBRA::get_max_hole(OUT INT * startpos, OUT INT * endpos, LT const* lt)
+bool BBRA::getMaxHole(OUT INT * startpos, OUT INT * endpos, LT const* lt)
 {
     *startpos = 0;
     *endpos = 0;
@@ -3439,7 +3439,7 @@ bool BBRA::get_max_hole(OUT INT * startpos, OUT INT * endpos, LT const* lt)
 void BBRA::computeLTResideInHole(OUT List<LT*> & reside_in, LT const* lt)
 {
     INT hole_startpos, hole_endpos;
-    get_max_hole(&hole_startpos, &hole_endpos, lt);
+    getMaxHole(&hole_startpos, &hole_endpos, lt);
 
     BitSet * hole = m_gltm->get_bs_mgr()->create();
     LT_range(lt)->get_subset_in_range(hole_startpos, hole_endpos, *hole);
@@ -4014,7 +4014,7 @@ bool BBRA::split(LT * lt)
     bool split_hole = false;
     if (has_hole && cand != lt) {
         split_hole =
-            get_residedin_hole(&hole_startpos, &hole_endpos, cand, lt, mgr);
+            getResideinHole(&hole_startpos, &hole_endpos, cand, lt, mgr);
     }
 
     if (split_hole) {
@@ -4030,21 +4030,21 @@ bool BBRA::split(LT * lt)
                     is_end_spill,
                     cand, mgr);
     } else if (lt == cand) {
-        split_one_lt(lt, prio_list,
+        splitOneLT(lt, prio_list,
                     uncolored_list, mgr,
                     ig, spill_location, action);
-    } else if (!can_be_spilled(lt, mgr)) {
-        split_one_lt(cand, prio_list,
+    } else if (!canBeSpilled(lt, mgr)) {
+        splitOneLT(cand, prio_list,
                     uncolored_list, mgr,
                     ig, spill_location, action);
     } else {
-        split_two_lts(lt, cand, prio_list,
+        splitTwoLT(lt, cand, prio_list,
                     uncolored_list, mgr, ig,
                     spill_location, action);
     }
 
     show_phase("---Split,before ReAllocate_LifeTime");
-    reallocate_lifetime(prio_list, uncolored_list,
+    reallocateLifeTime(prio_list, uncolored_list,
                         mgr, ddg, layerddg, ig, cri);
     for (LifeTime * tmplt = uncolored_list.get_head();
          tmplt != NULL; tmplt = uncolored_list.get_next()) {

@@ -113,7 +113,7 @@ class CallGraph : public DGraph {
 
     CallNode * newCallNode(IR const* ir, Region * ru);
     CallNode * newCallNode(Region * ru);
-    
+
 public:
     CallGraph(UINT edge_hash,
               UINT vex_hash,
@@ -126,15 +126,15 @@ public:
         m_cn_pool = smpoolCreate(sizeof(CallNode) * 2, MEM_CONST_SIZE);
     }
     COPY_CONSTRUCTOR(CallGraph);
-    virtual ~CallGraph() 
-    { 
+    virtual ~CallGraph()
+    {
         SYM2CN * sym2cn = NULL;
         Region2SYM2CNIter iter;
         for (Region * ru = m_ru2sym2cn.get_first(iter, &sym2cn);
              ru != NULL; ru = m_ru2sym2cn.get_next(iter, &sym2cn)) {
             delete sym2cn;
         }
-        smpoolDelete(m_cn_pool); 
+        smpoolDelete(m_cn_pool);
     }
 
     void add_node(CallNode * cn)
@@ -159,7 +159,7 @@ public:
     { return m_ruid2cn.get(REGION_id(ru)); }
 
     CallNode * map_sym2cn(SYM const* sym, Region * start) const
-    { 
+    {
         for (; start != NULL; start = start->get_parent()) {
             SYM2CN * sym2cn = getSYM2CN(start);
             if (sym2cn == NULL) { continue; }
@@ -173,7 +173,7 @@ public:
     //ru: the region that ir resident in.
     Region * map_call2ru(IR const* ir, Region * ru)
     {
-        if (ir->is_call()) {            
+        if (ir->is_call()) {
             CallNode * cn = map_sym2cn(CALL_idinfo(ir)->get_name(), ru);
             if (cn != NULL) { return CN_ru(cn); }
             return NULL;

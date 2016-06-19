@@ -36,10 +36,10 @@ author: Su Zhenyu
 
 namespace xcom {
 
-#define BS_ZERO            0
+#define BS_ZERO           0
 #define BS_DUMP_BITSET    1
-#define BS_DUMP_POS        2
-#define BITS_PER_BYTE    8
+#define BS_DUMP_POS       2
+#define BITS_PER_BYTE     8
 #define BYTES_PER_UINT    4
 
 class BitSet;

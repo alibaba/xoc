@@ -83,10 +83,10 @@ public:
         m_lab2bb.setAlways(li, src);
     }
 
-    /* Add new IRBB into CFG, but the BB list should be modified
-    out of this function.
-    Namely, you should use 'insertBBbetween()' to insert BB into list.
-    And you must consider the right insertion. */
+    //Add new IRBB into CFG, but the BB list should be modified
+    //out of this function.
+    //Namely, you should use 'insertBBbetween()' to insert BB into list.
+    //And you must consider the right insertion.
     inline void add_bb(IRBB * bb)
     {
         ASSERT0(bb && m_bb_vec.get(BB_id(bb)) == NULL);

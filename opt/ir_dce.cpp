@@ -584,6 +584,7 @@ bool IR_DCE::perform(OptCtx & oc)
     }
 
     if (!OC_is_du_chain_valid(oc)) {
+        END_TIMER_AFTER(get_pass_name());
         return false;
     }
 

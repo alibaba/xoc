@@ -630,6 +630,11 @@ bool IR_LCSE::perform(OptCtx & oc)
     m_ru->checkValidAndRecompute(&oc, PASS_DU_REF, PASS_DU_CHAIN,
                                  PASS_EXPR_TAB, PASS_UNDEF);
 
+    if (!OC_is_du_chain_valid(oc)) {
+        END_TIMER_AFTER(get_pass_name());
+        return false;
+    }
+
     m_expr_tab = (IR_EXPR_TAB*)m_ru->get_pass_mgr()->registerPass(PASS_EXPR_TAB);
     ASSERT0(m_expr_tab);
 

@@ -172,11 +172,11 @@ void RegionMgr::addToRegionTab(Region * ru)
 
 bool RegionMgr::verifyPreDefinedInfo()
 {
-    ASSERT0(WORD_LENGTH_OF_TARGET_MACHINE == 
+    ASSERT0(WORD_LENGTH_OF_TARGET_MACHINE ==
             sizeof(TMWORD) * HOST_BIT_PER_BYTE);
     ASSERT0(BIT_PER_BYTE == HOST_BIT_PER_BYTE);
 
-    ASSERT0(WORD_LENGTH_OF_HOST_MACHINE == 
+    ASSERT0(WORD_LENGTH_OF_HOST_MACHINE ==
             (sizeof(HOST_UINT) * HOST_BIT_PER_BYTE));
 
     ASSERT0(BYTE_PER_CHAR < BYTE_PER_SHORT &&
@@ -184,7 +184,7 @@ bool RegionMgr::verifyPreDefinedInfo()
             BYTE_PER_INT <= BYTE_PER_LONG &&
             BYTE_PER_LONG <= BYTE_PER_LONGLONG &&
             BYTE_PER_FLOAT < BYTE_PER_DOUBLE &&
-            BYTE_PER_INT <= BYTE_PER_POINTER);   
+            BYTE_PER_INT <= BYTE_PER_POINTER);
 
     ASSERT0(BYTE_PER_CHAR < sizeof(ULONGLONG) &&
             BYTE_PER_SHORT < sizeof(ULONGLONG) &&
@@ -194,19 +194,19 @@ bool RegionMgr::verifyPreDefinedInfo()
             BYTE_PER_DOUBLE <= sizeof(ULONGLONG) &&
             BYTE_PER_POINTER <= sizeof(ULONGLONG) &&
             GENERAL_REGISTER_SIZE <= sizeof(ULONGLONG));
-    
+
     ASSERT0(BYTE_PER_CHAR <= sizeof(HOST_INT) &&
             BYTE_PER_CHAR <= sizeof(HOST_UINT) &&
             BYTE_PER_CHAR <= sizeof(HOST_FP));
-    
+
     ASSERT0(BYTE_PER_SHORT <= sizeof(HOST_INT) &&
             BYTE_PER_SHORT <= sizeof(HOST_UINT) &&
             BYTE_PER_SHORT <= sizeof(HOST_FP));
-    
+
     ASSERT0(BYTE_PER_INT <= sizeof(HOST_INT) &&
             BYTE_PER_INT <= sizeof(HOST_UINT) &&
             BYTE_PER_INT <= sizeof(HOST_FP));
-    
+
     return true;
 }
 
@@ -283,23 +283,25 @@ CallGraph * RegionMgr::initCallGraph(bool scan_call, bool scan_inner_region)
 
 
 //Process function level region.
-void RegionMgr::processFuncRegion(IN Region * func)
+bool RegionMgr::processFuncRegion(Region * func)
 {
     ASSERT0(func->is_function());
     g_indent = 0;
-    func->process();
+    bool s = func->process();
     tfree();
+    return s;
 }
 
 
 //Process top-level region.
 //Top level region should be program.
-void RegionMgr::processProgramRegion(Region * program)
+bool RegionMgr::processProgramRegion(Region * program)
 {
     ASSERT0(program && program->is_program());
     g_indent = 0;
-    program->process();
+    bool s = program->process();
     tfree();
+    return s;
 }
 //END RegionMgr
 

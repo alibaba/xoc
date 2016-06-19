@@ -73,17 +73,34 @@ namespace xcom {
     }
 
 
+//Single timer, show format string before timer finish.
+//e.g:
+//    START_TIMER(("My Pass Name%s", get_pass_name()));
+//    Run mypass();
+//    END_TIMER_FMT();
+#define START_TIMER_FMT(s)           \
+    LONG _start_time_count_ = 0;    \
+    if (g_show_comp_time) {         \
+        _start_time_count_ = getclockstart();    \
+        printf("\n==-- ");          \
+        printf s;                   \
+        printf(" Time:");       \
+    }
+#define END_TIMER_FMT()            \
+    if (g_show_comp_time) { printf("%fsec", getclockend(_start_time_count_)); }
+
+
 //Single timer, show format string after timer finish.
 //e.g:
-//    START_TIMER();
+//    START_TIMER_AFTER();
 //    Run mypass();
-//    END_TIMER_FMT(("My Pass Name%s", get_pass_name()));
-#define START_TIMER_FMT()           \
+//    END_TIMER_FMT_AFTER(("My Pass Name%s", get_pass_name()));
+#define START_TIMER_FMT_AFTER()     \
     LONG _start_time_count_ = 0;    \
     if (g_show_comp_time) {         \
         _start_time_count_ = getclockstart();    \
     }
-#define END_TIMER_FMT(s)            \
+#define END_TIMER_FMT_AFTER(s)      \
     if (g_show_comp_time) {         \
         printf("\n==-- ");          \
         printf s;                   \

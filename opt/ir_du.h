@@ -36,54 +36,53 @@ author: Su Zhenyu
 
 namespace xoc {
 
-/* Util Functions supplied by IR_DU_MGR
-* These functions manipulate the reference of IR.
-  IR may reference MD, or MDSet, or both MD and MDSet.
-
-    computeOverlapDefMDSet
-    computeOverlapUseMDSet
-    collectMayUse
-    collectMayUseRecursive
-    copyIRTreeDU
-    changeUse
-    changeDef
-    get_may_def
-    get_must_use
-    get_may_use
-    get_must_def
-    get_effect_ref
-    get_effect_def_md
-    get_exact_def_md
-    get_effect_use_md
-    get_exact_use_md
-    getExactAndUniqueDef
-    freeDUSetAndCleanMDRefs
-    is_may_def
-    is_may_kill
-    is_must_kill
-    isExactAndUniqueDef
-    is_call_may_def
-
-* These functions manipulate the DU chain.
-
-    buildDUChain
-    freeDUSetAndCleanMDRefs
-    copyDUSet
-    get_du_c
-    getAndAllocDUSet
-    freeDU
-    is_du_exist
-    unionUse
-    unionUseSet
-    unionDef
-    unionDefSet
-    removeDUChain
-    removeExpiredDU
-    removeDef
-    removeUseOutFromDefset
-    removeDefOutFromUseset
-    removeIROutFromDUMgr
-*/
+//Util Functions supplied by IR_DU_MGR
+// These functions manipulate the reference of IR.
+// IR may reference MD, or MDSet, or both MD and MDSet.
+//
+//    computeOverlapDefMDSet
+//    computeOverlapUseMDSet
+//    collectMayUse
+//    collectMayUseRecursive
+//    copyIRTreeDU
+//    changeUse
+//    changeDef
+//    get_may_def
+//    get_must_use
+//    get_may_use
+//    get_must_def
+//    get_effect_ref
+//    get_effect_def_md
+//    get_exact_def_md
+//    get_effect_use_md
+//    get_exact_use_md
+//    getExactAndUniqueDef
+//    freeDUSetAndCleanMDRefs
+//    is_may_def
+//    is_may_kill
+//    is_must_kill
+//    isExactAndUniqueDef
+//    is_call_may_def
+//
+//* These functions manipulate the DU chain.
+//
+//    buildDUChain
+//    freeDUSetAndCleanMDRefs
+//    copyDUSet
+//    get_du_c
+//    getAndAllocDUSet
+//    freeDU
+//    is_du_exist
+//    unionUse
+//    unionUseSet
+//    unionDef
+//    unionDefSet
+//    removeDUChain
+//    removeExpiredDU
+//    removeDef
+//    removeUseOutFromDefset
+//    removeDefOutFromUseset
+//    removeIROutFromDUMgr
 
 //Mapping from IR to index.
 typedef HMap<IR const*, UINT, HashFuncBase2<IR const*> > IR2UINT;
@@ -576,6 +575,7 @@ public:
     void dumpBBDUChainDetail(UINT bbid);
     void dumpBBDUChainDetail(IRBB * bb);
     void dumpDUGraph(CHAR const* name = NULL, bool detail = true);
+    void dump(CHAR const* name);
 
     virtual CHAR const* get_pass_name() const { return "DU Manager"; }
     virtual PASS_TYPE get_pass_type() const { return PASS_DU_MGR; }

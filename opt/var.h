@@ -352,6 +352,7 @@ public:
 
     TypeMgr * get_type_mgr() const { return m_tm; }
     VarVec * get_var_vec() { return &m_var_vec; }
+    VAR * get_var(size_t id) const { return m_var_vec.get((UINT)id); }
 
     VAR * findStringVar(SYM const* str) { return m_str_tab.get(str); }
 

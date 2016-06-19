@@ -116,10 +116,10 @@ IR * IR_IVR::findMatchedOcc(MD const* biv, IR * start)
     IRIter ii;
     for (IR * x = iterInit(start, ii); x != NULL; x = iterNext(ii)) {
         MD const* xmd = x->getRefMD();
-        if (xmd != NULL && xmd == biv) { 
+        if (xmd != NULL && xmd == biv) {
             //Note there may be multiple occurrences matched biv.
             //We just return the first if meet.
-            return x; 
+            return x;
         }
     }
     return NULL;
@@ -127,10 +127,10 @@ IR * IR_IVR::findMatchedOcc(MD const* biv, IR * start)
 
 
 bool IR_IVR::matchIVUpdate(
-        MD const* biv, 
-        IR const* def, 
-        IR ** occ, 
-        IR ** delta, 
+        MD const* biv,
+        IR const* def,
+        IR ** occ,
+        IR ** delta,
         bool & is_increment)
 {
     ASSERT0(def->is_st());
@@ -164,13 +164,13 @@ bool IR_IVR::matchIVUpdate(
         //TODO: support dynamic const type as the addend of ADD/SUB.
         return false;
     } else {
-        return false; 
+        return false;
     }
 
     if (m_is_only_handle_exact_md) {
         MD const* op0md = op0->get_exact_ref();
-        if (op0md == NULL || op0md != biv) { 
-            return false; 
+        if (op0md == NULL || op0md != biv) {
+            return false;
         }
     }
 
@@ -182,14 +182,14 @@ bool IR_IVR::matchIVUpdate(
 
 
 void IR_IVR::recordIV(
-        MD * biv, 
-        LI<IRBB> const* li, 
-        IR * def, 
-        IR * occ, 
+        MD * biv,
+        LI<IRBB> const* li,
+        IR * def,
+        IR * occ,
         IR * delta,
         bool is_increment)
 {
-    ASSERT0(biv && li && def && occ && delta && delta->is_const());    
+    ASSERT0(biv && li && def && occ && delta && delta->is_const());
     IV * x = allocIV();
     IV_iv(x) = biv;
     IV_li(x) = li;
@@ -198,9 +198,9 @@ void IR_IVR::recordIV(
     IV_step(x) = CONST_int_val(delta);
     IV_is_inc(x) = is_increment;
     findInitVal(x);
-    
+
     //same occ may correspond to multiple LI.
-    //e.g: c4.c 
+    //e.g: c4.c
     //  while () {
     //    while () {
     //      ...
@@ -333,12 +333,12 @@ void IR_IVR::findBIV(
         }
 
         if (!selfmod) { continue; }
-        
+
         IR * occ = NULL;
         IR * delta = NULL;
         bool is_increment = false;
         if (!matchIVUpdate(biv, def, &occ, &delta, is_increment)) { continue; }
-        
+
         recordIV(biv, li, def, occ, delta, is_increment);
     }
 }
@@ -512,10 +512,10 @@ void IR_IVR::_dump(LI<IRBB> * li, UINT indent)
 
                 if (iv->has_init_val()) {
                     if (iv->isInitConst()) {
-                        fprintf(g_tfile, ",init=%lld", 
+                        fprintf(g_tfile, ",init=%lld",
                                 (LONGLONG)*IV_initv_i(iv));
                     } else {
-                        fprintf(g_tfile, ",init=md%d", 
+                        fprintf(g_tfile, ",init=md%d",
                                 (INT)MD_id(IV_initv_md(iv)));
                     }
                 }
@@ -603,10 +603,16 @@ bool IR_IVR::perform(OptCtx & oc)
     UINT n = m_ru->get_bb_list()->get_elem_count();
     if (n == 0) { return false; }
     ASSERT0(m_cfg && m_du && m_md_sys && m_tm);
-    
+
     m_ru->checkValidAndRecompute(&oc, PASS_REACH_DEF, PASS_DU_REF,
                                  PASS_DOM, PASS_LOOP_INFO, PASS_DU_CHAIN,
                                  PASS_RPO, PASS_UNDEF);
+
+    if (!OC_is_du_chain_valid(oc)) {
+        END_TIMER_AFTER(get_pass_name());
+        return false;
+    }
+
     m_du = (IR_DU_MGR*)m_ru->get_pass_mgr()->queryPass(PASS_DU_MGR);
 
     LI<IRBB> const* li = m_cfg->get_loop_info();

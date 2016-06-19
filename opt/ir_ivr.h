@@ -138,17 +138,17 @@ protected:
         return p;
     }
     bool matchIVUpdate(
-            MD const* biv, 
-            IR const* def, 
-            IR ** occ, 
-            IR ** delta, 
+            MD const* biv,
+            IR const* def,
+            IR ** occ,
+            IR ** delta,
             bool & is_increment);
     bool scanExp(IR const* ir, LI<IRBB> const* li, BitSet const& ivmds);
     void recordIV(
-            MD * biv, 
-            LI<IRBB> const* li, 
-            IR * def, 
-            IR * occ, 
+            MD * biv,
+            LI<IRBB> const* li,
+            IR * def,
+            IR * occ,
             IR * delta,
             bool is_increment);
 public:
@@ -159,7 +159,7 @@ public:
         m_md_sys = ru->get_md_sys();
         m_du = ru->get_du_mgr();
         m_cfg = ru->get_cfg();
-        m_tm = ru->get_type_mgr();        
+        m_tm = ru->get_type_mgr();
         m_pool = smpoolCreate(sizeof(IV) * 4, MEM_COMM);
         m_sc_pool = smpoolCreate(sizeof(SC<IV*>) * 4, MEM_CONST_SIZE);
         m_is_only_handle_exact_md = true;

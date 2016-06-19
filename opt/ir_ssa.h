@@ -252,7 +252,7 @@ public:
     }
 
     void destruction(DomTree & domtree);
-    void destructionInBBListOrder();
+    void destruction();
     void dump();
     void dump_all_vp(bool have_renamed);
     CHAR * dump_vp(IN VP * v, OUT CHAR * buf);
@@ -320,7 +320,9 @@ public:
     //This function will clean all informations and recreate them.
     inline void reinit()
     {
-        destroy(true);
+        if (is_ssa_constructed()) {
+            destroy(true);
+        }
         init();
     }
 

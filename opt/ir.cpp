@@ -735,7 +735,11 @@ void dump_ir(IR const* ir,
             }
 
             buf[0] = 0;
-            note("\nstrconst:%s \\\"%s....\\\"", xdm->dump_type(d, buf), tbuf);
+            if (strlen(SYM_name(CONST_str_val(ir))) < tbuflen) {
+                note("\nstrconst:%s \\\"%s\\\"", xdm->dump_type(d, buf), tbuf);
+            } else {
+                note("\nstrconst:%s \\\"%s...\\\"", xdm->dump_type(d, buf), tbuf);
+            }
         } else if (ir->is_mc()) {
             //Imm may be MC type.
             note("\nintconst:%s %lld|0x%llx",
@@ -944,6 +948,7 @@ void dump_ir(IR const* ir,
                 note("\nclabel(" CLABEL_STR_FORMAT ")",
                      CLABEL_CONT(LAB_lab(ir)));
             } else if (LABEL_INFO_type(li) == L_PRAGMA) {
+                ASSERT0(LABEL_INFO_pragma(LAB_lab(ir)));
                 note("\npragma(%s)", SYM_name(LABEL_INFO_pragma(LAB_lab(ir))));
             } else { UNREACH(); }
 

@@ -195,6 +195,7 @@ public:
 #define AC_is_lda_base(c)       ((c)->u1.s1.is_lda_base)
 #define AC_has_comp_lda(c)      ((c)->u1.s1.has_comp_lda)
 #define AC_comp_pt(c)           ((c)->u1.s1.comp_pt)
+#define AC_returned_pts(c)      ((c)->u2.returned_pts)
 class AACtx {
 public:
     union {
@@ -203,31 +204,38 @@ public:
             //MDS generate while processing kids.
             UINT is_mds_modify:1; //Analysis context for IR_AA.
 
-            /* Transfer flag top down to indicate the Parent or Grandfather
-            IR (or Parent of grandfather ...) is IR_LDA/IR_ARRAY.
-            This flag tell the current process whether if we are processing
-            the base of LDA/ARRAY. */
+            //Transfer flag top down to indicate the Parent or Grandfather
+            //IR (or Parent of grandfather ...) is IR_LDA/IR_ARRAY.
+            //This flag tell the current process whether if we are processing
+            //the base of LDA/ARRAY.
             UINT is_lda_base:1; //Set true to indicate we are
                                 //analysing the base of LDA.
 
-            /* Transfer flag bottom up to indicate whether we has taken address
-            of ID.
-            e.g: If p=q,q->x; We would propagate q and get p->x.
-                But if p=&a; We should get p->a, with offset is 0.
-                Similarly, if p=(&a)+n+m+z; We also get p->a,
-                but with offset is INVALID. */
+            //Transfer flag bottom up to indicate whether we has taken address
+            //of ID.
+            //e.g: If p=q,q->x; We would propagate q and get p->x.
+            //    But if p=&a; We should get p->a, with offset is 0.
+            //    Similarly, if p=(&a)+n+m+z; We also get p->a,
+            //    but with offset is INVALID.
             UINT has_comp_lda:1;
 
-            /* Transfer flag top down to indicate that we need
-            current function to compute the MD that the IR
-            expression may pointed to.
-            e.g: Given (p+1), we want to know the expression pointed to.
-            Presumedly, p->&a[0], we can figure out MD that dereferencing
-            the expression *(p+1) is a[1]. */
+            //Transfer flag top down to indicate that we need
+            //current function to compute the MD that the IR
+            //expression may pointed to.
+            //e.g: Given (p+1), we want to know the expression pointed to.
+            //Presumedly, p->&a[0], we can figure out MD that dereferencing
+            //the expression *(p+1) is a[1].
             UINT comp_pt:1;
         } s1;
         UINT i1;
     } u1;
+
+    union {
+        //Transfer const MDSet bottom up to collect the point-to set
+        //while finish processing kids.
+        MDSet const* returned_pts;
+    } u2;
+public:
 
     AACtx() { clean(); }
     AACtx(AACtx const& ic) { copy(ic); }
@@ -241,13 +249,14 @@ public:
         AC_is_lda_base(this) = AC_is_lda_base(&ic);
     }
 
-    void clean() { u1.i1 = 0; }
+    void clean() { u1.i1 = 0; AC_returned_pts(this) = NULL; }
 
     //Clean these flag when processing each individiual IR trees.
     inline void cleanBottomUpFlag()
     {
         AC_has_comp_lda(this) = 0;
         AC_is_mds_mod(this) = 0;
+        AC_returned_pts(this) = NULL;
     }
 
     //Collect the bottom-up flag and use them to direct parent action.
@@ -256,6 +265,7 @@ public:
     {
         AC_has_comp_lda(this) = AC_has_comp_lda(&ic);
         AC_is_mds_mod(this) = AC_is_mds_mod(&ic);
+        AC_returned_pts(this) = AC_returned_pts(&ic);
     }
 };
 
@@ -264,14 +274,14 @@ typedef TMap<VAR*, MD const*, CompareVar> Var2MD;
 typedef TMap<IR const*, MD const*> IR2Heapobj;
 
 
-/* Alias Analysis.
-1. Compute the Memory Address Set for IR expression.
-2. Compute the POINT TO Set for individual memory address.
-
-NOTICE:
-Heap is a unique object. That means the whole
-HEAP is modified/referrenced if a LOAD/STORE operates
-MD that describes variable belongs to HEAP. */
+//Alias Analysis.
+//1. Compute the Memory Address Set for IR expression.
+//2. Compute the POINT TO Set for individual memory address.
+//
+//NOTICE:
+//Heap is a unique object. That means the whole
+//HEAP is modified/referrenced if a LOAD/STORE operates
+//MD that describes variable belongs to HEAP.
 class IR_AA : public Pass {
 protected:
     IR_CFG * m_cfg;
@@ -299,7 +309,7 @@ protected:
 
     //This class contains those variables that can be referenced by
     //pointers (address-taken variables)
-    MDSet const* m_hashed_maypts; //initialized by initMayPointToSet()
+    MDSet const* m_maypts; //initialized by initMayPointToSet()
 
     //Analysis context. Record MD->MDSet for each BB.
     Vector<MD2MDSet*> m_md2mds_vec;
@@ -432,10 +442,7 @@ protected:
     void processIst(IN IR * ir, IN OUT MD2MDSet * mx);
     void processStoreArray(IN IR * ir, IN MD2MDSet * mx);
     void processPhi(IN IR * ir, IN MD2MDSet * mx);
-    void processCallSideeffect(
-            IN OUT MD2MDSet & mx,
-            bool by_addr,
-            MDSet const& by_addr_mds);
+    void processCallSideeffect(IN OUT MD2MDSet & mx, MDSet const& by_addr_mds);
     void processCall(IN IR * ir, IN OUT MD2MDSet * mx);
     void processReturn(IN IR * ir, IN MD2MDSet * mx);
     void processRegionSideeffect(IN OUT MD2MDSet & mx);
@@ -446,11 +453,11 @@ protected:
             bool is_ofst_predicable,
             UINT ofst,
             OUT MDSet & mds,
-            OUT bool mds_is_may_pt,
+            OUT bool * mds_is_may_pt,
             IN OUT AACtx * ic,
             IN OUT MD2MDSet * mx);
 
-    void recomputeDataType(AACtx & ic, IR * ir, MDSet & pts);
+    void recomputeDataType(AACtx const& ic, IR const* ir, OUT MDSet & pts);
     void reviseMDsize(IN OUT MDSet & mds, UINT size);
 
     inline void * xmalloc(size_t size)
@@ -490,14 +497,18 @@ public:
     void dumpInOutPointToSetForBB();
     void dumpMD2MDSetForRegion(bool dump_pt_graph);
     void dumpMayPointTo();
+    void dump(CHAR const* name);
 
-    void ElemUnionPointTo(MDSet const& mds, IN MDSet & in_set, IN MD2MDSet * mx);
+    void ElemUnionPointTo(
+            MDSet const& mds,
+            MDSet const& in_set,
+            IN MD2MDSet * mx);
     void ElemUnionPointTo(MDSet const& mds, IN MD * in_elem, IN MD2MDSet * mx);
     void ElemCopyPointTo(MDSet const& mds, IN MDSet & in_set, IN MD2MDSet * mx);
     void ElemCopyPointToAndMayPointTo(MDSet const& mds, IN MD2MDSet * mx);
     void ElemCopyAndUnionPointTo(
             MDSet const& mds,
-            IN MDSet & pt_set,
+            MDSet const& pt_set,
             IN MD2MDSet * mx);
     void ElemCleanPointTo(MDSet const& mds, IN MD2MDSet * mx);
     void ElemCleanExactPointTo(MDSet const& mds, IN MD2MDSet * mx);
@@ -542,7 +553,7 @@ public:
     void initAliasAnalysis();
 
     //Return true if Alias Analysis has initialized.
-    bool is_init() const { return m_hashed_maypts != NULL; }
+    bool is_init() const { return m_maypts != NULL; }
     bool is_flow_sensitive() const { return m_flow_sensitive; }
     bool isValidStmtToAA(IR * ir);
 
@@ -613,13 +624,18 @@ public:
             MD const* newmd)
     {
         MDSet tmp;
-        tmp.bunion(newmd, *m_misc_bs_mgr);
 
         MDSet const* pts = getPointTo(pointer, ctx);
         if (pts != NULL) {
+            if (pts->is_contain(newmd)) {
+                ASSERT0(m_mds_hash->find(*pts));
+                setPointTo(pointer, ctx, pts);
+                return;
+            }
             tmp.bunion(*pts, *m_misc_bs_mgr);
         }
 
+        tmp.bunion(newmd, *m_misc_bs_mgr);
         MDSet const* hashed = m_mds_hash->append(tmp);
         setPointTo(pointer, ctx, hashed);
         tmp.clean(*m_misc_bs_mgr);
@@ -633,8 +649,16 @@ public:
     {
         MDSet const* pts = getPointTo(pointer, ctx);
         if (pts == NULL) {
-            MDSet const* hashed = m_mds_hash->append(set);
-            setPointTo(pointer, ctx, hashed);
+            if (&set == m_maypts) {
+                setPointTo(pointer, ctx, m_maypts);
+                return;
+            }
+            setPointToMDSet(pointer, ctx, set);
+            return;
+        }
+
+        if (&set == m_maypts) {
+            setPointTo(pointer, ctx, m_maypts);
             return;
         }
 

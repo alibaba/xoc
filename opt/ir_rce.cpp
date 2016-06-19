@@ -295,6 +295,12 @@ bool IR_RCE::perform(OptCtx & oc)
     START_TIMER_AFTER();
     m_ru->checkValidAndRecompute(&oc, PASS_CFG, PASS_DU_REF, PASS_DU_CHAIN,
                                  PASS_UNDEF);
+
+    if (!OC_is_du_chain_valid(oc)) {
+        END_TIMER_AFTER(get_pass_name());
+        return false;
+    }
+
     if (!m_gvn->is_valid() && is_use_gvn()) {
         m_gvn->reperform(oc);
     }

@@ -83,16 +83,16 @@ public:
         ASSERT0(m_bb);
         ir->set_bb(m_bb);
         if (ct == NULL) {
-            return EList<IR*, IR2Holder>::append_head(ir);
-        } else {
-            return EList<IR*, IR2Holder>::insert_after(ir, ct);
+            //BB is empty.
+            return EList<IR*, IR2Holder>::append_tail(ir);
         }
+        return EList<IR*, IR2Holder>::insert_after(ir, ct);
     }
 
     //Count up memory size of BBIRList
     size_t count_mem() const
     {
-        return (size_t)sizeof(m_bb) + 
+        return (size_t)sizeof(m_bb) +
                ((EList<IR*, IR2Holder>*)this)->count_mem();
     }
 
@@ -527,9 +527,9 @@ public:
 
 //Exported Functions
 void dumpBBLabel(List<LabelInfo const*> & lablist, FILE * h);
-void dumpBBList(BBList * bbl, 
-                Region * ru, 
-                CHAR const* name = NULL, 
+void dumpBBList(BBList * bbl,
+                Region * ru,
+                CHAR const* name = NULL,
                 bool dump_inner_region = true);
 
 } //namespace xoc

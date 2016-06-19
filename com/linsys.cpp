@@ -835,7 +835,7 @@ FIN:
 
 void Lineq::initVarConstraint(
         Vector<INT> const* sign,
-        IN OUT RMat & vc, 
+        IN OUT RMat & vc,
         UINT rhs_idx)
 {
     UINT nvar = rhs_idx;
@@ -1390,8 +1390,8 @@ intersects all such columns in zeros, we omit the pair.
 'combined': record rows whose coefficient is positive and has been combined.
 'noneg': record nonegative columns. */
 bool Lineq::omit(INTMat const& coeff,
-                 UINT ncv, 
-                 UINT pcv, 
+                 UINT ncv,
+                 UINT pcv,
                  UINT rhs_part,
                  Vector<UINT> const& combined,
                  Vector<UINT> const& noneg)

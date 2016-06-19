@@ -731,7 +731,7 @@ void IR_SSA_MGR::rename_bb(IN IRBB * bb)
 
                 //e.g: pr1 = pr2(vp1)
                 //    vp1 will be renamed to vp2, so vp1 does not
-                //    occur in current IR any more.                
+                //    occur in current IR any more.
                 VP * curv = (VP*)PR_ssainfo(opnd);
                 ASSERT0(curv && VP_prno(curv) == PR_no(opnd));
 
@@ -1029,13 +1029,13 @@ void IR_SSA_MGR::destructionInDomTreeOrder(IRBB * root, Graph & domtree)
 }
 
 
-/* This function perform SSA destruction via scanning BB in preorder
-traverse dominator tree.
-Return true if inserting copy at the head of fallthrough BB
-of current BB's predessor. */
+//This function perform SSA destruction via scanning BB in preorder
+//traverse dominator tree.
+//Return true if inserting copy at the head of fallthrough BB
+//of current BB's predessor.
 void IR_SSA_MGR::destruction(DomTree & domtree)
 {
-    START_TIMER_FMT();
+    START_TIMER_FMT_AFTER();
 
     BBList * bblst = m_ru->get_bb_list();
     if (bblst->get_elem_count() == 0) { return; }
@@ -1044,7 +1044,7 @@ void IR_SSA_MGR::destruction(DomTree & domtree)
     cleanPRSSAInfo();
     m_is_ssa_constructed = false;
 
-    END_TIMER_FMT(("SSA: destruction in dom tree order"));
+    END_TIMER_FMT_AFTER(("SSA: destruction in dom tree order"));
 }
 
 
@@ -1362,7 +1362,7 @@ bool IR_SSA_MGR::verifySSAInfo()
 
 
 //This function perform SSA destruction via scanning BB in sequential order.
-void IR_SSA_MGR::destructionInBBListOrder()
+void IR_SSA_MGR::destruction()
 {
     BBList * bblst = m_ru->get_bb_list();
     if (bblst->get_elem_count() == 0) { return; }
@@ -1767,7 +1767,7 @@ void IR_SSA_MGR::construction(OptCtx & oc)
 }
 
 
-//Note: Non-SSA DU Chains of read/write PR will be clean and 
+//Note: Non-SSA DU Chains of read/write PR will be clean and
 //unusable after SSA construction.
 void IR_SSA_MGR::construction(DomTree & domtree)
 {

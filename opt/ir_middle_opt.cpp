@@ -65,24 +65,10 @@ void Region::lowerIRTreeToLowestHeight(OptCtx & oc)
     }
 
     if (SIMP_changed(&simp)) {
-        //We perfer flow sensitive analysis as default.
-        get_aa()->set_flow_sensitive(true);
-        get_aa()->perform(oc);
-
-        //The primary actions must do are computing IR reference
-        //and reach def.
-        UINT action = SOL_REACH_DEF|SOL_REF;
-
-        if (g_do_ivr) {
-            //IVR needs available reach def.
-            action |= SOL_AVAIL_REACH_DEF;
-        }
-
-        //DU mananger may use the context info supplied by AA.
-        get_du_mgr()->perform(oc, action);
-
-        //Compute the DU chain.
-        get_du_mgr()->computeMDDUChain(oc);
+        OC_is_aa_valid(oc) = false;
+        OC_is_du_chain_valid(oc) = false;
+        OC_is_reach_def_valid(oc) = false;
+        OC_is_avail_reach_def_valid(oc) = false;
     }
 }
 

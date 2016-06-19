@@ -80,6 +80,7 @@ void dumpLabel(LabelInfo const* li)
         fprintf(g_tfile, "\nclabel(" CLABEL_STR_FORMAT ")",
                 CLABEL_CONT(li));
     } else if (LABEL_INFO_type(li) == L_PRAGMA) {
+        ASSERT0(LABEL_INFO_pragma(li));
         fprintf(g_tfile, "\npragms(%s)",
                 SYM_name(LABEL_INFO_pragma(li)));
     } else { UNREACH(); }

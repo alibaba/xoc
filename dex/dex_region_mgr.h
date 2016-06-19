@@ -81,7 +81,7 @@ public:
         return p;
     }
 
-    virtual void processProgramRegion(Region * program);
+    virtual bool processProgramRegion(Region * program);
 };
 
 #endif

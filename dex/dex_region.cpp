@@ -215,9 +215,9 @@ static void addCatchTypeName(DexRegion * ru)
 
 
 //This function outputs Prno2Vreg after Dex register allocation.
-void DexRegion::process()
+bool DexRegion::process()
 {
-    if (get_ir_list() == NULL) { return; }
+    if (get_ir_list() == NULL) { return true; }
     OptCtx oc;
     OC_show_comp_time(oc) = g_show_comp_time;
 
@@ -239,7 +239,7 @@ void DexRegion::process()
     ASSERT0(get_pass_mgr());
     IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)passmgr->queryPass(PASS_SSA_MGR);
     if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
-        ssamgr->destructionInBBListOrder();
+        ssamgr->destruction();
     }
 
     if (!g_retain_pass_mgr_for_region) {
@@ -247,14 +247,14 @@ void DexRegion::process()
         destroyPassMgr();
     }
 
-    if (!is_function()) { return; }
+    if (!is_function()) { return true; }
 
-    /////////////////////////////////////
-    //DO NOT QUERY PASS AFTER THIS LINE//
-    /////////////////////////////////////
+    ///////////////////////////////////////
+    //DO NOT REQUEST PASS AFTER THIS LINE//
+    ///////////////////////////////////////
 
     BBList * bbl = get_bb_list();
-    if (bbl->get_elem_count() == 0) { return; }
+    if (bbl->get_elem_count() == 0) { return true; }
 
     ASSERT0(verifyIRandBB(bbl, this));
 
@@ -280,4 +280,5 @@ void DexRegion::process()
         getPrno2Vreg()->clean();
         getPrno2Vreg()->copy(*getDex2IR()->getPR2Vreg());
     }
+    return true;
 }

@@ -175,16 +175,14 @@ public:
 
     VAR * get_base() const { return MD_base(this); }
 
-    /* Return true if current md exactly cover 'm', such as:
-    current md: |-------|
-    m:            |----|
-    */
+    //Return true if current md exactly cover 'm', such as:
+    //current md: |-------|
+    //m:            |----|
     bool is_cover(MD const* m) const;
 
-    /* Return true if current md intersect but may be not cover 'm', such as:
-    current md: |-------|
-    m:            |-------|
-    */
+    //Return true if current md intersect but may be not cover 'm', such as:
+    //current md: |-------|
+    //m:            |-------|
     bool is_overlap(MD const* m) const;
 
     //Return true if md represent real object that would be emitted to
@@ -556,6 +554,7 @@ public:
 };
 
 
+//For given MDSet, mapping MD to its subsequently MD elements via HMap.
 class MD2Node2 {
 public:
     MDSet * mds;
@@ -568,6 +567,7 @@ public:
 };
 
 
+//For given MDSet, mapping MD to its subsequently MD elements via TMap.
 class MD2Node {
 public:
     MDSet * mds;
@@ -631,7 +631,8 @@ protected:
         return mn;
     }
 
-    void dump_helper_a(MDSet * mds, UINT indent, UINT id)
+    //dump_helper for MDSet.
+    void dump_helper_mds(MDSet * mds, UINT indent, UINT id)
     {
         fprintf(g_tfile, "\n");
 
@@ -643,7 +644,7 @@ protected:
             fprintf(g_tfile, " {");
             SEGIter * iter;
             for (INT j = mds->get_first(&iter); j >= 0;) {
-                fprintf(g_tfile, "%d", i);
+                fprintf(g_tfile, "%d", j);
                 j = mds->get_next((UINT)j, &iter);
                 if (j >= 0) {
                     fprintf(g_tfile, ",");
@@ -653,24 +654,27 @@ protected:
         }
     }
 
+    //dump_helper for MD2Node.
     void dump_helper(MD2Node * mn, UINT indent, MDSystem * mdsys)
     {
         MD2Node * nextmn = NULL;
         TMapIter<UINT, MD2Node*> ti;
         for (UINT id = mn->next.get_first(ti, &nextmn);
              id != 0; id = mn->next.get_next(ti, &nextmn)) {
-            dump_helper_a(nextmn->mds, indent, id);
+            dump_helper_mds(nextmn->mds, indent, id);
             ASSERT0(nextmn);
             dump_helper(nextmn, indent + 2, mdsys);
         }
     }
 
+    //dump_helper for MD2Node2.
     void dump_helper(MD2Node2 * mn, UINT indent, MDSystem * mdsys)
     {
         INT pos;
         for (MD2Node2 * nextmn = mn->next.get_first_elem(pos);
              nextmn != NULL; nextmn = mn->next.get_next_elem(pos)) {
-            dump_helper_a(nextmn->mds, indent, (UINT)pos);
+            dump_helper_mds(nextmn->mds, indent, (UINT)pos);
+            ASSERT0(nextmn);
             dump_helper(nextmn, indent + 2, mdsys);
         }
     }
@@ -765,7 +769,7 @@ public:
         //the collisions become more frequently.
         //Extend HMap if the number of element is twice of the hash
         //table size.
-        if (mn->next.get_elem_count() >    mn->next.get_bucket_size() * 2) {
+        if (mn->next.get_elem_count() > mn->next.get_bucket_size() * 2) {
             mn->next.grow();
         }
         #else
@@ -787,8 +791,7 @@ public:
         }
 
         INT nextid = mds.get_next((UINT)id, &iter);
-        for (; nextid >= 0; id = nextid,
-             nextid = mds.get_next((UINT)nextid, &iter)) {
+        for (; nextid >= 0; nextid = mds.get_next((UINT)nextid, &iter)) {
             MNTY * nextmn = mn->next.get((UINT)nextid);
             if (nextmn == NULL) {
                 checkAndGrow(mn);
@@ -816,6 +819,7 @@ public:
         return count;
     }
 
+    //Dump hash tab as tree style.
     void dump(MDSystem * mdsys)
     {
         if (g_tfile == NULL) { return; }
@@ -906,12 +910,12 @@ public:
 };
 
 
-/* MD System.
-Manage the memory allocation and free of MD, and
-the mapping between MD_id and MD.
-Manage the memory allocation and free of MDTab, and
-the mapping between VAR and MDTab.
-NOTE: each region manager has a single MDSystem. */
+//MD System.
+//Manage the memory allocation and free of MD, and
+//the mapping between MD_id and MD.
+//Manage the memory allocation and free of MDTab, and
+//the mapping between VAR and MDTab.
+//NOTE: each region manager has a single MDSystem.
 class MDSystem {
     SMemPool * m_pool;
     SMemPool * m_sc_mdptr_pool;

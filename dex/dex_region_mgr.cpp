@@ -65,7 +65,7 @@ void DexRegionMgr::initBuiltin()
 }
 
 
-void DexRegionMgr::processProgramRegion(Region * program)
+bool DexRegionMgr::processProgramRegion(Region * program)
 {
     ASSERT0(program && program->is_program());
 

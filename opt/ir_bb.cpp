@@ -280,6 +280,7 @@ void dumpBBLabel(List<LabelInfo const*> & lablist, FILE * h)
             fprintf(h, ILABEL_STR_FORMAT, ILABEL_CONT(li));
             break;
         case L_PRAGMA:
+            ASSERT0(LABEL_INFO_pragma(li));
             fprintf(h, "%s", SYM_name(LABEL_INFO_pragma(li)));
             break;
         default: UNREACH();
@@ -305,9 +306,9 @@ void dumpBBLabel(List<LabelInfo const*> & lablist, FILE * h)
 }
 
 
-void dumpBBList(BBList * bbl, 
-                Region * ru, 
-                CHAR const* name, 
+void dumpBBList(BBList * bbl,
+                Region * ru,
+                CHAR const* name,
                 bool dump_inner_region)
 {
     ASSERT0(ru && bbl);

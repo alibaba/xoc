@@ -297,6 +297,7 @@ void MDSet::dump(MDSystem * ms, bool detail) const
         SEGIter * iter;
         for (INT i = get_first(&iter); i != -1; i = get_next(i, &iter)) {
             MD const* md = ms->get_md(i);
+            ASSERT0(md);
             md->dump(ms->get_type_mgr());
         }
     }

@@ -255,7 +255,8 @@ static void do_opt(IR * ir_list, DexRegion * func_ru)
     func_ru->addToIRList(ir_list);
 
     #if 1
-    func_ru->process();
+    bool succ = func_ru->process();
+    ASSERT0(succ);
     #else
     func_ru->processSimply();
     #endif

@@ -163,8 +163,8 @@ protected:
             OUT List<IR const*> * call_list,
             OUT List<IR const*> * ret_list,
             bool scan_inner_region);
-    void processIRList(OptCtx & oc);
-    void processBBList(OptCtx & oc);
+    bool processIRList(OptCtx & oc);
+    bool processBBList(OptCtx & oc);
     void prescan(IR const* ir);
     bool partitionRegion();
     void HighProcessImpl(OptCtx & oc);
@@ -664,8 +664,8 @@ public:
     bool isLowestHeightExp(IR const* ir, SimpCtx const* ctx) const;
     bool isLowestHeightSelect(IR const* ir) const;
     bool isLowestHeightArrayOp(IR const* ir) const;
-    bool isPRUniqueForSameNo() const 
-    { return REGION_is_pr_unique_for_same_number(this); }    
+    bool isPRUniqueForSameNo() const
+    { return REGION_is_pr_unique_for_same_number(this); }
 
     //Return true if Region name is equivalent to 'n'.
     bool isRegionName(CHAR const* n) const
@@ -811,11 +811,11 @@ public:
 
     void lowerIRTreeToLowestHeight(OptCtx & oc);
 
-    virtual void process(); //Entry to process region-unit.
+    virtual bool process(); //Entry to process region.
 
     //Check and rescan call list of region if one of elements in list changed.
     void updateCallAndReturnList(bool scan_inner_region);
-    
+
     bool verifyBBlist(BBList & bbl);
     bool verifyIRinRegion();
     bool verifyRPO(OptCtx & oc);

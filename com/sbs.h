@@ -942,4 +942,5 @@ typedef MiscBitSetMgr<> DefMiscBitSetMgr;
 typedef SC<DefSEG*> SEGIter; //Default SEG iter.
 
 } //namespace xcom
+
 #endif

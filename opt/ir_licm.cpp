@@ -796,6 +796,11 @@ bool IR_LICM::perform(OptCtx & oc)
     m_ru->checkValidAndRecompute(&oc, PASS_DOM, PASS_DU_REF, PASS_LOOP_INFO,
                                  PASS_DU_CHAIN, PASS_UNDEF);
 
+    if (!OC_is_du_chain_valid(oc)) {
+        END_TIMER_AFTER(get_pass_name());
+        return false;
+    }
+
     bool du_set_info_changed = false;
     bool insert_bb = false;
     TTab<IR*> invariant_stmt;

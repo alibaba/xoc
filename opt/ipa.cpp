@@ -155,30 +155,30 @@ void IPA::recomputeDUChain(Region * ru, OptCtx & oc)
     ASSERT0(!OC_is_du_chain_valid(oc));
     if (m_is_recompute_du_ref) {
         if (m_is_keep_reachdef) {
-            ru->checkValidAndRecompute(&oc, 
-                    PASS_REACH_DEF, 
-                    PASS_DU_REF, 
-                    PASS_CFG, 
-                    PASS_DU_CHAIN, 
+            ru->checkValidAndRecompute(&oc,
+                    PASS_REACH_DEF,
+                    PASS_DU_REF,
+                    PASS_CFG,
+                    PASS_DU_CHAIN,
                     PASS_UNDEF);
         } else {
-            ru->checkValidAndRecompute(&oc, 
-                    PASS_DU_REF, 
-                    PASS_CFG, 
-                    PASS_DU_CHAIN, 
+            ru->checkValidAndRecompute(&oc,
+                    PASS_DU_REF,
+                    PASS_CFG,
+                    PASS_DU_CHAIN,
                     PASS_UNDEF);
         }
     } else {
         if (m_is_keep_reachdef) {
-            ru->checkValidAndRecompute(&oc, 
-                    PASS_REACH_DEF, 
-                    PASS_CFG, 
-                    PASS_DU_CHAIN, 
+            ru->checkValidAndRecompute(&oc,
+                    PASS_REACH_DEF,
+                    PASS_CFG,
+                    PASS_DU_CHAIN,
                     PASS_UNDEF);
         } else {
-            ru->checkValidAndRecompute(&oc, 
-                    PASS_CFG, 
-                    PASS_DU_CHAIN, 
+            ru->checkValidAndRecompute(&oc,
+                    PASS_CFG,
+                    PASS_DU_CHAIN,
                     PASS_UNDEF);
         }
     }
@@ -190,9 +190,11 @@ void IPA::recomputeDUChain(Region * ru, OptCtx & oc)
 //DU chain if need.
 bool IPA::perform(OptCtx & oc)
 {
+    START_TIMER_AFTER();
     ASSERT0(OC_is_callg_valid(oc));
     ASSERT0(m_program && m_program->is_program());
     createCallDummyuse(oc);
+    END_TIMER_AFTER(get_pass_name());
     return true;
 }
 

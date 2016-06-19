@@ -95,7 +95,7 @@ protected:
 
 public:
     explicit RegionMgr() : m_sym_tab(0)
-    {    
+    {
         ASSERT0(verifyPreDefinedInfo());
         m_ru_count = 1;
         m_label_count = 1;
@@ -167,11 +167,11 @@ public:
     void set_targ_info(TargInfo * ti) { m_targinfo = ti; }
 
     //Process region in the form of function type.
-    virtual void processFuncRegion(IN Region * func);
+    virtual bool processFuncRegion(IN Region * func);
 
     //Process top-level region unit.
     //Top level region unit should be program unit.
-    virtual void processProgramRegion(IN Region * program);
+    virtual bool processProgramRegion(IN Region * program);
 
     bool verifyPreDefinedInfo();
 };

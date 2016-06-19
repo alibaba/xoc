@@ -57,7 +57,7 @@ public:
         ConstIRIter iter;
         switch (t->get_code()) {
         case IR_LD:
-            hval = t->get_code() + (t->get_offset() + 1) + 
+            hval = t->get_code() + (t->get_offset() + 1) +
                    (UINT)(size_t)t->get_type();
             break;
         case IR_ILD:
@@ -2165,6 +2165,12 @@ bool IR_RP::perform(OptCtx & oc)
     START_TIMER_AFTER();
     m_ru->checkValidAndRecompute(&oc, PASS_DU_CHAIN, PASS_LOOP_INFO,
                                  PASS_DU_REF, PASS_UNDEF);
+
+    if (!OC_is_du_chain_valid(oc)) {
+        END_TIMER_AFTER(get_pass_name());
+        return false;
+    }
+
     //computeLiveness();
     m_ssamgr = NULL;
     IR_SSA_MGR * ssamgr =

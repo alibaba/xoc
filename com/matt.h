@@ -2808,9 +2808,9 @@ void Matrix<T>::insertRowsBefore(UINT ridx, UINT rnum)
 //from 'from' to 'to'.
 template <class T>
 void Matrix<T>::insertRowsBefore(
-        UINT ridx, 
+        UINT ridx,
         Matrix<T> const& m,
-        UINT mfrom, 
+        UINT mfrom,
         UINT mto)
 {
     ASSERT(m_is_init && m.m_is_init, ("not yet initialize."));
@@ -2881,9 +2881,9 @@ void Matrix<T>::insertColumnsBefore(UINT cidx, UINT cnum)
 //from 'from' to 'to'.
 template <class T>
 void Matrix<T>::insertColumnsBefore(
-        UINT cidx, 
+        UINT cidx,
         Matrix<T> const& m,
-        UINT mfrom, 
+        UINT mfrom,
         UINT mto)
 {
     ASSERT(m_is_init && m.m_is_init, ("not yet initialize."));
@@ -3292,7 +3292,7 @@ T Matrix<T>::dot(Matrix<T> const& v) const
 NOTICE: 'srow, scol, erow, ecol'  must express one vector. */
 template <class T>
 T Matrix<T>::dot(UINT srow, UINT scol,
-                 UINT erow, UINT ecol, 
+                 UINT erow, UINT ecol,
                  Matrix<T> const& v) const
 {
     ASSERT(m_is_init, ("not yet initialize."));

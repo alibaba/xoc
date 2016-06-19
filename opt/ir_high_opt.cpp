@@ -51,7 +51,9 @@ void Region::HighProcessImpl(OptCtx & oc)
         IR_SSA_MGR * ssamgr =
             (IR_SSA_MGR*)get_pass_mgr()->registerPass(PASS_SSA_MGR);
         ASSERT0(ssamgr);
-        ssamgr->construction(oc);
+        if (!ssamgr->is_ssa_constructed()) {
+            ssamgr->construction(oc);
+        }
     }
 
     if (g_do_aa) {
@@ -82,9 +84,10 @@ void Region::HighProcessImpl(OptCtx & oc)
             f |= SOL_REACH_DEF;
         }
 
-        dumgr->perform(oc, f);        
-        if (g_compute_du_chain) {
-            dumgr->computeMDDUChain(oc);
+        if (dumgr->perform(oc, f) && OC_is_ref_valid(oc)) {
+            if (g_compute_du_chain) {
+                dumgr->computeMDDUChain(oc);
+            }
         }
     }
 

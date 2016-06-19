@@ -1471,6 +1471,11 @@ bool IR_GVN::perform(OptCtx & oc)
     m_ru->checkValidAndRecompute(&oc, PASS_DU_CHAIN, PASS_DU_REF, PASS_RPO,
                                  PASS_DOM, PASS_UNDEF);
 
+    if (!OC_is_du_chain_valid(oc)) {
+        END_TIMER_AFTER(get_pass_name());
+        return false;
+    }
+
     List<IRBB*> * tbbl = m_cfg->get_bblist_in_rpo();
     ASSERT0(tbbl->get_elem_count() == bbl->get_elem_count());
 

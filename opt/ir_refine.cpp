@@ -229,7 +229,7 @@ IR * Region::refineIstore(IR * ir, bool & change, RefineCtx & rc)
 static inline bool is_redundant_cvt(IR * ir)
 {
     if (ir->is_cvt()) {
-        if (CVT_exp(ir)->is_cvt() || 
+        if (CVT_exp(ir)->is_cvt() ||
             CVT_exp(ir)->get_type() == ir->get_type()) {
             return true;
         }
@@ -781,7 +781,7 @@ IR * Region::refineAdd(IR * ir, bool & change)
         //add X,0 => X
         BIN_opnd0(ir) = NULL;
         freeIRTree(ir);
-        ir = op0;        
+        ir = op0;
         change = true;
         return ir; //No need to update DU.
     }
@@ -795,9 +795,9 @@ IR * Region::refineMul(IR * ir, bool & change, RefineCtx & rc)
     IR * op0 = BIN_opnd0(ir);
     IR * op1 = BIN_opnd1(ir);
     ASSERT0(op0 != NULL && op1 != NULL);
-    if (g_is_opt_float && 
-        op1->is_const() && 
-        op1->is_fp() && 
+    if (g_is_opt_float &&
+        op1->is_const() &&
+        op1->is_fp() &&
         CONST_fp_val(op1) == 2.0) {
         //mul X,2.0 => add.fp X,X
         IR_code(ir) = IR_ADD;
@@ -807,12 +807,12 @@ IR * Region::refineMul(IR * ir, bool & change, RefineCtx & rc)
         if (get_du_mgr() != NULL) {
             get_du_mgr()->copyIRTreeDU(BIN_opnd1(ir), BIN_opnd0(ir), true);
         }
-        
+
         ir->setParentPointer(false);
         change = true;
         return ir; //No need to update DU.
     } else if (op1->is_const() &&
-               op1->is_int() && 
+               op1->is_int() &&
                CONST_int_val(op1) == 2) {
         //mul X,2 => add.int X,X
         IR_code(ir) = IR_ADD;

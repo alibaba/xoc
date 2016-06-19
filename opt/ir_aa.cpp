@@ -164,7 +164,7 @@ IR_AA::IR_AA(Region * ru)
     m_flow_sensitive = true;
     m_pool = smpoolCreate(128, MEM_COMM);
     m_dummy_global = NULL;
-    m_hashed_maypts = NULL;
+    m_maypts = NULL;
 }
 
 
@@ -189,8 +189,8 @@ size_t IR_AA::count_mem()
 
     count += m_pt_pair_mgr.count_mem();
 
-    if (m_hashed_maypts != NULL) {
-        count += m_hashed_maypts->count_mem();
+    if (m_maypts != NULL) {
+        count += m_maypts->count_mem();
     }
 
     count += countMD2MDSetMemory();
@@ -429,17 +429,22 @@ void IR_AA::processCvt(
     inferExpression(CVT_exp(ir), mds, ic, mx);
     if (AC_is_mds_mod(ic)) {
         SEGIter * iter;
-        for (INT i = mds.get_first(&iter);
-             i >= 0; i = mds.get_next((UINT)i, &iter)) {
+        UINT size = ir->get_dtype_size(m_tm); //cvt's tgt byte size.
+        INT next;
+        for (INT i = mds.get_first(&iter); i >= 0; i = next) {
+            next = mds.get_next((UINT)i, &iter);
             MD const* l = m_md_sys->get_md((UINT)i);
-            UINT size = ir->get_dtype_size(m_tm); //cvt's tgt byte size.
+            ASSERT0(l);
+
             if (l->is_exact() && MD_size(l) != size) {
                 MD md(*l);
+
                 //Convert type-size to 'ir' claimed.
                 MD_size(&md) = size;
                 MD const* entry = m_md_sys->registerMD(md);
                 ASSERT0(MD_id(entry) > 0);
                 ASSERT0(l->is_effect() && entry->is_effect());
+
                 mds.diff((UINT)i, *m_misc_bs_mgr);
                 mds.bunion_pure(MD_id(entry), *m_misc_bs_mgr);
             }
@@ -533,7 +538,7 @@ void IR_AA::computeMayPointTo(IR * pointer, IN MD2MDSet * mx, OUT MDSet & mds)
             mds.bunion(typed_md, *m_misc_bs_mgr);
         } else {
             //We do NOT known where p pointed to.
-            mds.bunion(*m_hashed_maypts, *m_misc_bs_mgr);
+            mds.bunion(*m_maypts, *m_misc_bs_mgr);
         }
     }
 
@@ -558,7 +563,7 @@ void IR_AA::computeMayPointTo(IR * pointer, IN MD2MDSet * mx, OUT MDSet & mds)
                 mds.bunion(typed_md, *m_misc_bs_mgr);
             } else {
                 //We do NOT known where p pointed to.
-                mds.bunion(*m_hashed_maypts, *m_misc_bs_mgr);
+                mds.bunion(*m_maypts, *m_misc_bs_mgr);
             }
         }
     }
@@ -576,7 +581,7 @@ void IR_AA::inferArrayExpBase(
         bool is_ofst_predicable,
         UINT ofst,
         OUT MDSet & mds,
-        OUT bool mds_is_may_pt,
+        OUT bool * mds_is_may_pt,
         IN OUT AACtx * ic,
         IN OUT MD2MDSet * mx)
 {
@@ -600,8 +605,8 @@ void IR_AA::inferArrayExpBase(
             mds.clean(*m_misc_bs_mgr);
             mds.bunion(typed_md, *m_misc_bs_mgr);
         } else {
-            mds.copy(*m_hashed_maypts, *m_misc_bs_mgr);
-            mds_is_may_pt = true;
+            mds.copy(*m_maypts, *m_misc_bs_mgr);
+            *mds_is_may_pt = true;
         }
     } else {
         //Intent to look for original array base that the base-pointer
@@ -617,26 +622,26 @@ void IR_AA::inferArrayExpBase(
             ASSERT0(array_base_md != NULL);
 
             //Get to know where the base pointed to.
-            MDSet const* pt_mds = getPointTo(array_base_md, *mx);
+            MDSet const* pts = getPointTo(array_base_md, *mx);
             MD const* typed_md = NULL;
-            if (pt_mds != NULL && !pt_mds->is_empty()) {
+            if (pts != NULL && !pts->is_empty()) {
                 if (array_base->get_ai() != NULL &&
-                    pt_mds->is_contain_global() &&
+                    pts->is_contain_global() &&
                     (typed_md = computePointToViaType(array_base)) != NULL) {
                     setPointToUniqueMD(array_base_md, *mx, typed_md);
                     mds.clean(*m_misc_bs_mgr);
                     mds.bunion(typed_md, *m_misc_bs_mgr);
                 } else {
                     inferArrayInfinite((INT)ofst, is_ofst_predicable,
-                                       mdsz, *pt_mds, mds);
+                                       mdsz, *pts, mds);
                 }
 
             } else if (array_base->get_ai() != NULL &&
                        (typed_md = computePointToViaType(array_base)) != NULL) {
                 mds.bunion(typed_md, *m_misc_bs_mgr);
             } else {
-                inferArrayInfinite((INT)ofst, false, 0, *m_hashed_maypts, mds);
-                mds_is_may_pt = true;
+                inferArrayInfinite((INT)ofst, false, 0, *m_maypts, mds);
+                *mds_is_may_pt = true;
                 break;
             }
         }
@@ -756,7 +761,7 @@ void IR_AA::processArray(
     } else {
         //Array base is a computational expression.
         inferArrayExpBase(ir, array_base, is_ofst_predicable,
-                          ofst_val, mds, mds_is_may_pt,
+                          ofst_val, mds, &mds_is_may_pt,
                           &tic, mx);
     }
     ic->copyBottomUpFlag(tic);
@@ -765,7 +770,7 @@ void IR_AA::processArray(
     if (AC_comp_pt(ic)) {
         //Caller need array's point-to.
         if (mds_is_may_pt) {
-            //Do not recompute again.
+            //Do not recompute again. Return mds directly.
             return;
         }
 
@@ -782,16 +787,17 @@ void IR_AA::processArray(
                 has_unified_may_pt = true;
                 //We do NOT known where p[...] pointed to, use the
                 //conservative solution.
-                tmp.bunion(*m_hashed_maypts, *m_misc_bs_mgr);
+                tmp.bunion(*m_maypts, *m_misc_bs_mgr);
             }
         }
+
         mds.copy(tmp, *m_misc_bs_mgr);
         tmp.clean(*m_misc_bs_mgr);
     }
 }
 
 
-//The function generates new MD for given pr.
+//The function generates new MD for given PR.
 //It should be called if new PR generated in optimzations.
 MD const* IR_AA::allocPRMD(IR * pr)
 {
@@ -803,7 +809,7 @@ MD const* IR_AA::allocPRMD(IR * pr)
 }
 
 
-//The function generates new MD for given pr.
+//The function generates new MD for given PR.
 //It should be called if new PR generated in optimzations.
 MD const* IR_AA::allocPhiMD(IR * phi)
 {
@@ -1076,7 +1082,7 @@ void IR_AA::inferPtArith(
         opnd1_tic.cleanBottomUpFlag();
         inferExpression(opnd1, mds, &opnd1_tic, mx);
 
-        //Do not copy bottom-up flag of opnd1.
+        //Bottom-up flag of opnd1 is useless to its parent.
 
         mds.clean(*m_misc_bs_mgr);
         if (AC_has_comp_lda(&opnd1_tic) && AC_has_comp_lda(opnd0_ic)) {
@@ -1093,6 +1099,13 @@ void IR_AA::inferPtArith(
     //Set each MD of opnd0 to be UNBOUND even if it is exact
     //to keep the conservation.
     ASSERT(mds.is_empty(), ("output buffer not yet initialized"));
+
+    if (opnd0_mds.is_empty()) {
+        //Point-to set of opnd0 of binary-op is MayPointToSet.
+        ASSERT0(AC_returned_pts(opnd0_ic));
+        return;
+    }
+
     SEGIter * iter;
     for (INT i = opnd0_mds.get_first(&iter);
          i >= 0; i = opnd0_mds.get_next((UINT)i, &iter)) {
@@ -1129,6 +1142,7 @@ void IR_AA::processPointerArith(
     //ic may have been set comp_pt to be true.
     AACtx tic(*ic);
     tic.cleanBottomUpFlag();
+
     MDSet tmp;
     inferExpression(opnd0, tmp, &tic, mx); //Generate MDS of opnd0.
 
@@ -1207,6 +1221,9 @@ MD const* IR_AA::assignPRMD(
                 setPointToUniqueMD(tmp, *mx, typed_md);
                 mds->clean(*m_misc_bs_mgr);
                 mds->bunion(typed_md, *m_misc_bs_mgr);
+            } else if (pts == m_maypts) {
+                mds->clean(*m_misc_bs_mgr);
+                AC_returned_pts(ic) = m_maypts;
             } else {
                 mds->copy(*pts, *m_misc_bs_mgr);
             }
@@ -1218,12 +1235,15 @@ MD const* IR_AA::assignPRMD(
         } else {
             //We do NOT known where p pointed to, and compute
             //the offset as well.
-            mds->copy(*m_hashed_maypts, *m_misc_bs_mgr);
+            //mds->copy(*m_maypts, *m_misc_bs_mgr);
+            mds->clean(*m_misc_bs_mgr);
+            AC_returned_pts(ic) = m_maypts;
         }
     } else {
         mds->clean(*m_misc_bs_mgr);
         mds->bunion(tmp, *m_misc_bs_mgr);
     }
+
     return tmp;
 }
 
@@ -1260,6 +1280,9 @@ MD const* IR_AA::assignLoadMD(
                 setPointToUniqueMD(t, *mx, typed_md);
                 mds->clean(*m_misc_bs_mgr);
                 mds->bunion(typed_md, *m_misc_bs_mgr);
+            } else if (pts == m_maypts) {
+                mds->clean(*m_misc_bs_mgr);
+                AC_returned_pts(ic) = m_maypts;
             } else {
                 mds->copy(*pts, *m_misc_bs_mgr);
             }
@@ -1271,7 +1294,9 @@ MD const* IR_AA::assignLoadMD(
         } else {
             //We do NOT known where p pointed to,
             //e.g: If p->? (p+2)->??
-            mds->copy(*m_hashed_maypts, *m_misc_bs_mgr);
+            //mds->copy(*m_maypts, *m_misc_bs_mgr);
+            mds->clean(*m_misc_bs_mgr);
+            AC_returned_pts(ic) = m_maypts;
         }
     } else {
         mds->clean(*m_misc_bs_mgr);
@@ -1354,7 +1379,16 @@ void IR_AA::processIld(
     AC_comp_pt(&tic) = true;
     inferExpression(ILD_base(ir), mds, &tic, mx);
 
-    ASSERT0(!mds.is_empty());
+    if (mds.is_empty()) {
+        ASSERT0(AC_returned_pts(&tic));
+        ir->cleanRefMD();
+        set_may_addr(ir, AC_returned_pts(&tic));
+        if (AC_comp_pt(ic)) {
+            AC_returned_pts(ic) = m_maypts;
+        }
+        return;
+    }
+
     AC_is_mds_mod(ic) |= AC_is_mds_mod(&tic);
     if (ILD_ofst(ir) != 0) {
         UINT ild_ofst = ILD_ofst(ir);
@@ -1405,39 +1439,41 @@ void IR_AA::processIld(
         set_may_addr(ir, m_mds_hash->append(mds));
     }
 
-    if (AC_comp_pt(ic)) {
-        //Compute the ILD pointed to.
-        if (mustaddr != NULL) {
-            MDSet const* pts = getPointTo(mustaddr, *mx);
-            if (pts != NULL && !pts->is_empty()) {
-                mds.copy(*pts, *m_misc_bs_mgr);
-            } else {
-                //We do NOT known where p pointed to, and compute
-                //the offset as well.
-                //e.g: If p->? (p+2)->??
-                mds.copy(*m_hashed_maypts, *m_misc_bs_mgr);
-            }
+    if (!AC_comp_pt(ic)) { return; }
+
+    //Compute the ILD pointed to.
+    if (mustaddr != NULL) {
+        MDSet const* pts = getPointTo(mustaddr, *mx);
+        if (pts != NULL && !pts->is_empty()) {
+            mds.copy(*pts, *m_misc_bs_mgr);
         } else {
-            MDSet tmp;
-            bool has_unified_may_pt = false;
-            SEGIter * iter;
-            for (INT i = mds.get_first(&iter);
-                 i >= 0; i = mds.get_next((UINT)i, &iter)) {
-                MDSet const* pts = getPointTo(m_md_sys->get_md((UINT)i), *mx);
-                if (pts != NULL && !pts->is_empty()) {
-                    tmp.bunion(*pts, *m_misc_bs_mgr);
-                } else if (!has_unified_may_pt) {
-                    has_unified_may_pt = true;
-                    //We do NOT known where p pointed to, and compute
-                    //the offset as well.
-                    //e.g: If p->? (p+2)->??
-                    tmp.bunion(*m_hashed_maypts, *m_misc_bs_mgr);
-                }
-            }
-            mds.copy(tmp, *m_misc_bs_mgr);
-            tmp.clean(*m_misc_bs_mgr);
+            //We do NOT known where p pointed to, and compute
+            //the offset as well.
+            //e.g: If p->? (p+2)->??
+            mds.copy(*m_maypts, *m_misc_bs_mgr);
+        }
+        return;
+    }
+
+    MDSet tmp;
+    bool has_unified_may_pt = false;
+    SEGIter * iter2;
+    for (INT i = mds.get_first(&iter2);
+         i >= 0; i = mds.get_next((UINT)i, &iter2)) {
+        MDSet const* pts = getPointTo(m_md_sys->get_md((UINT)i), *mx);
+        if (pts != NULL && !pts->is_empty()) {
+            tmp.bunion(*pts, *m_misc_bs_mgr);
+        } else if (!has_unified_may_pt) {
+            has_unified_may_pt = true;
+            //We do NOT known where p pointed to, and compute
+            //the offset as well.
+            //e.g: If p->? (p+2)->??
+            tmp.bunion(*m_maypts, *m_misc_bs_mgr);
         }
     }
+
+    mds.copy(tmp, *m_misc_bs_mgr);
+    tmp.clean(*m_misc_bs_mgr);
 }
 
 
@@ -1467,11 +1503,17 @@ void IR_AA::processConst(
     } else {
         AC_is_mds_mod(ic) = false;
     }
+
+    if (AC_comp_pt(ic)) {
+        //We do NOT known where const pointed to,
+        //e.g: User could regard immediate value 0x1234 as memory address.
+        AC_returned_pts(ic) = m_maypts;
+    }
 }
 
 
 //Recompute the data type size accroding to stmt type.
-void IR_AA::recomputeDataType(AACtx & ic, IR * ir, MDSet & pts)
+void IR_AA::recomputeDataType(AACtx const& ic, IR const* ir, OUT MDSet & pts)
 {
     if (AC_has_comp_lda(&ic) && !ir->is_void()) {
         //If rhs return the address which taken by IR_LDA.
@@ -1484,8 +1526,8 @@ void IR_AA::recomputeDataType(AACtx & ic, IR * ir, MDSet & pts)
         ASSERT(ir->is_ptr(), ("LDA's result should be stored as pointer."));
         ASSERT(pts.get_effect_md(m_md_sys), ("LDA's base must be effect VAR"));
 
-        //ptset may include element which also be in m_hashed_maypts.
-        //ASSERT0(!ptset->is_intersect(*m_hashed_maypts));
+        //ptset may include element which also be in m_maypts.
+        //ASSERT0(!ptset->is_intersect(*m_maypts));
 
         ASSERT(ir->is_ptr(), ("lda's base must be pointer."));
         UINT size = TY_ptr_base_size(ir->get_type());
@@ -1521,79 +1563,82 @@ void IR_AA::inferStoreValue(
     //3. p = &q, add p->q.
     //4. p = (&q)+n+m, add p->q.
     MDSet tmp;
-    MDSet * pts = &tmp;
     AACtx rhsic(*ic);
     if (ir->is_ptr() || ir->is_void()) {
         AC_comp_pt(&rhsic) = true;
     }
 
-    inferExpression(rhs, *pts, &rhsic, mx);
-
-    recomputeDataType(rhsic, ir, *pts);
+    inferExpression(rhs, tmp, &rhsic, mx);
+    recomputeDataType(rhsic, ir, tmp);
 
     //Update POINT-TO of LHS.
-    ASSERT0(pts);
     if (AC_has_comp_lda(&rhsic) || AC_comp_pt(&rhsic)) {
         //p = q, q is array base (e.g:q[100]), add p->q.
         //p = &q, add p->q.
         //p = (&q)+n+m, add p->q.
         if (AC_has_comp_lda(&rhsic)) {
-            ASSERT0(pts->get_elem_count() == 1);
+            ASSERT0(tmp.get_elem_count() == 1);
 
             //CASE: =&g[i] violate this constrain.
             //ASSERT0(ptset->is_contain_only_exact_and_str(m_md_sys));
         }
 
-        //We need to determine where is the rhs expression pointed to.
+        //We need to determine where is the rhs expression pointing to.
         //Note that the point-to set can not be empty, rhs may be const/cvt.
         //So lhs may point to anywhere.
         MD const* typed_md = NULL;
-        if (pts != NULL && !pts->is_empty()) {
-            if (pts->is_contain_global() &&
-                rhs->get_ai() != NULL &&
+        bool is_maypts = false;
+        if (!tmp.is_empty()) {
+            if (tmp.is_contain_global() && rhs->get_ai() != NULL &&
                 (typed_md = computePointToViaType(rhs)) != NULL) {
                 //Make use of typed pointer info to improve the precsion.
-                pts->clean(*m_misc_bs_mgr);
-                pts->bunion(typed_md, *m_misc_bs_mgr);
+                tmp.clean(*m_misc_bs_mgr);
+                tmp.bunion(typed_md, *m_misc_bs_mgr);
             }
         } else if (rhs->get_ai() != NULL &&
                    (typed_md = computePointToViaType(rhs)) != NULL) {
-            pts->bunion(typed_md, *m_misc_bs_mgr);
+            tmp.bunion(typed_md, *m_misc_bs_mgr);
         } else {
-            //We do NOT known where p pointed to, and compute
-            //the offset as well.
-
-            //Do NOT modify pts any more.
-            pts = const_cast<MDSet*>(m_hashed_maypts);
+            //We do NOT know exactly where p pointed to.
+            //Note do NOT change the content of 'pts' any more.
+            is_maypts = true;
         }
 
-        ASSERT0(!pts->is_empty());
+        ASSERT0(!tmp.is_empty() || is_maypts);
         if (m_flow_sensitive) {
-            if (pts == m_hashed_maypts) {
-                setPointTo(lhs_md, *mx, pts);
+            if (is_maypts) {
+                setPointTo(lhs_md, *mx, m_maypts);
             } else {
-                setPointToMDSet(lhs_md, *mx, *pts);
+                setPointToMDSet(lhs_md, *mx, tmp);
             }
         } else {
-            setPointToMDSetByAddMDSet(lhs_md, *mx, *pts);
+            if (is_maypts) {
+                setPointToMDSetByAddMDSet(lhs_md, *mx, *m_maypts);
+            } else {
+                setPointToMDSetByAddMDSet(lhs_md, *mx, tmp);
+            }
         }
-    } else {
-        ASSERT0(!ir->is_ptr() && !ir->is_void());
-        //1. p = q, q is pointer, if q->x, add p->x.
-        //Given a pointer, if its point-to is empty, the pointer
-        //points to MAY_POINT_TO_SET.
-        //
-        //May be unify MAY_PT_SET is correct in comprehension,
-        //but it  will occupy more memory.
-        //e.g: For pr1->MAY_PT_SET, and if we set
-        //pr1->NULL here, that might cause convert_md2mds_to_ptpair()
-        //can not recog pr1's POINT-TO set, and its pt-pair info
-        //is missing. That will cause a dead cycle at global
-        //iterative solver.
-        if (m_flow_sensitive) {
-            cleanPointTo(lhs_md, *mx);
-        }
+
+        tmp.clean(*m_misc_bs_mgr);
+        return;
     }
+
+    ASSERT0(!ir->is_ptr() && !ir->is_void());
+    //1. p = q, q is pointer, if q->x, add p->x.
+    //Given a pointer, if its point-to is empty, the pointer
+    //points to MAY_POINT_TO_SET.
+    //
+    //May be unify MAY_PT_SET is correct in comprehension,
+    //but it  will occupy more memory.
+    //e.g: For pr1->MAY_PT_SET, and if we set
+    //pr1->NULL here, that might cause convert_md2mds_to_ptpair()
+    //can not recog pr1's POINT-TO set, and its pt-pair info
+    //is missing. That will cause a dead cycle at global
+    //iterative solver.
+    if (m_flow_sensitive) {
+        cleanPointTo(lhs_md, *mx);
+    }
+
     tmp.clean(*m_misc_bs_mgr);
 }
 
@@ -1696,12 +1741,12 @@ void IR_AA::processGetelem(IR * ir, IN MD2MDSet * mx)
 void IR_AA::processPhi(IN IR * ir, IN MD2MDSet * mx)
 {
     ASSERT0(ir->is_phi());
-    MD const* phi_res_md;
+    MD const* phi_md;
     if (!m_is_visit.is_contain(IR_id(ir))) {
         m_is_visit.bunion(IR_id(ir));
-        phi_res_md = allocPhiMD(ir);
+        phi_md = allocPhiMD(ir);
     } else {
-        phi_res_md = get_must_addr(ir);
+        phi_md = get_must_addr(ir);
     }
 
     AACtx ic;
@@ -1710,34 +1755,55 @@ void IR_AA::processPhi(IN IR * ir, IN MD2MDSet * mx)
     }
 
     bool const comp_pt = AC_comp_pt(&ic);
-    MDSet * tmp_res_pts = NULL;
+    MDSet phi_pts;
+    bool phi_pts_is_maypts = false;
     if (comp_pt) {
-        tmp_res_pts = m_mds_mgr->create();
-        MDSet const* res_pts = getPointTo(phi_res_md, *mx);
-        if (res_pts != NULL) {
-            tmp_res_pts->copy(*res_pts, *m_misc_bs_mgr);
+        MDSet const* pts = getPointTo(phi_md, *mx);
+        if (pts != NULL) {
+            if (pts == m_maypts) {
+                phi_pts_is_maypts = true;
+            } else {
+                phi_pts.copy(*pts, *m_misc_bs_mgr);
+            }
         }
     } else {
-        cleanPointTo(phi_res_md, *mx);
+        cleanPointTo(phi_md, *mx);
     }
 
     MDSet tmp;
     for (IR * opnd = PHI_opnd_list(ir); opnd != NULL; opnd = opnd->get_next()) {
-        inferExpression(opnd, tmp, &ic, mx);
-
-        ic.cleanBottomUpFlag();
+        AACtx tic(ic);
+        inferExpression(opnd, tmp, &tic, mx);
         if (comp_pt) {
-            //res may point to the union set of each operand.
-            tmp_res_pts->bunion(tmp, *m_misc_bs_mgr);
+            if (phi_pts_is_maypts) {
+                tmp.clean(*m_misc_bs_mgr);
+                continue;
+            }
+
+            if (tmp.is_empty()) {
+                ASSERT0(AC_returned_pts(&tic));
+                phi_pts_is_maypts = true;
+                //phi_pts.bunion(*m_maypts, *m_misc_bs_mgr);
+                continue;
+            }
+
+            //phires may point to the union set of each operand.
+            phi_pts.bunion(tmp, *m_misc_bs_mgr);
+        }
+
+        tmp.clean(*m_misc_bs_mgr);
+    }
+
+    if (comp_pt) {
+        ASSERT0(!phi_pts.is_empty() || phi_pts_is_maypts);
+        if (phi_pts_is_maypts) {
+            setPointTo(phi_md, *mx, m_maypts);
+        } else {
+            setPointTo(phi_md, *mx, m_mds_hash->append(phi_pts));
         }
     }
-    tmp.clean(*m_misc_bs_mgr);
 
-    if (tmp_res_pts != NULL) {
-        MDSet const* hashed = m_mds_hash->append(*tmp_res_pts);
-        setPointTo(phi_res_md, *mx, hashed);
-        m_mds_mgr->free(tmp_res_pts);
-    }
+    phi_pts.clean(*m_misc_bs_mgr);
 }
 
 
@@ -1762,13 +1828,9 @@ void IR_AA::inferIstoreValue(IN IR * ir, IN AACtx * ic, IN MD2MDSet * mx)
     }
 
     MDSet tmp;
-    MDSet * pts = &tmp;
+    inferExpression(IST_rhs(ir), tmp, &tic, mx);
+    recomputeDataType(tic, ir, tmp);
 
-    inferExpression(IST_rhs(ir), *pts, &tic, mx);
-
-    recomputeDataType(tic, ir, *pts);
-
-    ASSERT0(pts);
     if (AC_has_comp_lda(&tic) || AC_comp_pt(&tic)) {
         //If result type of IST is pointer, and the ptset is empty, then
         //it might point to anywhere.
@@ -1782,59 +1844,68 @@ void IR_AA::inferIstoreValue(IN IR * ir, IN AACtx * ic, IN MD2MDSet * mx)
         //Update the POINT-TO of elems in p's point-to set.
         //Aware of whether if the result of IST is pointer.
         if (AC_has_comp_lda(&tic)) {
-            ASSERT0(!pts->is_empty());
+            ASSERT0(!tmp.is_empty());
 
-            //ptset may include element which also be in m_hashed_maypts.
-            //ASSERT0(!ptset->is_intersect(m_hashed_maypts));
+            //ptset may include element which also be in m_maypts.
+            //ASSERT0(!ptset->is_intersect(m_maypts));
         }
 
         //We need to determine where is the rhs expression pointed to.
         //Note that the point-to set can not be empty, rhs may be const/cvt.
         //So lhs may point to anywhere.
         MD const* typed_md = NULL;
-        if (pts != NULL && !pts->is_empty()) {
-            if (pts->is_contain_global() &&
-                IST_rhs(ir)->get_ai() != NULL &&
+        bool is_maypts = false;
+        if (!tmp.is_empty()) {
+            if (tmp.is_contain_global() && IST_rhs(ir)->get_ai() != NULL &&
                 (typed_md = computePointToViaType(IST_rhs(ir))) != NULL) {
                 //Make use of typed pointer info to improve the precsion.
-                pts->clean(*m_misc_bs_mgr);
-                pts->bunion(typed_md, *m_misc_bs_mgr);
+                tmp.clean(*m_misc_bs_mgr);
+                tmp.bunion(typed_md, *m_misc_bs_mgr);
             }
         } else if (IST_rhs(ir)->get_ai() != NULL &&
                    (typed_md = computePointToViaType(IST_rhs(ir))) != NULL) {
-            pts->bunion(typed_md, *m_misc_bs_mgr);
+            tmp.bunion(typed_md, *m_misc_bs_mgr);
         } else {
+            ASSERT0(AC_returned_pts(&tic));
+            ASSERT0(AC_returned_pts(&tic) == m_maypts);
+
             //We do NOT known where p pointed to, and compute
             //the offset as well.
-
             //Do NOT modify pts any more.
-            pts = const_cast<MDSet*>(m_hashed_maypts);
+            is_maypts = true;
         }
+
+        MDSet const* pts2 = is_maypts ? m_maypts : &tmp;
 
         if (m_flow_sensitive) {
             if (ist_mustaddr != NULL) {
                 if (ist_mustaddr->is_exact()) {
-                    if (pts == m_hashed_maypts) {
-                        setPointTo(ist_mustaddr, *mx, pts);
+                    if (is_maypts) {
+                        setPointTo(ist_mustaddr, *mx, m_maypts);
                     } else {
-                        setPointToMDSet(ist_mustaddr, *mx, *pts);
+                        setPointToMDSet(ist_mustaddr, *mx, tmp);
                     }
                 } else {
-                    setPointToMDSetByAddMDSet(ist_mustaddr, *mx, *pts);
+                    setPointToMDSetByAddMDSet(ist_mustaddr, *mx, *pts2);
                 }
             } else {
                 //mayaddr may contain inexact MD.
-                ElemCopyAndUnionPointTo(*ist_mayaddr, *pts, mx);
+                ElemCopyAndUnionPointTo(*ist_mayaddr, *pts2, mx);
             }
         } else {
             //flow insensitive.
             if (ist_mustaddr != NULL) {
-                setPointToMDSetByAddMDSet(ist_mustaddr, *mx, *pts);
+                setPointToMDSetByAddMDSet(ist_mustaddr, *mx, *pts2);
             } else {
-                ElemUnionPointTo(*ist_mayaddr, *pts, mx);
+                ElemUnionPointTo(*ist_mayaddr, *pts2, mx);
             }
         }
-    } else if (m_flow_sensitive) {
+
+        tmp.clean(*m_misc_bs_mgr);
+        return;
+    }
+
+    if (m_flow_sensitive) {
         ASSERT0(!ir->is_ptr() && !ir->is_void());
         if (ist_mustaddr != NULL) {
             if (ist_mustaddr->is_exact()) {
@@ -1845,6 +1916,7 @@ void IR_AA::inferIstoreValue(IN IR * ir, IN AACtx * ic, IN MD2MDSet * mx)
             ElemCleanExactPointTo(*ist_mayaddr, mx);
         }
     }
+
     tmp.clean(*m_misc_bs_mgr);
 }
 
@@ -1866,68 +1938,71 @@ void IR_AA::inferStoreArrayValue(IN IR * ir, IN AACtx * ic, IN MD2MDSet * mx)
     }
 
     MDSet tmp;
-    MDSet * pts = &tmp;
+    inferExpression(STARR_rhs(ir), tmp, &tic, mx);
+    recomputeDataType(tic, ir, tmp);
 
-    inferExpression(STARR_rhs(ir), *pts, &tic, mx);
-
-    recomputeDataType(tic, ir, *pts);
-
-    ASSERT0(pts);
     if (AC_has_comp_lda(&tic) || AC_comp_pt(&tic)) {
         //If result data type of array operation is pointer, we need
         //update the POINT-TO of elems.
         if (AC_has_comp_lda(&tic)) {
-            ASSERT0(!pts->is_empty());
+            ASSERT0(!tmp.is_empty());
 
-            //ptset may include element which also be in m_hashed_maypts.
-            //ASSERT0(!ptset->is_intersect(m_hashed_maypts));
+            //ptset may include element which also be in m_maypts.
+            //ASSERT0(!ptset->is_intersect(m_maypts));
         }
 
         //We need to determine where are the rhs expression pointed to.
         //Note that the point-to set can not be empty.
         //Rhs may be const/cvt, if that is, lhs may point to anywhere.
         MD const* typed_md = NULL;
-        if (pts != NULL && !pts->is_empty()) {
-            if (pts->is_contain_global() &&
+        bool is_maypts = false;
+        if (!tmp.is_empty()) {
+            if (tmp.is_contain_global() &&
                 STARR_rhs(ir)->get_ai() != NULL &&
                 (typed_md = computePointToViaType(STARR_rhs(ir))) != NULL) {
                 //Make use of typed pointer info to improve the precsion.
-                pts->clean(*m_misc_bs_mgr);
-                pts->bunion(typed_md, *m_misc_bs_mgr);
+                tmp.clean(*m_misc_bs_mgr);
+                tmp.bunion(typed_md, *m_misc_bs_mgr);
             }
         } else if (STARR_rhs(ir)->get_ai() != NULL &&
                    (typed_md = computePointToViaType(STARR_rhs(ir))) != NULL) {
-            pts->bunion(typed_md, *m_misc_bs_mgr);
+            tmp.bunion(typed_md, *m_misc_bs_mgr);
         } else {
             //We do NOT know where rhs pointed to.
             //Do NOT modify pts any more.
-            pts = const_cast<MDSet*>(m_hashed_maypts);
+            is_maypts = true;
         }
 
+        MDSet const* pts2 = is_maypts ? m_maypts : &tmp;
         if (m_flow_sensitive) {
             if (lhs_mustaddr != NULL) {
                 if (lhs_mustaddr->is_exact()) {
-                    if (pts == m_hashed_maypts) {
-                        setPointTo(lhs_mustaddr, *mx, pts);
+                    if (is_maypts) {
+                        setPointTo(lhs_mustaddr, *mx, m_maypts);
                     } else {
-                        setPointToMDSet(lhs_mustaddr, *mx, *pts);
+                        setPointToMDSet(lhs_mustaddr, *mx, *pts2);
                     }
                 } else {
-                    setPointToMDSetByAddMDSet(lhs_mustaddr, *mx, *pts);
+                    setPointToMDSetByAddMDSet(lhs_mustaddr, *mx, *pts2);
                 }
             } else {
                 //mayaddr may contain inexact MD.
-                ElemCopyAndUnionPointTo(*lhs_mayaddr, *pts, mx);
+                ElemCopyAndUnionPointTo(*lhs_mayaddr, *pts2, mx);
             }
         } else {
             //flow insensitive.
             if (lhs_mustaddr != NULL) {
-                setPointToMDSetByAddMDSet(lhs_mustaddr, *mx, *pts);
+                setPointToMDSetByAddMDSet(lhs_mustaddr, *mx, *pts2);
             } else {
-                ElemUnionPointTo(*lhs_mayaddr, *pts, mx);
+                ElemUnionPointTo(*lhs_mayaddr, *pts2, mx);
             }
         }
-    } else if (m_flow_sensitive) {
+
+        tmp.clean(*m_misc_bs_mgr);
+        return;
+    }
+
+    if (m_flow_sensitive) {
         ASSERT0(!ir->is_ptr() && !ir->is_void());
         if (lhs_mustaddr != NULL) {
             if (lhs_mustaddr->is_exact()) {
@@ -1938,6 +2013,7 @@ void IR_AA::inferStoreArrayValue(IN IR * ir, IN AACtx * ic, IN MD2MDSet * mx)
             ElemCleanExactPointTo(*lhs_mayaddr, mx);
         }
     }
+
     tmp.clean(*m_misc_bs_mgr);
 }
 
@@ -1964,7 +2040,7 @@ void IR_AA::processStoreArray(IN IR * ir, IN MD2MDSet * mx)
         //We can not determine the memory address of array element.
         //Set ir has no exact mem-addr for convervative purpose.
         ir->cleanRefMD();
-        set_may_addr(ir, m_hashed_maypts);
+        set_may_addr(ir, m_maypts);
         goto FIN;
     }
 
@@ -1999,8 +2075,8 @@ void IR_AA::processStoreArray(IN IR * ir, IN MD2MDSet * mx)
             mayaddr.copy(tmp, *m_misc_bs_mgr);
 
             //Assign the address to ir.
-            //If the MD in mayaddr is single and exact, 
-            //regarding ir as referencing single and exact MD, 
+            //If the MD in mayaddr is single and exact,
+            //regarding ir as referencing single and exact MD,
             //or else regard ir as referencing a set of MD.
             MD const* x;
             SEGIter * iter;
@@ -2040,19 +2116,17 @@ void IR_AA::processIst(IN IR * ir, IN MD2MDSet * mx)
     //mem location may pointed to set.
     MDSet ml_may_pt;
     AACtx ic;
-    AC_comp_pt(&ic) = true;
 
     //Compute where IST_base may point to.
+    AC_comp_pt(&ic) = true;
+
     inferExpression(IST_base(ir), ml_may_pt, &ic, mx);
     if (ml_may_pt.is_empty()) {
-        ml_may_pt.clean(*m_misc_bs_mgr);
-
-        //If we can not determine where IST_base points to, it may
-        //point to any variables which have been taken address.
-
-        //Set ir has no exact mem-addr for convervative.
+        //If we can not exactly determine where IST_base pointed to,
+        //it may point to any variables which have been taken address.
+        ASSERT0(AC_returned_pts(&ic) == m_maypts);
         ir->cleanRefMD();
-        set_may_addr(ir, m_hashed_maypts);
+        set_may_addr(ir, m_maypts);
 
         AACtx ic2;
         inferIstoreValue(ir, &ic2, mx);
@@ -2149,7 +2223,7 @@ void IR_AA::processRegionSideeffect(IN OUT MD2MDSet & mx)
         VAR const* v = t->get_base();
         if (v->is_pointer() ||
             v->is_void() /* v may be pointer if its type is VOID */) {
-            setPointTo(t, mx, m_hashed_maypts);
+            setPointTo(t, mx, m_maypts);
 
             //Set the point-to set of 't' to be empty in order
             //to enforce its point-to set will be recomputed if
@@ -2172,10 +2246,7 @@ void IR_AA::processReturn(IN IR * ir, IN MD2MDSet * mx)
 }
 
 
-void IR_AA::processCallSideeffect(
-        IN OUT MD2MDSet & mx,
-        bool by_addr,
-        MDSet const& by_addr_mds)
+void IR_AA::processCallSideeffect(IN OUT MD2MDSet & mx, MDSet const& by_addr_mds)
 {
     //Set all mds which are global pointers or parameters which taken
     //address point to maypts.
@@ -2188,7 +2259,7 @@ void IR_AA::processCallSideeffect(
         if (VAR_is_global(v) &&
             (v->is_pointer() ||
              v->is_void() /* v may be pointer if its type is VOID */)) {
-            setPointTo(t, mx, m_hashed_maypts);
+            setPointTo(t, mx, m_maypts);
 
             //Set the point-to set of 't' to be empty in order
             //to enforce its point-to set will be recomputed if
@@ -2197,23 +2268,23 @@ void IR_AA::processCallSideeffect(
         }
     }
 
-    if (by_addr) {
-        SEGIter * iter;
-        for (INT j = by_addr_mds.get_first(&iter);
-             j >= 0; j = by_addr_mds.get_next((UINT)j, &iter)) {
-            MD const* t = m_md_sys->get_md((UINT)j);
-            ASSERT0(t != NULL);
-            VAR const* v = t->get_base();
-            if (VAR_is_addr_taken(v) &&
-                (v->is_pointer() ||
-                 v->is_void() /* v may be pointer if its type is VOID */)) {
-                setPointTo(t, mx, m_hashed_maypts);
+    if (by_addr_mds.is_empty()) { return; }
 
-                //Set the point-to set of 't' to be empty in order
-                //to enforce its point-to set will be recomputed if
-                //necessary.
-                //cleanPointTo(t, mx);
-            }
+    SEGIter * iter;
+    for (INT j = by_addr_mds.get_first(&iter);
+         j >= 0; j = by_addr_mds.get_next((UINT)j, &iter)) {
+        MD const* t = m_md_sys->get_md((UINT)j);
+        ASSERT0(t != NULL);
+        VAR const* v = t->get_base();
+        if (VAR_is_addr_taken(v) &&
+            (v->is_pointer() ||
+             v->is_void() /* v may be pointer if its type is VOID */)) {
+            setPointTo(t, mx, m_maypts);
+
+            //Set the point-to set of 't' to be empty in order
+            //to enforce its point-to set will be recomputed if
+            //necessary.
+            //cleanPointTo(t, mx);
         }
     }
 }
@@ -2263,15 +2334,27 @@ void IR_AA::processCall(IN IR * ir, IN MD2MDSet * mx)
         inferExpression(ICALL_callee(ir), tmp, &tic, mx);
     }
 
-    //Analyz parameters.
-    bool by_addr = false;
+    //Analyze parameters.
     MDSet by_addr_mds;
     for (IR * p = CALL_param_list(ir); p != NULL; p = p->get_next()) {
         AACtx tic;
+        if (p->is_ptr() || p->is_void()) {
+            AC_comp_pt(&tic) = true;
+        }
+
         inferExpression(p, tmp, &tic, mx);
-        if (AC_has_comp_lda(&tic)) {
-            by_addr = true;
-            by_addr_mds.bunion(tmp, *m_misc_bs_mgr);
+
+        if (!ir->is_readonly_call() &&
+            (AC_comp_pt(&tic) || AC_has_comp_lda(&tic))) {
+            if (!tmp.is_empty()) {
+                by_addr_mds.bunion(tmp, *m_misc_bs_mgr);
+            } else if (AC_returned_pts(&tic) != NULL) {
+                if (!by_addr_mds.is_equal(*AC_returned_pts(&tic))) {
+                    by_addr_mds.bunion(*AC_returned_pts(&tic), *m_misc_bs_mgr);
+                }
+            } else {
+                by_addr_mds.bunion(tmp, *m_misc_bs_mgr);
+            }
         }
     }
 
@@ -2322,7 +2405,7 @@ void IR_AA::processCall(IN IR * ir, IN MD2MDSet * mx)
                 setPointToUniqueMD(t, *mx, typed_md);
             } else {
                 //Finally, set result PR points to May-Point-To set.
-                setPointTo(t, *mx, m_hashed_maypts);
+                setPointTo(t, *mx, m_maypts);
             }
         } else {
             cleanPointTo(t, *mx);
@@ -2336,7 +2419,7 @@ void IR_AA::processCall(IN IR * ir, IN MD2MDSet * mx)
         return;
     }
 
-    processCallSideeffect(*mx, by_addr, by_addr_mds);
+    processCallSideeffect(*mx, by_addr_mds);
     tmp.clean(*m_misc_bs_mgr);
     by_addr_mds.clean(*m_misc_bs_mgr);
 }
@@ -2406,7 +2489,7 @@ void IR_AA::inferExpression(
             //conservative purpose, we claim that can
             //not find any MD.
             if (AC_comp_pt(ic)) {
-                mds.copy(*m_hashed_maypts, *m_misc_bs_mgr);
+                mds.copy(*m_maypts, *m_misc_bs_mgr);
             } else {
                 mds.clean(*m_misc_bs_mgr);
             }
@@ -2429,7 +2512,7 @@ void IR_AA::inferExpression(
             //conservative purpose, we claim that can
             //not find any MD.
             if (AC_comp_pt(ic)) {
-                mds.copy(*m_hashed_maypts, *m_misc_bs_mgr);
+                mds.copy(*m_maypts, *m_misc_bs_mgr);
             } else {
                 mds.clean(*m_misc_bs_mgr);
             }
@@ -2449,7 +2532,7 @@ void IR_AA::inferExpression(
             //conservative purpose, we claim that can
             //not find any MD.
             if (AC_comp_pt(ic)) {
-                mds.copy(*m_hashed_maypts, *m_misc_bs_mgr);
+                mds.copy(*m_maypts, *m_misc_bs_mgr);
             } else {
                 mds.clean(*m_misc_bs_mgr);
             }
@@ -2469,7 +2552,7 @@ void IR_AA::inferExpression(
             tic.cleanBottomUpFlag();
             inferExpression(BIN_opnd1(expr), mds, &tic, mx);
             if (AC_comp_pt(ic)) {
-                mds.copy(*m_hashed_maypts, *m_misc_bs_mgr);
+                mds.copy(*m_maypts, *m_misc_bs_mgr);
             } else {
                 mds.clean(*m_misc_bs_mgr);
             }
@@ -2490,7 +2573,7 @@ void IR_AA::inferExpression(
             inferExpression(SELECT_falseexp(expr), mds, &tic, mx);
             if (AC_comp_pt(ic)) {
                 //We do not know if condition is true or false.
-                mds.copy(*m_hashed_maypts, *m_misc_bs_mgr);
+                mds.copy(*m_maypts, *m_misc_bs_mgr);
             } else {
                 mds.clean(*m_misc_bs_mgr);
             }
@@ -2505,7 +2588,7 @@ void IR_AA::inferExpression(
 //Set each md in 'mds' add set 'pt_set'.
 void IR_AA::ElemUnionPointTo(
         MDSet const& mds,
-        IN MDSet & pt_set,
+        MDSet const& pt_set,
         IN MD2MDSet * mx)
 {
     bool set_all = false;
@@ -2579,7 +2662,7 @@ void IR_AA::ElemUnionPointTo(
 //else unify the set.
 void IR_AA::ElemCopyAndUnionPointTo(
         MDSet const& mds,
-        IN MDSet & pt_set,
+        MDSet const& pt_set,
         IN MD2MDSet * mx)
 {
     bool set_all = false;
@@ -2616,7 +2699,11 @@ void IR_AA::ElemCopyAndUnionPointTo(
             }
         } else {
             if (md->is_exact()) {
-                setPointToMDSet(md, *mx, pt_set);
+                if (&pt_set == m_maypts) {
+                    setPointTo(md, *mx, m_maypts);
+                } else {
+                    setPointToMDSet(md, *mx, pt_set);
+                }
             } else {
                 setPointToMDSetByAddMDSet(md, *mx, pt_set);
             }
@@ -2677,7 +2764,7 @@ void IR_AA::ElemCopyPointToAndMayPointTo(MDSet const& mds, IN MD2MDSet * mx)
             for (INT j = 0; j <= id2md->get_last_idx(); j++) {
                 MD * t = id2md->get((UINT)j);
                 if (t == NULL) { continue; }
-                setPointTo(t, *mx, m_hashed_maypts);
+                setPointTo(t, *mx, m_maypts);
             }
         } else if (is_heap_mem(md)) {
             if (set_all) { continue; }
@@ -2685,10 +2772,10 @@ void IR_AA::ElemCopyPointToAndMayPointTo(MDSet const& mds, IN MD2MDSet * mx)
                  j >= 0; j = m_id2heap_md_map.get_next((UINT)j)) {
                 MD * t = m_md_sys->get_md((UINT)j);
                 ASSERT0(t != NULL);
-                setPointTo(t, *mx, m_hashed_maypts);
+                setPointTo(t, *mx, m_maypts);
             }
         } else {
-            setPointTo(md, *mx, m_hashed_maypts);
+            setPointTo(md, *mx, m_maypts);
         }
     }
 }
@@ -3089,8 +3176,8 @@ void IR_AA::dumpIRPointToForRegion(bool dump_kid)
     m_md_sys->dumpAllMD();
     fprintf(g_tfile, "\n\n---- All MD in MAY-POINT-TO SET : ");
 
-    ASSERT0(m_hashed_maypts);
-    m_hashed_maypts->dump(m_md_sys, true);
+    ASSERT0(m_maypts);
+    m_maypts->dump(m_md_sys, true);
 
     BBList * bbl = m_cfg->get_bb_list();
     for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
@@ -3102,16 +3189,36 @@ void IR_AA::dumpIRPointToForRegion(bool dump_kid)
 
 void IR_AA::dumpMayPointTo()
 {
-    if (g_tfile == NULL || m_hashed_maypts == NULL) { return; }
+    if (g_tfile == NULL || m_maypts == NULL) { return; }
 
     SEGIter * iter;
-    for (INT j = m_hashed_maypts->get_first(&iter);
-         j >= 0; j = m_hashed_maypts->get_next((UINT)j, &iter)) {
+    for (INT j = m_maypts->get_first(&iter);
+         j >= 0; j = m_maypts->get_next((UINT)j, &iter)) {
         MD * mmd = m_md_sys->get_md((UINT)j);
         ASSERT0(mmd != NULL);
         fprintf(g_tfile, "MD%d,", MD_id(mmd));
     }
     fflush(g_tfile);
+}
+
+
+void IR_AA::dump(CHAR const* name)
+{
+    FILE * old = NULL;
+    if (name != NULL) {
+        old = g_tfile;
+        //unlink(name);
+        g_tfile = fopen(name, "a+");
+        ASSERT(g_tfile, ("%s create failed!!!", name));
+    }
+
+    dumpMD2MDSetForRegion(false);
+
+    fflush(g_tfile);
+    if (name != NULL) {
+        fclose(g_tfile);
+        g_tfile = old;
+    }
 }
 
 
@@ -3125,7 +3232,8 @@ void IR_AA::dumpMD2MDSetForRegion(bool dump_pt_graph)
         BBList * bbl = m_cfg->get_bb_list();
         for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
             fprintf(g_tfile, "\n\n--- BB%d ---", BB_id(bb));
-            dumpMD2MDSet(mapBBtoMD2MDSet(bb), dump_pt_graph);
+            dumpMD2MDSet(mapBBtoMD2MDSet(bb),
+                false/*each BB has its own graph.*/);
         }
     } else {
         fprintf(g_tfile, "\n\n==---- DUMP ALL MD POINT-TO "
@@ -3459,7 +3567,7 @@ void IR_AA::computeFlowSensitive(List<IRBB*> const& bbl)
     bool change = true;
     UINT count = 0;
     PtPairSet tmp;
-    while (change && count < 20) {
+    for (; change && count < 20;) {
         count++;
         change = false;
         C<IRBB*> * ct = NULL;
@@ -3494,6 +3602,7 @@ void IR_AA::computeFlowSensitive(List<IRBB*> const& bbl)
             }
             computeStmt(bb, md2mds);
             tmp.clean();
+
             convertMD2MDSet2PT(tmp, m_pt_pair_mgr, md2mds);
 
             #ifdef _DEBUG_
@@ -3505,9 +3614,9 @@ void IR_AA::computeFlowSensitive(List<IRBB*> const& bbl)
             if (!pps->is_equal(tmp)) {
                 pps->copy(tmp);
                 change = true;
-            } //end if
-        } //end for
-    } //end while
+            }
+        }
+    }
     ASSERT0(!change);
 }
 
@@ -3563,7 +3672,7 @@ void IR_AA::initGlobalAndParameterVarPtset(
                        ("should already be clean"));
                 setPointToMDSetByAddMD(x, *mx, dmd);
             } else {
-                setPointTo(x, *mx, m_hashed_maypts);
+                setPointTo(x, *mx, m_maypts);
             }
         }
 
@@ -3579,7 +3688,7 @@ void IR_AA::initGlobalAndParameterVarPtset(
                            ("should already be clean"));
                     setPointToMDSetByAddMD(md, *mx, dmd);
                 } else {
-                    setPointTo(md, *mx, m_hashed_maypts);
+                    setPointTo(md, *mx, m_maypts);
                 }
             }
         }
@@ -3599,7 +3708,7 @@ void IR_AA::initGlobalAndParameterVarPtset(
 
         setPointToMDSetByAddMD(entry, *mx, dmd);
     } else {
-        setPointTo(entry, *mx, m_hashed_maypts);
+        setPointTo(entry, *mx, m_maypts);
     }
 }
 
@@ -3657,6 +3766,12 @@ void IR_AA::initEntryPtset(PtPairSet ** ptset_arr)
         for (VAR * v = vt->get_first(c); v != NULL; v = vt->get_next(c)) {
             if (!VAR_is_global(v) && !VAR_is_formal_param(v)) { continue; }
             if (!v->is_pointer()) { continue; }
+
+            //Variable with void-type may be pointer.
+            //Deal with its point-to set while processing Load/PR
+            //instead of initializing point-set at once.
+            //if (!v->is_pointer() && !v->is_void()) { continue; }
+
             initGlobalAndParameterVarPtset(v, mx, iter);
         }
         convertMD2MDSet2PT(*getInPtPairSet(entry), m_pt_pair_mgr, mx);
@@ -3667,6 +3782,12 @@ void IR_AA::initEntryPtset(PtPairSet ** ptset_arr)
         for (VAR * v = vt->get_first(c); v != NULL; v = vt->get_next(c)) {
             if (!VAR_is_global(v) && !VAR_is_formal_param(v)) { continue; }
             if (!v->is_pointer()) { continue; }
+
+            //Variable with void-type may be pointer.
+            //Deal with its point-to set while processing Load/PR
+            //instead of initializing point-set at once.
+            //if (!v->is_pointer() && !v->is_void()) { continue; }
+
             initGlobalAndParameterVarPtset(v, &m_unique_md2mds, iter);
         } //end for each VAR
     }
@@ -3704,6 +3825,13 @@ void IR_AA::initMayPointToSet()
                 //Record effect MD of v into the MayPointTo if exist.
                 ASSERT0(x->is_unbound() || x->is_range());
                 tmp.bunion(x, *m_misc_bs_mgr);
+            } else {
+                MD md;
+                MD_base(&md) = v;
+                MD_ty(&md) = MD_UNBOUND;
+                MD const* entry = m_md_sys->registerMD(md);
+                ASSERT0(MD_id(entry) > 0);
+                tmp.bunion(entry, *m_misc_bs_mgr);
             }
 
             //Record each exact MD of v into the MayPointTo.
@@ -3732,7 +3860,7 @@ void IR_AA::initMayPointToSet()
     }
 
     tmp.bunion(MD_GLOBAL_MEM, *m_misc_bs_mgr);
-    m_hashed_maypts = m_mds_hash->append(tmp);
+    m_maypts = m_mds_hash->append(tmp);
     tmp.clean(*m_misc_bs_mgr);
 }
 
@@ -3743,6 +3871,8 @@ void IR_AA::computeFlowInsensitive()
     C<IRBB*> * ct = NULL;
     UINT c = 0;
     while (++c < 3) {
+        //Compute point-to.
+        //Compute which MD memory-op represented.
         for (IRBB const* bb = bbl->get_head(&ct);
              bb != NULL; bb = bbl->get_next(&ct)) {
             computeStmt(bb, &m_unique_md2mds);
@@ -3763,7 +3893,7 @@ void IR_AA::initAliasAnalysis()
 //Calculate point-to set.
 bool IR_AA::perform(IN OUT OptCtx & oc)
 {
-    ASSERT(m_hashed_maypts, ("Should invoke initAliasAnalysis() first."));
+    ASSERT(m_maypts, ("Should invoke initAliasAnalysis() first."));
     if (m_ru->get_bb_list()->get_elem_count() == 0) { return true; }
 
     START_TIMER_AFTER();
@@ -3793,8 +3923,7 @@ bool IR_AA::perform(IN OUT OptCtx & oc)
         m_ru->checkValidAndRecompute(&oc, PASS_RPO, PASS_UNDEF);
 
         List<IRBB*> * tbbl = m_cfg->get_bblist_in_rpo();
-        ASSERT0(tbbl->get_elem_count() ==
-                 m_ru->get_bb_list()->get_elem_count());
+        ASSERT0(tbbl->get_elem_count() == m_ru->get_bb_list()->get_elem_count());
 
         computeFlowSensitive(*tbbl);
     } else {

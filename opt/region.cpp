@@ -36,6 +36,7 @@ author: Su Zhenyu
 
 namespace xoc {
 
+#ifdef _DEBUG_
 static bool checkLogicalOp(IR_TYPE irt, Type const* type, TypeMgr * tm)
 {
     switch (irt) {
@@ -55,7 +56,6 @@ static bool checkLogicalOp(IR_TYPE irt, Type const* type, TypeMgr * tm)
 }
 
 
-#ifdef _DEBUG_
 static bool is_reduction(IR const* ir)
 {
     ASSERT0(ir->is_stmt());
@@ -549,7 +549,6 @@ IR * Region::buildPhi(UINT prno, Type const* type, UINT num_opnd)
 //'result_prno': indicate the result PR which hold the return value.
 //    0 means the call does not have a return value.
 //'type': result PR data type.
-//    0 means the call does not have a return value
 IR * Region::buildCall(
         VAR * callee,
         IR * param_list,
@@ -2364,46 +2363,60 @@ void Region::dumpMemUsage()
     else { count /= 1024 * 1024 * 1024; str = "GB"; }
 
     note("\n'%s' use %lu%s memory", get_ru_name(), count, str);
+
     Vector<IR*> * v = get_ir_vec();
-    float nid = 0.0;
-    float nld = 0.0;
-    float nst = 0.0;
-    float nlda = 0.0;
-    float ncallee = 0.0;
-    float nstpr = 0.0;
-    float nist = 0.0;
-    float nbin = 0.0;
-    float nuna = 0.0;
+    UINT nid = 0;
+    UINT nld = 0;
+    UINT nst = 0;
+    UINT nlda = 0;
+    UINT ncall = 0;
+    UINT nicall = 0;
+    UINT nstpr = 0;
+    UINT npr = 0;
+    UINT nist = 0;
+    UINT nbin = 0;
+    UINT nuna = 0;
 
     for (int i = 0; i <= v->get_last_idx(); i++) {
         IR * ir = v->get(i);
-        if (ir == NULL) continue;
-        if (ir->is_id()) nid+=1.0;
-        if (ir->is_ld()) nld+=1.0;
-        if (ir->is_st()) nst+=1.0;
-        if (ir->is_lda()) nlda+=1.0;
-        if (ir->is_call()) ncallee+=1.0;
-        if (ir->is_stpr()) nstpr+=1.0;
-        if (ir->is_ist()) nist+=1.0;
-        if (ir->is_binary_op()) nbin+=1.0;
-        if (ir->is_unary_op()) nuna+=1.0;
+        if (ir == NULL) { continue; }
+
+        if (ir->is_id()) nid++;
+        else if (ir->is_ld()) nld++;
+        else if (ir->is_st()) nst++;
+        else if (ir->is_lda()) nlda++;
+        else if (ir->is_call()) ncall++;
+        else if (ir->is_icall()) nicall++;
+        else if (ir->is_stpr()) nstpr++;
+        else if (ir->is_pr()) npr++;
+        else if (ir->is_ist()) nist++;
+        else if (ir->is_binary_op()) nbin++;
+        else if (ir->is_unary_op()) nuna++;
     }
 
-    float total = (float)(v->get_last_idx() + 1);
-    note("\nThe number of IR Total:%d, id:%d(%.1f)%%, "
-         "ld:%d(%.1f)%%, st:%d(%.1f)%%, lda:%d(%.1f)%%,"
-         "callee:%d(%.1f)%%, stpr:%d(%.1f)%%, ist:%d(%.1f)%%,"
-         "bin:%d(%.1f)%%, una:%d(%.1f)%%",
-         (int)total,
-         (int)nid, nid / total * 100,
-         (int)nld, nld / total * 100,
-         (int)nst, nst / total * 100,
-         (int)nlda, nlda / total * 100,
-         (int)ncallee, ncallee / total * 100,
-         (int)nstpr, nstpr / total * 100,
-         (int)nist, nist / total * 100,
-         (int)nbin, nbin / total * 100,
-         (int)nuna, nuna / total * 100);
+    UINT total = (v->get_last_idx() + 1);
+    if (total == 0) {
+        note("\nThe number of IR Total:0");
+        return;
+    }
+
+    note("\nThe number of IR Total:%u, id:%u(%.1f)%%, "
+         "ld:%u(%.1f)%%, st:%u(%.1f)%%, lda:%u(%.1f)%%,"
+         "call:%u(%.1f)%%, icall:%u(%.1f)%%, pr:%u(%.1f)%%, "
+         "stpr:%u(%.1f)%%, ist:%u(%.1f)%%,"
+         "bin:%u(%.1f)%%, una:%u(%.1f)%%",
+         total,
+         nid, ((double)nid) / ((double)total) * 100,
+         nld, ((double)nld) / ((double)total) * 100,
+         nst, ((double)nst) / ((double)total) * 100,
+         nlda, ((double)nlda) / ((double)total) * 100,
+         ncall, ((double)ncall) / ((double)total) * 100,
+         nicall, ((double)nicall) / ((double)total) * 100,
+         npr, ((double)npr) / ((double)total) * 100,
+         nstpr, ((double)nstpr) / ((double)total) * 100,
+         nist, ((double)nist) / ((double)total) * 100,
+         nbin, ((double)nbin) / ((double)total) * 100,
+         nuna, ((double)nuna) / ((double)total) * 100);
 }
 
 
@@ -2840,8 +2853,19 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
                ("You should make CFG available first."));
         if (aa == NULL) {
             aa = (IR_AA*)passmgr->registerPass(PASS_AA);
+
             if (!aa->is_init()) {
                 aa->initAliasAnalysis();
+            }
+
+            UINT numir = 0;
+            for (IRBB * bb = get_bb_list()->get_head();
+                 bb != NULL; bb = get_bb_list()->get_next()) {
+                numir += bb->getNumOfIR();
+            }
+
+            if (numir > g_thres_opt_ir_num) {
+                aa->set_flow_sensitive(false);
             }
         }
 
@@ -2973,7 +2997,10 @@ bool Region::partitionRegion()
     dump_irs(get_ir_list(), get_type_mgr());
     //-------------
 
-    REGION_ru(ir_ru)->process();
+    bool succ = REGION_ru(ir_ru)->process();
+    ASSERT0(succ);
+    UNUSED(succ);
+
     dump_irs(get_ir_list(), get_type_mgr());
 
     //Merger IR list in inner-region to outer region.
@@ -3022,30 +3049,35 @@ void Region::updateCallAndReturnList(bool scan_inner_region)
 }
 
 
-void Region::processBBList(OptCtx & oc)
+bool Region::processBBList(OptCtx & oc)
 {
     if (get_bb_list() == NULL || get_bb_list()->get_elem_count() == 0) {
-        return;
+        return true;
     }
-    MiddleProcess(oc);
+    return MiddleProcess(oc);
 }
 
 
-void Region::processIRList(OptCtx & oc)
+bool Region::processIRList(OptCtx & oc)
 {
-    if (get_ir_list() == NULL) { return; }
+    if (get_ir_list() == NULL) { return true; }
 
     START_TIMER("PreScan");
     prescan(get_ir_list());
     END_TIMER();
 
-    HighProcess(oc);
+    if (!HighProcess(oc)) { return false; }
+
     ASSERT0(get_du_mgr()->verifyMDDUChain());
-    MiddleProcess(oc);
+
+    if (!MiddleProcess(oc)) { return false; }
+
+    return true;
 }
 
 
-void Region::process()
+//Return true if all passes finished normally, otherwise return false.
+bool Region::process()
 {
     ASSERT0(verifyIRinRegion());
 
@@ -3068,10 +3100,12 @@ void Region::process()
         get_pass_mgr()->destroyPass(inl);
     }
 
+    IR_SSA_MGR * ssamgr;
+
     if (get_ir_list() != NULL) {
-        processIRList(oc);
+        if (!processIRList(oc)) { goto ERR_RET; }
     } else {
-        processBBList(oc);
+        if (!processBBList(oc)) { goto ERR_RET; }
     }
 
     if (g_do_ipa && is_program()) {
@@ -3089,9 +3123,9 @@ void Region::process()
     }
 
     ASSERT0(get_pass_mgr());
-    IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)get_pass_mgr()->queryPass(PASS_SSA_MGR);
+    ssamgr = (IR_SSA_MGR*)get_pass_mgr()->queryPass(PASS_SSA_MGR);
     if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
-        ssamgr->destructionInBBListOrder();
+        ssamgr->destruction();
     }
 
     if (!g_retain_pass_mgr_for_region) {
@@ -3100,6 +3134,21 @@ void Region::process()
 
     updateCallAndReturnList(true);
     tfree();
+
+    return true;
+
+ERR_RET:
+    ASSERT0(get_pass_mgr());
+    ssamgr = (IR_SSA_MGR*)get_pass_mgr()->queryPass(PASS_SSA_MGR);
+    if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
+        ssamgr->destruction();
+    }
+
+    if (!g_retain_pass_mgr_for_region) {
+        destroyPassMgr();
+    }
+
+    return false;
 }
 //END Region
 
