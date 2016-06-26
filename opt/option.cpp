@@ -89,6 +89,18 @@ bool g_do_cfg_remove_unreach_bb = true;
 //    BB1: goto L2
 bool g_do_cfg_remove_trampolin_bb = true;
 
+//Perform cfg optimization: remove redundant branch.
+//e.g:
+//    BB1:
+//    falsebr L0 //S1
+//
+//    BB2:
+//    L0  //S2
+//    ... //S3
+//
+//S1 is redundant branch.
+bool g_do_cfg_remove_redundant_branch = true;
+
 //Build dominator tree.
 bool g_do_cfg_dom = true;
 
@@ -106,7 +118,7 @@ bool g_do_cdg = true;
 //high level IR, such as IF, DO_LOOP, etc.
 //Note that if the CFS auxiliary information established, the
 //optimizations performed should not violate that.
-bool g_build_cfs = true;
+bool g_build_cfs = false;
 
 //Perform default alias analysis.
 bool g_do_aa = true;
@@ -191,7 +203,7 @@ bool g_do_rp = false;
 bool g_do_ssa = false;
 
 //Record the maximum limit of the number of BB to perform optimizations.
-UINT g_thres_opt_bb_num = 10000;
+UINT g_thres_opt_bb_num = 100000;
 
 //Record the maximum limit of the number of IR to perform optimizations.
 //This is the threshold to do optimization.

@@ -106,8 +106,9 @@ public:
     {
         ltype = li.ltype;
         u1.lab_name = li.u1.lab_name;
-        u2.b1 = li.u2.b1;
+        copy_flag(li);
     }
+    void copy_flag(LabelInfo const& li) { u2.b1 = li.u2.b1; }
 };
 
 

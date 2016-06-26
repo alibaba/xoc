@@ -42,7 +42,7 @@ Region * IPA::findRegion(IR * call, Region * callru)
     ASSERT0(call->is_call());
     CallGraph * cg = m_rumgr->get_call_graph();
     ASSERT0(cg);
-    CallNode * callercn = cg->map_ru2cn(callru);
+    CallNode * callercn = cg->mapRegion2CallNode(callru);
     ASSERT(callercn, ("caller is not on graph"));
 
     CHAR const* callname = SYM_name(CALL_idinfo(call)->get_name());
@@ -50,7 +50,7 @@ Region * IPA::findRegion(IR * call, Region * callru)
     ASSERT0(cg->get_vertex(CN_id(callercn)));
     for (EdgeC const* ec = VERTEX_out_list(cg->get_vertex(CN_id(callercn)));
          ec != NULL; ec = EC_next(ec)) {
-        CallNode * calleecn = cg->map_id2cn(VERTEX_id(EDGE_to(EC_edge(ec))));
+        CallNode * calleecn = cg->mapId2CallNode(VERTEX_id(EDGE_to(EC_edge(ec))));
         ASSERT0(calleecn);
 
         Region * callee = CN_ru(calleecn);

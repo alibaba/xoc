@@ -100,16 +100,6 @@ Optimizations to be performed:
 */
 bool Region::MiddleProcess(OptCtx & oc)
 {
-    if (g_opt_level != NO_OPT) {
-        PassMgr * passmgr = get_pass_mgr();
-        ASSERT0(passmgr);
-
-        //Perform scalar optimizations.
-        passmgr->performScalarOpt(oc);
-    }
-
-    ASSERT0(verifyRPO(oc));
-
     BBList * bbl = get_bb_list();
     if (bbl->get_elem_count() == 0) { return true; }
 
@@ -121,29 +111,67 @@ bool Region::MiddleProcess(OptCtx & oc)
     simp.set_simp_lnot();
     simp.set_simp_ild_ist();
     simp.set_simp_to_lowest_height();
+    if (g_is_lower_to_pr_mode) {
+        simp.set_simp_to_pr_mode();
+    }
     simplifyBBlist(bbl, &simp);
-    if (g_cst_bb_list && SIMP_need_recon_bblist(&simp)) {
-        if (reconstructBBlist(oc) && g_do_cfg) {
-            //Before CFG building.
-            get_cfg()->removeEmptyBB(oc);
 
-            get_cfg()->rebuild(oc);
+    if (g_do_cfg &&
+        g_cst_bb_list &&
+        SIMP_need_recon_bblist(&simp) &&
+        reconstructBBlist(oc)) {
 
-            //After CFG building, it is perform different
-            //operation to before building.
-            get_cfg()->removeEmptyBB(oc);
+        //Simplification may generate new memory operations.
+        ASSERT0(verifyMDRef());
 
-            get_cfg()->computeExitList();
+        //Before CFG building.
+        get_cfg()->removeEmptyBB(oc);
 
-            if (g_do_cdg) {
-                ASSERT0(get_pass_mgr());
-                CDG * cdg = (CDG*)get_pass_mgr()->registerPass(PASS_CDG);
-                cdg->rebuild(oc, *get_cfg());
-            }
+        get_cfg()->rebuild(oc);
+
+        //After CFG building.
+        //Remove empty bb when cfg rebuilted because
+        //rebuilding cfg may generate redundant empty bb.
+        //It disturbs the computation of entry and exit.
+        get_cfg()->removeEmptyBB(oc);
+
+        //Compute exit bb while cfg rebuilt.
+        get_cfg()->computeExitList();
+        ASSERT0(get_cfg()->verify());
+
+        get_cfg()->performMiscOpt(oc);
+
+        if (g_do_cdg) {
+            ASSERT0(get_pass_mgr());
+            CDG * cdg = (CDG*)get_pass_mgr()->registerPass(PASS_CDG);
+            cdg->rebuild(oc, *get_cfg());
         }
+    } else {
+        ASSERT0(verifyMDRef());
     }
 
+    if (g_do_ssa) {
+        ASSERT0(get_pass_mgr());
+        IR_SSA_MGR * ssamgr =
+            (IR_SSA_MGR*)get_pass_mgr()->registerPass(PASS_SSA_MGR);
+        ASSERT0(ssamgr);
+        //if (ssamgr == NULL || !ssamgr->is_ssa_constructed()) {
+        //    lowerIRTreeToLowestHeight(oc);
+        //}
+        ssamgr->construction(oc);
+    }
+
+    if (g_opt_level > NO_OPT) {
+        PassMgr * passmgr = get_pass_mgr();
+        ASSERT0(passmgr);
+
+        //Perform scalar optimizations.
+        passmgr->performScalarOpt(oc);
+    }
+
+    ASSERT0(verifyRPO(oc));
     ASSERT0(verifyIRandBB(bbl, this));
+
     if (g_do_refine) {
         RefineCtx rf;
         refineBBlist(bbl, rf);

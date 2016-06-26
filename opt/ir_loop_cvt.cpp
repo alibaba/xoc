@@ -219,7 +219,7 @@ bool IR_LOOP_CVT::perform(OptCtx & oc)
     bool change = find_and_convert(worklst);
     if (change) {
         //DU reference and du chain has maintained.
-        ASSERT0(m_du->verifyMDRef());
+        ASSERT0(m_ru->verifyMDRef());
         ASSERT0(m_du->verifyMDDUChain());
 
         //All these changed.

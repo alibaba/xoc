@@ -1763,6 +1763,7 @@ void IR_SSA_MGR::construction(OptCtx & oc)
 
     construction(domtree);
 
+    OC_is_du_chain_valid(oc) = false; //DU chain of PR is voilated.
     m_is_ssa_constructed = true;
 }
 
@@ -1805,10 +1806,6 @@ void IR_SSA_MGR::construction(DomTree & domtree)
     stripVersionForBBList();
 
     ASSERT0(verifyPhi(false) && verifyVP());
-
-    if (m_ru->get_du_mgr() != NULL) {
-        ASSERT0(m_ru->get_du_mgr()->verifyMDRef());
-    }
 
     m_is_ssa_constructed = true;
 }

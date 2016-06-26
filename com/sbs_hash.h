@@ -38,7 +38,7 @@ namespace xcom {
 template <UINT BitsPerSeg = BITS_PER_SEG>
 class Bit2NodeH {
 public:
-    SBitSetCore<BitsPerSeg> * set;
+    SBitSetCore<BitsPerSeg> * set; //will be freed by sbs_mgr.
     HMap<UINT, Bit2NodeH*, HashFuncBase2<UINT> > next;
 
     Bit2NodeH(UINT hash_tab_size = 16) : next(hash_tab_size) { set = NULL; }
@@ -52,7 +52,7 @@ public:
 template <UINT BitsPerSeg = BITS_PER_SEG>
 class Bit2NodeT {
 public:
-    SBitSetCore<BitsPerSeg> * set;
+    SBitSetCore<BitsPerSeg> * set; //will be freed by sbs_mgr.
     TMap<UINT, Bit2NodeT*> next;
 
     Bit2NodeT() { set = NULL; }
@@ -75,12 +75,18 @@ public:
 };
 
 
-template <class SBitSetCoreAllocator, UINT BitsPerSeg = BITS_PER_SEG>
+//Allocator should supply three method: alloc, free, getBsMgr.
+//e.g: class Allocator {
+//   public:
+//   SBitSetCore<BitsPerSeg> * alloc();
+//   void free(SBitSetCore<BitsPerSeg>*);
+//   MiscBitSetMgr<BitsPerSeg> * getBsMgr() const;
+// }
+template <class Allocator, UINT BitsPerSeg = BITS_PER_SEG>
 class SBitSetCoreHash {
 protected:
     SMemPool * m_pool;
-    SBitSetCoreAllocator * m_set_allocator;
-    MiscBitSetMgr<BitsPerSeg> * m_sbs_mgr;
+    Allocator * m_allocator;
 
     #ifdef _DEBUG_
     UINT m_num_node; //record the number of MD2Node in the tree.
@@ -115,9 +121,9 @@ protected:
     //dump_helper for SBitSetCore.
     void dump_helper_set(
             FILE * h,
-            SBitSetCore<BitsPerSeg> * set,
+            SBitSetCore<BitsPerSeg> const* set,
             UINT indent,
-            UINT id)
+            UINT id) const
     {
         fprintf(h, "\n");
 
@@ -139,9 +145,9 @@ protected:
         fprintf(h, "}");
     }
 
-    #ifdef  _BIT2NODE_IN_HASH_
+    #ifdef _BIT2NODE_IN_HASH_
     //dump_helper for Bit2NodeH.
-    void dump_helper(FILE * h, B2NType * mn, UINT indent)
+    void dump_helper(FILE * h, B2NType * mn, UINT indent) const
     {
         INT pos;
         for (B2NType * nextmn = mn->next.get_first_elem(pos);
@@ -153,7 +159,7 @@ protected:
     }
     #else
     //dump_helper for Bit2NodeT.
-    void dump_helper(FILE * h, B2NType * mn, UINT indent)
+    void dump_helper(FILE * h, B2NType * mn, UINT indent) const
     {
         B2NType * nextmn = NULL;
         TMapIter<UINT, B2NType*> ti;
@@ -166,13 +172,11 @@ protected:
     }
     #endif
 public:
-    SBitSetCoreHash(SBitSetCoreAllocator * set_allocator,
-                    MiscBitSetMgr<BitsPerSeg> * sbs_mgr)
+    SBitSetCoreHash(Allocator * allocator)
     {
-        ASSERT0(set_allocator && sbs_mgr);
-        m_set_allocator = set_allocator;
-        m_sbs_mgr = sbs_mgr;
-        ASSERT(m_set_allocator && m_sbs_mgr, ("Parameter can not be NULL"));
+        ASSERT0(allocator);
+        m_allocator = allocator;
+        ASSERT(allocator, ("Parameter can not be NULL"));
         m_pool = smpoolCreate(sizeof(B2NType) * 4, MEM_CONST_SIZE);
 
         #ifdef _DEBUG_
@@ -236,8 +240,7 @@ public:
             #endif
 
             if (mn->set != NULL) {
-                freeSBitSetCore(m_set_allocator,
-                    (SBitSetCore<BitsPerSeg>*)mn->set);
+                m_allocator->free(mn->set);
             }
 
             mn->next.destroy();
@@ -294,9 +297,9 @@ public:
 
         ASSERT0(mn);
         if (mn->set == NULL) {
-            SBitSetCore<BitsPerSeg> * s = allocSBitSetCore(m_set_allocator);
+            SBitSetCore<BitsPerSeg> * s = m_allocator->alloc();
             ASSERT0(s);
-            s->copy(set, *m_sbs_mgr);
+            s->copy(set, *m_allocator->getBsMgr());
             mn->set = s;
         }
         ASSERT0(mn->set == &set || mn->set->is_equal(set));
@@ -311,7 +314,7 @@ public:
     }
 
     //Dump hash tab as tree style.
-    void dump(FILE * h)
+    void dump(FILE * h) const
     {
         if (h == NULL) { return; }
 
@@ -327,17 +330,13 @@ public:
         fflush(h);
     }
 
+    Allocator * get_allocator() const { return m_allocator; }
     B2NType * get_root() const  { return m_bit2node; }
 
     //Return the number of SBitSetCore recorded in the hash.
     UINT get_elem_count() const
     {
         UINT count = 0;
-
-        //Destroy the TMap structure, here you do
-        //NOT need invoke SBitSetCore's destroy() because they were allocated from
-        //set-allocator and will be deleted by the destroy() of it.
-
         List<B2NType const*> wl;
 
         #ifdef _BIT2NODE_IN_HASH_
@@ -375,7 +374,7 @@ public:
     }
 
     //Return true if SBitSetCore pointer has been record in the hash.
-    bool find(SBitSetCore<BitsPerSeg> const& set)
+    bool find(SBitSetCore<BitsPerSeg> const& set) const
     {
         SEGIter * iter;
         INT id = set.get_first(&iter);
@@ -398,13 +397,6 @@ public:
         }
         return mn->set == &set;
     }
-
-    virtual void freeSBitSetCore(
-        SBitSetCoreAllocator * set_allocator,
-        SBitSetCore<BitsPerSeg> * set) = 0;
-
-    virtual SBitSetCore<BitsPerSeg> * allocSBitSetCore(
-        SBitSetCoreAllocator * set_allocator) = 0;
 };
 
 } //namespace xcom

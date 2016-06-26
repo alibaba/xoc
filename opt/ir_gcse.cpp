@@ -534,7 +534,7 @@ bool IR_GCSE::doPropVN(IRBB * bb, UINT entry_id)
 bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
 {
     livexp.clean();
-    DefDBitSetCore * x = m_du->getAvailInExpr(BB_id(bb));
+    DefDBitSetCore * x = m_du->getAvailInExpr(BB_id(bb), NULL);
     SEGIter * st = NULL;
     for (INT i = x->get_first(&st); i != -1; i = x->get_next(i, &st)) {
         IR * y = m_ru->get_ir(i);
@@ -647,8 +647,9 @@ bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
                          ct2 != NULL; ct2 = next) {
                         livexp.get_next(&next);
                         IR * x = ct2->val();
-                        tmp.clean(*m_misc_bs_mgr);
-                        m_du->collectMayUseRecursive(x, tmp, true);
+                        tmp.clean(m_misc_bs_mgr);
+                        m_du->collectMayUseRecursive(x,
+                            tmp, true, m_misc_bs_mgr);
                         if (maydef->is_intersect(tmp)) {
                             livexp.remove(ct2);
                         }
@@ -662,8 +663,9 @@ bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
                          ct2 != NULL; ct2 = next) {
                         livexp.get_next(&next);
                         IR * x = ct2->val();
-                        tmp.clean(*m_misc_bs_mgr);
-                        m_du->collectMayUseRecursive(x, tmp, true);
+                        tmp.clean(m_misc_bs_mgr);
+                        m_du->collectMayUseRecursive(x,
+                            tmp, true, m_misc_bs_mgr);
                         if (tmp.is_overlap(mustdef)) {
                             livexp.remove(ct2);
                         }
@@ -674,7 +676,8 @@ bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
         default: break;
         }
     }
-    tmp.clean(*m_misc_bs_mgr);
+
+    tmp.clean(m_misc_bs_mgr);
     return change;
 }
 
@@ -744,7 +747,7 @@ bool IR_GCSE::perform(OptCtx & oc)
             ASSERT0(bb);
             change |= doPropVN(bb, BB_id(entry));
         }
-        tmp.clean(*m_misc_bs_mgr);
+        tmp.clean(m_misc_bs_mgr);
     } else {
         m_vn2exp.clean();
         m_exp2pr.clean();
@@ -774,7 +777,7 @@ bool IR_GCSE::perform(OptCtx & oc)
         OC_is_aa_valid(oc) = false;
 
         //DU reference and du chain has maintained.
-        ASSERT0(m_du->verifyMDRef());
+        ASSERT0(m_ru->verifyMDRef());
         ASSERT0(m_du->verifyMDDUChain());
 
         OC_is_live_expr_valid(oc) = false;

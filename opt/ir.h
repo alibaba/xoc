@@ -2507,7 +2507,7 @@ bool verify_simp(IR * ir, SimpCtx & simp);
 
 //Iterative access ir tree. This funtion initialize the iterator.
 //'ir': the root ir of the tree.
-//'ii': iterator.
+//'ii': iterator. It should be clean already.
 //Readonly function.
 inline IR const* iterInitC(IR const* ir, OUT ConstIRIter & ii)
 {
@@ -2622,7 +2622,7 @@ inline IR const* iterRhsNextC(IN OUT ConstIRIter & ii)
 //Iterative access the ir tree that start with 'ir'.
 //This funtion initialize the iterator.
 //'ir': the root ir of the tree, it may be either stmt or expression.
-//'ii': iterator.
+//'ii': iterator. It should be clean already.
 //Note this function is NOT readonly, the returnd IR may be modified.
 inline IR * iterInit(IN IR * ir, OUT IRIter & ii)
 {
@@ -2662,7 +2662,7 @@ inline IR * iterNext(IN OUT IRIter & ii)
 //Iterative access the right-hand-side expression of stmt.
 //This funtion initialize the iterator.
 //'ir': the root ir of the tree, it must be stmt.
-//'ii': iterator.
+//'ii': iterator. It should be clean already.
 //Use iterRhsNextC to iter next IR.
 inline IR * iterRhsInit(IR * ir, OUT IRIter & ii)
 {

@@ -43,19 +43,6 @@ void Region::HighProcessImpl(OptCtx & oc)
         checkValidAndRecompute(&oc, PASS_CFG, PASS_UNDEF);
     }
 
-    if (g_do_ssa) {
-        //Note lowering IR now may be too early and will be
-        //a hindrance to optmizations.
-        //low_to_pr_mode(oc);
-        ASSERT0(get_pass_mgr());
-        IR_SSA_MGR * ssamgr =
-            (IR_SSA_MGR*)get_pass_mgr()->registerPass(PASS_SSA_MGR);
-        ASSERT0(ssamgr);
-        if (!ssamgr->is_ssa_constructed()) {
-            ssamgr->construction(oc);
-        }
-    }
-
     if (g_do_aa) {
         ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc));
         checkValidAndRecompute(&oc, PASS_AA, PASS_UNDEF);
@@ -68,10 +55,6 @@ void Region::HighProcessImpl(OptCtx & oc)
             (IR_DU_MGR*)get_pass_mgr()->registerPass(PASS_DU_MGR);
         ASSERT0(dumgr);
         UINT f = SOL_REACH_DEF|SOL_REF;
-        if (g_do_ivr) {
-            f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR;
-        }
-
         if (g_compute_available_exp) {
             f |= SOL_AVAIL_EXPR;
         }

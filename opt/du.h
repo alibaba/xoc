@@ -64,9 +64,6 @@ public:
         if (set == NULL) { return; }
         bunion(*set, m);
     }
-
-    inline bool verify_def(IR_DU_MGR * du) const;
-    inline bool verify_use(IR_DU_MGR * du) const;
 };
 
 

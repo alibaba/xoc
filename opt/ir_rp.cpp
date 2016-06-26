@@ -1678,7 +1678,7 @@ void IR_RP::handleAccessInBody(
             bool r = IR_parent(ref)->replaceKid(ref, pr, false);
             CK_USE(r);
 
-            if (IR_may_throw(stmt) && !is_may_throw(stmt, ii)) {
+            if (stmt->is_may_throw() && !is_may_throw(stmt, ii)) {
                 IR_may_throw(stmt) = false;
             }
 
@@ -2206,7 +2206,7 @@ bool IR_RP::perform(OptCtx & oc)
     change = EvaluableScalarReplacement(worklst);
     if (change) {
         //DU reference and du chain has maintained.
-        ASSERT0(m_du->verifyMDRef());
+        ASSERT0(m_ru->verifyMDRef());
         ASSERT0(m_du->verifyMDDUChain());
 
         OC_is_reach_def_valid(oc) = false;

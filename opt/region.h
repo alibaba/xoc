@@ -76,6 +76,7 @@ public:
     BitSetMgr m_bs_mgr;
     DefMiscBitSetMgr m_sbs_mgr;
     MDSetMgr m_mds_mgr;
+    MDSetHashAllocator m_mds_hash_allocator;
     MDSetHash m_mds_hash;
     List<DU*> m_free_du_list;
     IRBBMgr m_ir_bb_mgr; //Allocate the basic block.
@@ -819,6 +820,7 @@ public:
     bool verifyBBlist(BBList & bbl);
     bool verifyIRinRegion();
     bool verifyRPO(OptCtx & oc);
+    bool verifyMDRef();
 };
 //END Region
 

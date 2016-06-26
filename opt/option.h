@@ -213,6 +213,7 @@ extern bool g_do_loop_ana; //loop analysis.
 extern bool g_do_cfg_remove_empty_bb;
 extern bool g_do_cfg_remove_unreach_bb;
 extern bool g_do_cfg_remove_trampolin_bb;
+extern bool g_do_cfg_remove_redundant_branch;
 extern bool g_do_cfg_dom;
 extern bool g_do_cfg_pdom;
 extern bool g_do_cdg;

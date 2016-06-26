@@ -221,7 +221,11 @@ protected:
 public:
     SBitSetCore() {}
     COPY_CONSTRUCTOR(SBitSetCore);
-    ~SBitSetCore() { /* should call clean() before destruction. */ }
+    ~SBitSetCore()
+    {
+        //should call clean() before destruction,
+        //otherwise it will incur SegMgr claimed.
+    }
 
     void bunion(SBitSetCore<BitsPerSeg> const& src,
                 SegMgr<BitsPerSeg> * sm,
@@ -391,8 +395,9 @@ public:
 template <UINT BitsPerSeg = BITS_PER_SEG>
 class DBitSetCore : public SBitSetCore<BitsPerSeg> {
 protected:
-    UINT m_is_sparse:1; //true if bitset is sparse.
+    BYTE m_is_sparse:1; //true if bitset is sparse.
 
+protected:
     //Only read BitSet.
     BitSet const* read_bs() const
     {
@@ -435,6 +440,7 @@ protected:
     }
 public:
     DBitSetCore() { m_is_sparse = true; }
+    DBitSetCore(bool is_sparse) { set_sparse(is_sparse); }
     COPY_CONSTRUCTOR(DBitSetCore);
     ~DBitSetCore() {}
 
@@ -726,7 +732,6 @@ class MiscBitSetMgr {
 protected:
     SList<SBitSet<BitsPerSeg>*> m_sbitset_list;
     SList<DBitSet<BitsPerSeg>*> m_dbitset_list;
-    SList<DBitSetCore<BitsPerSeg>*> m_dbitsetcore_list;
     SList<SBitSetCore<BitsPerSeg>*> m_free_sbitsetcore_list;
     SList<SBitSet<BitsPerSeg>*> m_free_sbitset_list;
     SList<DBitSet<BitsPerSeg>*> m_free_dbitset_list;
@@ -787,7 +792,6 @@ public:
 
         m_sbitset_list.set_pool(ptr_pool);
         m_dbitset_list.set_pool(ptr_pool);
-        m_dbitsetcore_list.set_pool(ptr_pool);
 
         m_free_sbitsetcore_list.set_pool(ptr_pool);
         m_free_sbitset_list.set_pool(ptr_pool);
@@ -816,14 +820,6 @@ public:
             ASSERT0(d);
             delete d;
         }
-
-        //All DBitSetCore and SBitSetCore are allocated in the pool.
-        //It is not necessary to destroy it specially.
-        //SC<DBitSetCore*> * dct;
-        //for (DBitSetCore * d = m_dbitsetcore_list.get_head(&dct);
-        //     d != NULL; d = m_dbitsetcore_list.get_next(&dct)) {
-        //    delete d;
-        //}
 
         smpoolDelete(m_sbitsetcore_pool);
         smpoolDelete(m_dbitsetcore_pool);
@@ -870,7 +866,6 @@ public:
         if (p == NULL) {
             p = xmalloc_dbitsetc();
             p->set_sparse(true);
-            m_dbitsetcore_list.append_head(p);
         }
         return p;
     }
@@ -891,7 +886,7 @@ public:
     //Free bs for next use.
     inline void free_sbitsetc(SBitSetCore<BitsPerSeg> * bs)
     {
-        if (bs == NULL) return;
+        if (bs == NULL) { return; }
         bs->clean(*this);
         m_free_sbitsetcore_list.append_head(bs);
     }
@@ -899,7 +894,7 @@ public:
     //Free bs for next use.
     inline void free_dbitset(DBitSet<BitsPerSeg> * bs)
     {
-        if (bs == NULL) return;
+        if (bs == NULL) { return; }
         bs->clean();
         m_free_dbitset_list.append_head(bs);
     }
@@ -907,7 +902,7 @@ public:
     //free bs for next use.
     inline void free_dbitsetc(DBitSetCore<BitsPerSeg> * bs)
     {
-        if (bs == NULL) return;
+        if (bs == NULL) { return; }
         bs->clean(&sm, &scflst);
         m_free_dbitsetcore_list.append_head(bs);
     }

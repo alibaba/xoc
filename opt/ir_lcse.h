@@ -46,7 +46,7 @@ protected:
     IR_EXPR_TAB * m_expr_tab;
     IR_DU_MGR * m_du;
     BSVec<ExpRep*> * m_expr_vec;
-    DefMiscBitSetMgr * m_misc_bs_mgr;
+    DefMiscBitSetMgr m_misc_bs_mgr;
 
     IR * hoist_cse(IRBB * bb,  IR * ir_pos, ExpRep * ie);
     bool processUse(IN IRBB * bb, IN IR * ir,

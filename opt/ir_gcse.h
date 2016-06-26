@@ -90,7 +90,7 @@ protected:
     TypeMgr * m_tm;
     IR_GVN * m_gvn;
     TG * m_tg;
-    DefMiscBitSetMgr * m_misc_bs_mgr;
+    DefMiscBitSetMgr m_misc_bs_mgr;
     TMap<IR*, IR*> m_exp2pr;
     TMap<VN const*, IR*> m_vn2exp;
     List<IR*> m_newst_lst;
@@ -120,7 +120,6 @@ public:
         m_expr_tab = NULL;
         m_tm = ru->get_type_mgr();
         m_gvn = gvn;
-        m_misc_bs_mgr = ru->getMiscBitSetMgr();
         m_tg = NULL;
         m_is_in_ssa_form = false;
         m_ssamgr = NULL;

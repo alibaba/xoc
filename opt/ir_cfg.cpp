@@ -58,6 +58,8 @@ IR_CFG::IR_CFG(CFG_SHAPE cs, BBList * bbl, Region * ru,
         addVertex(BB_id(bb));
         for (LabelInfo const* li = bb->getLabelList().get_head();
              li != NULL; li = bb->getLabelList().get_next()) {
+            ASSERT(m_lab2bb.get(li) == NULL,
+                   ("Label has been mapped to BB%d", BB_id(m_lab2bb.get(li))));
             m_lab2bb.set(li, bb);
             if (LABEL_INFO_is_catch_start(li)) {
                 BB_is_catch_start(bb) = true;
@@ -1229,13 +1231,27 @@ bool IR_CFG::performMiscOpt(OptCtx & oc)
     bool change = false;
     bool ck_cfg = false;
     bool lchange;
+    UINT count = 0;
 
     do {
         lchange = false;
-        lchange |= removeUnreachBB();
-        lchange |= removeEmptyBB(oc);
-        lchange |= removeRedundantBranch();
-        lchange |= removeTrampolinEdge();
+
+        if (g_do_cfg_remove_unreach_bb) {
+            lchange |= removeUnreachBB();
+        }
+
+        if (g_do_cfg_remove_empty_bb) {
+            lchange |= removeEmptyBB(oc);
+        }
+
+        if (g_do_cfg_remove_redundant_branch) {
+            lchange |= removeRedundantBranch();
+        }
+
+        if (g_do_cfg_remove_trampolin_bb) {
+            lchange |= removeTrampolinEdge();
+        }
+
         if (lchange) {
             OC_is_cdg_valid(oc) = false;
             OC_is_dom_valid(oc) = false;
@@ -1244,7 +1260,11 @@ bool IR_CFG::performMiscOpt(OptCtx & oc)
             OC_is_rpo_valid(oc) = false;
             ck_cfg = true;
         }
-    } while (lchange);
+
+        count++;
+    } while (lchange && count < 20);
+
+    ASSERT(!lchange, ("CFG optimization iterated too many times."));
 
     if (ck_cfg) {
         computeExitList();
@@ -1263,7 +1283,10 @@ bool IR_CFG::performMiscOpt(OptCtx & oc)
         #endif
     }
 
-    END_TIMER_AFTER("CFG Opt");
+    ASSERT0(verifyIRandBB(get_bb_list(), m_ru));
+    ASSERT0(m_ru->verifyRPO(oc));
+
+    END_TIMER_AFTER("CFG Optimization");
     return change;
 }
 

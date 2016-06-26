@@ -603,6 +603,7 @@ IR * Region::simplifyLogicalNot(IN IR * ir, SimpCtx * ctx)
                 dm->get_dtype(WORD_LENGTH_OF_HOST_MACHINE, true));
     IR * imm0 = buildImmInt(1, t);
     IR * x = buildStorePR(PR_no(pr), pr->get_type(), imm0);
+    allocRefForPR(x);
     copyDbx(x, imm0, this);
     add_next(&ret_list, x);
 
@@ -618,9 +619,10 @@ IR * Region::simplifyLogicalNot(IN IR * ir, SimpCtx * ctx)
                     dm->get_dtype(WORD_LENGTH_OF_HOST_MACHINE, true));
     IR * imm1 = buildImmInt(0, t2);
 
-    x = buildStorePR(PR_no(pr), pr->get_type(), imm1);
-    copyDbx(x, imm1, this);
-    add_next(&ret_list, x);
+    IR * x2 = buildStorePR(PR_no(pr), pr->get_type(), imm1);
+    allocRefForPR(x2);
+    copyDbx(x2, imm1, this);
+    add_next(&ret_list, x2);
 
     //L2:
     add_next(&ret_list, buildLabel(label2));
@@ -658,6 +660,7 @@ IR * Region::simplifyLogicalAnd(IN IR * ir, SimpCtx * ctx)
                 tm->get_dtype(WORD_LENGTH_OF_HOST_MACHINE, true));
     IR * imm0 = buildImmInt(0, t);
     IR * x = buildStorePR(PR_no(pr), pr->get_type(), imm0);
+    allocRefForPR(x);
     copyDbx(x, imm0, this);
     add_next(&ret_list, x);
 
@@ -667,9 +670,10 @@ IR * Region::simplifyLogicalAnd(IN IR * ir, SimpCtx * ctx)
     Type const* t2 = tm->getSimplexTypeEx(
                 tm->get_dtype(WORD_LENGTH_OF_HOST_MACHINE, true));
     IR * imm1 = buildImmInt(1, t2);
-    x = buildStorePR(PR_no(pr), pr->get_type(), imm1);
-    copyDbx(x, imm1, this);
-    add_next(&ret_list, x);
+    IR * x2 = buildStorePR(PR_no(pr), pr->get_type(), imm1);
+    allocRefForPR(x2);
+    copyDbx(x2, imm1, this);
+    add_next(&ret_list, x2);
     add_next(&ret_list, buildLabel(label2));
     ctx->append_irs(ret_list);
     SIMP_changed(ctx) = true;
@@ -882,6 +886,7 @@ IR * Region::simplifyLogicalOr(IN IR * ir, SimpCtx * ctx)
                          dm->get_dtype(WORD_LENGTH_OF_HOST_MACHINE, true));
     IR * imm0 = buildImmInt(0, type);
     IR * x = buildStorePR(PR_no(pr), pr->get_type(), imm0);
+    allocRefForPR(x);
     copyDbx(x, imm0, this);
     add_next(&ret_list, x);
 
@@ -891,9 +896,10 @@ IR * Region::simplifyLogicalOr(IN IR * ir, SimpCtx * ctx)
 
     type = dm->getSimplexTypeEx(dm->get_dtype(WORD_LENGTH_OF_HOST_MACHINE, true));
     IR * imm1 = buildImmInt(1, type);
-    x = buildStorePR(PR_no(pr), pr->get_type(), imm1);
-    copyDbx(x, imm1, this);
-    add_next(&ret_list, x);
+    IR * x2 = buildStorePR(PR_no(pr), pr->get_type(), imm1);
+    allocRefForPR(x2);
+    copyDbx(x2, imm1, this);
+    add_next(&ret_list, x2);
     add_next(&ret_list, buildLabel(label2));
     ctx->append_irs(ret_list);
     SIMP_changed(ctx) = true;
@@ -1039,6 +1045,7 @@ IR * Region::simplifySelect(IR * ir, SimpCtx * ctx)
     IR * true_exp = simplifyExpression(SELECT_trueexp(ir), &truectx);
     ctx->append_irs(truectx);
     IR * mv = buildStorePR(PR_no(res), res->get_type(), true_exp);
+    allocRefForPR(mv);
     copyDbx(mv, true_exp, this);
     add_next(&lst, &last, mv);
 
@@ -1059,6 +1066,7 @@ IR * Region::simplifySelect(IR * ir, SimpCtx * ctx)
     IR * else_exp = simplifyExpression(SELECT_falseexp(ir), &falsectx);
     ctx->append_irs(falsectx);
     IR * mv2 = buildStorePR(PR_no(res), res->get_type(), else_exp);
+    allocRefForPR(mv2);
     copyDbx(mv2, else_exp, this);
     add_next(&lst, &last, mv2);
     //---
@@ -1224,17 +1232,19 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCtx * ctx)
         if (news->is_const() && news->is_int()) {
             //Subexp is const.
             if (enumb != 0) {
-                news2 = buildImmInt(
-                    ((HOST_INT)enumb) * CONST_int_val(news), indextyid);
+                news2 = buildImmInt(((HOST_INT)enumb) *
+                    CONST_int_val(news), indextyid);
             } else {
                 news2 = dupIRTree(news);
+                news2->copyRefForTree(news, this);
             }
         } else {
             if (enumb != 0) {
-                news2 = buildBinaryOp(IR_MUL, indextyid, dupIRTree(news),
-                                       buildImmInt(enumb, indextyid));
+                news2 = buildBinaryOp(IR_MUL, indextyid,
+                    dupIRTree(news), buildImmInt(enumb, indextyid));
             } else {
                 news2 = dupIRTree(news);
+                news2->copyRefForTree(news, this);
             }
         }
 
@@ -1263,8 +1273,8 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCtx * ctx)
     UINT elemsize = dm->get_bytesize(ARR_elemtype(ir));
     if (elemsize != 1) {
         //e.g: short g[i], subexp is i*sizeof(short)
-        ofst_exp = buildBinaryOp(IR_MUL, indextyid, ofst_exp,
-                                 buildImmInt(elemsize, indextyid));
+        ofst_exp = buildBinaryOp(IR_MUL, indextyid,
+            ofst_exp, buildImmInt(elemsize, indextyid));
     }
 
     if (ARR_ofst(ir) != 0) {
@@ -1293,9 +1303,8 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCtx * ctx)
     //Because that when 'sub' is pointer, the extra IR_MUL
     //operation will be generated.
     IR * array_addr = buildBinaryOpSimp(IR_ADD,
-                        dm->getPointerType(ir->get_dtype_size(dm)),
-                        newbase,
-                        ofst_exp);
+        dm->getPointerType(ir->get_dtype_size(dm)), newbase, ofst_exp);
+
     if (SIMP_to_pr_mode(ctx) && !array_addr->is_pr()) {
         SimpCtx ttcont(*ctx);
         SIMP_ret_array_val(&ttcont) = true;
@@ -1317,6 +1326,7 @@ IR * Region::simplifyArrayAddrExp(IR * ir, SimpCtx * ctx)
 
             //IR * t = buildPR(array_addr->get_type());
             //IR * mv = buildStorePR(PR_no(t), t->get_type(), array_addr);
+            //allocRefForPR(mv);
             //ctx->append_irs(mv);
             //array_addr = t;
     }
@@ -1369,7 +1379,10 @@ IR * Region::simpToPR(IR * ir, SimpCtx * ctx)
 {
     IR * pr = buildPR(ir->get_type());
     allocRefForPR(pr);
+
     IR * st = buildStorePR(PR_no(pr), pr->get_type(), ir);
+    allocRefForPR(st);
+
     copyDbx(st, ir, this); //keep dbg info for new STMT.
     ctx->append_irs(st);
     SIMP_changed(ctx) = true;
@@ -1615,8 +1628,9 @@ IR * Region::simplifyStoreArray(IR * ir, SimpCtx * ctx)
 
     SimpCtx tcont(*ctx);
     IR * array_addr = NULL;
+    IR * ret = NULL;
 
-    if (!SIMP_array(ctx)) { goto FIN; }
+    if (!SIMP_array(ctx)) { ret = ir; goto FIN; }
 
     //Simplify array address expression for STARRAY stmt.
     SIMP_ret_array_val(&tcont) = false; //We need array address expression.
@@ -1624,6 +1638,9 @@ IR * Region::simplifyStoreArray(IR * ir, SimpCtx * ctx)
     //simplyArray will free ir. That will make rhs invalid.
     STARR_rhs(ir) = NULL;
 
+    //ir may be freed by simplifyArray.
+    MD const* ref = ir->getRefMD();
+    MDSet const* refs = ir->getRefMDSet();
     array_addr = simplifyArray(ir, &tcont);
 
     ctx->union_bottomup_flag(tcont);
@@ -1632,15 +1649,17 @@ IR * Region::simplifyStoreArray(IR * ir, SimpCtx * ctx)
         add_next(&ret_list, &last, SIMP_stmtlist(&tcont));
     }
 
-    ir = buildIstore(array_addr, rhsval, type);
-
+    ret = buildIstore(array_addr, rhsval, type);
+    ret->setRefMD(ref, this);
+    ret->setRefMDSet(refs, this);
 FIN:
-    add_next(&ret_list, &last, ir);
+    add_next(&ret_list, &last, ret);
     return ret_list;
 }
 
 
 //Simplify array operator.
+//Note ir may be freed.
 IR * Region::simplifyArray(IR * ir, SimpCtx * ctx)
 {
     if (!SIMP_array(ctx)) {
@@ -1653,14 +1672,22 @@ IR * Region::simplifyArray(IR * ir, SimpCtx * ctx)
 
     //ir will be freed in simplifyArray(), record its parent here.
     Type const* res_rtype = ir->get_type();
+
+    MD const* ref = ir->getRefMD();
+    MDSet const* refs = ir->getRefMDSet();
+
     IR * array_addr = simplifyArrayAddrExp(ir, ctx);
     SIMP_changed(ctx) = true;
     if (!SIMP_ret_array_val(ctx)) {
         return array_addr;
     }
 
+    //Simplify array elem value.
     if (array_addr->is_id()) {
         IR * ld = buildLoad(ID_info(array_addr), array_addr->get_type());
+        //Load variable which is an array.
+        ld->setRefMD(ref, this);
+        ld->setRefMDSet(refs, this);
         freeIRTree(array_addr);
         return ld;
     }
@@ -1670,13 +1697,19 @@ IR * Region::simplifyArray(IR * ir, SimpCtx * ctx)
             array_addr = simpToPR(array_addr, ctx);
         }
 
-        array_addr = buildIload(array_addr, res_rtype);
-        IR * pr = buildPR(array_addr->get_type());
+        //Load array element value.
+        IR * elem_val = buildIload(array_addr, res_rtype);
+        elem_val->setRefMD(ref, this);
+        elem_val->setRefMDSet(refs, this);
+
+        IR * pr = buildPR(elem_val->get_type());
         allocRefForPR(pr);
-        IR * stpr = buildStorePR(PR_no(pr), pr->get_type(), array_addr);
+
+        IR * stpr = buildStorePR(PR_no(pr), pr->get_type(), elem_val);
+        allocRefForPR(stpr);
 
         //keep dbg info for new STMT.
-        copyDbx(stpr, array_addr, this);
+        copyDbx(stpr, elem_val, this);
         ctx->append_irs(stpr);
         return pr;
     }
@@ -1686,10 +1719,16 @@ IR * Region::simplifyArray(IR * ir, SimpCtx * ctx)
             array_addr = simpToPR(array_addr, ctx);
         }
 
-        array_addr = buildIload(array_addr, res_rtype);
-        IR * pr = buildPR(array_addr->get_type());
+        //Load array element value.
+        IR * elem_val = buildIload(array_addr, res_rtype);
+        elem_val->setRefMD(ref, this);
+        elem_val->setRefMDSet(refs, this);
+
+        IR * pr = buildPR(elem_val->get_type());
         allocRefForPR(pr);
-        IR * st = buildStorePR(PR_no(pr), pr->get_type(), array_addr);
+
+        IR * st = buildStorePR(PR_no(pr), pr->get_type(), elem_val);
+        allocRefForPR(st);
 
         //keep dbg info for new STMT.
         copyDbx(st, array_addr, this);
@@ -1697,7 +1736,11 @@ IR * Region::simplifyArray(IR * ir, SimpCtx * ctx)
         return pr;
     }
 
-    return buildIload(array_addr, res_rtype);
+    //Load array element value.
+    IR * elem_val = buildIload(array_addr, res_rtype);
+    elem_val->setRefMD(ref, this);
+    elem_val->setRefMDSet(refs, this);
+    return elem_val;
 }
 
 

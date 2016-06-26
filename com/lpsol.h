@@ -1047,8 +1047,8 @@ UINT SIX<Mat, T>::solveSlackForm(
             //Dumpf_Svec((void*)&eq2bvmap, D_INT);.dumpf();
         }
 
-        /* Choose the nonbasic variable that coefficient is
-        positive to be the pivoting candidate. */
+        //Choose the nonbasic variable that coefficient is
+        //positive to be the pivoting candidate.
         INT pivot_nv_idx = -1;
         bool all_coeffs_nonpositive = true;
         for (UINT i = 0; i < (UINT)rhs_idx; i++) {
@@ -1066,7 +1066,7 @@ UINT SIX<Mat, T>::solveSlackForm(
                     break;
                 }
             } //end if
-        } //end for    each NV
+        } //end for each NV
 
         INT pivot_bv_idx = -1;
         if (pivot_nv_idx == -1) {
@@ -1433,25 +1433,25 @@ void SIX<Mat, T>::slack(
 }
 
 
-/* Pivot row-tableaux of normalized-form of basis-variable.
-
-'eq': equalities in normalized form which contained slack variables.
-'nv': index of non-basis variable that swap-in.
-'bv': index of basis variable that swap-out.
-'tgtf': target function.
-'nvset': a set of non-basic variables.
-'bvset': a set of basic variables.
-'bv2eqmap': mapping from index of basic-variable to the
-    relevant equation.
-'nv2eqmap': mapping from index of nonbasic-variable to the
-    relevant equation.
-'rhs_idx': index of starting column of constant part.
-
-NOTICE:
-    The system of equations must be represented in normalized form.
-    A pivoting of a m*n tableaux requires one variable swapping,
-    one division, m*n-1 multiplication, m*n-m-n+1 addition and n-1
-    sign change. */
+//Pivot row-tableaux of normalized-form of basis-variable.
+//
+//'eq': equalities in normalized form which contained slack variables.
+//'nv': index of non-basis variable that swap-in.
+//'bv': index of basis variable that swap-out.
+//'tgtf': target function.
+//'nvset': a set of non-basic variables.
+//'bvset': a set of basic variables.
+//'bv2eqmap': mapping from index of basic-variable to the
+//    relevant equation.
+//'nv2eqmap': mapping from index of nonbasic-variable to the
+//    relevant equation.
+//'rhs_idx': index of starting column of constant part.
+//
+//NOTICE:
+//    The system of equations must be represented in normalized form.
+//    A pivoting of a m*n tableaux requires one variable swapping,
+//    one division, m*n-1 multiplication, m*n-m-n+1 addition and n-1
+//    sign change.
 template <class Mat, class T>
 void SIX<Mat, T>::pivot(UINT nv, UINT bv, IN OUT PVParam<Mat> & pp)
 {
@@ -1558,31 +1558,30 @@ void SIX<Mat, T>::verify(
 }
 
 
-/* Calculate the dual maximization solution to solve original minimum problem.
-Assuming the followed set in order to clarify the method,
-    Ns is the set of NonBasic Var with n elements,
-    Bs is the set of Basic Var with m elements,
-    X1 is the set of real var with n elements,
-    X2 is the set of auxillary var with m elements.
-Also assuming original target function is of the form:
-        min() = ﹉Gi*Yi, i = (0,1,...,m),
-note that each auxillary var of maxm-problem is corresponding to
-the real var of original minm-problem.
-
-The derivation of the original solution conforms to the formula that if
-the final form of the dual target function was shown as:
-        max() = maxv + ﹉Cj*Xj, j﹋Ns, Cj≒0
-then the each elements of original solution is corresponding to
-the relevant coefficient of element which is of X2, namely,
-        Yi = -(C'i), where C'i﹋X2, i = (0,1,...,m).
-
-'leq': must be formed of : A而y≒c而
-'tgtf': original target function, b而y
-'vc': variable constraint of y.
-'rhs_idx': the starting column of const-term of 'leq'.
-
-NOTICE:
-    The duality theory: Ax≒b, max(cx) is the dual of A而y≡c而, min(b而y) */
+//Calculate the dual maximization solution to solve original minimum problem.
+//Assuming the followed set in order to clarify the method,
+//    Ns is the set of NonBasic Var with n elements,
+//    Bs is the set of Basic Var with m elements,
+//    X1 is the set of real var with n elements,
+//    X2 is the set of auxillary var with m elements.
+//Also assuming original target function is of the form:
+//        min() = ﹉Gi*Yi, i = (0,1,...,m),
+//note that each auxillary var of maxm-problem is corresponding to
+//the real var of original minm-problem.
+//
+//The derivation of the original solution conforms to the formula that if
+//the final form of the dual target function was shown as:
+//        max() = maxv + ﹉Cj*Xj, j﹋Ns, Cj≒0
+//then the each elements of original solution is corresponding to
+//the relevant coefficient of element which is of X2, namely,
+//        Yi = -(C'i), where C'i﹋X2, i = (0,1,...,m).
+//
+//'leq': must be formed of : A而y≒c而
+//'tgtf': original target function, b而y
+//'vc': variable constraint of y.
+//'rhs_idx': the starting column of const-term of 'leq'.
+//
+//NOTICE: The duality theory: Ax≒b, max(cx) is the dual of A而y≡c而, min(b而y)
 template <class Mat, class T>
 UINT SIX<Mat, T>::calcDualMaxm(
         OUT T & dual_maxv,
@@ -1629,9 +1628,9 @@ UINT SIX<Mat, T>::calcDualMaxm(
     dual_vc.eye(-1); //dual variable must be nonnegative one.
     dual_vc.grow_col(num_of_const_col);
 
-    //*********************
+    /////////////////////////////////
     //Starting solve the dual problem
-    //*********************
+    /////////////////////////////////
     //dual bv2eqmap, eq2bvmap
     Vector<INT> dual_bv2eqmap, dual_eq2bvmap;
     Vector<bool> dual_nvset; //Nonbasis variable set

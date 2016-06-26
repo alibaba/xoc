@@ -876,7 +876,7 @@ bool Lineq::has_solution(RMat const& leq, RMat const& eq,
         return false;
     }
     ASSERT0(eq.size() == 0 || leq.size() == 0 ||
-             leq.get_col_size() == eq.get_col_size());
+            leq.get_col_size() == eq.get_col_size());
 
     //Prepare data for SIX/MIP solver.
     INT num_of_var = rhs_idx;
@@ -885,7 +885,7 @@ bool Lineq::has_solution(RMat const& leq, RMat const& eq,
         tgtf.set(0, i, 1);
     }
     ASSERT0(vc.get_row_size() == (UINT)num_of_var &&
-             vc.get_col_size() == (UINT)num_of_var + 1/*CSt*/);
+            vc.get_col_size() == (UINT)num_of_var + 1/*CSt*/);
     RMat res;
     if (is_int_sol) {
         MIP<RMat, Rational> mip;
@@ -893,7 +893,7 @@ bool Lineq::has_solution(RMat const& leq, RMat const& eq,
         Rational v;
         UINT st;
         if ((st = mip.maxm(v, res, tgtf, vc, eq, leq,
-                        false, NULL, rhs_idx)) == IP_SUCC) {
+                           false, NULL, rhs_idx)) == IP_SUCC) {
             //printf("maxv is %d/%d\n", v.num(), v.den());
             //printf("solution is:\n"); res.dumpf();
             return true;
@@ -902,7 +902,7 @@ bool Lineq::has_solution(RMat const& leq, RMat const& eq,
             return true;
         }
         if ((st = mip.minm(v, res, tgtf, vc, eq, leq,
-                        false, NULL, rhs_idx)) == IP_SUCC) {
+                           false, NULL, rhs_idx)) == IP_SUCC) {
             //printf("minv is %d/%d\n", v.num(), v.den());
             //printf("solution is:\n"); res.dumpf();
             return true;
@@ -916,7 +916,7 @@ bool Lineq::has_solution(RMat const& leq, RMat const& eq,
         six.reviseTargetFunc(tgtf, eq, leq, num_of_var);
         Rational v;
         UINT st;
-        if ((st=six.maxm(v, res, tgtf, vc, eq, leq, rhs_idx)) == SIX_SUCC) {
+        if ((st = six.maxm(v, res, tgtf, vc, eq, leq, rhs_idx)) == SIX_SUCC) {
             //printf("maxv is %d/%d\n", v.num(), v.den());
             //printf("solution is:\n"); res.dumpf();
             return true;

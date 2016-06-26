@@ -179,10 +179,9 @@ public:
     void PolyImage(OUT RMat & res, IN RMat & a, UINT rhs_idx);
     void EhartPoly(OUT RMat & res, IN RMat & a, UINT rhs_idx);
 
-    /* Dumps variable, forms as
-        ak*xk <= const + F(x) + a0x0 + a1x1 + ... + a(k-1)x(k-1) +
-                    a(k+1)x(k+1) + ... + anxn.
-    */
+    //Dumps variable, forms as
+    //  ak*xk <= const + F(x) + a0x0 + a1x1 + ... + a(k-1)x(k-1) +
+    //           a(k+1)x(k+1) + ... + anxn.
     void dumps_var_bound(UINT u);
 };
 

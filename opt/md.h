@@ -47,6 +47,7 @@ typedef enum _MD_TYPE {
 
 #define MD_UNDEF              0 //Undefined.
 #define MD_ALL_MEM            1 //All program memory.
+#define MD_FIRST              MD_ALL_MEM
 #define MD_GLOBAL_MEM         2 //Allocate at static data section
                                 //BYTE explicit definition.
 #define MD_HEAP_MEM           3 //Allocate in heap.
@@ -246,36 +247,6 @@ public:
 
 typedef TMapIter<MD*, MD*> MDIter;
 typedef TMapIter<MD const*, MD const*> ConstMDIter;
-
-class MDHashFunc {
-public:
-    UINT get_hash_value(MD * md, UINT bucket_size) const
-    { return MD_ofst(md) % bucket_size; }
-
-    bool compare(MD * md1, MD * md2) const
-    {
-        ASSERT0(MD_base(md1) == MD_base(md2));
-        if (MD_ofst(md1) != MD_ofst(md2)) { return false; }
-        if (MD_size(md1) != MD_size(md2)) { return false; }
-        return true;
-    }
-};
-
-
-class ConstMDHashFunc {
-public:
-    UINT get_hash_value(MD const* md, UINT bucket_size) const
-    { return MD_ofst(md) % bucket_size; }
-
-    bool compare(MD const* md1, MD const* md2) const
-    {
-        ASSERT0(MD_base(md1) == MD_base(md2));
-        if (MD_ofst(md1) != MD_ofst(md2)) { return false; }
-        if (MD_size(md1) != MD_size(md2)) { return false; }
-        return true;
-    }
-};
-
 
 class CompareOffset {
 public:
@@ -554,359 +525,26 @@ public:
 };
 
 
-//For given MDSet, mapping MD to its subsequently MD elements via HMap.
-class MD2Node2 {
+class MDSetHashAllocator {
+    MiscBitSetMgr<> * m_sbs_mgr;
 public:
-    MDSet * mds;
-    HMap<UINT, MD2Node2*, HashFuncBase2<UINT> > next;
+    MDSetHashAllocator(MiscBitSetMgr<> * sbsmgr)
+    { ASSERT0(sbsmgr); m_sbs_mgr = sbsmgr; }
 
-    MD2Node2(UINT hash_tab_size = 16) : next(hash_tab_size) { mds = NULL; }
-    ~MD2Node2() {}
-
-    UINT count_mem() const { return next.count_mem() + sizeof(mds); }
+    SBitSetCore<> * alloc() { return m_sbs_mgr->create_sbitsetc(); }
+    void free(SBitSetCore<> * set) { m_sbs_mgr->free_sbitsetc(set); }
+    MiscBitSetMgr<> * getBsMgr() const { return m_sbs_mgr; }
 };
 
 
-//For given MDSet, mapping MD to its subsequently MD elements via TMap.
-class MD2Node {
+class MDSetHash : public SBitSetCoreHash<MDSetHashAllocator> {
 public:
-    MDSet * mds;
-    TMap<UINT, MD2Node*> next;
+    MDSetHash(MDSetHashAllocator * allocator) :
+        SBitSetCoreHash<MDSetHashAllocator>(allocator) {}
+    virtual ~MDSetHash() {}
 
-    MD2Node() { mds = NULL; }
-    ~MD2Node() {}
-
-    void init()
-    {
-        mds = NULL;
-        next.init();
-    }
-
-    void destroy()
-    {
-        mds = NULL;
-        next.destroy();
-    }
-
-    size_t count_mem() const { return next.count_mem() + (size_t)sizeof(mds); }
-};
-
-#define _MD2NODE2_
-#define MD2NODE2_INIT_SZ    8 //The size must be power of 2.
-
-class MDSetHash {
-protected:
-    SMemPool * m_pool;
-    MDSetMgr * m_mds_mgr;
-    DefMiscBitSetMgr * m_mbs_mgr;
-
-    #ifdef _DEBUG_
-    UINT m_num_node; //record the number of MD2Node in the tree.
-    #endif
-
-    #ifdef _MD2NODE2_
-    typedef MD2Node2 MNTY;
-    #else
-    typedef MD2Node MNTY;
-    #endif
-
-    MNTY * m_md2node;
-
-protected:
-    inline MNTY * allocMD2Node()
-    {
-        #ifdef _MD2NODE2_
-        MD2Node2 * mn = new MD2Node2(MD2NODE2_INIT_SZ);
-        #else
-        MD2Node * mn =
-            (MD2Node*)smpoolMallocConstSize(sizeof(MD2Node), m_pool);
-        ::memset(mn, 0, sizeof(MD2Node));
-        mn->init();
-        #endif
-
-        #ifdef _DEBUG_
-        m_num_node++;
-        #endif
-
-        return mn;
-    }
-
-    //dump_helper for MDSet.
-    void dump_helper_mds(MDSet * mds, UINT indent, UINT id)
-    {
-        fprintf(g_tfile, "\n");
-
-        UINT i = 0;
-        while (i < indent) { fprintf(g_tfile, " "); i++; }
-        fprintf(g_tfile, "%d", id);
-
-        if (mds != NULL) {
-            fprintf(g_tfile, " {");
-            SEGIter * iter;
-            for (INT j = mds->get_first(&iter); j >= 0;) {
-                fprintf(g_tfile, "%d", j);
-                j = mds->get_next((UINT)j, &iter);
-                if (j >= 0) {
-                    fprintf(g_tfile, ",");
-                }
-            }
-            fprintf(g_tfile, "}");
-        }
-    }
-
-    //dump_helper for MD2Node.
-    void dump_helper(MD2Node * mn, UINT indent, MDSystem * mdsys)
-    {
-        MD2Node * nextmn = NULL;
-        TMapIter<UINT, MD2Node*> ti;
-        for (UINT id = mn->next.get_first(ti, &nextmn);
-             id != 0; id = mn->next.get_next(ti, &nextmn)) {
-            dump_helper_mds(nextmn->mds, indent, id);
-            ASSERT0(nextmn);
-            dump_helper(nextmn, indent + 2, mdsys);
-        }
-    }
-
-    //dump_helper for MD2Node2.
-    void dump_helper(MD2Node2 * mn, UINT indent, MDSystem * mdsys)
-    {
-        INT pos;
-        for (MD2Node2 * nextmn = mn->next.get_first_elem(pos);
-             nextmn != NULL; nextmn = mn->next.get_next_elem(pos)) {
-            dump_helper_mds(nextmn->mds, indent, (UINT)pos);
-            ASSERT0(nextmn);
-            dump_helper(nextmn, indent + 2, mdsys);
-        }
-    }
-
-public:
-    MDSetHash(MDSetMgr * mds, DefMiscBitSetMgr * mbs)
-    {
-        ASSERT0(mds && mbs);
-        m_mds_mgr = mds;
-        m_mbs_mgr = mbs;
-        m_pool = smpoolCreate(sizeof(MD2Node) * 4, MEM_CONST_SIZE);
-
-        #ifdef _DEBUG_
-        m_num_node = 0;
-        #endif
-
-        #ifdef _MD2NODE2_
-        m_md2node = new MD2Node2(MD2NODE2_INIT_SZ);
-        #else
-        m_md2node = new MD2Node();
-        #endif
-    }
-
-    ~MDSetHash()
-    {
-        destroyMN2Node();
-
-        #ifdef _MD2NODE2_
-        //m_md2node already deleted in destroyMN2Node().
-        #else
-        delete m_md2node;
-        #endif
-
-        smpoolDelete(m_pool);
-    }
-
-    inline void destroyMN2Node()
-    {
-        //Destroy the TMap structure, here you do
-        //NOT need invoke MDSet's destroy() because they were allocated from
-        //MDSetMgr and will be deleted by the destroy() of it.
-        List<MNTY*> wl;
-
-        #ifdef _MD2NODE2_
-        //Do nothing.
-        #else
-        TMapIter<UINT, MD2Node*> ti;
-        #endif
-
-        wl.append_tail(get_root());
-
-        while (wl.get_elem_count() != 0) {
-            MNTY * mn = wl.remove_head();
-            ASSERT0(mn);
-
-            MNTY * nextmn = NULL;
-
-            #ifdef _MD2NODE2_
-            INT pos = 0;
-            for (nextmn = mn->next.get_first_elem(pos);
-                 nextmn != NULL; nextmn = mn->next.get_next_elem(pos)) {
-                wl.append_tail(nextmn);
-            }
-            #else
-            ti.clean();
-            for (UINT id = mn->next.get_first(ti, &nextmn);
-                 id != 0; id = mn->next.get_next(ti, &nextmn)) {
-                ASSERT0(nextmn);
-                wl.append_tail(nextmn);
-            }
-            #endif
-
-            if (mn->mds != NULL) {
-                m_mds_mgr->free(mn->mds);
-            }
-
-            mn->next.destroy();
-
-            #ifdef _MD2NODE2_
-            delete mn;
-            #else
-            //Do nothing.
-            #endif
-        }
-    }
-
-    inline void checkAndGrow(MNTY * mn)
-    {
-        #ifdef _MD2NODE2_
-        //This class use HMap to hash MDSet.
-        //As the element is more and more appended,
-        //the collisions become more frequently.
-        //Extend HMap if the number of element is twice of the hash
-        //table size.
-        if (mn->next.get_elem_count() > mn->next.get_bucket_size() * 2) {
-            mn->next.grow();
-        }
-        #else
-        //Do nothing.
-        #endif
-    }
-
-    MDSet const* append(MDSet const& mds)
-    {
-        SEGIter * iter;
-        INT id = mds.get_first(&iter);
-        if (id < 0) { return NULL; }
-
-        MNTY * mn = m_md2node->next.get((UINT)id);
-        if (mn == NULL) {
-            checkAndGrow(m_md2node);
-            mn = allocMD2Node();
-            m_md2node->next.set((UINT)id, mn);
-        }
-
-        INT nextid = mds.get_next((UINT)id, &iter);
-        for (; nextid >= 0; nextid = mds.get_next((UINT)nextid, &iter)) {
-            MNTY * nextmn = mn->next.get((UINT)nextid);
-            if (nextmn == NULL) {
-                checkAndGrow(mn);
-                nextmn = allocMD2Node();
-                mn->next.set((UINT)nextid, nextmn);
-            }
-            mn = nextmn;
-        }
-
-        ASSERT0(mn);
-        if (mn->mds == NULL) {
-            MDSet * s = m_mds_mgr->create();
-            ASSERT0(s);
-            s->copy(mds, *m_mbs_mgr);
-            mn->mds = s;
-        }
-        ASSERT0(mn->mds == &mds || mn->mds->is_equal(mds));
-        return mn->mds;
-    }
-
-    size_t count_mem() const
-    {
-        size_t count = smpoolGetPoolSize(m_pool);
-        count += get_root()->count_mem();
-        return count;
-    }
-
-    //Dump hash tab as tree style.
-    void dump(MDSystem * mdsys)
-    {
-        if (g_tfile == NULL) { return; }
-
-        fprintf(g_tfile, "\n==---- DUMP MDSetHash ----==");
-
-        #ifdef _DEBUG_
-        fprintf(g_tfile, " NumOfNode:%d ----==",
-                m_num_node + 1 /*The first node is m_md2node*/);
-        #endif
-
-        dump_helper(get_root(), 1, mdsys);
-
-        fflush(g_tfile);
-    }
-
-    MNTY * get_root() const  { return m_md2node; }
-
-    //Return the number of MDSet recorded in the hash.
-    UINT get_elem_count() const
-    {
-        UINT count = 0;
-
-        //Destroy the TMap structure, here you do
-        //NOT need invoke MDSet's destroy() because they were allocated from
-        //MDSetMgr and will be deleted by the destroy() of it.
-
-        List<MNTY const*> wl;
-
-        #ifdef _MD2NODE2_
-        //Do nothing.
-        #else
-        TMapIter<UINT, MD2Node*> ti;
-        #endif
-
-        wl.append_tail(get_root());
-        while (wl.get_elem_count() != 0) {
-            MNTY const* mn = wl.remove_head();
-            ASSERT0(mn);
-
-            MNTY * nextmn = NULL;
-            #ifdef _MD2NODE2_
-            INT pos = 0;
-            for (nextmn = mn->next.get_first_elem(pos);
-                 nextmn != NULL; nextmn = mn->next.get_next_elem(pos)) {
-                wl.append_tail(nextmn);
-            }
-            #else
-            ti.clean();
-            for (UINT id = mn->next.get_first(ti, &nextmn);
-                 id != 0; id = mn->next.get_next(ti, &nextmn)) {
-                ASSERT0(nextmn);
-                wl.append_tail(nextmn);
-            }
-            #endif
-
-            if (mn->mds != NULL) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    //Return true if MDSet pointer has been record in the hash.
-    bool find(MDSet const& mds)
-    {
-        SEGIter * iter;
-        INT id = mds.get_first(&iter);
-        if (id < 0) { return false; }
-
-        MNTY * mn = get_root()->next.get((UINT)id);
-        if (mn == NULL) { return false; }
-
-        INT nextid = mds.get_next((UINT)id, &iter);
-        for (; nextid >= 0; id = nextid,
-             nextid = mds.get_next((UINT)nextid, &iter)) {
-            MNTY * nextmn = mn->next.get((UINT)nextid);
-            if (nextmn == NULL) { return false; }
-            mn = nextmn;
-        }
-
-        ASSERT0(mn);
-        if (mn->mds == NULL) {
-            return false;
-        }
-        return mn->mds == &mds;
-    }
+    MDSet const* append(SBitSetCore<> const& set)
+    { return (MDSet const*)SBitSetCoreHash<MDSetHashAllocator>::append(set); }
 };
 
 
@@ -941,7 +579,6 @@ class MDSystem {
 
     //Allocated object should be recorded in list.
     MDTab * allocMDTab() { return new MDTab(); }
-    MD2Node * allocMD2Node();
     void initGlobalMemMD(VarMgr * vm);
     void initAllMemMD(VarMgr * vm);
 public:

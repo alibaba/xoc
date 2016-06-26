@@ -160,7 +160,7 @@ public:
     }
 
     //Scan call site and build call graph.
-    CallGraph * initCallGraph(bool scan_call, bool scan_inner_region);
+    bool initCallGraph(bool scan_call, bool scan_inner_region);
 
     Region * newRegion(REGION_TYPE rt);
 

@@ -109,7 +109,9 @@ static bool is_reduction(IR const* ir)
 //START AnalysisInstrument
 //
 AnalysisInstrument::AnalysisInstrument(Region * ru) :
-    m_mds_mgr(ru, &m_sbs_mgr), m_mds_hash(&m_mds_mgr, &m_sbs_mgr)
+    m_mds_mgr(ru, &m_sbs_mgr),
+    m_mds_hash_allocator(&m_sbs_mgr),
+    m_mds_hash(&m_mds_hash_allocator)
 {
     m_ru = ru;
     m_ru_mgr = NULL;
@@ -1362,11 +1364,11 @@ IR * Region::buildJudge(IR * exp)
     }
 
     if (!type->is_fp() && !type->is_int() && !type->is_mc()) {
-
         type = dm->getI32();
     }
 
-    return buildCmp(IR_NE, exp, buildImmInt(0, type));
+    return buildCmp(IR_NE, exp, type->is_fp() ? 
+        buildImmFp(HOST_FP(0), type) : buildImmInt(0, type));
 }
 
 
@@ -2558,6 +2560,261 @@ void Region::destroyPassMgr()
 }
 
 
+//Verify MD reference to stmts and expressions.
+bool Region::verifyMDRef()
+{
+    ConstIRIter cii;
+    BBList * bbl = get_bb_list();
+    for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
+        for (IR * ir = BB_first_ir(bb); ir != NULL; ir = BB_next_ir(bb)) {
+            cii.clean();
+            for (IR const* t = iterInitC(ir, cii);
+                 t != NULL; t = iterNextC(cii)) {
+                switch (IR_code(t)) {
+                case IR_ID:
+                    //We do not need MD or MDSET information of IR_ID.
+                    //ASSERT0(t->get_exact_ref());
+                    ASSERT0(t->getRefMDSet() == NULL);
+                    break;
+                case IR_LD:
+                    if (g_is_support_dynamic_type) {
+                        ASSERT(t->get_effect_ref(), ("type is at least effect"));
+                        ASSERT(!t->get_effect_ref()->is_pr(),
+                               ("MD can not present a PR."));
+                    } else {
+                        ASSERT(t->get_exact_ref(), ("type must be exact"));
+                        ASSERT(!t->get_exact_ref()->is_pr(),
+                               ("MD can not present a PR."));
+                    }
+
+                    //MayUse of ld may not empty.
+                    //e.g: cvt(ld(id(x,i8)), i32) x has exact md4(size=1), and
+                    //an overlapped md5(size=4).
+
+                    if (t->getRefMDSet() != NULL) {
+                        ASSERT0(get_mds_hash()->find(*t->getRefMDSet()));
+                    }
+                    break;
+                case IR_PR:
+                    if (g_is_support_dynamic_type) {
+                        ASSERT(t->get_effect_ref(),
+                               ("type is at least effect"));
+                        ASSERT(t->get_effect_ref()->is_pr(),
+                               ("MD must present a PR."));
+                    } else {
+                        ASSERT(t->get_exact_ref(), ("type must be exact"));
+                        ASSERT(t->get_exact_ref()->is_pr(),
+                               ("MD must present a PR."));
+                    }
+
+                    if (isPRUniqueForSameNo()) {
+                        ASSERT0(t->getRefMDSet() == NULL);
+                    } else {
+                        //If the mapping between pr and md is not unique,
+                        //maydef is not NULL.
+                        //Same PR may have different referrence type.
+                        //e.g: PR1(U8)=...
+                        //    ...=PR(U32)
+                        if (t->getRefMDSet() != NULL) {
+                            ASSERT0(get_mds_hash()->find(*t->getRefMDSet()));
+                        }
+                    }
+                    break;
+                case IR_STARRAY:
+                    {
+                        MD const* must = t->get_effect_ref();
+                        MDSet const* may = t->getRefMDSet();
+                        UNUSED(must);
+                        UNUSED(may);
+                        ASSERT0(must || (may && !may->is_empty()));
+                        if (must != NULL) {
+                            //PR can not be accessed by indirect operation.
+                            ASSERT0(!must->is_pr());
+                        }
+
+                        if (may != NULL) {
+                            //PR can not be accessed by indirect operation.
+                            SEGIter * iter;
+                            for (INT i = may->get_first(&iter);
+                                 i >= 0; i = may->get_next(i, &iter)) {
+                                MD const* x = get_md_sys()->get_md(i);
+                                UNUSED(x);
+                                ASSERT0(x && !x->is_pr());
+                            }
+                            ASSERT0(get_mds_hash()->find(*may));
+                        }
+                    }
+                    break;
+                case IR_ARRAY:
+                case IR_ILD:
+                    {
+                        MD const* mustuse = t->get_effect_ref();
+                        MDSet const* mayuse = t->getRefMDSet();
+                        UNUSED(mustuse);
+                        UNUSED(mayuse);
+
+                        ASSERT0(mustuse || (mayuse && !mayuse->is_empty()));
+                        if (mustuse != NULL) {
+                            //PR can not be accessed by indirect operation.
+                            ASSERT0(!mustuse->is_pr());
+                        }
+
+                        if (mayuse != NULL) {
+                            //PR can not be accessed by indirect operation.
+                            SEGIter * iter;
+                            for (INT i = mayuse->get_first(&iter);
+                                 i >= 0; i = mayuse->get_next(i, &iter)) {
+                                MD const* x = get_md_sys()->get_md(i);
+                                UNUSED(x);
+                                ASSERT0(x && !x->is_pr());
+                            }
+                            ASSERT0(get_mds_hash()->find(*mayuse));
+                        }
+                    }
+                    break;
+                case IR_ST:
+                    if (g_is_support_dynamic_type) {
+                        ASSERT(t->get_effect_ref(),
+                               ("type is at least effect"));
+                        ASSERT(!t->get_effect_ref()->is_pr(),
+                               ("MD can not present a PR."));
+                    } else {
+                        ASSERT(t->get_exact_ref(), ("type must be exact"));
+                        ASSERT(!t->get_exact_ref()->is_pr(),
+                               ("MD can not present a PR."));
+                    }
+                    //ST may modify overlapped memory object.
+                    if (t->getRefMDSet() != NULL) {
+                        ASSERT0(get_mds_hash()->find(*t->getRefMDSet()));
+                    }
+                    break;
+                case IR_STPR:
+                    if (g_is_support_dynamic_type) {
+                        ASSERT(t->get_effect_ref(),
+                               ("type is at least effect"));
+                        ASSERT(t->get_effect_ref()->is_pr(),
+                               ("MD must present a PR."));
+                    } else {
+                        ASSERT(t->get_exact_ref(), ("type must be exact"));
+                        ASSERT(t->get_exact_ref()->is_pr(),
+                               ("MD must present a PR."));
+                    }
+
+                    if (isPRUniqueForSameNo()) {
+                        ASSERT0(t->getRefMDSet() == NULL);
+                    } else {
+                        //If the mapping between pr and md is not unique,
+                        //maydef is not NULL.
+                        //Same PR may have different referrence type.
+                        //e.g: PR1(U8)=...
+                        //    ...=PR(U32)
+                        if (t->getRefMDSet() != NULL) {
+                            ASSERT0(get_mds_hash()->find(*t->getRefMDSet()));
+                        }
+                    }
+                    break;
+                case IR_IST:
+                    {
+                        MD const* mustdef = t->getRefMD();
+                        if (mustdef != NULL) {
+                            //mustdef may be fake object, e.g: global memory.
+                            //ASSERT0(mustdef->is_effect());
+
+                            //PR can not be accessed by indirect operation.
+                            ASSERT0(!mustdef->is_pr());
+                        }
+
+                        MDSet const* maydef = t->getRefMDSet();
+                        ASSERT0(mustdef != NULL ||
+                                (maydef != NULL && !maydef->is_empty()));
+                        if (maydef != NULL) {
+                            //PR can not be accessed by indirect operation.
+                            SEGIter * iter;
+                            for (INT i = maydef->get_first(&iter);
+                                 i >= 0; i = maydef->get_next(i, &iter)) {
+                                MD const* x = get_md_sys()->get_md(i);
+                                UNUSED(x);
+                                ASSERT0(x);
+                                ASSERT0(!x->is_pr());
+                            }
+                            ASSERT0(get_mds_hash()->find(*maydef));
+                        }
+                    }
+                    break;
+                case IR_CALL:
+                case IR_ICALL:
+                    if (t->getRefMDSet() != NULL) {
+                        ASSERT0(get_mds_hash()->find(*t->getRefMDSet()));
+                    }
+                    break;
+                case IR_PHI:
+                    if (isPRUniqueForSameNo()) {
+                        ASSERT0(t->get_effect_ref() && t->get_effect_ref()->is_pr());
+                        ASSERT0(t->getRefMDSet() == NULL);
+                    } else {
+                        ASSERT0(t->get_exact_ref() && t->get_exact_ref()->is_pr());
+                        //If the mapping between pr and md is not unique,
+                        //maydef is not NULL.
+                        //Same PR may have different referrence type.
+                        //e.g: PR1(U8)=...
+                        //    ...=PR(U32)
+                        if (t->getRefMDSet() != NULL) {
+                            ASSERT0(get_mds_hash()->find(*t->getRefMDSet()));
+                        }
+                    }
+                    break;
+                case IR_CVT:
+                    //CVT should not have any reference. Even if the
+                    //operation will genrerate different type memory
+                    //accessing.
+                case IR_CONST:
+                case IR_LDA:
+                case IR_ADD:
+                case IR_SUB:
+                case IR_MUL:
+                case IR_DIV:
+                case IR_REM:
+                case IR_MOD:
+                case IR_LAND:
+                case IR_LOR:
+                case IR_BAND:
+                case IR_BOR:
+                case IR_XOR:
+                case IR_BNOT:
+                case IR_LNOT:
+                case IR_NEG:
+                case IR_LT:
+                case IR_LE:
+                case IR_GT:
+                case IR_GE:
+                case IR_EQ:
+                case IR_NE:
+                case IR_ASR:
+                case IR_LSR:
+                case IR_LSL:
+                case IR_SELECT:
+                case IR_CASE:
+                case IR_BREAK:
+                case IR_CONTINUE:
+                case IR_TRUEBR:
+                case IR_FALSEBR:
+                case IR_GOTO:
+                case IR_IGOTO:
+                case IR_SWITCH:
+                case IR_RETURN:
+                case IR_REGION:
+                    ASSERT0(t->getRefMD() == NULL &&
+                            t->getRefMDSet() == NULL);
+                    break;
+                default: ASSERT(0, ("unsupport ir type"));
+                }
+            }
+        }
+    }
+    return true;
+}
+
+
 bool Region::verifyRPO(OptCtx & oc)
 {
     if (get_cfg() == NULL) { return true; }
@@ -2881,7 +3138,7 @@ void Region::checkValidAndRecompute(OptCtx * oc, ...)
 
         dumgr->perform(*oc, f);
         if (HAVE_FLAG(f, SOL_REF)) {
-            ASSERT0(dumgr->verifyMDRef());
+            ASSERT0(verifyMDRef());
         }
         if (HAVE_FLAG(f, SOL_AVAIL_EXPR)) {
             ASSERT0(dumgr->verifyLiveinExp());
@@ -3065,11 +3322,8 @@ bool Region::processIRList(OptCtx & oc)
     START_TIMER("PreScan");
     prescan(get_ir_list());
     END_TIMER();
-
     if (!HighProcess(oc)) { return false; }
-
     ASSERT0(get_du_mgr()->verifyMDDUChain());
-
     if (!MiddleProcess(oc)) { return false; }
 
     return true;
@@ -3080,7 +3334,6 @@ bool Region::processIRList(OptCtx & oc)
 bool Region::process()
 {
     ASSERT0(verifyIRinRegion());
-
     note("\nREGION_NAME:%s", get_ru_name());
 
     OptCtx oc;
@@ -3089,8 +3342,7 @@ bool Region::process()
 
     if (g_do_inline && is_program()) {
         //Need to scan call-list.
-        CallGraph * callg = get_region_mgr()->get_call_graph();
-        if (callg == NULL) {
+        if (get_region_mgr()->get_call_graph() == NULL) {
             get_region_mgr()->initCallGraph(true, true);
         }
 
@@ -3112,7 +3364,8 @@ bool Region::process()
         if (!OC_is_callg_valid(oc)) {
             //processFuncRegion has scanned and collected call-list.
             //Thus it does not need to scan call-list here.
-            get_region_mgr()->initCallGraph(true, true);
+            bool succ = get_region_mgr()->initCallGraph(true, true);
+            ASSERT0(succ);
             OC_is_callg_valid(oc) = true;
         }
 

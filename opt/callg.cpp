@@ -200,7 +200,7 @@ CallNode * CallGraph::newCallNode(IR const* ir, Region * ru)
     ASSERT0(ir->is_calls_stmt() && ru);
     if (ir->is_call()) {
         SYM const* name = CALL_idinfo(ir)->get_name();
-        CallNode * cn  = map_sym2cn(name, ru);
+        CallNode * cn  = mapSym2CallNode(name, ru);
         if (cn != NULL) { return cn; }
 
         //ir invoked imported region.
@@ -225,7 +225,7 @@ CallNode * CallGraph::newCallNode(Region * ru)
     ASSERT0(ru->get_ru_var() && ru->get_ru_var()->get_name());
     SYM const* name = ru->get_ru_var()->get_name();
     if (ru->is_program()) {
-        CallNode * cn = map_ru2cn(ru);
+        CallNode * cn = mapRegion2CallNode(ru);
         if (cn != NULL) {
             ASSERT(CN_ru(cn) == ru, ("more than 2 ru with same id"));
             return cn;
@@ -239,23 +239,13 @@ CallNode * CallGraph::newCallNode(Region * ru)
         return cn;
     }
 
-    ASSERT0(ru->get_parent());
-    SYM2CN * sym2cn = genSYM2CN(ru->get_parent());
-    CallNode * cn = sym2cn->get(name);
-    if (cn != NULL) {
-        if (CN_ru(cn) == NULL) {
-            CN_ru(cn) = ru;
-            m_ruid2cn.set(REGION_id(ru), cn);
-        }
-        ASSERT(CN_ru(cn) == ru, ("more than 2 region with same id"));
-        return cn;
-    }
+    ASSERT0(genSYM2CN(ru->get_parent()));
 
-    cn = allocCallNode();
+    CallNode * cn = allocCallNode();
     CN_sym(cn) = name;
     CN_id(cn) = m_cn_count++;
     CN_ru(cn) = ru;
-    sym2cn->set(name, cn);
+    genSYM2CN(ru->get_parent())->set(name, cn);
     ASSERT0(m_ruid2cn.get(REGION_id(ru)) == NULL);
     m_ruid2cn.set(REGION_id(ru), cn);
     return cn;
@@ -263,12 +253,37 @@ CallNode * CallGraph::newCallNode(Region * ru)
 
 
 //Build call graph.
-void CallGraph::build(RegionMgr * rumgr)
+bool CallGraph::build(RegionMgr * rumgr)
 {
     for (UINT i = 0; i < rumgr->getNumOfRegion(); i++) {
         Region * ru = rumgr->get_region(i);
         if (ru == NULL) { continue; }
         ASSERT0(ru->is_function() || ru->is_program());
+
+        if (ru->get_parent() != NULL) {
+            SYM2CN * sym2cn = genSYM2CN(ru->get_parent());
+            ASSERT0(sym2cn);
+
+            SYM const* name = ru->get_ru_var()->get_name();
+            ASSERT0(name);
+
+            CallNode * cn = sym2cn->get(name);
+            if (cn != NULL) {
+                if (CN_ru(cn) == NULL) {
+                    CN_ru(cn) = ru;
+                    m_ruid2cn.set(REGION_id(ru), cn);
+                }
+
+                if (CN_ru(cn) != ru) {
+                    //more than one regions has the same id.
+                    //UNREACH();
+                    return false;
+                }
+
+                continue;
+            }
+        }
+
         add_node(newCallNode(ru));
     }
 
@@ -277,7 +292,8 @@ void CallGraph::build(RegionMgr * rumgr)
         if (ru == NULL) { continue; }
 
         ASSERT0(ru->is_function() || ru->is_program());
-        CallNode * caller = map_ru2cn(ru);
+        CallNode * caller = mapRegion2CallNode(ru);
+        ASSERT0(caller);
         add_node(caller);
         List<IR const*> * call_list = ru->gen_call_list();
         ASSERT0(call_list);
@@ -301,6 +317,8 @@ void CallGraph::build(RegionMgr * rumgr)
             addEdge(CN_id(caller), CN_id(callee));
         }
     }
+
+    return true;
 }
 //END CallGraph
 

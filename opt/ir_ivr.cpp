@@ -297,7 +297,7 @@ void IR_IVR::findBIV(
         ASSERT0(def);
 
         //def stmt is reach-in of loop head.
-        if (m_du->getInReachDef(headi)->is_contain(IR_id(def))) {
+        if (m_du->getInReachDef(headi, NULL)->is_contain(IR_id(def))) {
             //MD i is biv.
             sdlst.append_head(m_md_sys->get_md(i));
             find = true;

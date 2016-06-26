@@ -408,18 +408,17 @@ public:
 
 
 
-/* FREE-List
-
-T refer to basis element type.
-    e.g: Suppose variable type is 'VAR*', then T is 'VAR'.
-
-For easing implementation, there are 2 fields should be declared in T,
-    struct T {
-        T * next;
-        T * prev;
-        ... //other field
-    }
-*/
+//FREE-List
+//
+//T refer to basis element type.
+//    e.g: Suppose variable type is 'VAR*', then T is 'VAR'.
+//
+//For easing implementation, there are 2 fields should be declared in T,
+//    struct T {
+//        T * next;
+//        T * prev;
+//        ... //other field
+//    }
 template <class T>
 class FreeList {
 public:
@@ -484,18 +483,17 @@ public:
 
 
 
-/* Dual Linked List.
-NOTICE:
-    The following operations are the key points which you should
-    pay attention to:
-    1.    If you REMOVE one element, its container will be collect by FREE-List.
-        So if you need a new container, please check the FREE-List first,
-        accordingly, you should first invoke 'get_free_list' which get free
-        containers out from 'm_free_list'.
-      2.    If you want to invoke APPEND, please call 'newc' first to
-        allocate a new container memory space, record your elements in
-        container, then APPEND it at list.
-*/
+//Dual Linked List.
+//NOTICE:
+//    The following operations are the key points which you should
+//    pay attention to:
+//    1.    If you REMOVE one element, its container will be collect by FREE-List.
+//        So if you need a new container, please check the FREE-List first,
+//        accordingly, you should first invoke 'get_free_list' which get free
+//        containers out from 'm_free_list'.
+//      2.    If you want to invoke APPEND, please call 'newc' first to
+//        allocate a new container memory space, record your elements in
+//        container, then APPEND it at list.
 template <class T, class Allocator = allocator<T> > class List {
 protected:
     UINT m_elem_count;
@@ -914,10 +912,11 @@ public:
 
     //Insert 'list' before 'marker', and return the CONTAINER
     //of list head and list tail.
-    void insert_and_copy_before(IN List<T> const& list,
-                                T marker,
-                                OUT C<T> ** list_head_ct = NULL,
-                                OUT C<T> ** list_tail_ct = NULL)
+    void insert_and_copy_before(
+            List<T> const& list,
+            T marker,
+            OUT C<T> ** list_head_ct = NULL,
+            OUT C<T> ** list_tail_ct = NULL)
     {
         C<T> * ct = NULL;
         find(marker, &ct);
@@ -926,10 +925,11 @@ public:
 
     //Insert 'list' before 'marker', and return the CONTAINER
     //of list head and list tail.
-    void insert_and_copy_before(IN List<T> const& list,
-                                IN C<T> * marker,
-                                OUT C<T> ** list_head_ct = NULL,
-                                OUT C<T> ** list_tail_ct = NULL)
+    void insert_and_copy_before(
+            List<T> const& list,
+            IN C<T> * marker,
+            OUT C<T> ** list_head_ct = NULL,
+            OUT C<T> ** list_tail_ct = NULL)
     {
         if (list.m_head == NULL) { return; }
         ASSERT0(marker);
@@ -1068,7 +1068,7 @@ public:
     //Insert 'list' after 'marker', and return the CONTAINER
     //of list head and list tail.
     void insert_and_copy_after(
-            IN List<T> const& list,
+            List<T> const& list,
             T marker,
             OUT C<T> ** list_head_ct = NULL,
             OUT C<T> ** list_tail_ct = NULL)
@@ -1081,7 +1081,7 @@ public:
     //Insert 'list' after 'marker', and return the CONTAINER
     //of head and tail of members in 'list'.
     void insert_and_copy_after(
-            IN List<T> const& list,
+            List<T> const& list,
             IN C<T> * marker,
             OUT C<T> ** list_head_ct = NULL,
             OUT C<T> ** list_tail_ct = NULL)
@@ -1248,9 +1248,9 @@ public:
     {
         ASSERT(n < m_elem_count,("Access beyond list"));
         m_cur = NULL;
-        if (m_elem_count == 0) return T(0);
+        if (m_elem_count == 0) { return T(0); }
         C<T> * c;
-        if (n <= (m_elem_count>>1)) {// n<floor(elem_count,2)
+        if (n <= (m_elem_count >> 1)) { // n<floor(elem_count,2)
             c = m_tail;
             while (n > 0) {
                 c = C_prev(c);
@@ -1259,7 +1259,9 @@ public:
         } else {
             return get_head_nth(m_elem_count - n - 1);
         }
+
         m_cur = c;
+
         if (holder != NULL) {
             *holder = c;
         }
@@ -1277,7 +1279,7 @@ public:
             return T(0);
         }
         C<T> * c;
-        if (n <= (m_elem_count>>1)) {// n<floor(elem_count,2)
+        if (n <= (m_elem_count >> 1)) { // n<floor(elem_count,2)
             c = m_head;
             while (n > 0) {
                 c = C_next(c);
@@ -1334,7 +1336,7 @@ public:
             m_cur = m_cur->next;
         }
 
-        ASSERT(m_head != NULL, ("list is empty"));
+        ASSERT(m_head, ("list is empty"));
 
         if (m_head == holder) {
             return remove_head();
@@ -1344,8 +1346,7 @@ public:
             return remove_tail();
         }
 
-        ASSERT(C_prev(holder) != NULL && C_next(holder) != NULL,
-                ("illegal t in list"));
+        ASSERT(C_prev(holder) && C_next(holder), ("illegal t in list"));
 
         C_next(C_prev(holder)) = C_next(holder);
         C_prev(C_next(holder)) = C_prev(holder);
@@ -1386,7 +1387,7 @@ public:
         if (C_prev(m_tail) == NULL) {
             //tail is the only one
             ASSERT(m_tail == m_head && m_elem_count == 1,
-                    ("illegal list-remove"));
+                   ("illegal list-remove"));
             c = m_tail;
             m_head = m_tail = m_cur = NULL;
         } else {
@@ -1412,7 +1413,7 @@ public:
         if (C_next(m_head) == NULL) {
             //list_head is the only one
             ASSERT(m_tail == m_head && m_elem_count == 1,
-                    ("illegal list-remove"));
+                   ("illegal list-remove"));
             c = m_head;
             m_head = m_tail = m_cur = NULL;
         } else {
@@ -1433,17 +1434,17 @@ public:
 
 
 
-/* Single Linked List Core.
-Encapsulate most operations for single list.
-Note:
-  1. You must invoke init() if the SListCore allocated in mempool.
-  2. The single linked list is different with dual linked list.
-     the dual linked list does not use mempool to hold the container.
-     Compared to dual linked list, single linked list allocate containers
-     in a const size pool.
-  3. Before going to the destructor, even if the containers have
-     been allocated in memory pool, you should invoke clean() to free
-     all of them back to a free list to reuse them. */
+//Single Linked List Core.
+//Encapsulate most operations for single list.
+//Note:
+//  1. You must invoke init() if the SListCore allocated in mempool.
+//  2. The single linked list is different with dual linked list.
+//     the dual linked list does not use mempool to hold the container.
+//     Compared to dual linked list, single linked list allocate containers
+//     in a const size pool.
+//  3. Before going to the destructor, even if the containers have
+//     been allocated in memory pool, you should invoke clean() to free
+//     all of them back to a free list to reuse them.
 template <class T> class SListCore {
 protected:
     UINT m_elem_count; //list elements counter.
@@ -1529,15 +1530,14 @@ public:
 
     SC<T> * append_head(T t, SC<T> ** free_list, SMemPool * pool)
     {
-        SC<T> * c  = newsc(free_list, pool);
+        SC<T> * c = newsc(free_list, pool);
         ASSERT(c != NULL, ("newsc return NULL"));
         SC_val(c) = t;
         append_head(c);
         return c;
     }
 
-    void append_head(IN SC<T> * c)
-    { insert_after(c, &m_head); }
+    void append_head(IN SC<T> * c) { insert_after(c, &m_head); }
 
     void copy(IN SListCore<T> & src, SC<T> ** free_list, SMemPool * pool)
     {
@@ -1589,10 +1589,11 @@ public:
     //Insert value 't' after the 'marker'.
     //free_list: a list record free containers.
     //pool: memory pool which is used to allocate container.
-    inline SC<T> * insert_after(T t,
-                                IN SC<T> * marker,
-                                SC<T> ** free_list,
-                                SMemPool * pool)
+    inline SC<T> * insert_after(
+            T t,
+            IN SC<T> * marker,
+            SC<T> ** free_list,
+            SMemPool * pool)
     {
         ASSERT0(marker);
         #ifdef _SLOW_CHECK_
@@ -1602,7 +1603,7 @@ public:
         SC<T> * c = newsc(free_list, pool);
         ASSERT(c != NULL, ("newc return NULL"));
 
-        c->val() = t;
+        SC_val(c) = t;
         insert_after(c, marker);
         return c;
     }
@@ -1649,13 +1650,6 @@ public:
     //Note that this is costly operation. Use it carefully.
     bool remove(T t, SC<T> ** free_list)
     {
-        if (m_head == NULL) { return false; }
-
-        if (SC_val(m_head) == t) {
-            remove_head(free_list);
-            return true;
-        }
-
         SC<T> * c = m_head.next;
         SC<T> * prev = &m_head;
         while (c != &m_head) {
@@ -1704,36 +1698,35 @@ public:
 //END SListCore
 
 
-/* Single List
-
-NOTICE:
-    The following operations are the key points which you should attention to:
-
-    1. You must invoke init() if the SList allocated in mempool.
-    2. Before going to the destructor, even if the containers have
-       been allocated in memory pool, you should invoke clean() to free
-       all of them back to a free list to reuse them.
-    3. If you REMOVE one element, its container will be collect by FREE-List.
-       So if you need a new container, please check the FREE-List first,
-       accordingly, you should first invoke 'get_free_list' which get free
-       containers out from 'm_free_list'.
-    4. If you want to invoke APPEND, please call 'newXXX' first to
-       allocate a new container memory space, record your elements into
-       the container, then APPEND it at list.
-       newXXX such as:
-            T * newXXX(INT type)
-            {
-                T * t = get_free_T();
-                if (t == 0) { t = (T*)malloc(sizeof(T)); }
-                T_type(c) = type;
-                return t;
-            }
-    5. The single linked list is different with dual linked list.
-       the dual linked list does not use mempool to hold the container.
-       Compared to dual linked list, single linked list allocate containers
-       in a const size pool.
-       Invoke init() to do initialization if you allocate SList by malloc().
-    6. Compare the iterator with end() to determine if meeting the end of list. */
+//Single List
+//NOTICE:
+//    The following operations are the key points which you should attention to:
+//
+//    1. You must invoke init() if the SList allocated in mempool.
+//    2. Before going to the destructor, even if the containers have
+//       been allocated in memory pool, you should invoke clean() to free
+//       all of them back to a free list to reuse them.
+//    3. If you REMOVE one element, its container will be collect by FREE-List.
+//       So if you need a new container, please check the FREE-List first,
+//       accordingly, you should first invoke 'get_free_list' which get free
+//       containers out from 'm_free_list'.
+//    4. If you want to invoke APPEND, please call 'newXXX' first to
+//       allocate a new container memory space, record your elements into
+//       the container, then APPEND it at list.
+//       newXXX such as:
+//            T * newXXX(INT type)
+//            {
+//                T * t = get_free_T();
+//                if (t == 0) { t = (T*)malloc(sizeof(T)); }
+//                T_type(c) = type;
+//                return t;
+//            }
+//    5. The single linked list is different with dual linked list.
+//       the dual linked list does not use mempool to hold the container.
+//       Compared to dual linked list, single linked list allocate containers
+//       in a const size pool.
+//       Invoke init() to do initialization if you allocate SList by malloc().
+//    6. Compare the iterator with end() to determine if meeting the end of list.
 template <class T> class SList : public SListCore<T> {
 protected:
     SMemPool * m_free_list_pool;
@@ -1786,8 +1779,8 @@ public:
     SC<T> * insert_after(T t, IN SC<T> * marker)
     {
         ASSERT0(m_free_list_pool);
-        return SListCore<T>::insert_after(t, marker,
-                        &m_free_list, m_free_list_pool);
+        return SListCore<T>::insert_after(t,
+            marker, &m_free_list, m_free_list_pool);
     }
 
     //Remove 't' out of list, return true if find t, otherwise return false.
@@ -1817,24 +1810,25 @@ public:
 
 
 
-/* The Extended Single List.
-
-This kind of single list has a tail pointer that allows you access
-tail element directly via get_tail(). This will be useful if you
-are going to append element at the tail of list.
-
-Encapsulate most operations for single list.
-
-Note the single linked list is different with dual linked list.
-the dual linked list does not use mempool to hold the container.
-Compared to dual linked list, single linked list allocate containers
-in a const size pool. */
+//The Extended Single List.
+//
+//This kind of single list has a tail pointer that allows you access
+//tail element directly via get_tail(). This will be useful if you
+//are going to append element at the tail of list.
+//
+//Encapsulate most operations for single list.
+//
+//Note the single linked list is different with dual linked list.
+//the dual linked list does not use mempool to hold the container.
+//Compared to dual linked list, single linked list allocate containers
+//in a const size pool.
 template <class T> class SListEx {
 protected:
     UINT m_elem_count;
     SC<T> * m_head;
     SC<T> * m_tail;
 
+protected:
     SC<T> * new_sc_container(SMemPool * pool)
     {
         ASSERT(pool, ("need mem pool"));
@@ -2000,10 +1994,11 @@ public:
     }
 
     //Insert 't' into list after the 'marker'.
-    inline SC<T> * insert_after(T t,
-                                IN SC<T> * marker,
-                                SC<T> ** free_list,
-                                SMemPool * pool)
+    inline SC<T> * insert_after(
+            T t,
+            IN SC<T> * marker,
+            SC<T> ** free_list,
+            SMemPool * pool)
     {
         ASSERT0(marker);
         #ifdef _SLOW_CHECK_
@@ -2132,12 +2127,12 @@ public:
 
 
 
-/* The Extended List
-
-Add a hash-mapping table upon List in order to speed up the process
-when inserting or removing an element if a 'marker' given.
-
-NOTICE: User must define a mapping class bewteen. */
+//The Extended List
+//
+//Add a hash-mapping table upon List in order to speed up the process
+//when inserting or removing an element if a 'marker' given.
+//
+//NOTICE: User must define a mapping class bewteen.
 template <class T, class MapTypename2Holder> class EList : public List<T> {
 protected:
     MapTypename2Holder m_typename2holder; //map typename 'T' to its list holder.
@@ -2396,12 +2391,12 @@ public:
 
 
 
-/* Vector
-
-T refer to element type.
-NOTE: zero is reserved and regard it as the default NULL when we
-determine whether an element is exist.
-The vector grow dynamic. */
+//Vector
+//
+//T refer to element type.
+//NOTE: zero is reserved and regard it as the default NULL when we
+//determine whether an element is exist.
+//The vector grow dynamic.
 #define SVEC_init(s)        ((s)->m_is_init)
 template <class T, UINT GrowSize = 8> class Vector {
 protected:
@@ -2618,16 +2613,16 @@ public:
 
 
 
-/* The extented class to Vector.
-This class maintains an index which call Free Index of Vector.
-User can use the Free Index to get to know which slot of vector
-is T(0).
-
-e.g: assume Vector<INT> has 6 elements, {0, 3, 4, 0, 5, 0}.
-Three of them are 0, where T(0) served as default NULL and these
-elements indicate free slot.
-In the case, the first free index is 0, the second is 3, and the
-third is 5. */
+//The extented class to Vector.
+//This class maintains an index which call Free Index of Vector.
+//User can use the Free Index to get to know which slot of vector
+//is T(0).
+//
+//e.g: assume Vector<INT> has 6 elements, {0, 3, 4, 0, 5, 0}.
+//Three of them are 0, where T(0) served as default NULL and these
+//elements indicate free slot.
+//In the case, the first free index is 0, the second is 3, and the
+//third is 5.
 template <class T, UINT GrowSize = 8>
 class VectorWithFreeIndex : public Vector<T, GrowSize> {
 protected:
@@ -2666,14 +2661,14 @@ public:
         m_free_idx = 0;
     }
 
-    /* Return index of free-slot into Vector, and allocate memory
-    if there are not any free-slots.
-
-    v: default NULL value.
-
-    NOTICE:
-        The condition that we considered a slot is free means the
-        value of that slot is equal to v. */
+    //Return index of free-slot into Vector, and allocate memory
+    //if there are not any free-slots.
+    //
+    //v: default NULL value.
+    //
+    //NOTICE:
+    //    The condition that we considered a slot is free means the
+    //    value of that slot is equal to v.
     UINT get_free_idx(T v = T(0))
     {
         ASSERT((Vector<T, GrowSize>::is_init()),
@@ -2681,8 +2676,8 @@ public:
         if (Vector<T, GrowSize>::m_elem_num == 0) {
             //VECTOR is empty.
             ASSERT((Vector<T, GrowSize>::m_last_idx < 0 &&
-                     Vector<T, GrowSize>::m_vec == NULL),
-                    ("exception occur in Vector"));
+                    Vector<T, GrowSize>::m_vec == NULL),
+                   ("exception occur in Vector"));
             grow(GrowSize);
 
             //Free space is started at position '0',
@@ -2717,8 +2712,8 @@ public:
         return ret;
     }
 
-    /* Growing vector by size, if 'm_size' is NULL , alloc vector.
-    Reallocate memory if necessory. */
+    //Growing vector by size, if 'm_size' is NULL , alloc vector.
+    //Reallocate memory if necessory.
     void grow(UINT size)
     {
         if (Vector<T, GrowSize>::m_elem_num == 0) {
@@ -2730,11 +2725,11 @@ public:
 
 
 
-/* Simply Vector.
-
-T: refer to element type.
-NOTE: Zero is treated as the default NULL when we
-determine the element existence. */
+//Simply Vector.
+//
+//T: refer to element type.
+//NOTE: Zero is treated as the default NULL when we
+//determine the element existence.
 #define SVEC_elem_num(s)        ((s)->s1.m_elem_num)
 template <class T, UINT GrowSize> class SimpleVec {
 protected:
@@ -2871,7 +2866,7 @@ public:
         ASSERT0(tmp);
         memcpy(tmp, m_vec, SVEC_elem_num(this) * sizeof(T));
         memset(((CHAR*)tmp) + SVEC_elem_num(this) * sizeof(T),
-               0 , (size - SVEC_elem_num(this))* sizeof(T));
+               0, (size - SVEC_elem_num(this))* sizeof(T));
         ::free(m_vec);
         m_vec = tmp;
         SVEC_elem_num(this) = size;
@@ -2882,33 +2877,32 @@ public:
 
 
 
-/* Hash
-
-Hash element recorded not only in hash table but also in Vector,
-which is used in order to speed up accessing hashed elements.
-
-NOTICE:
-    1.T(0) is defined as default NULL in Hash, so do not use T(0) as element.
-
-    2.There are four hash function classes are given as default, and
-      if you are going to define you own hash function class, the
-      following member functions you should supply according to your needs.
-
-        * Return hash-key deduced from 'val'.
-            UINT get_hash_value(OBJTY val) const
-
-        * Return hash-key deduced from 't'.
-            UINT get_hash_value(T * t) const
-
-        * Compare t1, t2 when inserting a new element.
-            bool compare(T * t1, T * t2) const
-
-        * Compare t1, val when inserting a new element.
-            bool compare(T * t1, OBJTY val) const
-
-    3.Use 'new'/'delete' operator to allocate/free the memory
-      of dynamic object and the virtual function pointers.
-*/
+//Hash
+//
+//Hash element recorded not only in hash table but also in Vector,
+//which is used in order to speed up accessing hashed elements.
+//
+//NOTICE:
+//    1.T(0) is defined as default NULL in Hash, so do not use T(0) as element.
+//
+//    2.There are four hash function classes are given as default, and
+//      if you are going to define you own hash function class, the
+//      following member functions you should supply according to your needs.
+//
+//        * Return hash-key deduced from 'val'.
+//            UINT get_hash_value(OBJTY val) const
+//
+//        * Return hash-key deduced from 't'.
+//            UINT get_hash_value(T * t) const
+//
+//        * Compare t1, t2 when inserting a new element.
+//            bool compare(T * t1, T * t2) const
+//
+//        * Compare t1, val when inserting a new element.
+//            bool compare(T * t1, OBJTY val) const
+//
+//    3.Use 'new'/'delete' operator to allocate/free the memory
+//      of dynamic object and the virtual function pointers.
 #define HC_val(c)            (c)->val
 #define HC_vec_idx(c)        (c)->vec_idx
 #define HC_next(c)            (c)->next
@@ -2984,7 +2978,7 @@ public:
     UINT get_hash_value(OBJTY v, UINT bucket_size) const
     {
         ASSERT(sizeof(OBJTY) == sizeof(CHAR*),
-                ("exception will taken place in type-cast"));
+               ("exception will taken place in type-cast"));
         return get_hash_value((CHAR const*)v, bucket_size);
     }
 
@@ -2994,7 +2988,7 @@ public:
     bool compare(CHAR const* s, OBJTY val) const
     {
         ASSERT(sizeof(OBJTY) == sizeof(CHAR const*),
-                ("exception will taken place in type-cast"));
+               ("exception will taken place in type-cast"));
         return (strcmp(s,  (CHAR const*)val) == 0);
     }
 };
@@ -3048,7 +3042,7 @@ protected:
         HC<T> * prev = NULL;
         while (elemhc != NULL) {
             ASSERT(HC_val(elemhc) != T(0),
-                    ("Hash element has so far as to be overrided!"));
+                   ("Hash element has so far as to be overrided!"));
             if (m_hf.compare(HC_val(elemhc), val)) {
                 *hc = elemhc;
                 return true;
@@ -3057,7 +3051,8 @@ protected:
             elemhc = HC_next(elemhc);
         } //end while
         elemhc = newhc();
-        ASSERT(elemhc != NULL, ("newhc() return NULL"));
+
+        ASSERT(elemhc, ("newhc() return NULL"));
         HC_val(elemhc) = create(val);
         if (prev != NULL) {
             //Append on element-list
@@ -3088,7 +3083,8 @@ protected:
         }
 
         elemhc = newhc();
-        ASSERT(elemhc != NULL, ("newhc() return NULL"));
+
+        ASSERT(elemhc, ("newhc() return NULL"));
         HC_val(elemhc) = t;
         if (prev != NULL) {
             //Append on elem-list in the bucket.
@@ -3119,14 +3115,14 @@ public:
     COPY_CONSTRUCTOR(Hash);
     virtual ~Hash() { destroy(); }
 
-    /* Append 't' into hash table and record its reference into
-    Vector in order to walk through the table rapidly.
-    If 't' already exists, return the element immediately.
-    'find': set to true if 't' already exist.
-
-    NOTE:
-        Do NOT append 0 to table.
-        Maximum size of T equals sizeof(void*). */
+    //Append 't' into hash table and record its reference into
+    //Vector in order to walk through the table rapidly.
+    //If 't' already exists, return the element immediately.
+    //'find': set to true if 't' already exist.
+    //
+    //NOTE:
+    //    Do NOT append 0 to table.
+    //    Maximum size of T equals sizeof(void*).
     T append(T t, OUT HC<T> ** hct = NULL, bool * find = NULL)
     {
         ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
@@ -3134,7 +3130,7 @@ public:
 
         UINT hashv = m_hf.get_hash_value(t, m_bucket_size);
         ASSERT(hashv < m_bucket_size,
-                ("hash value must less than bucket size"));
+               ("hash value must less than bucket size"));
 
         HC<T> * elemhc = NULL;
         if (!insert_t((HC<T>**)&HB_member(m_bucket[hashv]), &elemhc, t)) {
@@ -3157,11 +3153,11 @@ public:
         return HC_val(elemhc);
     }
 
-    /* Append 'val' into hash table.
-    More comment see above function.
-    'find': set to true if 't' already exist.
-
-    NOTE: Do NOT append T(0) to table. */
+    //Append 'val' into hash table.
+    //More comment see above function.
+    //'find': set to true if 't' already exist.
+    //
+    //NOTE: Do NOT append T(0) to table.
     T append(OBJTY val, OUT HC<T> ** hct = NULL, bool * find = NULL)
     {
         ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
@@ -3224,15 +3220,15 @@ public:
     //Get the number of element in hash table.
     UINT get_elem_count() const { return m_elem_count; }
 
-    /* This function return the first element if it exists, and initialize
-    the iterator, otherwise return T(0), where T is the template parameter.
-
-    When T is type of integer, return zero may be fuzzy and ambiguous.
-    Invoke get_next() to get the next element.
-
-    'iter': iterator, when the function return, cur will be updated.
-        If the first element exist, cur is a value that great and equal 0,
-        or is -1. */
+    //This function return the first element if it exists, and initialize
+    //the iterator, otherwise return T(0), where T is the template parameter.
+    //
+    //When T is type of integer, return zero may be fuzzy and ambiguous.
+    //Invoke get_next() to get the next element.
+    //
+    //'iter': iterator, when the function return, cur will be updated.
+    //    If the first element exist, cur is a value that great and equal 0,
+    //    or is -1.
     T get_first(INT & iter) const
     {
         ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
@@ -3249,14 +3245,14 @@ public:
         return T(0);
     }
 
-    /* This function return the next element of given iterator.
-    If it exists, record its index at 'iter' and return the element,
-    otherwise set 'iter' to -1, and return T(0), where T is the
-    template parameter.
-
-    'iter': iterator, when the function return, cur will be updated.
-        If the first element exist, cur is a value that great and equal 0,
-        or is -1. */
+    //This function return the next element of given iterator.
+    //If it exists, record its index at 'iter' and return the element,
+    //otherwise set 'iter' to -1, and return T(0), where T is the
+    //template parameter.
+    //
+    //'iter': iterator, when the function return, cur will be updated.
+    //    If the first element exist, cur is a value that great and equal 0,
+    //    or is -1.
     T get_next(INT & iter) const
     {
         ASSERT(m_bucket != NULL && iter >= -1, ("Hash not yet initialized."));
@@ -3273,14 +3269,14 @@ public:
         return T(0);
     }
 
-    /* This function return the last element if it exists, and initialize
-    the iterator, otherwise return T(0), where T is the template parameter.
-    When T is type of integer, return zero may be fuzzy and ambiguous.
-    Invoke get_prev() to get the prev element.
-
-    'iter': iterator, when the function return, cur will be updated.
-        If the first element exist, cur is a value that great and equal 0,
-        or is -1. */
+    //This function return the last element if it exists, and initialize
+    //the iterator, otherwise return T(0), where T is the template parameter.
+    //When T is type of integer, return zero may be fuzzy and ambiguous.
+    //Invoke get_prev() to get the prev element.
+    //
+    //'iter': iterator, when the function return, cur will be updated.
+    //    If the first element exist, cur is a value that great and equal 0,
+    //    or is -1.
     T get_last(INT & iter) const
     {
         ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
@@ -3297,14 +3293,14 @@ public:
         return T(0);
     }
 
-    /* This function return the previous element of given iterator.
-    If it exists, record its index at 'iter' and return the element,
-    otherwise set 'iter' to -1, and return T(0), where T is the
-    template parameter.
-
-    'iter': iterator, when the function return, cur will be updated.
-        If the first element exist, cur is a value that great and equal 0,
-        or is -1. */
+    //This function return the previous element of given iterator.
+    //If it exists, record its index at 'iter' and return the element,
+    //otherwise set 'iter' to -1, and return T(0), where T is the
+    //template parameter.
+    //
+    //'iter': iterator, when the function return, cur will be updated.
+    //    If the first element exist, cur is a value that great and equal 0,
+    //    or is -1.
     T get_prev(INT & iter) const
     {
         ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
@@ -3322,8 +3318,7 @@ public:
 
     void init(UINT bsize = MAX_SHASH_BUCKET)
     {
-        if (m_bucket != NULL) return;
-        if (bsize == 0) { return; }
+        if (m_bucket != NULL || bsize == 0) { return; }
         m_bucket = (HashBucket*)::malloc(sizeof(HashBucket) * bsize);
         memset(m_bucket, 0, sizeof(HashBucket) * bsize);
         m_bucket_size = bsize;
@@ -3368,13 +3363,13 @@ public:
         fflush(h);
     }
 
-    /* This function remove one element, and return the removed one.
-    Note that 't' may be different with the return one accroding to
-    the behavior of user's defined HF class.
-
-    Do NOT change the order that elements in m_elem_vector and the
-    value of m_cur. Because it will impact the effect of get_first(),
-    get_next(), get_last() and get_prev(). */
+    //This function remove one element, and return the removed one.
+    //Note that 't' may be different with the return one accroding to
+    //the behavior of user's defined HF class.
+    //
+    //Do NOT change the order that elements in m_elem_vector and the
+    //value of m_cur. Because it will impact the effect of get_first(),
+    //get_next(), get_last() and get_prev().
     T removed(T t)
     {
         ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
@@ -3405,13 +3400,13 @@ public:
         return T(0);
     }
 
-    /* Grow hash to 'bsize' and rehash all elements in the table.
-    The default grow size is twice as the current bucket size.
-
-    'bsize': expected bucket size, the size can not less than current size.
-
-    NOTE: Extending hash table is costly.
-        The position of element in m_elem_vector is unchanged. */
+    //Grow hash to 'bsize' and rehash all elements in the table.
+    //The default grow size is twice as the current bucket size.
+    //
+    //'bsize': expected bucket size, the size can not less than current size.
+    //
+    //NOTE: Extending hash table is costly.
+    //The position of element in m_elem_vector is unchanged.
     void grow(UINT bsize = 0)
     {
         ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
@@ -3467,11 +3462,11 @@ public:
         }
     }
 
-    /* Find element accroding to specific 'val'.
-    You can implement your own find(), but do NOT
-    change the order that elements in m_elem_vector and the value of m_cur.
-    Because it will impact the effect of get_first(), get_next(),
-    get_last() and get_prev(). */
+    //Find element accroding to specific 'val'.
+    //You can implement your own find(), but do NOT
+    //change the order that elements in m_elem_vector and the value of m_cur.
+    //Because it will impact the effect of get_first(), get_next(),
+    //get_last() and get_prev().
     T find(OBJTY val) const
     {
         ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
@@ -3481,7 +3476,7 @@ public:
         if (elemhc != NULL) {
             while (elemhc != NULL) {
                 ASSERT(HC_val(elemhc) != T(0),
-                        ("Hash element has so far as to be overrided!"));
+                       ("Hash element has so far as to be overrided!"));
                 if (m_hf.compare(HC_val(elemhc), val)) {
                     return HC_val(elemhc);
                 }
@@ -3491,12 +3486,12 @@ public:
         return T(0);
     }
 
-    /* Find one element and return the container.
-    Return true if t exist, otherwise return false.
-    You can implement your own find(), but do NOT
-    change the order that elements in m_elem_vector and the value of m_cur.
-    Because it will impact the effect of get_first(), get_next(),
-    get_last() and get_prev(). */
+    //Find one element and return the container.
+    //Return true if t exist, otherwise return false.
+    //You can implement your own find(), but do NOT
+    //change the order that elements in m_elem_vector and the value of m_cur.
+    //Because it will impact the effect of get_first(), get_next(),
+    //get_last() and get_prev().
     bool find(T t, HC<T> const** ct = NULL) const
     {
         ASSERT(m_bucket != NULL, ("Hash not yet initialized."));
@@ -3504,12 +3499,12 @@ public:
 
         UINT hashv = m_hf.get_hash_value(t, m_bucket_size);
         ASSERT(hashv < m_bucket_size,
-                ("hash value must less than bucket size"));
+               ("hash value must less than bucket size"));
         HC<T> const* elemhc = (HC<T> const*)HB_member(m_bucket[hashv]);
         if (elemhc != NULL) {
             while (elemhc != NULL) {
                 ASSERT(HC_val(elemhc) != T(0),
-                        ("Hash element has so far as to be overrided!"));
+                       ("Hash element has so far as to be overrided!"));
                 if (m_hf.compare(HC_val(elemhc), t)) {
                     if (ct != NULL) {
                         *ct = elemhc;
@@ -3517,20 +3512,20 @@ public:
                     return true;
                 }
                 elemhc = HC_next(elemhc);
-            } //end while
+            }
         }
         return false;
     }
 
-    /* Find one element and return the element which record in hash table.
-    Note t may be different with the return one.
-
-    You can implement your own find(), but do NOT
-    change the order that elements in m_elem_vector and the value of m_cur.
-    Because it will impact the effect of get_first(), get_next(),
-    get_last() and get_prev().
-
-    'ot': output the element if found it. */
+    //Find one element and return the element which record in hash table.
+    //Note t may be different with the return one.
+    //
+    //You can implement your own find(), but do NOT
+    //change the order that elements in m_elem_vector and the value of m_cur.
+    //Because it will impact the effect of get_first(), get_next(),
+    //get_last() and get_prev().
+    //
+    //'ot': output the element if found it.
     bool find(T t, OUT T * ot) const
     {
         HC<T> const* hc;
@@ -3690,7 +3685,7 @@ protected:
         TN * y = NULL;
         while (z->parent != NULL && z->parent->color == RBRED) {
             if (is_lchild(z->parent)) {
-                y =    z->parent->parent->rchild;
+                y = z->parent->parent->rchild;
                 if (y != NULL && y->color == RBRED) {
                     z->parent->color = RBBLACK;
                     z->parent->parent->color = RBRED;
@@ -4100,24 +4095,23 @@ public:
 };
 
 
-/* TMap
-
-Make a map between Tsrc and Ttgt.
-
-Tsrc: the type of keys maintained by this map.
-Ttgt: the type of mapped values.
-
-Usage: Make a mapping from SRC* to TGT*.
-    class SRC2TGT_MAP : public TMap<SRC*, TGT*> {
-    public:
-    };
-
-NOTICE:
-    1. Tsrc(0) is defined as default NULL in TMap, do NOT
-       use T(0) as element.
-    2. Keep the key *UNIQUE* .
-    3. Overload operator == and operator < if Tsrc is neither basic type
-       nor pointer type. */
+//TMap
+//
+//Make a map between Tsrc and Ttgt.
+//
+//Tsrc: the type of keys maintained by this map.
+//Ttgt: the type of mapped values.
+//
+//Usage: Make a mapping from SRC* to TGT*.
+//    class SRC2TGT_MAP : public TMap<SRC*, TGT*> {
+//    public:
+//    };
+//
+//NOTICE:
+//    1. Tsrc(0) is defined as default NULL in TMap, do NOT use T(0) as element.
+//    2. Keep the key *UNIQUE* .
+//    3. Overload operator == and operator < if Tsrc is neither basic type
+//       nor pointer type.
 template <class Tsrc, class Ttgt, class CompareKey = CompareKeyBase<Tsrc> >
 class TMap : public RBT<Tsrc, Ttgt, CompareKey> {
 public:
@@ -4189,19 +4183,18 @@ public:
 //END TMap
 
 
-/* TTab
-
-NOTICE:
-    1. T(0) is defined as default NULL in TTab, do not use T(0) as element.
-    2. Keep the key *UNIQUE*.
-    3. Overload operator == and operator < if Tsrc is neither basic type
-       nor pointer type.
-
-    e.g: Make a table to record OPND.
-        class OPND_TAB : public TTab<OPND*> {
-        public:
-        };
-*/
+//TTab
+//
+//NOTICE:
+//    1. T(0) is defined as default NULL in TTab, do not use T(0) as element.
+//    2. Keep the key *UNIQUE*.
+//    3. Overload operator == and operator < if Tsrc is neither basic type
+//       nor pointer type.
+//
+//    e.g: Make a table to record OPND.
+//        class OPND_TAB : public TTab<OPND*> {
+//        public:
+//        };
 
 //TTab Iterator.
 //This class is used to iterate elements in TTab.
@@ -4270,23 +4263,22 @@ public:
 //END TTab
 
 
-/* Unidirectional Hashed Map
-
-Tsrc: the type of keys maintained by this map.
-Ttgt: the type of mapped values.
-
-Usage: Make a mapping from OPND to OPER.
-    typedef HMap<OPND*, OPER*, HashFuncBase<OPND*> > OPND2OPER_MAP;
-
-NOTICE:
-    1. Tsrc(0) is defined as default NULL in HMap, so do not use T(0) as element.
-    2. The map is implemented base on Hash, and one hash function class
-       have been given.
-
-    3. Must use 'new'/'delete' operator to allocate/free the
-       memory of dynamic object of MAP, because the
-       virtual-function-pointers-table is needed.
-*/
+//Unidirectional Hashed Map
+//
+//Tsrc: the type of keys maintained by this map.
+//Ttgt: the type of mapped values.
+//
+//Usage: Make a mapping from OPND to OPER.
+//    typedef HMap<OPND*, OPER*, HashFuncBase<OPND*> > OPND2OPER_MAP;
+//
+//NOTICE:
+//    1. Tsrc(0) is defined as default NULL in HMap, so do not use T(0) as element.
+//    2. The map is implemented base on Hash, and one hash function class
+//       have been given.
+//
+//    3. Must use 'new'/'delete' operator to allocate/free the
+//       memory of dynamic object of MAP, because the
+//       virtual-function-pointers-table is needed.
 template <class Tsrc, class Ttgt, class HF = HashFuncBase<Tsrc> >
 class HMap : public Hash<Tsrc, HF> {
 protected:
@@ -4432,9 +4424,9 @@ public:
         Hash<Tsrc, HF>::append(t, &elemhc, NULL);
 
         ASSERT(elemhc != NULL,
-                ("Element does not append into hash table yet."));
+               ("Element does not append into hash table yet."));
         ASSERT(Ttgt(0) == m_mapped_elem_table.get(HC_vec_idx(elemhc)),
-                ("Already be mapped"));
+               ("Already be mapped"));
         m_mapped_elem_table.set(HC_vec_idx(elemhc), mapped);
     }
 
@@ -4446,9 +4438,9 @@ public:
         HC<Tsrc> * elemhc = NULL;
         Hash<Tsrc, HF>::append(v, &elemhc, NULL);
         ASSERT(elemhc != NULL,
-                ("Element does not append into hash table yet."));
+               ("Element does not append into hash table yet."));
         ASSERT(Ttgt(0) == m_mapped_elem_table.get(HC_vec_idx(elemhc)),
-                ("Already be mapped"));
+               ("Already be mapped"));
         m_mapped_elem_table.set(HC_vec_idx(elemhc), mapped);
     }
 };
@@ -4456,26 +4448,25 @@ public:
 
 
 
-/* Dual directional Map
-
-MAP_Tsrc2Ttgt: class derive from HMap<Tsrc, Ttgt>
-MAP_Ttgt2Tsrc: class derive from HMap<Ttgt, Tsrc>
-
-Usage: Mapping OPND to corresponding OPER.
-    class MAP1 : public HMap<OPND*, OPER*> {
-    public:
-    };
-
-    class MAP2 : public HMap<OPER*, OPND*>{
-    public:
-    };
-
-    DMap<OPND*, OPER*, MAP1, MAP2> opnd2oper_dmap;
-
-NOTICE:
-    1. Tsrc(0) is defined as default NULL in DMap, so do not use T(0) as element.
-    2. DMap Object's memory can be allocated by malloc() dynamically.
-*/
+//Dual directional Map
+//
+//MAP_Tsrc2Ttgt: class derive from HMap<Tsrc, Ttgt>
+//MAP_Ttgt2Tsrc: class derive from HMap<Ttgt, Tsrc>
+//
+//Usage: Mapping OPND to corresponding OPER.
+//    class MAP1 : public HMap<OPND*, OPER*> {
+//    public:
+//    };
+//
+//    class MAP2 : public HMap<OPER*, OPND*>{
+//    public:
+//    };
+//
+//    DMap<OPND*, OPER*, MAP1, MAP2> opnd2oper_dmap;
+//
+//NOTICE:
+//    1. Tsrc(0) is defined as default NULL in DMap, so do not use T(0) as element.
+//    2. DMap Object's memory can be allocated by malloc() dynamically.
 template <class Tsrc, class Ttgt, class MAP_Tsrc2Ttgt, class MAP_Ttgt2Tsrc>
 class DMap {
 protected:
@@ -4521,49 +4512,48 @@ public:
 
 
 
-/* Multiple Target Map
-
-Map src with type Tsrc to many tgt elements with type Ttgt.
-
-'TAB_Ttgt': records tgt elements.
-    e.g: We implement TAB_Ttgt via deriving from Hash.
-
-    class TAB_Ttgt: public Hash<Ttgt, HashFuncBase<Ttgt> > {
-    public:
-    };
-
-    or deriving from List, typedef List<Ttgt> TAB_Ttgt;
-
-NOTICE:
-    1. Tsrc(0) is defined as default NULL in MMap, do not use T(0) as element.
-
-    2. MMap allocate memory for 'TAB_Ttgt' and return 'TAB_Ttgt *'
-        when get(Tsrc) be invoked. DO NOT free these objects yourself.
-
-    3. TAB_Ttgt should be pointer type.
-        e.g: Given type of tgt's table is a class that
-            OP_HASH : public Hash<OPER*>,
-            then type MMap<OPND*, OPER*, OP_HASH> is ok, but
-            type MMap<OPND*, OPER*, OP_HASH*> is not expected.
-
-    4. Do not use DMap directly, please overload following functions optionally:
-        * create hash-element container.
-            T * create(OBJTY v)
-
-        e.g: Mapping one OPND to a number of OPERs.
-            class OPND2OPER_MMAP : public MMap<OPND*, OPER*, OP_TAB> {
-            public:
-                virtual T create(OBJTY id)
-                {
-                    //Allocate OPND.
-                    return new OPND(id);
-                }
-            };
-
-    4. Please use 'new'/'delete' operator to allocate/free
-       the memory of dynamic object of MMap, because the
-       virtual-function-pointers-table is needed.
-*/
+//Multiple Target Map
+//
+//Map src with type Tsrc to many tgt elements with type Ttgt.
+//
+//'TAB_Ttgt': records tgt elements.
+//    e.g: We implement TAB_Ttgt via deriving from Hash.
+//
+//    class TAB_Ttgt: public Hash<Ttgt, HashFuncBase<Ttgt> > {
+//    public:
+//    };
+//
+//    or deriving from List, typedef List<Ttgt> TAB_Ttgt;
+//
+//NOTICE:
+//    1. Tsrc(0) is defined as default NULL in MMap, do not use T(0) as element.
+//
+//    2. MMap allocate memory for 'TAB_Ttgt' and return 'TAB_Ttgt *'
+//        when get(Tsrc) be invoked. DO NOT free these objects yourself.
+//
+//    3. TAB_Ttgt should be pointer type.
+//        e.g: Given type of tgt's table is a class that
+//            OP_HASH : public Hash<OPER*>,
+//            then type MMap<OPND*, OPER*, OP_HASH> is ok, but
+//            type MMap<OPND*, OPER*, OP_HASH*> is not expected.
+//
+//    4. Do not use DMap directly, please overload following functions optionally:
+//        * create hash-element container.
+//            T * create(OBJTY v)
+//
+//        e.g: Mapping one OPND to a number of OPERs.
+//            class OPND2OPER_MMAP : public MMap<OPND*, OPER*, OP_TAB> {
+//            public:
+//                virtual T create(OBJTY id)
+//                {
+//                    //Allocate OPND.
+//                    return new OPND(id);
+//                }
+//            };
+//
+//    4. Please use 'new'/'delete' operator to allocate/free
+//       the memory of dynamic object of MMap, because the
+//       virtual-function-pointers-table is needed.
 template <class Tsrc, class Ttgt, class TAB_Ttgt,
           class HF = HashFuncBase<Tsrc> >
 class MMap : public HMap<Tsrc, TAB_Ttgt*, HF> {

@@ -142,7 +142,7 @@ public:
         m_cnid2cn.set(CN_id(cn), cn);
         addVertex(CN_id(cn));
     }
-    void build(RegionMgr * rumgr);
+    bool build(RegionMgr * rumgr);
     void computeEntryList(List<CallNode*> & elst);
     void computeExitList(List<CallNode*> & elst);
 
@@ -151,14 +151,14 @@ public:
     //        with completely information.
     void dump_vcg(CHAR const* name = NULL, INT flag = -1);
 
-    CallNode * map_id2cn(UINT id) const { return m_cnid2cn.get(id); }
-    CallNode * map_vex2cn(Vertex const* v) const
+    CallNode * mapId2CallNode(UINT id) const { return m_cnid2cn.get(id); }
+    CallNode * mapVertex2CallNode(Vertex const* v) const
     { return m_cnid2cn.get(VERTEX_id(v)); }
 
-    CallNode * map_ru2cn(Region const* ru) const
+    CallNode * mapRegion2CallNode(Region const* ru) const
     { return m_ruid2cn.get(REGION_id(ru)); }
 
-    CallNode * map_sym2cn(SYM const* sym, Region * start) const
+    CallNode * mapSym2CallNode(SYM const* sym, Region * start) const
     {
         for (; start != NULL; start = start->get_parent()) {
             SYM2CN * sym2cn = getSYM2CN(start);
@@ -171,10 +171,10 @@ public:
 
     //Map a call/icall to its target Region.
     //ru: the region that ir resident in.
-    Region * map_call2ru(IR const* ir, Region * ru)
+    Region * mapCall2Region(IR const* ir, Region * ru)
     {
         if (ir->is_call()) {
-            CallNode * cn = map_sym2cn(CALL_idinfo(ir)->get_name(), ru);
+            CallNode * cn = mapSym2CallNode(CALL_idinfo(ir)->get_name(), ru);
             if (cn != NULL) { return CN_ru(cn); }
             return NULL;
         }

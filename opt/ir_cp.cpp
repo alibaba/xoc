@@ -256,7 +256,8 @@ bool IR_CP::is_available(IR const* def_ir, IR const* occ, IR * use_ir)
     }
 
     ASSERT0(use_ir->is_stmt());
-    DefDBitSetCore const* availin_expr = m_du->getAvailInExpr(BB_id(usebb));
+    DefDBitSetCore const* availin_expr =
+        m_du->getAvailInExpr(BB_id(usebb), NULL);
     ASSERT0(availin_expr);
 
     if (availin_expr->is_contain(IR_id(occ))) {
@@ -505,7 +506,7 @@ bool IR_CP::perform(OptCtx & oc)
         OC_is_aa_valid(oc) = false;
         OC_is_du_chain_valid(oc) = true; //already update.
         OC_is_ref_valid(oc) = true; //already update.
-        ASSERT0(m_du->verifyMDRef() && m_du->verifyMDDUChain());
+        ASSERT0(m_ru->verifyMDRef() && m_du->verifyMDDUChain());
         ASSERT0(verifySSAInfo(m_ru));
     }
 

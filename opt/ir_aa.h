@@ -45,8 +45,8 @@ class IR_CFG;
 class PtPair {
 public:
     UINT id;
-    MD const* from;
-    MD const* to;
+    UINT from;
+    UINT to;
 };
 
 
@@ -74,8 +74,7 @@ protected:
 public:
     PPSetMgr()
     {
-        m_pool = smpoolCreate(sizeof(SC<PtPairSet*>) * 4,
-                              MEM_CONST_SIZE);
+        m_pool = smpoolCreate(sizeof(SC<PtPairSet*>) * 4, MEM_CONST_SIZE);
         m_free_pp_set.set_pool(m_pool);
         m_pp_set_list.set_pool(m_pool);
     }
@@ -185,7 +184,7 @@ public:
     //Get PT PAIR from 'id'.
     PtPair * get(UINT id) { return m_id2pt_pair.get(id); }
 
-    PtPair * add(MD const* from, MD const* to);
+    PtPair * add(UINT from, UINT to);
 
     size_t count_mem() const;
 };
@@ -393,19 +392,14 @@ protected:
             bool is_ofst_pred,
             UINT ofst,
             OUT MDSet & mds,
-            IN OUT AACtx * ic,
-            IN OUT MD2MDSet * mx);
+            IN OUT AACtx * ic);
     void inferExpression(
             IR * ir,
             IN OUT MDSet & mds,
             IN OUT AACtx * ic,
             IN OUT MD2MDSet * mx);
 
-    void processLda(
-            IR * ir,
-            IN OUT MDSet & mds,
-            IN OUT AACtx * ic,
-            IN OUT MD2MDSet * mx);
+    void processLda(IR * ir, IN OUT MDSet & mds, IN OUT AACtx * ic);
     void processCvt(
             IR const* ir,
             IN OUT MDSet & mds,
@@ -477,8 +471,8 @@ public:
     virtual MD const* computePointToViaType(IR const*) { return NULL; }
 
     void clean();
-    void cleanPointTo(MD const* md, IN OUT MD2MDSet & ctx)
-    { ctx.setAlways(MD_id(md), NULL); }
+    void cleanPointTo(UINT mdid, IN OUT MD2MDSet & ctx)
+    { ctx.setAlways(mdid, NULL); }
 
     void computeFlowSensitive(List<IRBB*> const& bbl);
     void computeStmt(IRBB const* bb, IN OUT MD2MDSet * mx);
@@ -515,31 +509,22 @@ public:
 
     virtual CHAR const* get_pass_name() const { return "Alias Analysis"; }
     virtual PASS_TYPE get_pass_type() const { return PASS_AA; }
-    inline PtPairSet * getInPtPairSet(IRBB const* bb)
+    PtPairSet * getInPtPairSet(IRBB const* bb)
     {
-        PtPairSet * pps = m_in_pp_set.get(BB_id(bb));
-        ASSERT(pps, ("IN set is not yet initialized for BB%d", BB_id(bb)));
-        return pps;
+        ASSERT(m_in_pp_set.get(BB_id(bb)),
+               ("IN set is not yet initialized for BB%d", BB_id(bb)));
+        return m_in_pp_set.get(BB_id(bb));
     }
-
-    inline PtPairSet * getOutPtPairSet(IRBB const* bb)
+    PtPairSet * getOutPtPairSet(IRBB const* bb)
     {
-        PtPairSet * pps = m_out_pp_set.get(BB_id(bb));
-        ASSERT(pps, ("OUT set is not yet initialized for BB%d", BB_id(bb)));
-        return pps;
-    }
-
-    //For given MD2MDSet, return the MDSet that 'md' pointed to.
-    //ctx: context of point-to analysis.
-    inline MDSet const* getPointTo(MD const* md, MD2MDSet & ctx) const
-    {
-        ASSERT0(md);
-        return getPointTo(MD_id(md), ctx);
+        ASSERT(m_out_pp_set.get(BB_id(bb)),
+               ("OUT set is not yet initialized for BB%d", BB_id(bb)));
+        return m_out_pp_set.get(BB_id(bb));
     }
 
     //For given MD2MDSet, return the MDSet that 'md' pointed to.
     //ctx: context of point-to analysis.
-    inline MDSet const* getPointTo(UINT mdid, MD2MDSet & ctx) const
+    MDSet const* getPointTo(UINT mdid, MD2MDSet & ctx) const
     { return ctx.get(mdid); }
 
     //Return the Memory Descriptor Set for given ir may describe.
@@ -557,12 +542,13 @@ public:
     bool is_flow_sensitive() const { return m_flow_sensitive; }
     bool isValidStmtToAA(IR * ir);
 
-    bool is_all_mem(MD const* md) const
-    { return (MD_id(md) == MD_ALL_MEM) ? true : false; }
+    bool is_all_mem(UINT mdid) const
+    { return mdid == MD_ALL_MEM ? true : false; }
 
-    bool is_heap_mem(MD const*) const
-    { //return (MD_id(md) == MD_HEAP_MEM) ? true : false;
-        return false;
+    bool is_heap_mem(UINT mdid) const
+    { //return mdid == MD_HEAP_MEM ? true : false;
+      UNUSED(mdid);
+      return false;
     }
 
     //Return true if the MD of each PR corresponded is unique.
@@ -584,52 +570,50 @@ public:
 
     //For given MD2MDSet, set the point-to set to 'md'.
     //ctx: context of point-to analysis.
-    inline void setPointTo(MD const* md, MD2MDSet & ctx, MDSet const* ptset)
+    inline void setPointTo(UINT mdid, MD2MDSet & ctx, MDSet const* ptset)
     {
-        ASSERT0(md && ptset);
+        ASSERT0(ptset);
         ASSERT(m_mds_hash->find(*ptset), ("ptset should be in hash"));
-        ctx.setAlways(MD_id(md), ptset);
+        ctx.setAlways(mdid, ptset);
     }
 
     //Set pointer points to 'target'.
     inline void setPointToUniqueMD(
-            MD const* pointer,
+            UINT pointer_mdid,
             MD2MDSet & ctx,
             MD const* target)
     {
-        ASSERT0(pointer && target);
+        ASSERT0(target);
         MDSet tmp;
         tmp.bunion(target, *m_misc_bs_mgr);
         MDSet const* hashed = m_mds_hash->append(tmp);
-        setPointTo(pointer, ctx, hashed);
+        setPointTo(pointer_mdid, ctx, hashed);
         tmp.clean(*m_misc_bs_mgr);
     }
 
     //Set pointer points to 'target_set' in the context.
     inline void setPointToMDSet(
-            MD const* pointer,
+            UINT pointer_mdid,
             MD2MDSet & ctx,
             MDSet const& target_set)
     {
-        ASSERT0(pointer);
         MDSet const* hashed = m_mds_hash->append(target_set);
-        setPointTo(pointer, ctx, hashed);
+        setPointTo(pointer_mdid, ctx, hashed);
     }
 
     //Set pointer points to new MDSet by appending a new element 'newmd'
     //in the context.
     inline void setPointToMDSetByAddMD(
-            MD const* pointer,
+            UINT pointer_mdid,
             MD2MDSet & ctx,
             MD const* newmd)
     {
         MDSet tmp;
-
-        MDSet const* pts = getPointTo(pointer, ctx);
+        MDSet const* pts = getPointTo(pointer_mdid, ctx);
         if (pts != NULL) {
             if (pts->is_contain(newmd)) {
                 ASSERT0(m_mds_hash->find(*pts));
-                setPointTo(pointer, ctx, pts);
+                setPointTo(pointer_mdid, ctx, pts);
                 return;
             }
             tmp.bunion(*pts, *m_misc_bs_mgr);
@@ -637,28 +621,28 @@ public:
 
         tmp.bunion(newmd, *m_misc_bs_mgr);
         MDSet const* hashed = m_mds_hash->append(tmp);
-        setPointTo(pointer, ctx, hashed);
+        setPointTo(pointer_mdid, ctx, hashed);
         tmp.clean(*m_misc_bs_mgr);
     }
 
     //Set pointer points to MD set by appending a MDSet.
     inline void setPointToMDSetByAddMDSet(
-            MD const* pointer,
+            UINT pointer_mdid,
             MD2MDSet & ctx,
             MDSet const& set)
     {
-        MDSet const* pts = getPointTo(pointer, ctx);
+        MDSet const* pts = getPointTo(pointer_mdid, ctx);
         if (pts == NULL) {
             if (&set == m_maypts) {
-                setPointTo(pointer, ctx, m_maypts);
+                setPointTo(pointer_mdid, ctx, m_maypts);
                 return;
             }
-            setPointToMDSet(pointer, ctx, set);
+            setPointToMDSet(pointer_mdid, ctx, set);
             return;
         }
 
         if (&set == m_maypts) {
-            setPointTo(pointer, ctx, m_maypts);
+            setPointTo(pointer_mdid, ctx, m_maypts);
             return;
         }
 
@@ -667,40 +651,39 @@ public:
         tmp.bunion(set, *m_misc_bs_mgr);
 
         MDSet const* hashed = m_mds_hash->append(tmp);
-        setPointTo(pointer, ctx, hashed);
+        setPointTo(pointer_mdid, ctx, hashed);
         tmp.clean(*m_misc_bs_mgr);
     }
 
     //Set 'md' points to whole memory.
-    void setPointToAllMem(MD const* md, OUT MD2MDSet & ctx)
-    { setPointToMDSetByAddMD(md, ctx, m_md_sys->get_md(MD_ALL_MEM)); }
+    void setPointToAllMem(UINT mdid, OUT MD2MDSet & ctx)
+    { setPointToMDSetByAddMD(mdid, ctx, m_md_sys->get_md(MD_ALL_MEM)); }
 
     //Set md points to whole global memory.
-    void setPointToGlobalMem(MD const* md, OUT MD2MDSet & ctx)
-    { setPointToMDSetByAddMD(md, ctx, m_md_sys->get_md(MD_GLOBAL_MEM)); }
+    void setPointToGlobalMem(UINT mdid, OUT MD2MDSet & ctx)
+    { setPointToMDSetByAddMD(mdid, ctx, m_md_sys->get_md(MD_GLOBAL_MEM)); }
 
     void set_flow_sensitive(bool is_sensitive)
     { m_flow_sensitive = (BYTE)is_sensitive; }
 
     //Function return the POINT-TO pair for each BB.
     //Only used in flow-sensitive analysis.
-    MD2MDSet * mapBBtoMD2MDSet(IRBB const* bb) const
-    { return m_md2mds_vec.get(BB_id(bb)); }
+    MD2MDSet * mapBBtoMD2MDSet(UINT bbid) const
+    { return m_md2mds_vec.get(bbid); }
 
     //Function return the POINT-TO pair for each BB.
     //Only used in flow-sensitive analysis.
-    inline MD2MDSet * allocMD2MDSetForBB(IRBB const* bb)
+    inline MD2MDSet * allocMD2MDSetForBB(UINT bbid)
     {
-        MD2MDSet * mx = m_md2mds_vec.get(BB_id(bb));
+        MD2MDSet * mx = m_md2mds_vec.get(bbid);
         if (mx == NULL) {
             mx = (MD2MDSet*)xmalloc(sizeof(MD2MDSet));
             mx->init();
-            m_md2mds_vec.set(BB_id(bb), mx);
+            m_md2mds_vec.set(bbid, mx);
         }
         return mx;
     }
 
-    void markMayAlias(IN IRBB * bb, IN MD2MDSet * mx);
     bool verifyIR(IR * ir);
     bool verify();
     bool perform(OptCtx & oc);

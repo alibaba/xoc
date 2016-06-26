@@ -45,7 +45,7 @@ namespace xoc {
 #define SOL_SET_IS_SPARSE    (true)
 
 //Iterative methodology.
-#define WORK_LIST_DRIVE
+//#define WORK_LIST_DRIVE
 
 #define CK_UNKNOWN        0 //Can not determine if memory is overlap.
 #define CK_OVERLAP        1 //Can be confirmed memory is overlap.
@@ -200,7 +200,6 @@ IR_DU_MGR::~IR_DU_MGR()
 
     ASSERT0(m_is_init == NULL);
     ASSERT0(m_md2irs == NULL);
-    resetLocalAuxSet(false);
     resetGlobalSet(false);
     smpoolDelete(m_pool);
 
@@ -274,19 +273,13 @@ void IR_DU_MGR::computeOverlapUseMDSet(IR * ir, bool recompute)
 }
 
 
-IR * IR_DU_MGR::get_ir(UINT irid)
-{
-    return m_ru->get_ir(irid);
-}
-
-
 //Return IR stmt-id set.
-DefDBitSetCore * IR_DU_MGR::getMayGenDef(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getMayGenDef(UINT bbid, DefMiscBitSetMgr * mgr)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_may_gen_def.get(bbid);
-    if (set == NULL) {
-        set = m_misc_bs_mgr->create_dbitsetc();
+    if (set == NULL && mgr != NULL) {
+        set = mgr->create_dbitsetc();
         set->set_sparse(SOL_SET_IS_SPARSE);
         m_bb_may_gen_def.set(bbid, set);
     }
@@ -294,12 +287,12 @@ DefDBitSetCore * IR_DU_MGR::getMayGenDef(UINT bbid)
 }
 
 
-DefDBitSetCore * IR_DU_MGR::getMustGenDef(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getMustGenDef(UINT bbid, DefMiscBitSetMgr * mgr)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_must_gen_def.get(bbid);
-    if (set == NULL) {
-        set = m_misc_bs_mgr->create_dbitsetc();
+    if (set == NULL && mgr != NULL) {
+        set = mgr->create_dbitsetc();
         set->set_sparse(SOL_SET_IS_SPARSE);
         m_bb_must_gen_def.set(bbid, set);
     }
@@ -307,12 +300,12 @@ DefDBitSetCore * IR_DU_MGR::getMustGenDef(UINT bbid)
 }
 
 
-DefDBitSetCore * IR_DU_MGR::getAvailInReachDef(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getAvailInReachDef(UINT bbid, DefMiscBitSetMgr * mgr)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_avail_in_reach_def.get(bbid);
-    if (set == NULL) {
-        set = m_misc_bs_mgr->create_dbitsetc();
+    if (set == NULL && mgr != NULL) {
+        set = mgr->create_dbitsetc();
         set->set_sparse(SOL_SET_IS_SPARSE);
         m_bb_avail_in_reach_def.set(bbid, set);
     }
@@ -320,12 +313,12 @@ DefDBitSetCore * IR_DU_MGR::getAvailInReachDef(UINT bbid)
 }
 
 
-DefDBitSetCore * IR_DU_MGR::getAvailOutReachDef(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getAvailOutReachDef(UINT bbid, DefMiscBitSetMgr * mgr)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_avail_out_reach_def.get(bbid);
-    if (set == NULL) {
-        set = m_misc_bs_mgr->create_dbitsetc();
+    if (set == NULL && mgr != NULL) {
+        set = mgr->create_dbitsetc();
         set->set_sparse(SOL_SET_IS_SPARSE);
         m_bb_avail_out_reach_def.set(bbid, set);
     }
@@ -333,12 +326,12 @@ DefDBitSetCore * IR_DU_MGR::getAvailOutReachDef(UINT bbid)
 }
 
 
-DefDBitSetCore * IR_DU_MGR::getInReachDef(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getInReachDef(UINT bbid, DefMiscBitSetMgr * mgr)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_in_reach_def.get(bbid);
-    if (set == NULL) {
-        set = m_misc_bs_mgr->create_dbitsetc();
+    if (set == NULL && mgr != NULL) {
+        set = mgr->create_dbitsetc();
         set->set_sparse(SOL_SET_IS_SPARSE);
         m_bb_in_reach_def.set(bbid, set);
     }
@@ -346,12 +339,12 @@ DefDBitSetCore * IR_DU_MGR::getInReachDef(UINT bbid)
 }
 
 
-DefDBitSetCore * IR_DU_MGR::getOutReachDef(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getOutReachDef(UINT bbid, DefMiscBitSetMgr * mgr)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_out_reach_def.get(bbid);
-    if (set == NULL) {
-        set = m_misc_bs_mgr->create_dbitsetc();
+    if (set == NULL && mgr != NULL) {
+        set = mgr->create_dbitsetc();
         set->set_sparse(SOL_SET_IS_SPARSE);
         m_bb_out_reach_def.set(bbid, set);
     }
@@ -359,81 +352,85 @@ DefDBitSetCore * IR_DU_MGR::getOutReachDef(UINT bbid)
 }
 
 
-DefDBitSetCore * IR_DU_MGR::getMustKilledDef(UINT bbid)
+DefDBitSetCore const* IR_DU_MGR::getMustKilledDef(UINT bbid)
 {
     ASSERT0(m_cfg->get_bb(bbid));
-    DefDBitSetCore * set = m_bb_must_killed_def.get(bbid);
-    if (set == NULL) {
-        set = m_misc_bs_mgr->create_dbitsetc();
-        set->set_sparse(SOL_SET_IS_SPARSE);
-        m_bb_must_killed_def.set(bbid, set);
-    }
-    return set;
+    return m_bb_must_killed_def.get(bbid);
 }
 
 
-DefDBitSetCore * IR_DU_MGR::getMayKilledDef(UINT bbid)
+void IR_DU_MGR::setMustKilledDef(UINT bbid, DefDBitSetCore const* set)
 {
     ASSERT0(m_cfg->get_bb(bbid));
-    DefDBitSetCore * set = m_bb_may_killed_def.get(bbid);
-    if (set == NULL) {
-        set = m_misc_bs_mgr->create_dbitsetc();
+    m_bb_must_killed_def.set(bbid, set);
+}
+
+
+DefDBitSetCore const* IR_DU_MGR::getMayKilledDef(UINT bbid)
+{
+    ASSERT0(m_cfg->get_bb(bbid));
+    return m_bb_may_killed_def.get(bbid);
+}
+
+
+void IR_DU_MGR::setMayKilledDef(UINT bbid, DefDBitSetCore const* set)
+{
+    ASSERT0(m_cfg->get_bb(bbid));
+    m_bb_may_killed_def.set(bbid, set);
+}
+
+
+//Return IR expression-id set.
+DefDBitSetCore * IR_DU_MGR::getGenIRExpr(UINT bbid, DefMiscBitSetMgr * mgr)
+{
+    ASSERT0(m_cfg->get_bb(bbid));
+    DefDBitSetCore * set = m_bb_gen_exp.get(bbid);
+    if (set == NULL && mgr != NULL) {
+        set = mgr->create_dbitsetc();
         set->set_sparse(SOL_SET_IS_SPARSE);
-        m_bb_may_killed_def.set(bbid, set);
+        m_bb_gen_exp.set(bbid, set);
     }
     return set;
 }
 
 
 //Return IR expression-id set.
-DefDBitSetCore * IR_DU_MGR::getGenIRExpr(UINT bbid)
+DefDBitSetCore const* IR_DU_MGR::getKilledIRExpr(UINT bbid)
 {
     ASSERT0(m_cfg->get_bb(bbid));
-    DefDBitSetCore * set = m_bb_gen_ir_expr.get(bbid);
-    if (set == NULL) {
-        set = m_misc_bs_mgr->create_dbitsetc();
-        set->set_sparse(SOL_SET_IS_SPARSE);
-        m_bb_gen_ir_expr.set(bbid, set);
-    }
-    return set;
+    return m_bb_killed_exp.get(bbid);
 }
 
 
 //Return IR expression-id set.
-DefDBitSetCore * IR_DU_MGR::getKilledIRExpr(UINT bbid)
+void IR_DU_MGR::setKilledIRExpr(UINT bbid, DefDBitSetCore const* set)
 {
     ASSERT0(m_cfg->get_bb(bbid));
-    DefDBitSetCore * set = m_bb_killed_ir_expr.get(bbid);
-    if (set == NULL) {
-        set = m_misc_bs_mgr->create_dbitsetc();
-        set->set_sparse(SOL_SET_IS_SPARSE);
-        m_bb_killed_ir_expr.set(bbid, set);
-    }
-    return set;
+    m_bb_killed_exp.set(bbid, set);
 }
 
 
 //Return livein set for IR expression. Each element in the set is IR id.
-DefDBitSetCore * IR_DU_MGR::getAvailInExpr(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getAvailInExpr(UINT bbid, DefMiscBitSetMgr * mgr)
 {
     ASSERT0(m_cfg->get_bb(bbid));
-    DefDBitSetCore * set = m_bb_availin_ir_expr.get(bbid);
-    if (set == NULL) {
-        set = m_misc_bs_mgr->create_dbitsetc();
+    DefDBitSetCore * set = m_bb_availin_exp.get(bbid);
+    if (set == NULL && mgr != NULL) {
+        set = mgr->create_dbitsetc();
         set->set_sparse(SOL_SET_IS_SPARSE);
-        m_bb_availin_ir_expr.set(bbid, set);
+        m_bb_availin_exp.set(bbid, set);
     }
     return set;
 }
 
 
 //Return liveout set for IR expression. Each element in the set is IR id.
-DefDBitSetCore * IR_DU_MGR::getAvailOutExpr(UINT bbid)
+DefDBitSetCore * IR_DU_MGR::getAvailOutExpr(UINT bbid, DefMiscBitSetMgr * mgr)
 {
     ASSERT0(m_cfg->get_bb(bbid));
     DefDBitSetCore * set = m_bb_availout_ir_expr.get(bbid);
-    if (set == NULL) {
-        set = m_misc_bs_mgr->create_dbitsetc();
+    if (set == NULL && mgr != NULL) {
+        set = mgr->create_dbitsetc();
         set->set_sparse(SOL_SET_IS_SPARSE);
         m_bb_availout_ir_expr.set(bbid, set);
     }
@@ -1210,30 +1207,30 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
                     (ULONG)n, str, irs->get_elem_count(), irs->get_last(&st));
         }
 
-        irs = m_bb_may_killed_def.get(BB_id(bb));
-        if (irs != NULL) {
-            n = irs->count_mem();
+        DefDBitSetCore const* dbs = m_bb_may_killed_def.get(BB_id(bb));
+        if (dbs != NULL) {
+            n = dbs->count_mem();
             count += n;
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
             fprintf(g_tfile, "\n\tMayKilledDef:%lu%s, %d elems, last %d",
-                    (ULONG)n, str, irs->get_elem_count(), irs->get_last(&st));
+                    (ULONG)n, str, dbs->get_elem_count(), dbs->get_last(&st));
         }
 
-        irs = m_bb_must_killed_def.get(BB_id(bb));
-        if (irs != NULL) {
-            n = irs->count_mem();
+        dbs = m_bb_must_killed_def.get(BB_id(bb));
+        if (dbs != NULL) {
+            n = dbs->count_mem();
             count += n;
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
             fprintf(g_tfile, "\n\tMustKilledDef:%lu%s, %d elems, last %d",
-                    (ULONG)n, str, irs->get_elem_count(), irs->get_last(&st));
+                    (ULONG)n, str, dbs->get_elem_count(), dbs->get_last(&st));
         }
 
         //
-        DefDBitSetCore * bs = m_bb_gen_ir_expr.get(BB_id(bb));
+        DefDBitSetCore * bs = m_bb_gen_exp.get(BB_id(bb));
         if (bs != NULL) {
             n = bs->count_mem();
             count += n;
@@ -1244,18 +1241,18 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
                     (ULONG)n, str, bs->get_elem_count(), bs->get_last(&st));
         }
 
-        bs = m_bb_killed_ir_expr.get(BB_id(bb));
-        if (bs != NULL) {
-            n = bs->count_mem();
+        dbs = m_bb_killed_exp.get(BB_id(bb));
+        if (dbs != NULL) {
+            n = dbs->count_mem();
             count += n;
             if (n < 1024) { str = "B"; }
             else if (n < 1024 * 1024) { n /= 1024; str = "KB"; }
             else  { n /= 1024*1024; str = "MB"; }
             fprintf(g_tfile, "\n\tKilledIrExp:%lu%s, %d elems, last %d",
-                    (ULONG)n, str, bs->get_elem_count(), bs->get_last(&st));
+                    (ULONG)n, str, dbs->get_elem_count(), dbs->get_last(&st));
         }
 
-        bs = m_bb_availin_ir_expr.get(BB_id(bb));
+        bs = m_bb_availin_exp.get(BB_id(bb));
         if (bs != NULL) {
             n = bs->count_mem();
             count += n;
@@ -1373,7 +1370,7 @@ void IR_DU_MGR::dumpIRRef(IN IR * ir, UINT indent)
         bool doit = false;
         CallGraph * callg = m_ru->get_region_mgr()->get_call_graph();
         if (callg != NULL) {
-            Region * ru = callg->map_call2ru(ir, m_ru);
+            Region * ru = callg->mapCall2Region(ir, m_ru);
             if (ru != NULL && REGION_is_mddu_valid(ru)) {
                 MDSet const* muse = ru->get_may_use();
                 //May use
@@ -1573,6 +1570,7 @@ void IR_DU_MGR::dumpDUChain()
             m_ru->get_ru_name());
     g_indent = 2;
     MDSet mds;
+    DefMiscBitSetMgr bsmgr;
     BBList * bbl = m_ru->get_bb_list();
     for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
         fprintf(g_tfile, "\n--- BB%d ---", BB_id(bb));
@@ -1592,7 +1590,7 @@ void IR_DU_MGR::dumpDUChain()
 
             //MayDef
             if (get_may_def(ir) != NULL) {
-                mds.clean(*m_misc_bs_mgr);
+                mds.clean(bsmgr);
                 MDSet const* x = get_may_def(ir);
                 if (x != NULL) {
                     if (has_prt_something) {
@@ -1617,10 +1615,10 @@ void IR_DU_MGR::dumpDUChain()
 
             //MayUse
             fprintf(g_tfile, " <= ");
-            mds.clean(*m_misc_bs_mgr);
+            mds.clean(bsmgr);
 
             fprintf(g_tfile, "Uref(");
-            collectMayUseRecursive(ir, mds, true);
+            collectMayUseRecursive(ir, mds, true, bsmgr);
             if (!mds.is_empty()) {
                 mds.dump(m_md_sys);
             } else {
@@ -1666,7 +1664,7 @@ void IR_DU_MGR::dumpDUChain()
             }
         } //end for each IR
     } //end for each BB
-    mds.clean(*m_misc_bs_mgr);
+    mds.clean(bsmgr);
     fflush(g_tfile);
 }
 
@@ -1685,175 +1683,199 @@ void IR_DU_MGR::dumpSet(bool is_bs)
 
         UINT bbid = BB_id(bb);
         fprintf(g_tfile, "\n---- BB%d ----", bbid);
-        DefDBitSetCore * def_in = getInReachDef(bbid);
-        DefDBitSetCore * def_out = getOutReachDef(bbid);
-        DefDBitSetCore * avail_def_in = getAvailInReachDef(bbid);
-        DefDBitSetCore * avail_def_out = getAvailOutReachDef(bbid);
-        DefDBitSetCore * may_def_gen = getMayGenDef(bbid);
-        DefDBitSetCore * must_def_gen = getMustGenDef(bbid);
-        DefDBitSetCore * must_def_kill = getMustKilledDef(bbid);
-        DefDBitSetCore * may_def_kill = getMayKilledDef(bbid);
-        DefDBitSetCore * gen_ir = getGenIRExpr(bbid);
-        DefDBitSetCore * kill_ir = getKilledIRExpr(bbid);
-        DefDBitSetCore * livein_ir = getAvailInExpr(bbid);
-        DefDBitSetCore * liveout_ir = getAvailOutExpr(bbid);
+        DefDBitSetCore * def_in = getInReachDef(bbid, NULL);
+        DefDBitSetCore * def_out = getOutReachDef(bbid, NULL);
+        DefDBitSetCore * avail_def_in = getAvailInReachDef(bbid, NULL);
+        DefDBitSetCore * avail_def_out = getAvailOutReachDef(bbid, NULL);
+        DefDBitSetCore * may_def_gen = getMayGenDef(bbid, NULL);
+        DefDBitSetCore * must_def_gen = getMustGenDef(bbid, NULL);
+        DefDBitSetCore * gen_ir = getGenIRExpr(bbid, NULL);
+        DefDBitSetCore * livein_ir = getAvailInExpr(bbid, NULL);
+        DefDBitSetCore * liveout_ir = getAvailOutExpr(bbid, NULL);
+        DefDBitSetCore const* must_def_kill = getMustKilledDef(bbid);
+        DefDBitSetCore const* may_def_kill = getMayKilledDef(bbid);
+        DefDBitSetCore const* killed_exp = getKilledIRExpr(bbid);
 
         INT i;
 
-        fprintf(g_tfile, "\nDEF IN STMT: %lu byte ",
-				(ULONG)def_in->count_mem());
         SEGIter * st = NULL;
-        for (i = def_in->get_first(&st);
-             i != -1; i = def_in->get_next(i, &st)) {
-            IR * ir = m_ru->get_ir(i);
-            ASSERT0(ir != NULL);
-            fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
-        }
-        if (is_bs) {
-            fprintf(g_tfile, "\n             ");
-            def_in->dump(g_tfile);
-        }
-
-        fprintf(g_tfile, "\nDEF OUT STMT: %lu byte ",
-				(ULONG)def_out->count_mem());
-        for (i = def_out->get_first(&st);
-             i != -1; i = def_out->get_next(i, &st)) {
-            IR * ir = m_ru->get_ir(i);
-            ASSERT0(ir != NULL);
-            fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
-        }
-        if (is_bs) {
-            fprintf(g_tfile, "\n             ");
-            def_out->dump(g_tfile);
+        if (def_in != NULL) {
+            fprintf(g_tfile, "\nDEF IN STMT: %lu byte ",
+                (ULONG)def_in->count_mem());
+            for (i = def_in->get_first(&st);
+                 i != -1; i = def_in->get_next(i, &st)) {
+                IR * ir = m_ru->get_ir(i);
+                ASSERT0(ir != NULL);
+                fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
+            }
+            if (is_bs) {
+                fprintf(g_tfile, "\n             ");
+                def_in->dump(g_tfile);
+            }
         }
 
-        fprintf(g_tfile, "\nDEF AVAIL_IN STMT: %lu byte ",
-				(ULONG)avail_def_in->count_mem());
-        for (i = avail_def_in->get_first(&st);
-             i != -1; i = avail_def_in->get_next(i, &st)) {
-            IR * ir = m_ru->get_ir(i);
-            ASSERT0(ir != NULL);
-            fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
-        }
-        if (is_bs) {
-            fprintf(g_tfile, "\n             ");
-            avail_def_in->dump(g_tfile);
+        if (def_out != NULL) {
+            fprintf(g_tfile, "\nDEF OUT STMT: %lu byte ",
+                (ULONG)def_out->count_mem());
+            for (i = def_out->get_first(&st);
+                 i != -1; i = def_out->get_next(i, &st)) {
+                IR * ir = m_ru->get_ir(i);
+                ASSERT0(ir != NULL);
+                fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
+            }
+            if (is_bs) {
+                fprintf(g_tfile, "\n             ");
+                def_out->dump(g_tfile);
+            }
         }
 
-        fprintf(g_tfile, "\nDEF AVAIL_OUT STMT: %lu byte ",
+        if (avail_def_in != NULL) {
+            fprintf(g_tfile, "\nDEF AVAIL_IN STMT: %lu byte ",
+                (ULONG)avail_def_in->count_mem());
+            for (i = avail_def_in->get_first(&st);
+                 i != -1; i = avail_def_in->get_next(i, &st)) {
+                IR * ir = m_ru->get_ir(i);
+                ASSERT0(ir != NULL);
+                fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
+            }
+            if (is_bs) {
+                fprintf(g_tfile, "\n             ");
+                avail_def_in->dump(g_tfile);
+            }
+        }
+
+        if (avail_def_out != NULL) {
+            fprintf(g_tfile, "\nDEF AVAIL_OUT STMT: %lu byte ",
                 (ULONG)avail_def_out->count_mem());
-        for (i = avail_def_out->get_first(&st);
-             i != -1; i = avail_def_out->get_next(i, &st)) {
-            IR * ir = m_ru->get_ir(i);
-            ASSERT0(ir != NULL);
-            fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
-        }
-        if (is_bs) {
-            fprintf(g_tfile, "\n             ");
-            avail_def_out->dump(g_tfile);
-        }
-
-        fprintf(g_tfile, "\nMAY GEN STMT: %lu byte ",
-				(ULONG)may_def_gen->count_mem());
-        for (i = may_def_gen->get_first(&st);
-             i != -1; i = may_def_gen->get_next(i, &st)) {
-            IR * ir = m_ru->get_ir(i);
-            ASSERT0(ir != NULL);
-            fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
-        }
-        if (is_bs) {
-            fprintf(g_tfile, "\n             ");
-            may_def_gen->dump(g_tfile);
+            for (i = avail_def_out->get_first(&st);
+                 i != -1; i = avail_def_out->get_next(i, &st)) {
+                IR * ir = m_ru->get_ir(i);
+                ASSERT0(ir != NULL);
+                fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
+            }
+            if (is_bs) {
+                fprintf(g_tfile, "\n             ");
+                avail_def_out->dump(g_tfile);
+            }
         }
 
-        fprintf(g_tfile, "\nMUST GEN STMT: %lu byte ",
-				(ULONG)must_def_gen->count_mem());
-        for (i = must_def_gen->get_first(&st);
-             i != -1; i = must_def_gen->get_next(i, &st)) {
-            IR * ir = m_ru->get_ir(i);
-            ASSERT0(ir != NULL);
-            fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
-        }
-        if (is_bs) {
-            fprintf(g_tfile, "\n             ");
-            must_def_gen->dump(g_tfile);
-        }
-
-        fprintf(g_tfile, "\nMUST KILLED STMT: %lu byte ",
-				(ULONG)must_def_kill->count_mem());
-        for (i = must_def_kill->get_first(&st);
-             i != -1; i = must_def_kill->get_next(i, &st)) {
-            IR * ir = m_ru->get_ir(i);
-            ASSERT0(ir != NULL);
-            fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
-        }
-        if (is_bs) {
-            fprintf(g_tfile, "\n             ");
-            must_def_kill->dump(g_tfile);
+        if (may_def_gen != NULL) {
+            fprintf(g_tfile, "\nMAY GEN STMT: %lu byte ",
+                (ULONG)may_def_gen->count_mem());
+            for (i = may_def_gen->get_first(&st);
+                 i != -1; i = may_def_gen->get_next(i, &st)) {
+                IR * ir = m_ru->get_ir(i);
+                ASSERT0(ir != NULL);
+                fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
+            }
+            if (is_bs) {
+                fprintf(g_tfile, "\n             ");
+                may_def_gen->dump(g_tfile);
+            }
         }
 
-        fprintf(g_tfile, "\nMAY KILLED STMT: %lu byte ",
-				(ULONG)may_def_kill->count_mem());
-        for (i = may_def_kill->get_first(&st);
-             i != -1; i = may_def_kill->get_next(i, &st)) {
-            IR * ir = m_ru->get_ir(i);
-            ASSERT0(ir != NULL);
-            fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
-        }
-        if (is_bs) {
-            fprintf(g_tfile, "\n             ");
-            may_def_kill->dump(g_tfile);
-        }
-
-        fprintf(g_tfile, "\nLIVEIN EXPR: %lu byte ",
-				(ULONG)livein_ir->count_mem());
-        for (i = livein_ir->get_first(&st);
-             i != -1; i = livein_ir->get_next(i, &st)) {
-            IR * ir = m_ru->get_ir(i);
-            ASSERT0(ir != NULL);
-            fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
-        }
-        if (is_bs) {
-            fprintf(g_tfile, "\n             ");
-            livein_ir->dump(g_tfile);
+        if (must_def_gen != NULL) {
+            fprintf(g_tfile, "\nMUST GEN STMT: %lu byte ",
+                (ULONG)must_def_gen->count_mem());
+            for (i = must_def_gen->get_first(&st);
+                 i != -1; i = must_def_gen->get_next(i, &st)) {
+                IR * ir = m_ru->get_ir(i);
+                ASSERT0(ir != NULL);
+                fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
+            }
+            if (is_bs) {
+                fprintf(g_tfile, "\n             ");
+                must_def_gen->dump(g_tfile);
+            }
         }
 
-        fprintf(g_tfile, "\nLIVEOUT EXPR: %lu byte ",
-				(ULONG)liveout_ir->count_mem());
-        for (i = liveout_ir->get_first(&st);
-             i != -1; i = liveout_ir->get_next(i, &st)) {
-            IR * ir = m_ru->get_ir(i);
-            ASSERT0(ir != NULL);
-            fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
-        }
-        if (is_bs) {
-            fprintf(g_tfile, "\n             ");
-            liveout_ir->dump(g_tfile);
-        }
-
-        fprintf(g_tfile, "\nGEN EXPR: %lu byte ", (ULONG)gen_ir->count_mem());
-        for (i = gen_ir->get_first(&st);
-             i != -1; i = gen_ir->get_next(i, &st)) {
-            IR * ir = m_ru->get_ir(i);
-            ASSERT0(ir != NULL);
-            fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
-        }
-        if (is_bs) {
-            fprintf(g_tfile, "\n             ");
-            gen_ir->dump(g_tfile);
+        if (must_def_kill != NULL) {
+            fprintf(g_tfile, "\nMUST KILLED STMT: %lu byte ",
+                    (ULONG)must_def_kill->count_mem());
+            for (i = must_def_kill->get_first(&st);
+                 i != -1; i = must_def_kill->get_next(i, &st)) {
+                IR * ir = m_ru->get_ir(i);
+                ASSERT0(ir != NULL);
+                fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
+            }
+            if (is_bs) {
+                fprintf(g_tfile, "\n             ");
+                must_def_kill->dump(g_tfile);
+            }
         }
 
-        fprintf(g_tfile, "\nKILLED EXPR: %lu byte ",
-			    (ULONG)kill_ir->count_mem());
-        for (i = kill_ir->get_first(&st);
-             i != -1; i = kill_ir->get_next(i, &st)) {
-            IR * ir = m_ru->get_ir(i);
-            ASSERT0(ir != NULL);
-            fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
+        if (may_def_kill != NULL) {
+            fprintf(g_tfile, "\nMAY KILLED STMT: %lu byte ",
+                    (ULONG)may_def_kill->count_mem());
+            for (i = may_def_kill->get_first(&st);
+                 i != -1; i = may_def_kill->get_next(i, &st)) {
+                IR * ir = m_ru->get_ir(i);
+                ASSERT0(ir != NULL);
+                fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
+            }
+            if (is_bs) {
+                fprintf(g_tfile, "\n             ");
+                may_def_kill->dump(g_tfile);
+            }
         }
-        if (is_bs) {
-            fprintf(g_tfile, "\n             ");
-            kill_ir->dump(g_tfile);
+
+        if (livein_ir != NULL) {
+            fprintf(g_tfile, "\nLIVEIN EXPR: %lu byte ",
+                    (ULONG)livein_ir->count_mem());
+            for (i = livein_ir->get_first(&st);
+                 i != -1; i = livein_ir->get_next(i, &st)) {
+                IR * ir = m_ru->get_ir(i);
+                ASSERT0(ir != NULL);
+                fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
+            }
+            if (is_bs) {
+                fprintf(g_tfile, "\n             ");
+                livein_ir->dump(g_tfile);
+            }
+        }
+
+        if (liveout_ir != NULL) {
+            fprintf(g_tfile, "\nLIVEOUT EXPR: %lu byte ",
+                    (ULONG)liveout_ir->count_mem());
+            for (i = liveout_ir->get_first(&st);
+                 i != -1; i = liveout_ir->get_next(i, &st)) {
+                IR * ir = m_ru->get_ir(i);
+                ASSERT0(ir != NULL);
+                fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
+            }
+            if (is_bs) {
+                fprintf(g_tfile, "\n             ");
+                liveout_ir->dump(g_tfile);
+            }
+        }
+
+        if (gen_ir != NULL) {
+            fprintf(g_tfile, "\nGEN EXPR: %lu byte ", (ULONG)gen_ir->count_mem());
+            for (i = gen_ir->get_first(&st);
+                 i != -1; i = gen_ir->get_next(i, &st)) {
+                IR * ir = m_ru->get_ir(i);
+                ASSERT0(ir != NULL);
+                fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
+            }
+            if (is_bs) {
+                fprintf(g_tfile, "\n             ");
+                gen_ir->dump(g_tfile);
+            }
+        }
+
+        if (killed_exp != NULL) {
+            fprintf(g_tfile, "\nKILLED EXPR: %lu byte ",
+                    (ULONG)killed_exp->count_mem());
+            for (i = killed_exp->get_first(&st);
+                 i != -1; i = killed_exp->get_next(i, &st)) {
+                IR * ir = m_ru->get_ir(i);
+                ASSERT0(ir != NULL);
+                fprintf(g_tfile, "%s(%d), ", IRNAME(ir), IR_id(ir));
+            }
+            if (is_bs) {
+                fprintf(g_tfile, "\n             ");
+                killed_exp->dump(g_tfile);
+            }
         }
     }
     fflush(g_tfile);
@@ -1916,7 +1938,7 @@ void IR_DU_MGR::copyIRTreeDU(IR * to, IR const* from, bool copyDUChain)
 
                 //x is stmt if from_ir is expression.
                 //x is expression if from_ir is stmt.
-                IR const* x = get_ir(i);
+                IR const* x = m_ru->get_ir(i);
                 DUSet * x_du_set = x->get_duset();
                 if (x_du_set == NULL) { continue; }
                 x_du_set->add(IR_id(to_ir), *m_misc_bs_mgr);
@@ -2279,16 +2301,23 @@ size_t IR_DU_MGR::count_mem()
     }
 
     count += m_bb_must_killed_def.count_mem();
-    ptr = &m_bb_must_killed_def;
-    for (INT i = 0; i <= ptr->get_last_idx(); i++) {
-        DefDBitSetCore * dset = ptr->get(i);
+    for (INT i = 0; i <= m_bb_must_killed_def.get_last_idx(); i++) {
+        DefDBitSetCore const* dset = m_bb_must_killed_def.get(i);
         if (dset != NULL) {
             count += dset->count_mem();
         }
     }
 
     count += m_bb_may_killed_def.count_mem();
-    ptr = &m_bb_may_killed_def;
+    for (INT i = 0; i <= m_bb_must_killed_def.get_last_idx(); i++) {
+        DefDBitSetCore const* dset = m_bb_must_killed_def.get(i);
+        if (dset != NULL) {
+            count += dset->count_mem();
+        }
+    }
+
+    count += m_bb_gen_exp.count_mem();
+    ptr = &m_bb_gen_exp;
     for (INT i = 0; i <= ptr->get_last_idx(); i++) {
         DefDBitSetCore * dset = ptr->get(i);
         if (dset != NULL) {
@@ -2296,26 +2325,16 @@ size_t IR_DU_MGR::count_mem()
         }
     }
 
-    count += m_bb_gen_ir_expr.count_mem();
-    ptr = &m_bb_gen_ir_expr;
-    for (INT i = 0; i <= ptr->get_last_idx(); i++) {
-        DefDBitSetCore * dset = ptr->get(i);
+    count += m_bb_killed_exp.count_mem();
+    for (INT i = 0; i <= m_bb_killed_exp.get_last_idx(); i++) {
+        DefDBitSetCore const* dset = m_bb_killed_exp.get(i);
         if (dset != NULL) {
             count += dset->count_mem();
         }
     }
 
-    count += m_bb_killed_ir_expr.count_mem();
-    ptr = &m_bb_killed_ir_expr;
-    for (INT i = 0; i <= ptr->get_last_idx(); i++) {
-        DefDBitSetCore * dset = ptr->get(i);
-        if (dset != NULL) {
-            count += dset->count_mem();
-        }
-    }
-
-    count += m_bb_availin_ir_expr.count_mem();
-    ptr = &m_bb_availin_ir_expr;
+    count += m_bb_availin_exp.count_mem();
+    ptr = &m_bb_availin_exp;
     for (INT i = 0; i <= ptr->get_last_idx(); i++) {
         DefDBitSetCore * dset = ptr->get(i);
         if (dset != NULL) {
@@ -2577,7 +2596,7 @@ void IR_DU_MGR::collectMayUse(IR const* ir, MDSet & may_use, bool computePR)
             bool done = false;
             CallGraph * callg = m_ru->get_region_mgr()->get_call_graph();
             if (callg != NULL) {
-                Region * ru = callg->map_call2ru(ir, m_ru);
+                Region * ru = callg->mapCall2Region(ir, m_ru);
                 if (ru != NULL && REGION_is_mddu_valid(ru)) {
                     MDSet const* muse = ru->get_may_use();
                     if (muse != NULL) {
@@ -2607,8 +2626,9 @@ void IR_DU_MGR::collectMayUse(IR const* ir, MDSet & may_use, bool computePR)
 //Collect MD which ir may use, include overlapped MD.
 void IR_DU_MGR::collectMayUseRecursive(
         IR const* ir,
-        MDSet & may_use,
-        bool computePR)
+        OUT MDSet & may_use,
+        bool computePR,
+        DefMiscBitSetMgr & bsmgr)
 {
     if (ir == NULL) { return; }
     switch (ir->get_code()) {
@@ -2618,77 +2638,78 @@ void IR_DU_MGR::collectMayUseRecursive(
         ASSERT0(ir->get_parent() != NULL);
         if (!ir->get_parent()->is_lda()) {
             ASSERT0(get_must_use(ir));
-            may_use.bunion(get_must_use(ir), *m_misc_bs_mgr);
+            may_use.bunion(get_must_use(ir), bsmgr);
 
             MDSet const* ts = get_may_use(ir);
             if (ts != NULL) {
-                may_use.bunion(*ts, *m_misc_bs_mgr);
+                may_use.bunion(*ts, bsmgr);
             }
         }
         return;
     case IR_ST:
-        collectMayUseRecursive(ST_rhs(ir), may_use, computePR);
+        collectMayUseRecursive(ST_rhs(ir), may_use, computePR, bsmgr);
         return;
     case IR_STPR:
-        collectMayUseRecursive(STPR_rhs(ir), may_use, computePR);
+        collectMayUseRecursive(STPR_rhs(ir), may_use, computePR, bsmgr);
         return;
     case IR_STARRAY:
         for (IR * s = ARR_sub_list(ir); s != NULL; s = s->get_next()) {
-            collectMayUseRecursive(s, may_use, computePR);
+            collectMayUseRecursive(s, may_use, computePR, bsmgr);
         }
-        collectMayUseRecursive(ARR_base(ir), may_use, computePR);
-        collectMayUseRecursive(STARR_rhs(ir), may_use, computePR);
+        collectMayUseRecursive(ARR_base(ir), may_use, computePR, bsmgr);
+        collectMayUseRecursive(STARR_rhs(ir), may_use, computePR, bsmgr);
         return;
     case IR_ILD:
-        collectMayUseRecursive(ILD_base(ir), may_use, computePR);
+        collectMayUseRecursive(ILD_base(ir), may_use, computePR, bsmgr);
         ASSERT0(ir->get_parent() != NULL);
         if (!ir->get_parent()->is_lda()) {
             MD const* t = get_must_use(ir);
             if (t != NULL) {
-                may_use.bunion(t, *m_misc_bs_mgr);
+                may_use.bunion(t, bsmgr);
             }
 
             MDSet const* ts = get_may_use(ir);
             if (ts != NULL) {
-                may_use.bunion(*ts, *m_misc_bs_mgr);
+                may_use.bunion(*ts, bsmgr);
             }
         }
         return;
     case IR_IST:
-        collectMayUseRecursive(IST_rhs(ir), may_use, computePR);
-        collectMayUseRecursive(IST_base(ir), may_use, computePR);
+        collectMayUseRecursive(IST_rhs(ir), may_use, computePR, bsmgr);
+        collectMayUseRecursive(IST_base(ir), may_use, computePR, bsmgr);
         break;
     case IR_LDA:
         ASSERT0(ir->verify(m_ru));
         return;
     case IR_ICALL:
-        collectMayUseRecursive(ICALL_callee(ir), may_use, computePR);
+        collectMayUseRecursive(ICALL_callee(ir), may_use, computePR, bsmgr);
         //Fall through.
     case IR_CALL:
         {
             IR * p = CALL_param_list(ir);
             while (p != NULL) {
-                collectMayUseRecursive(p, may_use, computePR);
+                collectMayUseRecursive(p, may_use, computePR, bsmgr);
                 p = p->get_next();
             }
 
             bool done = false;
             CallGraph * callg = m_ru->get_region_mgr()->get_call_graph();
             if (callg != NULL) {
-                Region * ru = callg->map_call2ru(ir, m_ru);
+                Region * ru = callg->mapCall2Region(ir, m_ru);
                 if (ru != NULL && REGION_is_mddu_valid(ru)) {
                     MDSet const* muse = ru->get_may_use();
                     if (muse != NULL) {
-                        may_use.bunion(*muse, *m_misc_bs_mgr);
+                        may_use.bunion(*muse, bsmgr);
                         done = true;
                     }
                 }
             }
+
             if (!done) {
                 //Regard MayDef MDSet as MayUse.
                 MDSet const* muse = ir->getRefMDSet();
                 if (muse != NULL) {
-                    may_use.bunion(*muse, *m_misc_bs_mgr);
+                    may_use.bunion(*muse, bsmgr);
                 }
             }
         }
@@ -2714,83 +2735,83 @@ void IR_DU_MGR::collectMayUseRecursive(
     case IR_LSR:
     case IR_LSL:
         //Binary operation.
-        collectMayUseRecursive(BIN_opnd0(ir), may_use, computePR);
-        collectMayUseRecursive(BIN_opnd1(ir), may_use, computePR);
+        collectMayUseRecursive(BIN_opnd0(ir), may_use, computePR, bsmgr);
+        collectMayUseRecursive(BIN_opnd1(ir), may_use, computePR, bsmgr);
         return;
     case IR_BNOT:
     case IR_LNOT:
     case IR_NEG:
-        collectMayUseRecursive(UNA_opnd0(ir), may_use, computePR);
+        collectMayUseRecursive(UNA_opnd0(ir), may_use, computePR, bsmgr);
         return;
     case IR_GOTO:
     case IR_LABEL:
         return;
     case IR_IGOTO:
-        collectMayUseRecursive(IGOTO_vexp(ir), may_use, computePR);
+        collectMayUseRecursive(IGOTO_vexp(ir), may_use, computePR, bsmgr);
         return;
     case IR_SWITCH:
-        collectMayUseRecursive(SWITCH_vexp(ir), may_use, computePR);
+        collectMayUseRecursive(SWITCH_vexp(ir), may_use, computePR, bsmgr);
         return;
     case IR_ARRAY:
         {
             ASSERT0(ir->get_parent() != NULL);
             MD const* t = get_must_use(ir);
             if (t != NULL) {
-                may_use.bunion(t, *m_misc_bs_mgr);
+                may_use.bunion(t, bsmgr);
             }
 
             MDSet const* ts = get_may_use(ir);
             if (ts != NULL) {
-                may_use.bunion(*ts, *m_misc_bs_mgr);
+                may_use.bunion(*ts, bsmgr);
             }
 
             for (IR * s = ARR_sub_list(ir); s != NULL; s = s->get_next()) {
-                collectMayUseRecursive(s, may_use, computePR);
+                collectMayUseRecursive(s, may_use, computePR, bsmgr);
             }
-            collectMayUseRecursive(ARR_base(ir), may_use, computePR);
+            collectMayUseRecursive(ARR_base(ir), may_use, computePR, bsmgr);
         }
         return;
     case IR_CVT:
         //CVT should not has any use-mds. Even if the operation
         //will genrerate different type.
-        collectMayUseRecursive(CVT_exp(ir), may_use, computePR);
+        collectMayUseRecursive(CVT_exp(ir), may_use, computePR, bsmgr);
         return;
     case IR_PR:
         if (!computePR) { return; }
 
         ASSERT0(get_must_use(ir));
-        may_use.bunion_pure(MD_id(get_must_use(ir)), *m_misc_bs_mgr);
+        may_use.bunion_pure(MD_id(get_must_use(ir)), bsmgr);
 
         if (!m_ru->isPRUniqueForSameNo()) {
             MDSet const* ts = get_may_use(ir);
             if (ts != NULL) {
-                may_use.bunion_pure(*ts, *m_misc_bs_mgr);
+                may_use.bunion_pure(*ts, bsmgr);
             }
         }
         return;
     case IR_TRUEBR:
     case IR_FALSEBR:
         ASSERT0(BR_lab(ir));
-        collectMayUseRecursive(BR_det(ir), may_use, computePR);
+        collectMayUseRecursive(BR_det(ir), may_use, computePR, bsmgr);
         return;
     case IR_RETURN:
-        collectMayUseRecursive(RET_exp(ir), may_use, computePR);
+        collectMayUseRecursive(RET_exp(ir), may_use, computePR, bsmgr);
         return;
     case IR_SELECT:
-        collectMayUseRecursive(SELECT_pred(ir), may_use, computePR);
-        collectMayUseRecursive(SELECT_trueexp(ir), may_use, computePR);
-        collectMayUseRecursive(SELECT_falseexp(ir), may_use, computePR);
+        collectMayUseRecursive(SELECT_pred(ir), may_use, computePR, bsmgr);
+        collectMayUseRecursive(SELECT_trueexp(ir), may_use, computePR, bsmgr);
+        collectMayUseRecursive(SELECT_falseexp(ir), may_use, computePR, bsmgr);
         return;
     case IR_PHI:
         for (IR * p = PHI_opnd_list(ir); p != NULL; p = p->get_next()) {
-            collectMayUseRecursive(p, may_use, computePR);
+            collectMayUseRecursive(p, may_use, computePR, bsmgr);
         }
         return;
     case IR_REGION:
         {
             MDSet const* x = REGION_ru(ir)->get_may_use();
             if (x != NULL) {
-                may_use.bunion(*x, *m_misc_bs_mgr);
+                may_use.bunion(*x, bsmgr);
             }
         }
         return;
@@ -2802,25 +2823,25 @@ void IR_DU_MGR::collectMayUseRecursive(
 void IR_DU_MGR::computeMayDef(
         IR const* ir,
         MDSet * bb_maydefmds,
-        DefDBitSetCore * maygen_stmt)
+        DefDBitSetCore * maygen_stmt,
+        DefMiscBitSetMgr & bsmgr)
 {
     if (!ir->is_stpr() || !m_ru->isPRUniqueForSameNo()) {
         MD const* ref = get_effect_def_md(ir);
         if (ref != NULL && !ref->is_exact()) {
-            bb_maydefmds->bunion(ref, *m_misc_bs_mgr);
+            bb_maydefmds->bunion(ref, bsmgr);
         }
 
         //Collect maydef mds.
         MDSet const* refs = get_may_def(ir);
         if (refs != NULL && !refs->is_empty()) {
-            bb_maydefmds->bunion(*refs, *m_misc_bs_mgr);
+            bb_maydefmds->bunion(*refs, bsmgr);
         }
     }
 
     //Computing May GEN set of reach-definition.
-    //The computation of reach-definition problem
-    //is conservative. If we can not say
-    //whether a DEF is killed, regard it as lived STMT.
+    //The computation of reach-definition problem is conservative.
+    //If we can not say whether a DEF is killed, regard it as lived STMT.
     SEGIter * st = NULL;
     INT ni;
     for (INT i = maygen_stmt->get_first(&st); i != -1; i = ni) {
@@ -2828,10 +2849,10 @@ void IR_DU_MGR::computeMayDef(
         IR * gened_ir = m_ru->get_ir(i);
         ASSERT0(gened_ir != NULL && gened_ir->is_stmt());
         if (is_must_kill(ir, gened_ir)) {
-            maygen_stmt->diff(i, *m_misc_bs_mgr);
+            maygen_stmt->diff(i, bsmgr);
         }
     }
-    maygen_stmt->bunion(IR_id(ir), *m_misc_bs_mgr);
+    maygen_stmt->bunion(IR_id(ir), bsmgr);
 }
 
 
@@ -2839,7 +2860,8 @@ void IR_DU_MGR::computeMustExactDef(
         IR const* ir,
         OUT MDSet * bb_mustdefmds,
         DefDBitSetCore * mustgen_stmt,
-        ConstMDIter & mditer)
+        ConstMDIter & mditer,
+        DefMiscBitSetMgr & bsmgr)
 {
     switch (ir->get_code()) {
     case IR_CALL:
@@ -2850,11 +2872,11 @@ void IR_DU_MGR::computeMustExactDef(
             if (x != NULL) {
                 //call may not have return value.
 
-                bb_mustdefmds->bunion(x, *m_misc_bs_mgr);
+                bb_mustdefmds->bunion(x, bsmgr);
 
                 //Add MD which is exact and overlapped with x.
                 m_md_sys->computeOverlapExactMD(
-                        x, bb_mustdefmds, mditer, *m_misc_bs_mgr);
+                        x, bb_mustdefmds, mditer, bsmgr);
             }
         }
         break;
@@ -2866,11 +2888,11 @@ void IR_DU_MGR::computeMustExactDef(
         {
             MD const* x = ir->get_exact_ref();
             if (x != NULL) {
-                bb_mustdefmds->bunion(x, *m_misc_bs_mgr);
+                bb_mustdefmds->bunion(x, bsmgr);
 
                 //Add MD which is exact and overlapped with x.
                 m_md_sys->computeOverlapExactMD(
-                        x, bb_mustdefmds, mditer, *m_misc_bs_mgr);
+                        x, bb_mustdefmds, mditer, bsmgr);
             }
         }
     }
@@ -2883,10 +2905,10 @@ void IR_DU_MGR::computeMustExactDef(
         IR * gened_ir = m_ru->get_ir(i);
         ASSERT0(gened_ir != NULL && gened_ir->is_stmt());
         if (is_may_kill(ir, gened_ir)) {
-            mustgen_stmt->diff(i, *m_misc_bs_mgr);
+            mustgen_stmt->diff(i, bsmgr);
         }
     }
-    mustgen_stmt->bunion(IR_id(ir), *m_misc_bs_mgr);
+    mustgen_stmt->bunion(IR_id(ir), bsmgr);
 }
 
 
@@ -2898,7 +2920,8 @@ void IR_DU_MGR::computeMustExactDefMayDefMayUse(
         OUT Vector<MDSet*> * mustdefmds,
         OUT Vector<MDSet*> * maydefmds,
         OUT MDSet * mayusemds,
-        UINT flag)
+        UINT flag,
+        DefMiscBitSetMgr & bsmgr)
 {
     if (HAVE_FLAG(flag, SOL_REACH_DEF) ||
         HAVE_FLAG(flag, SOL_AVAIL_REACH_DEF)) {
@@ -2927,14 +2950,14 @@ void IR_DU_MGR::computeMustExactDefMayDefMayUse(
         UINT bbid = BB_id(bb);
         if (mustdefmds != NULL) {
             bb_mustdefmds = mustdefmds->get(bbid);
-            mustgen_stmt = getMustGenDef(bbid);
-            mustgen_stmt->clean(*m_misc_bs_mgr);
+            mustgen_stmt = getMustGenDef(bbid, &bsmgr);
+            mustgen_stmt->clean(bsmgr);
         }
 
         if (maydefmds != NULL) {
             bb_maydefmds = maydefmds->get(bbid);
-            maygen_stmt = getMayGenDef(bbid);
-            maygen_stmt->clean(*m_misc_bs_mgr);
+            maygen_stmt = getMayGenDef(bbid, &bsmgr);
+            maygen_stmt->clean(bsmgr);
         }
 
         //may_def_mds, must_def_mds should be already clean.
@@ -2944,7 +2967,7 @@ void IR_DU_MGR::computeMustExactDefMayDefMayUse(
             IR const* ir = irct->val();
             ASSERT0(ir);
             if (mayusemds != NULL) {
-                collectMayUseRecursive(ir, *mayusemds, isComputePRDU());
+                collectMayUseRecursive(ir, *mayusemds, isComputePRDU(), bsmgr);
                 //collectMayUse(ir, *mayusemds, isComputePRDU());
             }
 
@@ -2957,11 +2980,12 @@ void IR_DU_MGR::computeMustExactDefMayDefMayUse(
 
             //Collect mustdef mds.
             if (bb_mustdefmds != NULL) {
-                computeMustExactDef(ir, bb_mustdefmds, mustgen_stmt, mditer);
+                computeMustExactDef(ir, bb_mustdefmds,
+                    mustgen_stmt, mditer, bsmgr);
             }
 
             if (bb_maydefmds != NULL) {
-                computeMayDef(ir, bb_maydefmds, maygen_stmt);
+                computeMayDef(ir, bb_maydefmds, maygen_stmt, bsmgr);
             }
         }
     }
@@ -3006,7 +3030,7 @@ void IR_DU_MGR::computeMDRef()
                     //querying process is only executed once per BB.
                     MD2MDSet * mx = NULL;
                     if (m_aa->is_flow_sensitive()) {
-                        mx = m_aa->mapBBtoMD2MDSet(bb);
+                        mx = m_aa->mapBBtoMD2MDSet(BB_id(bb));
                     } else {
                         mx = m_aa->get_unique_md2mds();
                     }
@@ -3056,31 +3080,31 @@ void IR_DU_MGR::computeMDRef()
 //flag: switches.
 //NOTE: compute maykill and mustkill both need may-gen-def.
 void IR_DU_MGR::computeKillSet(
+        DefDBitSetCoreHash & dbitsetchash,
         Vector<MDSet*> const* mustexactdefmds,
-        Vector<MDSet*> const* maydefmds)
+        Vector<MDSet*> const* maydefmds,
+        DefMiscBitSetMgr & bsmgr)
 {
     ASSERT0(mustexactdefmds || maydefmds);
 
     BBList * ir_bb_list = m_ru->get_bb_list();
-    DefDBitSetCore univers;
-    univers.set_sparse(SOL_SET_IS_SPARSE);
+    DefDBitSetCore univers(SOL_SET_IS_SPARSE);
     C<IRBB*> * ct;
     for (ir_bb_list->get_head(&ct);
          ct != ir_bb_list->end(); ct = ir_bb_list->get_next(ct)) {
         IRBB * bb = ct->val();
-        univers.bunion(*getMayGenDef(BB_id(bb)), *m_misc_bs_mgr);
+        univers.bunion(*getMayGenDef(BB_id(bb), &bsmgr), bsmgr);
     }
 
-    DefDBitSetCore tmpstmtset;
-    tmpstmtset.set_sparse(SOL_SET_IS_SPARSE);
+    DefDBitSetCore tmpstmtset(SOL_SET_IS_SPARSE);
+    DefDBitSetCore must_killed_set(SOL_SET_IS_SPARSE);
+    DefDBitSetCore may_killed_set(SOL_SET_IS_SPARSE);
+
     for (ir_bb_list->get_head(&ct);
          ct != ir_bb_list->end(); ct = ir_bb_list->get_next(ct)) {
         IRBB * bb = ct->val();
-
         UINT bbid = BB_id(bb);
-        DefDBitSetCore const* maygendef = getMayGenDef(bbid);
-        DefDBitSetCore * must_killed_set = NULL;
-        DefDBitSetCore * may_killed_set = NULL;
+        DefDBitSetCore const* maygendef = getMayGenDef(bbid, &bsmgr);
 
         bool comp_must = false;
         MDSet const* bb_mustdef_mds = NULL;
@@ -3088,8 +3112,6 @@ void IR_DU_MGR::computeKillSet(
             bb_mustdef_mds = mustexactdefmds->get(bbid);
             if (bb_mustdef_mds != NULL && !bb_mustdef_mds->is_empty()) {
                 comp_must = true;
-                must_killed_set = getMustKilledDef(bbid);
-                must_killed_set->clean(*m_misc_bs_mgr);
             }
         }
 
@@ -3100,24 +3122,22 @@ void IR_DU_MGR::computeKillSet(
             bb_maydef_mds = maydefmds->get(bbid);
             if (bb_maydef_mds != NULL && !bb_maydef_mds->is_empty()) {
                 comp_may = true;
-                may_killed_set = getMayKilledDef(bbid);
-                may_killed_set->clean(*m_misc_bs_mgr);
             }
         }
 
         if (comp_must || comp_may) {
             SEGIter * st = NULL;
-            tmpstmtset.copy(univers, *m_misc_bs_mgr);
-            tmpstmtset.diff(*maygendef, *m_misc_bs_mgr);
-             for (INT i = tmpstmtset.get_first(&st);
-                  i != -1; i = tmpstmtset.get_next(i, &st)) {
+            tmpstmtset.copy(univers, bsmgr);
+            tmpstmtset.diff(*maygendef, bsmgr);
+            for (INT i = tmpstmtset.get_first(&st);
+                 i != -1; i = tmpstmtset.get_next(i, &st)) {
                 IR const* stmt = m_ru->get_ir(i);
                 ASSERT0(stmt->is_stmt());
                 if (comp_must) {
                     MD const* stmt_mustexactdef_md = stmt->get_exact_ref();
                     if (stmt_mustexactdef_md == NULL) { continue; }
                     if (bb_mustdef_mds->is_contain(stmt_mustexactdef_md)) {
-                        must_killed_set->bunion(i, *m_misc_bs_mgr);
+                        must_killed_set.bunion(i, bsmgr);
                     }
                 }
 
@@ -3126,22 +3146,41 @@ void IR_DU_MGR::computeKillSet(
                     MD const* stmt_effectdef_md = stmt->get_effect_ref();
                     if (stmt_effectdef_md != NULL &&
                         bb_mustdef_mds->is_contain(stmt_effectdef_md)) {
-                        may_killed_set->bunion(i, *m_misc_bs_mgr);
+                        may_killed_set.bunion(i, bsmgr);
                         continue;
                     }
 
                     MDSet const* maydef = get_may_def(stmt);
                     if (maydef == NULL) { continue; }
                     if (bb_maydef_mds->is_intersect(*maydef)) {
-                        may_killed_set->bunion(i, *m_misc_bs_mgr);
+                        may_killed_set.bunion(i, bsmgr);
                     }
                 }
             }
         }
+
+        if (comp_must) {
+            setMustKilledDef(bbid, dbitsetchash.append(must_killed_set));
+        } else {
+            setMustKilledDef(bbid, NULL);
+        }
+
+        if (comp_may) {
+            setMayKilledDef(bbid, dbitsetchash.append(may_killed_set));
+        } else {
+            setMayKilledDef(bbid, NULL);
+        }
+
+        must_killed_set.clean(bsmgr);
+        may_killed_set.clean(bsmgr);
+        tmpstmtset.clean(bsmgr);
     }
 
-    univers.clean(*m_misc_bs_mgr);
-    tmpstmtset.clean(*m_misc_bs_mgr);
+    ASSERT0(must_killed_set.is_empty() &&
+            may_killed_set.is_empty() &&
+            tmpstmtset.is_empty());
+
+    univers.clean(bsmgr);
 }
 
 
@@ -3182,14 +3221,16 @@ bool IR_DU_MGR::canBeLiveExprCand(IR const* ir) const
 }
 
 
-//Compute generated IR-EXPR for BB.
+//Compute generated-EXPR for BB.
 void IR_DU_MGR::computeGenForBB(
         IRBB * bb,
-        IN OUT DefDBitSetCore & expr_univers,
-        MDSet & tmp)
+        OUT DefDBitSetCore & expr_univers,
+        DefMiscBitSetMgr & bsmgr)
 {
-    DefDBitSetCore * gen_ir_exprs = getGenIRExpr(BB_id(bb));
-    gen_ir_exprs->clean(*m_misc_bs_mgr);
+    MDSet tmp;
+    DefDBitSetCore * gen_ir_exprs = getGenIRExpr(BB_id(bb), &bsmgr);
+    gen_ir_exprs->clean(bsmgr);
+
     C<IR*> * ct;
     for (BB_irlist(bb).get_head(&ct);
          ct != BB_irlist(bb).end(); ct = BB_irlist(bb).get_next(ct)) {
@@ -3199,36 +3240,36 @@ void IR_DU_MGR::computeGenForBB(
         case IR_ST:
             if (canBeLiveExprCand(ST_rhs(ir))) {
                 //Compute the generated expressions set.
-                gen_ir_exprs->bunion(IR_id(ST_rhs(ir)), *m_misc_bs_mgr);
-                expr_univers.bunion(IR_id(ST_rhs(ir)), *m_misc_bs_mgr);
+                gen_ir_exprs->bunion(IR_id(ST_rhs(ir)), bsmgr);
+                expr_univers.bunion(IR_id(ST_rhs(ir)), bsmgr);
             }
             //Fall through.
         case IR_STPR:
             if (ir->is_stpr() && canBeLiveExprCand(STPR_rhs(ir))) {
                 //Compute the generated expressions set.
-                gen_ir_exprs->bunion(IR_id(STPR_rhs(ir)), *m_misc_bs_mgr);
-                expr_univers.bunion(IR_id(STPR_rhs(ir)), *m_misc_bs_mgr);
+                gen_ir_exprs->bunion(IR_id(STPR_rhs(ir)), bsmgr);
+                expr_univers.bunion(IR_id(STPR_rhs(ir)), bsmgr);
             }
             //Fall through.
         case IR_STARRAY:
             if (ir->is_starray() && canBeLiveExprCand(STARR_rhs(ir))) {
                 //Compute the generated expressions set.
-                gen_ir_exprs->bunion(IR_id(STARR_rhs(ir)), *m_misc_bs_mgr);
-                expr_univers.bunion(IR_id(STARR_rhs(ir)), *m_misc_bs_mgr);
+                gen_ir_exprs->bunion(IR_id(STARR_rhs(ir)), bsmgr);
+                expr_univers.bunion(IR_id(STARR_rhs(ir)), bsmgr);
             }
             //Fall through.
         case IR_IST:
             if (ir->is_ist()) {
                 //Compute the generated expressions set.
                 if (canBeLiveExprCand(IST_rhs(ir))) {
-                    gen_ir_exprs->bunion(IR_id(IST_rhs(ir)), *m_misc_bs_mgr);
-                    expr_univers.bunion(IR_id(IST_rhs(ir)), *m_misc_bs_mgr);
+                    gen_ir_exprs->bunion(IR_id(IST_rhs(ir)), bsmgr);
+                    expr_univers.bunion(IR_id(IST_rhs(ir)), bsmgr);
                 }
 
                 if (canBeLiveExprCand(IST_base(ir))) {
                     //e.g: *(int*)0x1000 = 10, IST_base(ir) is NULL.
-                    gen_ir_exprs->bunion(IR_id(IST_base(ir)), *m_misc_bs_mgr);
-                    expr_univers.bunion(IR_id(IST_base(ir)), *m_misc_bs_mgr);
+                    gen_ir_exprs->bunion(IR_id(IST_base(ir)), bsmgr);
+                    expr_univers.bunion(IR_id(IST_base(ir)), bsmgr);
                 }
             }
 
@@ -3254,9 +3295,9 @@ void IR_DU_MGR::computeGenForBB(
                             continue;
                         }
 
-                        tmp.clean(*m_misc_bs_mgr);
+                        tmp.clean(bsmgr);
 
-                        collectMayUseRecursive(tir, tmp, true);
+                        collectMayUseRecursive(tir, tmp, true, bsmgr);
                         //collectMayUse(tir, tmp, true);
 
                         if ((maydef != NULL &&
@@ -3264,7 +3305,7 @@ void IR_DU_MGR::computeGenForBB(
                             (mustdef != NULL &&
                              tmp.is_contain(mustdef))) {
                             //'ir' killed 'tir'.
-                            gen_ir_exprs->diff(j, *m_misc_bs_mgr);
+                            gen_ir_exprs->diff(j, bsmgr);
                         }
                     }
                 }
@@ -3277,18 +3318,16 @@ void IR_DU_MGR::computeGenForBB(
                 if (ir->is_icall()) {
                     ASSERT0(ICALL_callee(ir)->is_ld());
                     if (canBeLiveExprCand(ICALL_callee(ir))) {
-                        gen_ir_exprs->bunion(
-                            IR_id(ICALL_callee(ir)), *m_misc_bs_mgr);
-                        expr_univers.bunion(
-                            IR_id(ICALL_callee(ir)), *m_misc_bs_mgr);
+                        gen_ir_exprs->bunion(IR_id(ICALL_callee(ir)), bsmgr);
+                        expr_univers.bunion(IR_id(ICALL_callee(ir)), bsmgr);
                     }
                 }
 
                 for (IR * p = CALL_param_list(ir);
                      p != NULL; p = p->get_next()) {
                     if (canBeLiveExprCand(p)) {
-                        gen_ir_exprs->bunion(IR_id(p), *m_misc_bs_mgr);
-                        expr_univers.bunion(IR_id(p), *m_misc_bs_mgr);
+                        gen_ir_exprs->bunion(IR_id(p), bsmgr);
+                        expr_univers.bunion(IR_id(p), bsmgr);
                     }
                 }
 
@@ -3311,17 +3350,15 @@ void IR_DU_MGR::computeGenForBB(
                             continue;
                         }
 
-                        tmp.clean(*m_misc_bs_mgr);
+                        tmp.clean(bsmgr);
 
-                        collectMayUseRecursive(tir, tmp, true);
+                        collectMayUseRecursive(tir, tmp, true, bsmgr);
                         //collectMayUse(tir, tmp, true);
 
-                        if ((maydef != NULL &&
-                             maydef->is_intersect(tmp)) ||
-                            (mustdef != NULL &&
-                             tmp.is_contain(mustdef))) {
+                        if ((maydef != NULL && maydef->is_intersect(tmp)) ||
+                            (mustdef != NULL && tmp.is_contain(mustdef))) {
                             //'ir' killed 'tir'.
-                            gen_ir_exprs->diff(j, *m_misc_bs_mgr);
+                            gen_ir_exprs->diff(j, bsmgr);
                         }
                     }
                 }
@@ -3338,32 +3375,28 @@ void IR_DU_MGR::computeGenForBB(
                 //  'i + 1' is dead after S1 statement.
                 if (maydef == NULL) { break; }
 
-                MDSet tmp;
                 SEGIter * st = NULL;
                 bool first = true;
-                for (INT j = gen_ir_exprs->get_first(&st), nj;
-                     j != -1; j = nj) {
+                INT nj;
+                for (INT j = gen_ir_exprs->get_first(&st); j >= 0; j = nj) {
                     nj = gen_ir_exprs->get_next(j, &st);
                     IR * tir = m_ru->get_ir(j);
-                    ASSERT0(tir != NULL);
-                    if (tir->is_lda() || tir->is_const()) {
-                        continue;
-                    }
-                    if (first) {
-                        first = false;
-                    } else {
-                        tmp.clean(*m_misc_bs_mgr);
-                    }
+                    ASSERT0(tir);
+                    if (tir->is_lda() || tir->is_const()) { continue;  }
 
-                    collectMayUseRecursive(tir, tmp, true);
+                    if (first) { first = false; }
+                    else { tmp.clean(bsmgr); }
+
+                    collectMayUseRecursive(tir, tmp, true, bsmgr);
                     //collectMayUse(tir, *tmp, true);
 
                     if (maydef->is_intersect(tmp)) {
                         //'ir' killed 'tir'.
-                        gen_ir_exprs->diff(j, *m_misc_bs_mgr);
+                        gen_ir_exprs->diff(j, bsmgr);
                     }
                 }
-                tmp.clean(*m_misc_bs_mgr);
+
+                tmp.clean(bsmgr);
             }
             break;
         case IR_GOTO:
@@ -3371,8 +3404,8 @@ void IR_DU_MGR::computeGenForBB(
         case IR_IGOTO:
             //Compute the generated expressions.
             if (canBeLiveExprCand(IGOTO_vexp(ir))) {
-                gen_ir_exprs->bunion(IR_id(IGOTO_vexp(ir)), *m_misc_bs_mgr);
-                expr_univers.bunion(IR_id(IGOTO_vexp(ir)), *m_misc_bs_mgr);
+                gen_ir_exprs->bunion(IR_id(IGOTO_vexp(ir)), bsmgr);
+                expr_univers.bunion(IR_id(IGOTO_vexp(ir)), bsmgr);
             }
             break;
         case IR_DO_WHILE:
@@ -3387,85 +3420,87 @@ void IR_DU_MGR::computeGenForBB(
         case IR_FALSEBR:
             //Compute the generated expressions.
             if (canBeLiveExprCand(BR_det(ir))) {
-                gen_ir_exprs->bunion(IR_id(BR_det(ir)), *m_misc_bs_mgr);
-                expr_univers.bunion(IR_id(BR_det(ir)), *m_misc_bs_mgr);
+                gen_ir_exprs->bunion(IR_id(BR_det(ir)), bsmgr);
+                expr_univers.bunion(IR_id(BR_det(ir)), bsmgr);
             }
             break;
         case IR_SWITCH:
             //Compute the generated expressions.
             if (canBeLiveExprCand(SWITCH_vexp(ir))) {
-                gen_ir_exprs->bunion(IR_id(SWITCH_vexp(ir)), *m_misc_bs_mgr);
-                expr_univers.bunion(IR_id(SWITCH_vexp(ir)), *m_misc_bs_mgr);
+                gen_ir_exprs->bunion(IR_id(SWITCH_vexp(ir)), bsmgr);
+                expr_univers.bunion(IR_id(SWITCH_vexp(ir)), bsmgr);
             }
             break;
         case IR_RETURN:
             if (RET_exp(ir) != NULL) {
                 if (canBeLiveExprCand(RET_exp(ir))) {
-                    gen_ir_exprs->bunion(IR_id(RET_exp(ir)), *m_misc_bs_mgr);
-                    expr_univers.bunion(IR_id(RET_exp(ir)), *m_misc_bs_mgr);
+                    gen_ir_exprs->bunion(IR_id(RET_exp(ir)), bsmgr);
+                    expr_univers.bunion(IR_id(RET_exp(ir)), bsmgr);
                 }
             }
             break;
         case IR_PHI:
             for (IR * p = PHI_opnd_list(ir); p != NULL; p = p->get_next()) {
                 if (canBeLiveExprCand(p)) {
-                    gen_ir_exprs->bunion(IR_id(p), *m_misc_bs_mgr);
-                    expr_univers.bunion(IR_id(p), *m_misc_bs_mgr);
+                    gen_ir_exprs->bunion(IR_id(p), bsmgr);
+                    expr_univers.bunion(IR_id(p), bsmgr);
                 }
             }
             break;
         default: UNREACH();
-        } //end switch
-    } //end for each IR
+        }
+    }
+    tmp.clean(bsmgr);
 }
 
 
 //Compute local-gen IR-EXPR set and killed IR-EXPR set.
 //'expr_universe': record the universal of all ir-expr of region.
 void IR_DU_MGR::computeAuxSetForExpression(
+        DefDBitSetCoreHash & dbitsetchash,
         OUT DefDBitSetCore * expr_universe,
-        Vector<MDSet*> const* maydefmds)
+        Vector<MDSet*> const* maydefmds,
+        DefMiscBitSetMgr & bsmgr)
 {
     ASSERT0(expr_universe && maydefmds);
-    MDSet * tmp = m_mds_mgr->create();
     BBList * bbl = m_ru->get_bb_list();
     C<IRBB*> * ct;
     for (bbl->get_head(&ct); ct != bbl->end(); ct = bbl->get_next(ct)) {
         IRBB * bb = ct->val();
-        computeGenForBB(bb, *expr_universe, *tmp);
+        computeGenForBB(bb, *expr_universe, bsmgr);
     }
 
-    //Compute kill-set. The DEF MDSet of current ir, killed all
-    //other exprs which use the MDSet modified by 'ir'.
+    //Compute kill-set.
+    //The defined MDSet of current ir, killed all
+    //other exprs which used MDSet that modified by 'ir'.
+    DefDBitSetCore killed_set(SOL_SET_IS_SPARSE);
+    MDSet tmp;
     for (bbl->get_head(&ct); ct != bbl->end(); ct = bbl->get_next(ct)) {
         IRBB * bb = ct->val();
         MDSet const* bb_maydef = maydefmds->get(BB_id(bb));
         ASSERT0(bb_maydef != NULL);
-
-        //Get killed IR EXPR set.
-        DefDBitSetCore * killed_set = getKilledIRExpr(BB_id(bb));
-        killed_set->clean(*m_misc_bs_mgr);
 
         SEGIter * st = NULL;
         for (INT i = expr_universe->get_first(&st);
              i != -1; i = expr_universe->get_next(i, &st)) {
             IR * ir = m_ru->get_ir(i);
             ASSERT0(ir->is_exp());
-            if (ir->is_lda() || ir->is_const()) {
-                continue;
-            }
+            if (ir->is_lda() || ir->is_const()) { continue; }
 
-            tmp->clean(*m_misc_bs_mgr);
-
-            collectMayUseRecursive(ir, *tmp, true);
+            tmp.clean(bsmgr);
+            collectMayUseRecursive(ir, tmp, true, bsmgr);
             //collectMayUse(ir, *tmp, true);
 
-            if (bb_maydef->is_intersect(*tmp)) {
-                killed_set->bunion(i, *m_misc_bs_mgr);
+            if (bb_maydef->is_intersect(tmp)) {
+                killed_set.bunion(i, bsmgr);
             }
         }
+
+        setKilledIRExpr(BB_id(bb), dbitsetchash.append(killed_set));
+        killed_set.clean(bsmgr);
     }
-    m_mds_mgr->free(tmp);
+
+    tmp.clean(bsmgr);
 }
 
 
@@ -3473,13 +3508,13 @@ void IR_DU_MGR::computeAuxSetForExpression(
 bool IR_DU_MGR::ForAvailReachDef(
         UINT bbid,
         List<IRBB*> & preds,
-        List<IRBB*> * lst)
+        List<IRBB*> * lst,
+        DefMiscBitSetMgr & bsmgr)
 {
     UNUSED(lst);
     bool change = false;
-    DefDBitSetCore * news = m_misc_bs_mgr->create_dbitsetc();
-    news->set_sparse(SOL_SET_IS_SPARSE);
-    DefDBitSetCore * in = getAvailInReachDef(bbid);
+    DefDBitSetCore news(SOL_SET_IS_SPARSE);
+    DefDBitSetCore * in = getAvailInReachDef(bbid, m_misc_bs_mgr);
     bool first = true;
     C<IRBB*> * ct;
     for (preds.get_head(&ct); ct != preds.end(); ct = preds.get_next(ct)) {
@@ -3487,20 +3522,24 @@ bool IR_DU_MGR::ForAvailReachDef(
         //Intersect
         if (first) {
             first = false;
-            in->copy(*getAvailOutReachDef(BB_id(p)), *m_misc_bs_mgr);
+            in->copy(*getAvailOutReachDef(BB_id(p), &bsmgr), *m_misc_bs_mgr);
         } else {
-            in->intersect(*getAvailOutReachDef(BB_id(p)), *m_misc_bs_mgr);
+            in->intersect(*getAvailOutReachDef(BB_id(p), &bsmgr),
+                *m_misc_bs_mgr);
             //in->bunion(*getAvailOutReachDef(BB_id(p)), *m_misc_bs_mgr);
         }
     }
 
-    news->copy(*in, *m_misc_bs_mgr);
-    news->diff(*getMayKilledDef(bbid), *m_misc_bs_mgr);
-    news->bunion(*getMustGenDef(bbid), *m_misc_bs_mgr);
+    news.copy(*in, bsmgr);
+    DefDBitSetCore const* killset = getMayKilledDef(bbid);
+    if (killset != NULL) {
+        news.diff(*killset, bsmgr);
+    }
+    news.bunion(*getMustGenDef(bbid, &bsmgr), bsmgr);
 
-    DefDBitSetCore * out = getAvailOutReachDef(bbid);
-    if (!out->is_equal(*news)) {
-        out->copy(*news, *m_misc_bs_mgr);
+    DefDBitSetCore * out = getAvailOutReachDef(bbid, &bsmgr);
+    if (!out->is_equal(news)) {
+        out->copy(news, bsmgr);
         change = true;
 
         #ifdef WORK_LIST_DRIVE
@@ -3515,7 +3554,7 @@ bool IR_DU_MGR::ForAvailReachDef(
         }
         #endif
     }
-    m_misc_bs_mgr->free_dbitsetc(news);
+    news.clean(bsmgr);
     return change;
 }
 
@@ -3523,36 +3562,43 @@ bool IR_DU_MGR::ForAvailReachDef(
 bool IR_DU_MGR::ForReachDef(
         UINT bbid,
         List<IRBB*> & preds,
-        List<IRBB*> * lst)
+        List<IRBB*> * lst,
+        DefMiscBitSetMgr & bsmgr)
 {
     UNUSED(lst);
     bool change = false;
-    DefDBitSetCore * in_reach_def = getInReachDef(bbid);
-    DefDBitSetCore * news = m_misc_bs_mgr->create_dbitsetc();
-    news->set_sparse(SOL_SET_IS_SPARSE);
+    DefDBitSetCore * in_reach_def = getInReachDef(bbid, m_misc_bs_mgr);
+    DefDBitSetCore news(SOL_SET_IS_SPARSE);
+
     bool first = true;
     C<IRBB*> * ct;
     for (preds.get_head(&ct); ct != preds.end(); ct = preds.get_next(ct)) {
-        IRBB * p = ct->val();
+        IRBB const* p = ct->val();
         if (first) {
-            in_reach_def->copy(*getOutReachDef(BB_id(p)), *m_misc_bs_mgr);
+            in_reach_def->copy(*getOutReachDef(BB_id(p), &bsmgr),
+                *m_misc_bs_mgr);
             first = false;
         } else {
-            in_reach_def->bunion(*getOutReachDef(BB_id(p)), *m_misc_bs_mgr);
+            in_reach_def->bunion(*getOutReachDef(BB_id(p), &bsmgr),
+                *m_misc_bs_mgr);
         }
     }
+
     if (first) {
         //bb does not have predecessor.
         ASSERT0(in_reach_def->is_empty());
     }
 
-    news->copy(*in_reach_def, *m_misc_bs_mgr);
-    news->diff(*getMustKilledDef(bbid), *m_misc_bs_mgr);
-    news->bunion(*getMayGenDef(bbid), *m_misc_bs_mgr);
+    news.copy(*in_reach_def, bsmgr);
+    DefDBitSetCore const* killset = getMustKilledDef(bbid);
+    if (killset != NULL) {
+        news.diff(*killset, bsmgr);
+    }
+    news.bunion(*getMayGenDef(bbid, &bsmgr), bsmgr);
 
-    DefDBitSetCore * out_reach_def = getOutReachDef(bbid);
-    if (!out_reach_def->is_equal(*news)) {
-        out_reach_def->copy(*news, *m_misc_bs_mgr);
+    DefDBitSetCore * out_reach_def = getOutReachDef(bbid, &bsmgr);
+    if (!out_reach_def->is_equal(news)) {
+        out_reach_def->copy(news, bsmgr);
         change = true;
 
         #ifdef WORK_LIST_DRIVE
@@ -3568,7 +3614,7 @@ bool IR_DU_MGR::ForReachDef(
         #endif
     }
 
-    m_misc_bs_mgr->free_dbitsetc(news);
+    news.clean(bsmgr);
     return change;
 }
 
@@ -3576,19 +3622,19 @@ bool IR_DU_MGR::ForReachDef(
 bool IR_DU_MGR::ForAvailExpression(
             UINT bbid,
             List<IRBB*> & preds,
-            List<IRBB*> * lst)
+            List<IRBB*> * lst,
+            DefMiscBitSetMgr & bsmgr)
 {
     UNUSED(lst);
     bool change = false;
-    DefDBitSetCore * news = m_misc_bs_mgr->create_dbitsetc();
-    news->set_sparse(SOL_SET_IS_SPARSE);
+    DefDBitSetCore news(SOL_SET_IS_SPARSE);
 
     bool first = true;
-    DefDBitSetCore * in = getAvailInExpr(bbid);
+    DefDBitSetCore * in = getAvailInExpr(bbid, m_misc_bs_mgr);
     C<IRBB*> * ct;
     for (preds.get_head(&ct); ct != preds.end(); ct = preds.get_next(ct)) {
         IRBB * p = ct->val();
-        DefDBitSetCore * liveout = getAvailOutExpr(BB_id(p));
+        DefDBitSetCore * liveout = getAvailOutExpr(BB_id(p), &bsmgr);
         if (first) {
             first = false;
             in->copy(*liveout, *m_misc_bs_mgr);
@@ -3597,12 +3643,15 @@ bool IR_DU_MGR::ForAvailExpression(
         }
     }
 
-    news->copy(*in, *m_misc_bs_mgr);
-    news->diff(*getKilledIRExpr(bbid), *m_misc_bs_mgr);
-    news->bunion(*getGenIRExpr(bbid), *m_misc_bs_mgr);
-    DefDBitSetCore * out = getAvailOutExpr(bbid);
-    if (!out->is_equal(*news)) {
-        out->copy(*news, *m_misc_bs_mgr);
+    news.copy(*in, bsmgr);
+    DefDBitSetCore const* set = getKilledIRExpr(bbid);
+    if (set != NULL) {
+        news.diff(*set, bsmgr);
+    }
+    news.bunion(*getGenIRExpr(bbid, &bsmgr), bsmgr);
+    DefDBitSetCore * out = getAvailOutExpr(bbid, &bsmgr);
+    if (!out->is_equal(news)) {
+        out->copy(news, bsmgr);
         change = true;
 
         #ifdef WORK_LIST_DRIVE
@@ -3617,37 +3666,46 @@ bool IR_DU_MGR::ForAvailExpression(
         }
         #endif
     }
-    m_misc_bs_mgr->free_dbitsetc(news);
+    news.clean(bsmgr);
     return change;
 }
 
 
 //Solve reaching definitions problem for IR STMT and
 //computing LIVE IN and LIVE OUT IR expressions.
-//'ir_expr_universal_set': that is to be the Universal SET for ExpRep.
-void IR_DU_MGR::solve(DefDBitSetCore const* expr_univers, UINT const flag)
+//'expr_univers': the Universal SET for ExpRep.
+void IR_DU_MGR::solve(
+        DefDBitSetCore const& expr_univers,
+        UINT const flag,
+        DefMiscBitSetMgr & bsmgr)
 {
     BBList * bbl = m_ru->get_bb_list();
     for (IRBB * bb = bbl->get_tail(); bb != NULL; bb = bbl->get_prev()) {
         UINT bbid = BB_id(bb);
         if (HAVE_FLAG(flag, SOL_REACH_DEF)) {
             //Initialize reach-def IN, reach-def OUT.
-            getOutReachDef(bbid)->clean(*m_misc_bs_mgr);
-            getInReachDef(bbid)->clean(*m_misc_bs_mgr);
+            getInReachDef(bbid, m_misc_bs_mgr)->clean(*m_misc_bs_mgr);
         }
+
         if (HAVE_FLAG(flag, SOL_AVAIL_REACH_DEF)) {
-            getAvailOutReachDef(bbid)->clean(*m_misc_bs_mgr);
-            getAvailInReachDef(bbid)->clean(*m_misc_bs_mgr);
+            getAvailInReachDef(bbid, m_misc_bs_mgr)->clean(*m_misc_bs_mgr);
         }
+
         if (HAVE_FLAG(flag, SOL_AVAIL_EXPR)) {
             //Initialize available in, available out expression.
             //IN-SET of BB must be universal of all IR-expressions.
-            DefDBitSetCore * availin = getAvailInExpr(bbid);
-            availin->copy(*expr_univers, *m_misc_bs_mgr);
-            DefDBitSetCore * liveout = getAvailOutExpr(bbid);
-            liveout->copy(*availin, *m_misc_bs_mgr);
-            liveout->diff(*getKilledIRExpr(bbid), *m_misc_bs_mgr);
-            liveout->bunion(*getGenIRExpr(bbid), *m_misc_bs_mgr);
+            DefDBitSetCore * availin = getAvailInExpr(bbid, m_misc_bs_mgr);
+            availin->copy(expr_univers, *m_misc_bs_mgr);
+
+            DefDBitSetCore * liveout = getAvailOutExpr(bbid, &bsmgr);
+            liveout->copy(*availin, bsmgr);
+
+            DefDBitSetCore const* set = getKilledIRExpr(bbid);
+            if (set != NULL) {
+                liveout->diff(*set, bsmgr);
+            }
+
+            liveout->bunion(*getGenIRExpr(bbid, &bsmgr), bsmgr);
         }
     }
 
@@ -3662,6 +3720,7 @@ void IR_DU_MGR::solve(DefDBitSetCore const* expr_univers, UINT const flag)
         IRBB * p = ct->val();
         lst.append_tail(p);
     }
+
     UINT count = tbbl->get_elem_count() * 20;
     UINT i = 0; //time of bb accessed.
     do {
@@ -3670,13 +3729,13 @@ void IR_DU_MGR::solve(DefDBitSetCore const* expr_univers, UINT const flag)
         preds.clean();
         m_cfg->get_preds(preds, bb);
         if (HAVE_FLAG(flag, SOL_AVAIL_REACH_DEF)) {
-            ForAvailReachDef(bbid, preds, &lst);
+            ForAvailReachDef(bbid, preds, &lst, bsmgr);
         }
         if (HAVE_FLAG(flag, SOL_REACH_DEF)) {
-            ForReachDef(bbid, preds, &lst);
+            ForReachDef(bbid, preds, &lst, bsmgr);
         }
         if (HAVE_FLAG(flag, SOL_AVAIL_EXPR)) {
-            ForAvailExpression(bbid, preds, &lst);
+            ForAvailExpression(bbid, preds, &lst, bsmgr);
         }
         i++;
     } while (lst.get_elem_count() != 0);
@@ -3694,13 +3753,13 @@ void IR_DU_MGR::solve(DefDBitSetCore const* expr_univers, UINT const flag)
             preds.clean();
             m_cfg->get_preds(preds, bb);
             if (HAVE_FLAG(flag, SOL_AVAIL_REACH_DEF)) {
-                change |= ForAvailReachDef(bbid, preds, NULL);
+                change |= ForAvailReachDef(bbid, preds, NULL, bsmgr);
             }
             if (HAVE_FLAG(flag, SOL_REACH_DEF)) {
-                change |= ForReachDef(bbid, preds, NULL);
+                change |= ForReachDef(bbid, preds, NULL, bsmgr);
             }
             if (HAVE_FLAG(flag, SOL_AVAIL_EXPR)) {
-                change |= ForAvailExpression(bbid, preds, NULL);
+                change |= ForAvailExpression(bbid, preds, NULL, bsmgr);
             }
         }
         count++;
@@ -3753,7 +3812,7 @@ UINT IR_DU_MGR::checkIsLocalKillingDef(
         DUIter di = NULL;
         for (UINT d = defset_of_t->get_first(&di);
              di != NULL; d = defset_of_t->get_next(d, &di)) {
-            IR const* def_of_t = get_ir(d);
+            IR const* def_of_t = m_ru->get_ir(d);
             ASSERT0(def_of_t->is_stmt());
             if (def_of_t->get_bb() != curbb) { continue; }
 
@@ -4112,7 +4171,7 @@ UINT IR_DU_MGR::checkIsNonLocalKillingDef(IR const* stmt, IR const* exp)
     //  ... //t can not be defined.
     //  = *t
     DefDBitSetCore const* lived_in_expr =
-                getAvailInExpr(BB_id(exp->get_stmt()->get_bb()));
+        getAvailInExpr(BB_id(exp->get_stmt()->get_bb()), m_misc_bs_mgr);
     if (!lived_in_expr->is_contain(IR_id(t2))) { return CK_UNKNOWN; }
 
     UINT exptysz = exp->get_dtype_size(m_tm);
@@ -4378,14 +4437,14 @@ void IR_DU_MGR::updateDef(IR * ir)
 //Initialize md2maydef_irs for each bb.
 void IR_DU_MGR::initMD2IRList(IRBB * bb)
 {
-    DefDBitSetCore * reach_def_irs = getInReachDef(BB_id(bb));
-    ASSERT0(reach_def_irs);
+    DefDBitSetCore * reachdef_in = getInReachDef(BB_id(bb), m_misc_bs_mgr);
+    ASSERT0(reachdef_in);
     m_md2irs->clean();
 
     //Record DEF IR STMT for each MD.
     SEGIter * st = NULL;
-    for (INT i = reach_def_irs->get_first(&st);
-         i != -1; i = reach_def_irs->get_next(i, &st)) {
+    for (INT i = reachdef_in->get_first(&st);
+         i != -1; i = reachdef_in->get_next(i, &st)) {
         IR const* stmt = m_ru->get_ir(i);
         //stmt may be PHI, Region, CALL.
         //If stmt is IR_PHI, its maydef is NULL.
@@ -4412,6 +4471,7 @@ void IR_DU_MGR::initMD2IRList(IRBB * bb)
                 } else if (mustdef != NULL && MD_id(mustdef) == (UINT)j) {
                     continue;
                 }
+
                 ASSERT0(m_md_sys->get_md(j) != NULL);
                 m_md2irs->append(j, i);
             }
@@ -4452,10 +4512,10 @@ bool IR_DU_MGR::verifyLiveinExp()
     C<IRBB*> * ct;
     for (bbl->get_head(&ct); ct != bbl->end(); ct = bbl->get_next(ct)) {
         IRBB * bb = ct->val();
-
+        ASSERT0(bb);
         SEGIter * st = NULL;
-        DefDBitSetCore * x = getAvailInExpr(BB_id(bb));
-        for (INT i = x->get_first(&st); i != -1; i = x->get_next(i, &st)) {
+        DefDBitSetCore * x = getAvailInExpr(BB_id(bb), m_misc_bs_mgr);
+        for (INT i = x->get_first(&st); i >= 0; i = x->get_next(i, &st)) {
             ASSERT0(m_ru->get_ir(i) && m_ru->get_ir(i)->is_exp());
         }
     }
@@ -4604,279 +4664,6 @@ bool IR_DU_MGR::verifyMDDUChain()
 }
 
 
-//Verify MD reference to stmts and expressions.
-bool IR_DU_MGR::verifyMDRef()
-{
-    BBList * bbl = m_ru->get_bb_list();
-    for (IRBB * bb = bbl->get_head();
-         bb != NULL; bb = bbl->get_next()) {
-        for (IR * ir = BB_first_ir(bb); ir != NULL; ir = BB_next_ir(bb)) {
-            m_citer.clean();
-            for (IR const* t = iterInitC(ir, m_citer);
-                 t != NULL; t = iterNextC(m_citer)) {
-                switch (IR_code(t)) {
-                case IR_ID:
-                    //We do not need MD or MDSET information of IR_ID.
-                    //ASSERT0(get_exact_ref(t));
-
-                    ASSERT0(get_may_use(t) == NULL);
-                    break;
-                case IR_LD:
-                    if (g_is_support_dynamic_type) {
-                        ASSERT(t->get_effect_ref(), ("type is at least effect"));
-                        ASSERT(!t->get_effect_ref()->is_pr(),
-                               ("MD can not present a PR."));
-                    } else {
-                        ASSERT(t->get_exact_ref(), ("type must be exact"));
-                        ASSERT(!t->get_exact_ref()->is_pr(),
-                               ("MD can not present a PR."));
-                    }
-
-                    //MayUse of ld may not empty.
-                    //e.g: cvt(ld(id(x,i8)), i32) x has exact md4(size=1), and
-                    //an overlapped md5(size=4).
-
-                    if (t->getRefMDSet() != NULL) {
-                        ASSERT0(m_mds_hash->find(*t->getRefMDSet()));
-                    }
-                    break;
-                case IR_PR:
-                    if (g_is_support_dynamic_type) {
-                        ASSERT(t->get_effect_ref(),
-                               ("type is at least effect"));
-                        ASSERT(t->get_effect_ref()->is_pr(),
-                               ("MD must present a PR."));
-                    } else {
-                        ASSERT(t->get_exact_ref(), ("type must be exact"));
-                        ASSERT(t->get_exact_ref()->is_pr(),
-                               ("MD must present a PR."));
-                    }
-
-                    if (m_ru->isPRUniqueForSameNo()) {
-                        if (get_may_use(t)) {
-                            get_may_use(t)->dump(m_md_sys,true);
-                        }
-                        ASSERT0(get_may_use(t) == NULL);
-                    } else {
-                        //If the mapping between pr and md is not unique,
-                        //maydef is not NULL.
-                        //Same PR may have different referrence type.
-                        //e.g: PR1(U8)=...
-                        //    ...=PR(U32)
-                        if (t->getRefMDSet() != NULL) {
-                            ASSERT0(m_mds_hash->find(*t->getRefMDSet()));
-                        }
-                    }
-                    break;
-                case IR_STARRAY:
-                    {
-                        MD const* must = get_effect_def_md(t);
-                        MDSet const* may = get_may_def(t);
-                        UNUSED(must);
-                        UNUSED(may);
-
-                        ASSERT0(must ||
-                                 (may && !may->is_empty()));
-                        if (must != NULL) {
-                            //PR can not be accessed by indirect operation.
-                            ASSERT0(!must->is_pr());
-                        }
-                        if (may != NULL) {
-                            //PR can not be accessed by indirect operation.
-                            SEGIter * iter;
-                            for (INT i = may->get_first(&iter);
-                                 i >= 0; i = may->get_next(i, &iter)) {
-                                MD const* x = m_md_sys->get_md(i);
-                                UNUSED(x);
-                                ASSERT0(x && !x->is_pr());
-                            }
-                            ASSERT0(m_mds_hash->find(*may));
-                        }
-                    }
-                    break;
-                case IR_ARRAY:
-                case IR_ILD:
-                    {
-                        MD const* mustuse = get_effect_use_md(t);
-                        MDSet const* mayuse = get_may_use(t);
-                        UNUSED(mustuse);
-                        UNUSED(mayuse);
-
-                        ASSERT0(mustuse ||
-                                 (mayuse && !mayuse->is_empty()));
-                        if (mustuse != NULL) {
-                            //PR can not be accessed by indirect operation.
-                            ASSERT0(!mustuse->is_pr());
-                        }
-                        if (mayuse != NULL) {
-                            //PR can not be accessed by indirect operation.
-                            SEGIter * iter;
-                            for (INT i = mayuse->get_first(&iter);
-                                 i >= 0; i = mayuse->get_next(i, &iter)) {
-                                MD const* x = m_md_sys->get_md(i);
-                                UNUSED(x);
-                                ASSERT0(x && !x->is_pr());
-                            }
-                            ASSERT0(m_mds_hash->find(*mayuse));
-                        }
-                    }
-                    break;
-                case IR_ST:
-                    if (g_is_support_dynamic_type) {
-                        ASSERT(t->get_effect_ref(),
-                               ("type is at least effect"));
-                        ASSERT(!t->get_effect_ref()->is_pr(),
-                               ("MD can not present a PR."));
-                    } else {
-                        ASSERT(t->get_exact_ref(), ("type must be exact"));
-                        ASSERT(!t->get_exact_ref()->is_pr(),
-                               ("MD can not present a PR."));
-                    }
-                    //ST may modify overlapped memory object.
-                    if (t->getRefMDSet() != NULL) {
-                        ASSERT0(m_mds_hash->find(*t->getRefMDSet()));
-                    }
-                    break;
-                case IR_STPR:
-                    if (g_is_support_dynamic_type) {
-                        ASSERT(t->get_effect_ref(),
-                               ("type is at least effect"));
-                        ASSERT(t->get_effect_ref()->is_pr(),
-                               ("MD must present a PR."));
-                    } else {
-                        ASSERT(t->get_exact_ref(), ("type must be exact"));
-                        ASSERT(t->get_exact_ref()->is_pr(),
-                               ("MD must present a PR."));
-                    }
-
-                    if (m_ru->isPRUniqueForSameNo()) {
-                        ASSERT0(get_may_def(t) == NULL);
-                    } else {
-                        //If the mapping between pr and md is not unique,
-                        //maydef is not NULL.
-                        //Same PR may have different referrence type.
-                        //e.g: PR1(U8)=...
-                        //    ...=PR(U32)
-                        if (t->getRefMDSet() != NULL) {
-                            ASSERT0(m_mds_hash->find(*t->getRefMDSet()));
-                        }
-                    }
-                    break;
-                case IR_IST:
-                    {
-                        MD const* mustdef = get_must_def(t);
-                        if (mustdef != NULL) {
-                            //mustdef may be fake object, e.g: global memory.
-                            //ASSERT0(mustdef->is_effect());
-
-                            //PR can not be accessed by indirect operation.
-                            ASSERT0(!mustdef->is_pr());
-                        }
-
-                        MDSet const* maydef = get_may_def(t);
-                        ASSERT0(mustdef != NULL ||
-                                (maydef != NULL && !maydef->is_empty()));
-                        if (maydef != NULL) {
-                            //PR can not be accessed by indirect operation.
-                            SEGIter * iter;
-                            for (INT i = maydef->get_first(&iter);
-                                 i >= 0; i = maydef->get_next(i, &iter)) {
-                                MD const* x = m_md_sys->get_md(i);
-                                UNUSED(x);
-                                ASSERT0(x);
-                                ASSERT0(!x->is_pr());
-                            }
-                            ASSERT0(m_mds_hash->find(*maydef));
-                        }
-                    }
-                    break;
-                case IR_CALL:
-                case IR_ICALL:
-                    if (t->getRefMDSet() != NULL) {
-                        ASSERT0(m_mds_hash->find(*t->getRefMDSet()));
-                    }
-                    break;
-                case IR_PHI:
-                    if (m_ru->isPRUniqueForSameNo()) {
-                        ASSERT0(t->get_effect_ref() && t->get_effect_ref()->is_pr());
-                        ASSERT0(get_may_def(t) == NULL);
-                    } else {
-                        ASSERT0(t->get_exact_ref() && t->get_exact_ref()->is_pr());
-                        //If the mapping between pr and md is not unique,
-                        //maydef is not NULL.
-                        //Same PR may have different referrence type.
-                        //e.g: PR1(U8)=...
-                        //    ...=PR(U32)
-                        if (t->getRefMDSet() != NULL) {
-                            ASSERT0(m_mds_hash->find(*t->getRefMDSet()));
-                        }
-                    }
-                    break;
-                case IR_CVT:
-                    //CVT should not have any reference. Even if the
-                    //operation will genrerate different type memory
-                    //accessing.
-                case IR_CONST:
-                case IR_LDA:
-                case IR_ADD:
-                case IR_SUB:
-                case IR_MUL:
-                case IR_DIV:
-                case IR_REM:
-                case IR_MOD:
-                case IR_LAND:
-                case IR_LOR:
-                case IR_BAND:
-                case IR_BOR:
-                case IR_XOR:
-                case IR_BNOT:
-                case IR_LNOT:
-                case IR_NEG:
-                case IR_LT:
-                case IR_LE:
-                case IR_GT:
-                case IR_GE:
-                case IR_EQ:
-                case IR_NE:
-                case IR_ASR:
-                case IR_LSR:
-                case IR_LSL:
-                case IR_SELECT:
-                case IR_CASE:
-                case IR_BREAK:
-                case IR_CONTINUE:
-                case IR_TRUEBR:
-                case IR_FALSEBR:
-                case IR_GOTO:
-                case IR_IGOTO:
-                case IR_SWITCH:
-                case IR_RETURN:
-                case IR_REGION:
-                    ASSERT0(t->getRefMD() == NULL &&
-                            t->getRefMDSet() == NULL);
-                    break;
-                default: ASSERT(0, ("unsupport ir type"));
-                }
-            }
-        }
-    }
-    return true;
-}
-
-
-void IR_DU_MGR::resetReachDefOutSet(bool cleanMember)
-{
-    for (INT i = 0; i <= m_bb_out_reach_def.get_last_idx(); i++) {
-        DefDBitSetCore * bs = m_bb_out_reach_def.get(i);
-        if (bs == NULL) { continue; }
-        m_misc_bs_mgr->destroy_seg_and_freedc(bs);
-    }
-    if (cleanMember) {
-        m_bb_out_reach_def.clean();
-    }
-}
-
-
 void IR_DU_MGR::resetReachDefInSet(bool cleanMember)
 {
     for (INT i = 0; i <= m_bb_in_reach_def.get_last_idx(); i++) {
@@ -4890,7 +4677,7 @@ void IR_DU_MGR::resetReachDefInSet(bool cleanMember)
 }
 
 
-void IR_DU_MGR::resetGlobalSet(bool cleanMember)
+void IR_DU_MGR::resetAvailReachDefInSet(bool cleanMember)
 {
     for (INT i = 0; i <= m_bb_avail_in_reach_def.get_last_idx(); i++) {
         DefDBitSetCore * bs = m_bb_avail_in_reach_def.get(i);
@@ -4901,103 +4688,82 @@ void IR_DU_MGR::resetGlobalSet(bool cleanMember)
     if (cleanMember) {
         m_bb_avail_in_reach_def.clean();
     }
+}
 
-    for (INT i = 0; i <= m_bb_avail_out_reach_def.get_last_idx(); i++) {
-        DefDBitSetCore * bs = m_bb_avail_out_reach_def.get(i);
-        if (bs == NULL) { continue; }
-        //m_misc_bs_mgr->freedc(bs);
-        m_misc_bs_mgr->destroy_seg_and_freedc(bs);
-    }
-    if (cleanMember) {
-        m_bb_avail_out_reach_def.clean();
-    }
 
-    resetReachDefInSet(cleanMember);
-    resetReachDefOutSet(cleanMember);
-
-    for (INT i = m_bb_availin_ir_expr.get_first();
-         i >= 0; i = m_bb_availin_ir_expr.get_next(i)) {
-        DefDBitSetCore * bs = m_bb_availin_ir_expr.get(i);
+void IR_DU_MGR::resetAvailExpInSet(bool cleanMember)
+{
+    for (INT i = m_bb_availin_exp.get_first();
+         i >= 0; i = m_bb_availin_exp.get_next(i)) {
+        DefDBitSetCore * bs = m_bb_availin_exp.get(i);
         ASSERT0(bs);
         //m_misc_bs_mgr->freedc(bs);
         m_misc_bs_mgr->destroy_seg_and_freedc(bs);
     }
     if (cleanMember) {
-        m_bb_availin_ir_expr.clean();
-    }
-
-    for (INT i = m_bb_availout_ir_expr.get_first();
-         i >= 0; i = m_bb_availout_ir_expr.get_next(i)) {
-        DefDBitSetCore * bs = m_bb_availout_ir_expr.get(i);
-        ASSERT0(bs);
-        //m_misc_bs_mgr->freedc(bs);
-        m_misc_bs_mgr->destroy_seg_and_freedc(bs);
-    }
-    if (cleanMember) {
-        m_bb_availout_ir_expr.clean();
+        m_bb_availin_exp.clean();
     }
 }
 
 
-//Free auxiliary data structure used in solving.
-void IR_DU_MGR::resetLocalAuxSet(bool cleanMember)
+void IR_DU_MGR::resetGlobalSet(bool cleanMember)
 {
-    for (INT i = 0; i <= m_bb_may_gen_def.get_last_idx(); i++) {
-        DefDBitSetCore * bs = m_bb_may_gen_def.get(i);
-        if (bs == NULL) { continue; }
-        //m_misc_bs_mgr->freedc(bs);
-        m_misc_bs_mgr->destroy_seg_and_freedc(bs);
-    }
-    if (cleanMember) {
-        m_bb_may_gen_def.clean();
-    }
+    resetAvailReachDefInSet(cleanMember);
+    resetReachDefInSet(cleanMember);
+    resetAvailExpInSet(cleanMember);
+}
 
-    for (INT i = 0; i <= m_bb_must_gen_def.get_last_idx(); i++) {
-        DefDBitSetCore * bs = m_bb_must_gen_def.get(i);
-        if (bs == NULL) { continue; }
-        m_misc_bs_mgr->destroy_seg_and_freedc(bs);
-    }
-    if (cleanMember) {
-        m_bb_must_gen_def.clean();
-    }
 
-    for (INT i = 0; i <= m_bb_must_killed_def.get_last_idx(); i++) {
-        DefDBitSetCore * bs = m_bb_must_killed_def.get(i);
-        if (bs == NULL) { continue; }
-        m_misc_bs_mgr->destroy_seg_and_freedc(bs);
+//Free auxiliary data structure used in solving.
+void IR_DU_MGR::resetLocalAuxSet(DefMiscBitSetMgr & bsmgr)
+{
+    Vector<DefDBitSetCore*> * ptr;
+    ptr = &m_bb_avail_out_reach_def;
+    for (INT i = 0; i <= ptr->get_last_idx(); i++) {
+        DefDBitSetCore * dset = ptr->get(i);
+        if (dset != NULL) { dset->clean(bsmgr); }
     }
-    if (cleanMember) {
-        m_bb_must_killed_def.clean();
-    }
+    m_bb_avail_out_reach_def.clean();
 
-    for (INT i = 0; i <= m_bb_may_killed_def.get_last_idx(); i++) {
-        DefDBitSetCore * bs = m_bb_may_killed_def.get(i);
-        if (bs == NULL) { continue; }
-        m_misc_bs_mgr->destroy_seg_and_freedc(bs);
+    ptr = &m_bb_out_reach_def;
+    for (INT i = 0; i <= ptr->get_last_idx(); i++) {
+        DefDBitSetCore * dset = ptr->get(i);
+        if (dset != NULL) { dset->clean(bsmgr); }
     }
-    if (cleanMember) {
-        m_bb_may_killed_def.clean();
-    }
+    m_bb_out_reach_def.clean();
 
-    for (INT i = m_bb_gen_ir_expr.get_first();
-         i >= 0; i = m_bb_gen_ir_expr.get_next(i)) {
-        DefDBitSetCore * bs = m_bb_gen_ir_expr.get(i);
-        ASSERT0(bs);
-        m_misc_bs_mgr->destroy_seg_and_freedc(bs);
+    ptr = &m_bb_may_gen_def;
+    for (INT i = 0; i <= ptr->get_last_idx(); i++) {
+        DefDBitSetCore * dset = ptr->get(i);
+        if (dset != NULL) { dset->clean(bsmgr); }
     }
-    if (cleanMember) {
-        m_bb_gen_ir_expr.clean();
-    }
+    m_bb_may_gen_def.clean();
 
-    for (INT i = m_bb_killed_ir_expr.get_first();
-         i >= 0; i = m_bb_killed_ir_expr.get_next(i)) {
-        DefDBitSetCore * bs = m_bb_killed_ir_expr.get(i);
-        ASSERT0(bs);
-        m_misc_bs_mgr->destroy_seg_and_freedc(bs);
+    ptr = &m_bb_must_gen_def;
+    for (INT i = 0; i <= ptr->get_last_idx(); i++) {
+        DefDBitSetCore * dset = ptr->get(i);
+        if (dset != NULL) { dset->clean(bsmgr); }
     }
-    if (cleanMember) {
-        m_bb_killed_ir_expr.clean();
+    m_bb_must_gen_def.clean();
+
+    ptr = &m_bb_gen_exp;
+    for (INT i = 0; i <= ptr->get_last_idx(); i++) {
+        DefDBitSetCore * dset = ptr->get(i);
+        if (dset != NULL) { dset->clean(bsmgr); }
     }
+    m_bb_gen_exp.clean();
+
+    ptr = &m_bb_availout_ir_expr;
+    for (INT i = 0; i <= ptr->get_last_idx(); i++) {
+        DefDBitSetCore * dset = ptr->get(i);
+        if (dset != NULL) { dset->clean(bsmgr); }
+    }
+    m_bb_availout_ir_expr.clean();
+
+    //Const set.
+    m_bb_killed_exp.clean();
+    m_bb_must_killed_def.clean();
+    m_bb_may_killed_def.clean();
 }
 
 
@@ -5171,16 +4937,6 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
 {
     if (flag == 0) { return true; }
 
-    #ifdef _DEBUG_
-    {
-    UINT mds_count = m_mds_mgr->get_mdset_count();
-    UINT free_mds_count = m_mds_mgr->get_free_mdset_count();
-    UINT mds_in_hash = m_mds_hash->get_elem_count();
-    ASSERT(mds_count == free_mds_count + mds_in_hash,
-           ("there are MD_SETs leaked."));
-    }
-    #endif
-
     BBList * bbl = m_ru->get_bb_list();
     if (bbl->get_elem_count() == 0) { return true; }
     if (bbl->get_elem_count() > g_thres_opt_bb_num) {
@@ -5212,24 +4968,25 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
     }
     END_TIMERS(t1);
 
-    Vector<MDSet*> * maydef_mds = NULL;
-    Vector<MDSet*> * mustexactdef_mds = NULL;
-    MDSet * mayuse_mds = NULL;
 
-    if (HAVE_FLAG(flag, SOL_RU_REF)) {
-        mayuse_mds = new MDSet();
-    }
-
-    MDSet * mds_arr_for_must = NULL;
-    MDSet * mds_arr_for_may = NULL;
-
-    //Some system need these set.
-    DefDBitSetCore * expr_univers = NULL;
     if (HAVE_FLAG(flag, SOL_AVAIL_REACH_DEF) ||
         HAVE_FLAG(flag, SOL_REACH_DEF) ||
         HAVE_FLAG(flag, SOL_RU_REF) ||
         HAVE_FLAG(flag, SOL_AVAIL_EXPR)) {
         ASSERT0(OC_is_ref_valid(oc));
+
+        Vector<MDSet*> * maydef_mds = NULL;
+        Vector<MDSet*> * mustexactdef_mds = NULL;
+        MDSet * mayuse_mds = NULL;
+
+        if (HAVE_FLAG(flag, SOL_RU_REF)) {
+            mayuse_mds = new MDSet();
+        }
+
+        MDSet * mds_arr_for_must = NULL;
+        MDSet * mds_arr_for_may = NULL;
+
+        //Some system need these set.
 
         if (HAVE_FLAG(flag, SOL_REACH_DEF) ||
             HAVE_FLAG(flag, SOL_AVAIL_REACH_DEF) ||
@@ -5264,27 +5021,30 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
                 maydef_mds->set(BB_id(bb), &mds_arr_for_may[i]);
             }
         }
-
         END_TIMERS(t2);
+
+        DefMiscBitSetMgr bsmgr;
 
         START_TIMERS("Build MustDef, MayDef, MayUse", t3);
         computeMustExactDefMayDefMayUse(
-                mustexactdef_mds, maydef_mds, mayuse_mds, flag);
+                mustexactdef_mds, maydef_mds, mayuse_mds, flag, bsmgr);
         END_TIMERS(t3);
 
+        DefDBitSetCoreHashAllocator dbitsetchashallocator(&bsmgr);
+        DefDBitSetCoreHash dbitsetchash(&dbitsetchashallocator);
         if (HAVE_FLAG(flag, SOL_REACH_DEF) ||
             HAVE_FLAG(flag, SOL_AVAIL_REACH_DEF)) {
             START_TIMERS("Build KillSet", t);
-            computeKillSet(mustexactdef_mds, maydef_mds);
+            computeKillSet(dbitsetchash, mustexactdef_mds, maydef_mds, bsmgr);
             END_TIMERS(t);
         }
 
+        DefDBitSetCore expr_univers(SOL_SET_IS_SPARSE);
         if (HAVE_FLAG(flag, SOL_AVAIL_EXPR)) {
             //Compute GEN, KILL IR-EXPR.
             START_TIMERS("Build AvailableExp", t);
-            expr_univers = new DefDBitSetCore();
-            expr_univers->set_sparse(SOL_SET_IS_SPARSE);
-            computeAuxSetForExpression(expr_univers, maydef_mds);
+            computeAuxSetForExpression(dbitsetchash,
+                &expr_univers, maydef_mds, bsmgr);
             END_TIMERS(t);
         }
 
@@ -5298,8 +5058,10 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
         m_ru->checkValidAndRecompute(&oc, PASS_RPO, PASS_UNDEF);
 
         START_TIMERS("Solve DU set", t4);
-        solve(expr_univers, flag);
+        solve(expr_univers, flag, bsmgr);
         END_TIMERS(t4);
+
+        expr_univers.clean(bsmgr);
 
         if (HAVE_FLAG(flag, SOL_AVAIL_REACH_DEF)) {
             OC_is_avail_reach_def_valid(oc) = true;
@@ -5312,6 +5074,33 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
         if (HAVE_FLAG(flag, SOL_AVAIL_EXPR)) {
             OC_is_live_expr_valid(oc) = true;
         }
+
+        if (mustexactdef_mds != NULL) {
+            ASSERT0(mds_arr_for_must);
+            for (UINT i = 0; i < bbl->get_elem_count(); i++) {
+                mds_arr_for_must[i].clean(bsmgr);
+            }
+            delete [] mds_arr_for_must;
+            delete mustexactdef_mds;
+            mustexactdef_mds = NULL;
+        }
+
+        if (maydef_mds != NULL) {
+            ASSERT0(mds_arr_for_may);
+            for (UINT i = 0; i < bbl->get_elem_count(); i++) {
+                mds_arr_for_may[i].clean(bsmgr);
+            }
+            delete [] mds_arr_for_may;
+            delete maydef_mds;
+            maydef_mds = NULL;
+        }
+
+        if (mayuse_mds != NULL) {
+            mayuse_mds->clean(bsmgr);
+            delete mayuse_mds;
+        }
+
+        resetLocalAuxSet(bsmgr);
     }
 
 #if 0
@@ -5321,37 +5110,6 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
                     bbl->get_elem_count());
 #endif
 
-    if (expr_univers != NULL) {
-        expr_univers->clean(m_misc_bs_mgr->get_seg_mgr(),
-                            &MiscBitSetMgr_sc_free_list(m_misc_bs_mgr));
-        delete expr_univers;
-    }
-
-    if (mustexactdef_mds != NULL) {
-        ASSERT0(mds_arr_for_must);
-        for (UINT i = 0; i < bbl->get_elem_count(); i++) {
-            mds_arr_for_must[i].clean(*m_misc_bs_mgr);
-        }
-        delete [] mds_arr_for_must;
-        delete mustexactdef_mds;
-        mustexactdef_mds = NULL;
-    }
-
-    if (maydef_mds != NULL) {
-        ASSERT0(mds_arr_for_may);
-        for (UINT i = 0; i < bbl->get_elem_count(); i++) {
-            mds_arr_for_may[i].clean(*m_misc_bs_mgr);
-        }
-        delete [] mds_arr_for_may;
-        delete maydef_mds;
-        maydef_mds = NULL;
-    }
-
-    if (mayuse_mds != NULL) {
-        mayuse_mds->clean(*m_misc_bs_mgr);
-        delete mayuse_mds;
-    }
-
 #if 0
     dumpRef(2);
     dumpSet(true);
@@ -5359,22 +5117,7 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
     //dumpMemUsageForEachSet();
 #endif
 
-    resetLocalAuxSet(true);
-    if (HAVE_FLAG(flag, SOL_REACH_DEF)) {
-        resetReachDefOutSet(true);
-    }
-    ASSERT0(verifyMDRef());
-
-    #ifdef _DEBUG_
-    {
-    UINT mds_count = m_mds_mgr->get_mdset_count();
-    UINT free_mds_count = m_mds_mgr->get_free_mdset_count();
-    UINT mds_in_hash = m_mds_hash->get_elem_count();
-    ASSERT(mds_count == free_mds_count + mds_in_hash,
-           ("there are MD_SETs leaked."));
-    }
-    #endif
-
+    ASSERT0(m_ru->verifyMDRef());
     return true;
 }
 

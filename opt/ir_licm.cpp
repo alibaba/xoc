@@ -824,7 +824,7 @@ bool IR_LICM::perform(OptCtx & oc)
         OC_is_expr_tab_valid(oc) = false;
 
         //DU chain and du ref is maintained.
-        ASSERT0(m_du->verifyMDRef());
+        ASSERT0(m_ru->verifyMDRef());
         ASSERT0(m_du->verifyMDDUChain());
 
         if (du_set_info_changed) {

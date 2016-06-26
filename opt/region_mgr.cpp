@@ -271,14 +271,14 @@ void RegionMgr::estimateEV(
 
 
 //Scan call site and build call graph.
-CallGraph * RegionMgr::initCallGraph(bool scan_call, bool scan_inner_region)
+//Return true if building graph successfully, otherwise return false.
+bool RegionMgr::initCallGraph(bool scan_call, bool scan_inner_region)
 {
     ASSERT0(m_call_graph == NULL);
     UINT vn = 0, en = 0;
     estimateEV(en, vn, scan_call, scan_inner_region);
     m_call_graph = allocCallGraph(vn, en);
-    m_call_graph->build(this);
-    return m_call_graph;
+    return m_call_graph->build(this);
 }
 
 

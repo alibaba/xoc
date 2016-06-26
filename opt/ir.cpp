@@ -2528,6 +2528,7 @@ void IR::copyRef(IR const* src, Region * ru)
 {
     ASSERT0(src && ru);
     ASSERT(is_memory_ref(), ("not memory reference"));
+    ASSERT0(!src->is_undef());
     setRefMD(src->getRefMD(), ru);
     if ((is_read_pr() || is_write_pr()) && ru->isPRUniqueForSameNo()) {;}
     else { setRefMDSet(src->getRefMDSet(), ru); }

@@ -148,6 +148,35 @@ e.g:
 If ir is stmt, this class indicate the USE expressions set.
 If ir is expression, this class indicate the DEF stmt set. */
 
+class DefDBitSetCoreHashAllocator {
+    DefMiscBitSetMgr * m_sbs_mgr;
+public:
+    DefDBitSetCoreHashAllocator(DefMiscBitSetMgr * sbsmgr)
+    { ASSERT0(sbsmgr); m_sbs_mgr = sbsmgr; }
+
+    DefSBitSetCore * alloc() { return m_sbs_mgr->create_dbitsetc(); }
+
+    void free(DefSBitSetCore * set)
+    { m_sbs_mgr->free_dbitsetc((DefDBitSetCore*)set); }
+
+    DefMiscBitSetMgr * getBsMgr() const { return m_sbs_mgr; }
+};
+
+
+class DefDBitSetCoreHash : public SBitSetCoreHash<DefDBitSetCoreHashAllocator> {
+public:
+    DefDBitSetCoreHash(DefDBitSetCoreHashAllocator * allocator) :
+        SBitSetCoreHash<DefDBitSetCoreHashAllocator>(allocator) {}
+    virtual ~DefDBitSetCoreHash() {}
+
+    DefDBitSetCore const* append(DefDBitSetCore const& set)
+    {
+        return (DefDBitSetCore const*)SBitSetCoreHash
+               <DefDBitSetCoreHashAllocator>::append(set);
+    }
+};
+
+
 //Mapping from IR to DUSet.
 typedef HMap<IR*, DUSet*> IR2DU;
 
@@ -238,19 +267,19 @@ protected:
 
         Here we do not known where p pointed to.
         The reach-def of BB3 is {S1, S2} */
-    Vector<DefDBitSetCore*> m_bb_avail_in_reach_def; //avail reach-in def of IR STMT
-    Vector<DefDBitSetCore*> m_bb_avail_out_reach_def; //avail reach-out def of IR STMT
-    Vector<DefDBitSetCore*> m_bb_in_reach_def; //reach-in def of IR STMT
-    Vector<DefDBitSetCore*> m_bb_out_reach_def; //reach-out def of IR STMT
-    Vector<DefDBitSetCore*> m_bb_may_gen_def; //generated-def of IR STMT
-    Vector<DefDBitSetCore*> m_bb_must_gen_def; //generated-def of IR STMT
-    Vector<DefDBitSetCore*> m_bb_must_killed_def; //must-killed def of IR STMT
-    Vector<DefDBitSetCore*> m_bb_may_killed_def; //may-killed def of IR STMT
+    Vector<DefDBitSetCore*> m_bb_avail_in_reach_def; //avail reach-in def of STMT
+    Vector<DefDBitSetCore*> m_bb_avail_out_reach_def; //avail reach-out def of STMT
+    Vector<DefDBitSetCore*> m_bb_in_reach_def; //reach-in def of STMT
+    Vector<DefDBitSetCore*> m_bb_out_reach_def; //reach-out def of STMT
+    Vector<DefDBitSetCore*> m_bb_may_gen_def; //generated-def of STMT
+    Vector<DefDBitSetCore*> m_bb_must_gen_def; //generated-def of STMT
+    Vector<DefDBitSetCore const*> m_bb_must_killed_def; //must-killed def of STMT
+    Vector<DefDBitSetCore const*> m_bb_may_killed_def; //may-killed def of STMT
 
-    BSVec<DefDBitSetCore*> m_bb_gen_ir_expr; //generate IR EXPR
-    BSVec<DefDBitSetCore*> m_bb_killed_ir_expr; //killed IR EXPR
-    BSVec<DefDBitSetCore*> m_bb_availin_ir_expr; //available in IR EXPR
-    BSVec<DefDBitSetCore*> m_bb_availout_ir_expr; //available out IR EXPR
+    BSVec<DefDBitSetCore*> m_bb_gen_exp; //generate EXPR
+    BSVec<DefDBitSetCore const*> m_bb_killed_exp; //killed EXPR
+    BSVec<DefDBitSetCore*> m_bb_availin_exp; //available-in EXPR
+    BSVec<DefDBitSetCore*> m_bb_availout_ir_expr; //available-out EXPR
 protected:
     bool buildLocalDUChain(
             IRBB * bb,
@@ -287,21 +316,46 @@ protected:
     void computeMayDef(
             IR const* ir,
             MDSet * bb_maydefmds,
-            DefDBitSetCore * maygen_stmt);
+            DefDBitSetCore * maygen_stmt,
+            DefMiscBitSetMgr & bsmgr);
     void computeMustExactDef(
             IR const* ir,
             MDSet * bb_mustdefmds,
             DefDBitSetCore * mustgen_stmt,
-            ConstMDIter & mditer);
+            ConstMDIter & mditer,
+            DefMiscBitSetMgr & bsmgr);
     void computeMustExactDefMayDefMayUse(
             OUT Vector<MDSet*> * mustdef,
             OUT Vector<MDSet*> * maydef,
             OUT MDSet * mayuse,
-            UINT flag);
+            UINT flag,
+            DefMiscBitSetMgr & bsmgr);
 
-    bool ForAvailReachDef(UINT bbid, List<IRBB*> & preds, List<IRBB*> * lst);
-    bool ForReachDef(UINT bbid, List<IRBB*> & preds, List<IRBB*> * lst);
-    bool ForAvailExpression(UINT bbid, List<IRBB*> & preds, List<IRBB*> * lst);
+    DefDBitSetCore * getMayGenDef(UINT bbid, DefMiscBitSetMgr * mgr);
+    DefDBitSetCore * getMustGenDef(UINT bbid, DefMiscBitSetMgr * mgr);
+    DefDBitSetCore * getAvailOutReachDef(UINT bbid, DefMiscBitSetMgr * mgr);
+    DefDBitSetCore * getOutReachDef(UINT bbid, DefMiscBitSetMgr * mgr);
+    DefDBitSetCore * getGenIRExpr(UINT bbid, DefMiscBitSetMgr * mgr);
+    DefDBitSetCore * getAvailOutExpr(UINT bbid, DefMiscBitSetMgr * mgr);
+    DefDBitSetCore const* getMustKilledDef(UINT bbid);
+    DefDBitSetCore const* getMayKilledDef(UINT bbid);
+    DefDBitSetCore const* getKilledIRExpr(UINT bbid);
+
+    bool ForAvailReachDef(
+            UINT bbid,
+            List<IRBB*> & preds,
+            List<IRBB*> * lst,
+            DefMiscBitSetMgr & bsmgr);
+    bool ForReachDef(
+            UINT bbid,
+            List<IRBB*> & preds,
+            List<IRBB*> * lst,
+            DefMiscBitSetMgr & bsmgr);
+    bool ForAvailExpression(
+            UINT bbid,
+            List<IRBB*> & preds,
+            List<IRBB*> * lst,
+            DefMiscBitSetMgr & bsmgr);
     inline void * xmalloc(size_t size)
     {
         void * p = smpoolMalloc(size, m_pool);
@@ -325,10 +379,14 @@ protected:
     void inferPhi(IR * ir);
     void inferCall(IR * ir, IN MD2MDSet * mx);
 
-    void solve(DefDBitSetCore const* expr_universe, UINT const flag);
-    void resetLocalAuxSet(bool cleanMember);
+    void solve(DefDBitSetCore const& expr_universe,
+               UINT const flag,
+               DefMiscBitSetMgr & bsmgr);
+    void resetLocalAuxSet(DefMiscBitSetMgr & bsmgr);
+    void resetAvailReachDefInSet(bool cleanMember);
+    void resetAvailExpInSet(bool cleanMember);
+    void resetReachDefInSet(bool cleanMember);
     void resetGlobalSet(bool cleanMember);
-    void resetReachDefOutSet(bool cleanMember);
     void updateDefWithMustEffectMD(IR * ir, MD const* musteffect);
     void updateDefWithMustExactMD(IR * ir, MD const* mustexact);
     void updateDef(IR * ir);
@@ -358,16 +416,20 @@ public:
     void collectMustUsedMDs(IR const* ir, OUT MDSet & mustuse);
     void computeGenForBB(
             IN IRBB * bb,
-            IN OUT DefDBitSetCore & expr_univers,
-            MDSet & tmp);
+            OUT DefDBitSetCore & expr_univers,
+            DefMiscBitSetMgr & bsmgr);
     void computeMDDUforBB(IRBB * bb);
     void computeMDRef();
     void computeKillSet(
+            DefDBitSetCoreHash & dbitsetchash,
             Vector<MDSet*> const* mustdefs,
-            Vector<MDSet*> const* maydefs);
+            Vector<MDSet*> const* maydefs,
+            DefMiscBitSetMgr & bsmgr);
     void computeAuxSetForExpression(
+            DefDBitSetCoreHash & dbitsetchash,
             OUT DefDBitSetCore * expr_universe,
-            Vector<MDSet*> const* maydefmds);
+            Vector<MDSet*> const* maydefmds,
+            DefMiscBitSetMgr & bsmgr);
     void computeMDDUChain(IN OUT OptCtx & oc, bool retain_reach_def = false);
     void computeRegionMDDU(
             Vector<MDSet*> const* mustdefmds,
@@ -411,7 +473,11 @@ public:
             UINT elemnum);
 
     //Collect must and may memory reference.
-    void collectMayUseRecursive(IR const* ir, MDSet & may_use, bool computePR);
+    void collectMayUseRecursive(
+            IR const* ir,
+            MDSet & may_use,
+            bool computePR,
+            DefMiscBitSetMgr & bsmgr);
 
     //Collect may memory reference.
     void collectMayUse(IR const* ir, MDSet & may_use, bool computePR);
@@ -465,7 +531,7 @@ public:
         DUIter di = NULL;
         for (UINT i = (UINT)from_du->get_first(&di);
              di != NULL; i = (UINT)from_du->get_next(i, &di)) {
-            IR const* ref = get_ir(i);
+            IR const* ref = m_ru->get_ir(i);
             //ref may be stmt or exp.
 
             DUSet * ref_defuse_set = ref->get_duset();
@@ -487,12 +553,13 @@ public:
             DUSet * useset_of_from,
             DefMiscBitSetMgr * m)
     {
-        ASSERT0(get_ir(from)->is_stmt() && get_ir(to)->is_stmt() &&
+        ASSERT0(m_ru->get_ir(from)->is_stmt() &&
+                m_ru->get_ir(to)->is_stmt() &&
                 useset_of_to && useset_of_from && m);
         DUIter di = NULL;
         for (INT i = useset_of_from->get_first(&di);
              di != NULL; i = useset_of_from->get_next((UINT)i, &di)) {
-            IR const* exp = get_ir((UINT)i);
+            IR const* exp = m_ru->get_ir((UINT)i);
             ASSERT0(exp->is_memory_ref());
 
             DUSet * defset = exp->get_duset();
@@ -532,12 +599,12 @@ public:
             DUSet * defset_of_from,
             DefMiscBitSetMgr * m)
     {
-        ASSERT0(get_ir(from)->is_exp() && get_ir(to)->is_exp() &&
-                 defset_of_from && defset_of_to && m);
+        ASSERT0(m_ru->get_ir(from)->is_exp() && m_ru->get_ir(to)->is_exp() &&
+                defset_of_from && defset_of_to && m);
         DUIter di = NULL;
         for (INT i = defset_of_from->get_first(&di);
              di != NULL; i = defset_of_from->get_next((UINT)i, &di)) {
-            IR * stmt = get_ir((UINT)i);
+            IR * stmt = m_ru->get_ir((UINT)i);
             ASSERT0(stmt->is_stmt());
             DUSet * useset = stmt->get_duset();
             if (useset == NULL) { continue; }
@@ -577,6 +644,9 @@ public:
     void dumpDUGraph(CHAR const* name = NULL, bool detail = true);
     void dump(CHAR const* name);
 
+    DefDBitSetCore * getAvailInExpr(UINT bbid, DefMiscBitSetMgr * mgr);
+    DefDBitSetCore * getInReachDef(UINT bbid, DefMiscBitSetMgr * mgr);
+    DefDBitSetCore * getAvailInReachDef(UINT bbid, DefMiscBitSetMgr * mgr);
     virtual CHAR const* get_pass_name() const { return "DU Manager"; }
     virtual PASS_TYPE get_pass_type() const { return PASS_DU_MGR; }
 
@@ -584,18 +654,6 @@ public:
     DUSet * getAndAllocDUSet(IR * ir);
 
     //Get information set to BB.
-    DefDBitSetCore * getMayGenDef(UINT bbid);
-    DefDBitSetCore * getMustGenDef(UINT bbid);
-    DefDBitSetCore * getAvailInReachDef(UINT bbid);
-    DefDBitSetCore * getAvailOutReachDef(UINT bbid);
-    DefDBitSetCore * getInReachDef(UINT bbid);
-    DefDBitSetCore * getOutReachDef(UINT bbid);
-    DefDBitSetCore * getMustKilledDef(UINT bbid);
-    DefDBitSetCore * getMayKilledDef(UINT bbid);
-    DefDBitSetCore * getGenIRExpr(UINT bbid);
-    DefDBitSetCore * getKilledIRExpr(UINT bbid);
-    DefDBitSetCore * getAvailInExpr(UINT bbid);
-    DefDBitSetCore * getAvailOutExpr(UINT bbid);
 
     //DefMiscBitSetMgr * getMiscBitSetMgr() { return m_misc_bs_mgr; }
 
@@ -655,9 +713,7 @@ public:
         ASSERT0(ir && ir->is_exp());
         return ir->get_effect_ref();
     }
-
     IR const* getExactAndUniqueDef(IR const* exp);
-    IR * get_ir(UINT irid);
 
     void freeDU();
 
@@ -686,6 +742,9 @@ public:
             IR const* exp,
             MD const* md);
 
+    void setMustKilledDef(UINT bbid, DefDBitSetCore const* set);
+    void setMayKilledDef(UINT bbid, DefDBitSetCore const* set);
+    void setKilledIRExpr(UINT bbid, DefDBitSetCore const* set);
     void setComputePRDU(bool compute)
     { m_is_compute_pr_du_chain = (BYTE)compute; }
 
@@ -789,9 +848,7 @@ public:
     void removeUseOutFromDefset(IR * ir);
     void removeDefOutFromUseset(IR * def);
     void removeIROutFromDUMgr(IR * ir);
-    void resetReachDefInSet(bool cleanMember);
 
-    bool verifyMDRef();
     bool verifyMDDUChain();
     bool verifyMDDUChainForIR(IR const* ir);
     bool verifyLiveinExp();

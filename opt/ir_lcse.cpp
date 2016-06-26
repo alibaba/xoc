@@ -48,7 +48,6 @@ IR_LCSE::IR_LCSE(Region * ru)
     ASSERT0(m_du && m_tm);
     m_expr_tab = NULL;
     m_expr_vec = NULL;
-    m_misc_bs_mgr = m_ru->getMiscBitSetMgr();
     m_enable_filter = true;
 }
 
@@ -593,8 +592,9 @@ bool IR_LCSE::processDef(
                             continue;
                         }
 
-                        tmp.clean(*m_misc_bs_mgr);
-                        m_du->collectMayUseRecursive(occ, tmp, true);
+                        tmp.clean(m_misc_bs_mgr);
+                        m_du->collectMayUseRecursive(occ,
+                            tmp, true, m_misc_bs_mgr);
                         if ((maydef != NULL && maydef->is_intersect(tmp)) ||
                             (mustdef != NULL && tmp.is_contain(mustdef))) {
                             avail_ir_expr.diff(EXPR_id(ie));
@@ -663,23 +663,20 @@ bool IR_LCSE::perform(OptCtx & oc)
         avail_ir_expr.clean();
         C<IR*> * ct = NULL;
         for (BB_irlist(bb).get_head(&ct);
-             ct != BB_irlist(bb).end();
-             ct = BB_irlist(bb).get_next(ct)) {
+             ct != BB_irlist(bb).end(); ct = BB_irlist(bb).get_next(ct)) {
             IR * ir = ct->val();
             change |= processUse(bb, ir, avail_ir_expr,
-                                  map_expr2avail_pos,
-                                  map_expr2avail_pr);
+                map_expr2avail_pos, map_expr2avail_pr);
+
             if (ir->has_result()) {
                 //There may have expressions be killed.
                 //Remove them out the avail_ir_expr.
                 change |= processDef(bb, ir, avail_ir_expr,
-                                      map_expr2avail_pos,
-                                      map_expr2avail_pr,
-                                      tmp);
+                    map_expr2avail_pos, map_expr2avail_pr, tmp);
             }
         } //end for each IR
     }
-    tmp.clean(*m_misc_bs_mgr);
+    tmp.clean(m_misc_bs_mgr);
 
     ASSERT0(verifyIRandBB(bbl, m_ru));
     if (change) {
