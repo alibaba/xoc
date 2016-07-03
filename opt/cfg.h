@@ -579,7 +579,7 @@ bool CFG<BB, XR>::verifyIfBBRemoved(IN CDG * cdg, OptCtx & oc)
         next_ct = m_bb_list->get_next(next_ct);
         BB * bb = ct->val();
         BB * next_bb = NULL;
-        if (next_ct != NULL) { next_bb = C_val(next_ct); }
+        if (next_ct != NULL) { next_bb = next_ct->val(); }
 
         if (get_last_xr(bb) == NULL &&
             !is_ru_entry(bb) &&
@@ -640,7 +640,7 @@ bool CFG<BB, XR>::removeEmptyBB(OptCtx & oc)
 
         BB * next_bb = NULL;
         if (next_ct != NULL) {
-            next_bb = C_val(next_ct);
+            next_bb = next_ct->val();
         }
 
         //TODO: confirm if this is right:
@@ -836,7 +836,7 @@ bool CFG<BB, XR>::removeRedundantBranch()
         BB * bb = ct->val();
         BB * next_bb = NULL; //next_bb is fallthrough BB.
         if (next_ct != NULL) {
-            next_bb = C_val(next_ct);
+            next_bb = next_ct->val();
         }
 
         XR * xr = get_last_xr(bb);

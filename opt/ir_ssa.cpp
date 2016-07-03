@@ -554,7 +554,7 @@ void IR_SSA_MGR::placePhiForPR(
         IRBB * bb = wl.remove_head();
 
         //Each basic block in dfcs is in dominance frontier of 'bb'.
-        BitSet const* dfcs = dfm.get_df_ctrlset_c(BB_id(bb));
+        BitSet const* dfcs = dfm.read_df_ctrlset(BB_id(bb));
         if (dfcs == NULL) { continue; }
 
         for (INT i = dfcs->get_first(); i >= 0; i = dfcs->get_next(i)) {
@@ -579,11 +579,12 @@ void IR_SSA_MGR::placePhiForPR(
 }
 
 
-void IR_SSA_MGR::computeEffectPR(IN OUT BitSet & effect_prs,
-                                IN BitSet & defed_prs,
-                                IN IRBB * bb,
-                                IN PRDF & live_mgr,
-                                IN Vector<BitSet*> & pr2defbb)
+void IR_SSA_MGR::computeEffectPR(
+        IN OUT BitSet & effect_prs,
+        IN BitSet & defed_prs,
+        IN IRBB * bb,
+        IN PRDF & live_mgr,
+        IN Vector<BitSet*> & pr2defbb)
 {
     for (INT i = defed_prs.get_first(); i >= 0; i = defed_prs.get_next(i)) {
         BitSet * bbs = pr2defbb.get(i);
@@ -600,10 +601,10 @@ void IR_SSA_MGR::computeEffectPR(IN OUT BitSet & effect_prs,
 }
 
 
-/* Return true if phi is redundant, otherwise return false.
-If all opnds have same defintion or defined by current phi,
-the phi is redundant.
-common_def: record the common_def if the definition of all opnd is the same. */
+//Return true if phi is redundant, otherwise return false.
+//If all opnds have same defintion or defined by current phi,
+//the phi is redundant.
+//common_def: record the common_def if the definition of all opnd is the same.
 bool IR_SSA_MGR::is_redundant_phi(IR const* phi, OUT IR ** common_def) const
 {
     ASSERT0(phi->is_phi());
@@ -878,8 +879,10 @@ void IR_SSA_MGR::handleBBRename(
 
 
 //defed_prs_vec: for each BB, indicate PRs which has been defined.
-void IR_SSA_MGR::renameInDomTreeOrder(IRBB * root, Graph & domtree,
-                                          Vector<DefSBitSet*> & defed_prs_vec)
+void IR_SSA_MGR::renameInDomTreeOrder(
+        IRBB * root,
+        Graph & domtree,
+        Vector<DefSBitSet*> & defed_prs_vec)
 {
     Stack<IRBB*> stk;
     UINT n = m_ru->get_bb_list()->get_elem_count();
@@ -966,23 +969,17 @@ void IR_SSA_MGR::rename(
 }
 
 
-void IR_SSA_MGR::destructBBSSAInfo(IRBB * bb, OUT bool & insert_stmt_after_call)
+void IR_SSA_MGR::destructBBSSAInfo(IRBB * bb)
 {
     C<IR*> * ct, * next_ct;
     BB_irlist(bb).get_head(&next_ct);
     ct = next_ct;
     for (; ct != BB_irlist(bb).end(); ct = next_ct) {
         next_ct = BB_irlist(bb).get_next(next_ct);
-        IR * ir = C_val(ct);
-        if (!ir->is_phi()) {
-            if (insert_stmt_after_call) {
-                continue;
-            } else {
-                break;
-            }
-        }
-
-        insert_stmt_after_call |= stripPhi(ir, ct);
+        IR * ir = ct->val();
+        if (!ir->is_phi()) { break; }
+        
+        stripPhi(ir, ct);
         BB_irlist(bb).remove(ct);
         m_ru->freeIRTree(ir);
     }
@@ -997,11 +994,10 @@ void IR_SSA_MGR::destructionInDomTreeOrder(IRBB * root, Graph & domtree)
     BB2VP bb2vp(n);
     IRBB * v;
     stk.push(root);
-    bool insert_stmt_after_call = false;
     while ((v = stk.get_top()) != NULL) {
         if (!visited.is_contain(BB_id(v))) {
             visited.bunion(BB_id(v));
-            destructBBSSAInfo(v, insert_stmt_after_call);
+            destructBBSSAInfo(v);
         }
 
         Vertex * bbv = domtree.get_vertex(BB_id(v));
@@ -1052,7 +1048,7 @@ void IR_SSA_MGR::destruction(DomTree & domtree)
 //of current BB's predessor.
 //Note that do not free phi at this function, it will be freed
 //by user.
-bool IR_SSA_MGR::stripPhi(IR * phi, C<IR*> * phict)
+void IR_SSA_MGR::stripPhi(IR * phi, C<IR*> * phict)
 {
     IRBB * bb = phi->get_bb();
     ASSERT0(bb);
@@ -1063,22 +1059,23 @@ bool IR_SSA_MGR::stripPhi(IR * phi, C<IR*> * phict)
     //Temprarory RP to hold the result of PHI.
     IR * phicopy = m_ru->buildPR(phi->get_type());
     phicopy->setRefMD(m_ru->genMDforPR(
-                PR_no(phicopy), phicopy->get_type()), m_ru);
+        PR_no(phicopy), phicopy->get_type()), m_ru);
     phicopy->cleanRefMDSet();
-
-    bool insert_stmt_after_call = false;
-
     IR * opnd = PHI_opnd_list(phi);
 
     //opnd may be const, lda or pr.
-    //ASSERT0(opnd->is_pr());
-
+    //ASSERT0(opnd->is_pr());    
     ASSERT0(PHI_ssainfo(phi));
 
-    for (EdgeC * el = VERTEX_in_list(vex); el != NULL;
-         el = EC_next(el), opnd = opnd->get_next()) {
+    UINT pos = 0;
+    for (EdgeC * el = VERTEX_in_list(vex), * nextel = NULL;
+         el != NULL; el = nextel, opnd = opnd->get_next(), pos++) {
+        ASSERT0(find_position(VERTEX_in_list(vex), el) == pos);
+
+        nextel = EC_next(el);
         INT pred = VERTEX_id(EDGE_from(EC_edge(el)));
 
+        ASSERT0(opnd);
         IR * opndcopy = m_ru->dupIRTree(opnd);
         if (opndcopy->is_pr()) {
             opndcopy->copyRef(opnd, m_ru);
@@ -1086,7 +1083,7 @@ bool IR_SSA_MGR::stripPhi(IR * phi, C<IR*> * phict)
 
         //The copy will be inserted into related predecessor.
         IR * store_to_phicopy = m_ru->buildStorePR(
-                    PR_no(phicopy), phicopy->get_type(), opndcopy);
+            PR_no(phicopy), phicopy->get_type(), opndcopy);
         store_to_phicopy->copyRef(phicopy, m_ru);
 
         IRBB * p = m_cfg->get_bb(pred);
@@ -1101,12 +1098,23 @@ bool IR_SSA_MGR::stripPhi(IR * phi, C<IR*> * phict)
         if (plast != NULL && plast->is_calls_stmt()) {
             IRBB * fallthrough = m_cfg->get_fallthrough_bb(p);
             if (!plast->is_terminate()) {
-                //Fallthrough BB may not exist if the last ir is terminator.
-                //That will an may-execution path to other bb if
-                //the last ir may throw exception.
-                ASSERT(fallthrough, ("invalid control flow."));
-                BB_irlist(fallthrough).append_head(store_to_phicopy);
-                insert_stmt_after_call = true;
+                //Fallthrough BB does not exist if the last ir is terminate.
+                ASSERT(fallthrough, ("invalid control flow graph."));
+                if (BB_irlist(fallthrough).get_head() == NULL ||
+                    !BB_irlist(fallthrough).get_head()->is_phi()) {
+                    BB_irlist(fallthrough).append_head(store_to_phicopy);
+                } else {
+                    //Insert block to hold the copy.
+                    IRBB * newbb = m_ru->allocBB();
+                    m_ru->get_bb_list()->insert_after(newbb, p);
+                    m_cfg->add_bb(newbb);
+                    m_cfg->insertVertexBetween(
+                        BB_id(p), BB_id(fallthrough), BB_id(newbb));
+                    BB_is_fallthrough(newbb) = true;
+
+                    //Then append the copy.
+                    BB_irlist(newbb).append_head(store_to_phicopy);
+                }
             }
         } else {
             BB_irlist(p).append_tail_ex(store_to_phicopy);
@@ -1119,15 +1127,13 @@ bool IR_SSA_MGR::stripPhi(IR * phi, C<IR*> * phict)
         }
     }
 
-    IR * substitue_phi = m_ru->buildStorePR(PHI_prno(phi),
-                                            phi->get_type(), phicopy);
+    IR * substitue_phi = m_ru->buildStorePR(
+        PHI_prno(phi), phi->get_type(), phicopy);
     substitue_phi->copyRef(phi, m_ru);
 
     BB_irlist(bb).insert_before(substitue_phi, phict);
 
     PHI_ssainfo(phi) = NULL;
-
-    return insert_stmt_after_call;
 }
 
 
@@ -1368,12 +1374,11 @@ void IR_SSA_MGR::destruction()
     if (bblst->get_elem_count() == 0) { return; }
 
     C<IRBB*> * bbct;
-    bool insert_stmt_after_call = false;
     for (bblst->get_head(&bbct);
          bbct != bblst->end(); bbct = bblst->get_next(bbct)) {
         IRBB * bb = bbct->val();
         ASSERT0(bb);
-        destructBBSSAInfo(bb, insert_stmt_after_call);
+        destructBBSSAInfo(bb);
     }
 
     //Clean SSA info to avoid unnecessary abort or assert.
@@ -1458,7 +1463,7 @@ void IR_SSA_MGR::refinePhi(List<IRBB*> & wl)
              irct != BB_irlist(bb).end(); irct = nextirct) {
             nextirct = BB_irlist(bb).get_next(nextirct);
 
-            IR * ir = C_val(irct);
+            IR * ir = irct->val();
 
             if (!ir->is_phi()) { break; }
 
@@ -1564,7 +1569,7 @@ void IR_SSA_MGR::stripVersionForBBList()
              irct != BB_irlist(bb).end(); irct = nextirct) {
             nextirct = BB_irlist(bb).get_next(nextirct);
 
-            IR * ir = C_val(irct);
+            IR * ir = irct->val();
             stripStmtVersion(ir, visited);
         }
     }

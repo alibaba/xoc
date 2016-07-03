@@ -557,13 +557,11 @@ public:
 class MDSystem {
     SMemPool * m_pool;
     SMemPool * m_sc_mdptr_pool;
-    SMemPool * m_sc_mdid_pool;
     TypeMgr * m_tm;
     VAR * m_all_mem;
     VAR * m_global_mem;
     MDId2MD m_id2md_map; //Map MD id to MD.
     SList<MD*> m_free_md_list; //MD allocated in pool.
-    SList<UINT> m_free_mdid_list;
     UINT m_md_count; //generate MD index, used by registerMD().
     TMap<VAR const*, MDTab*, CompareConstVar> m_var2mdtab; //map VAR to MDTab.
 
@@ -628,7 +626,7 @@ public:
         return md;
     }
 
-    MD const* get_md_c(UINT id) const
+    MD const* read_md(UINT id) const
     {
         ASSERT0(id != 0);
         MD * md = m_id2md_map.get(id);
@@ -650,8 +648,9 @@ public:
     {
         if (md == NULL) { return; }
         m_id2md_map.remove(MD_id(md));
-        m_free_mdid_list.append_head(MD_id(md));
+        UINT mdid = MD_id(md);
         memset(md, 0, sizeof(MD));
+        MD_id(md) = mdid;
         m_free_md_list.append_head(md);
     }
 
@@ -672,7 +671,7 @@ bool MDSet::is_pr_set(MDSystem const* mdsys) const
     SEGIter * iter;
     for (INT i = get_first(&iter);
          i >= 0; i = get_next((UINT)i, &iter)) {
-        MD const* md = mdsys->get_md_c((UINT)i);
+        MD const* md = mdsys->read_md((UINT)i);
         ASSERT0(md);
         if (!md->is_pr()) { return false; }
     }

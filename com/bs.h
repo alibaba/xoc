@@ -381,13 +381,13 @@ public:
     }
 
     //Get number of elements in vector.
-    inline UINT get_elem_count() const
+    UINT get_elem_count() const
     {
         ASSERT(Vector<T>::m_is_init, ("VECTOR not yet initialized."));
         return m_bs.get_elem_count();
     }
 
-    inline BitSet * get_bs() { return &m_bs; }
+    BitSet * get_bs() { return &m_bs; }
 
     inline void set(UINT i, T elem)
     {

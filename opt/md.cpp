@@ -404,7 +404,7 @@ void MDSetMgr::dump()
             lst.get_head(&ct);
             UINT i;
             for (i = 0; i < n; i++, ct = lst.get_next(ct)) {
-                if (c >= C_val(ct)) {
+                if (c >= ct->val()) {
                     inserted = true;
                     lst.insert_before(c, ct);
                     break;
@@ -575,10 +575,7 @@ MD const* MDSystem::registerMD(MD const& m)
 
     //Generate a new MD and record it in md-table accroding to its id.
     MD * entry = allocMD();
-    UINT id = m_free_mdid_list.remove_head();
-    if (id != 0) {
-        MD_id(entry) = id;
-    } else {
+    if (MD_id(entry) == 0) {
         MD_id(entry) = m_md_count++;
     }
     entry->copy(&m);
@@ -657,12 +654,8 @@ void MDSystem::initAllMemMD(VarMgr * vm)
 void MDSystem::init(VarMgr * vm)
 {
     m_pool = smpoolCreate(sizeof(MD) * 5, MEM_CONST_SIZE);
-    m_sc_mdptr_pool = smpoolCreate(sizeof(SC<MD*>) * 10,
-                                           MEM_CONST_SIZE);
-    m_sc_mdid_pool = smpoolCreate(sizeof(SC<UINT>) * 10,
-                                          MEM_CONST_SIZE);
+    m_sc_mdptr_pool = smpoolCreate(sizeof(SC<MD*>) * 10, MEM_CONST_SIZE);
     m_free_md_list.set_pool(m_sc_mdptr_pool);
-    m_free_mdid_list.set_pool(m_sc_mdid_pool);
     m_md_count = 1;
     m_tm = vm->get_type_mgr();
     ASSERT0(m_tm);
@@ -680,9 +673,9 @@ void MDSystem::destroy()
          var != NULL; var = m_var2mdtab.get_next(iter, &mdtab)) {
         delete mdtab;
     }
+
     smpoolDelete(m_pool);
     smpoolDelete(m_sc_mdptr_pool);
-    smpoolDelete(m_sc_mdid_pool);
 }
 
 
@@ -896,7 +889,6 @@ void MDSystem::clean()
     }
 
     m_md_count = 2; //Index 0 is reserved, index 1 is all-mem-id.
-    m_free_mdid_list.clean();
 }
 
 

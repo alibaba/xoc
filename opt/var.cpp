@@ -207,10 +207,35 @@ CHAR * VAR::dump(CHAR * buf, TypeMgr const* dm) const
 //
 //START VarMgr
 //
+//Free VAR memory.
+void VarMgr::destroyVar(VAR * v)
+{
+    ASSERT0(VAR_id(v) != 0);
+    m_freelist_of_varid.bunion(VAR_id(v), *m_ru_mgr->get_sbs_mgr());
+    m_var_vec.set(VAR_id(v), NULL);
+    delete v;
+}
+
+
+void VarMgr::destroy()
+{
+    for (INT i = 0; i <= m_var_vec.get_last_idx(); i++) {
+        VAR * v = m_var_vec.get((UINT)i);
+        if (v == NULL) { continue; }
+        delete v;
+    }
+
+    m_freelist_of_varid.clean(*m_ru_mgr->get_sbs_mgr());
+}
+
+
 void VarMgr::assignVarId(VAR * v)
 {
-    UINT id = m_freelist_of_varid.remove_head();
-    if (id != 0) {
+    SEGIter * iter = NULL;
+    INT id = m_freelist_of_varid.get_first(&iter);
+    ASSERT0(id != 0);
+    if (id > 0) {
+        m_freelist_of_varid.diff(id, *m_ru_mgr->get_sbs_mgr());
         VAR_id(v) = id;
     } else {
         VAR_id(v) = (UINT)m_var_count++;
@@ -244,7 +269,7 @@ VAR * VarMgr::registerVar(
 //related to properties.
 //'var_name': name of the variable, it is optional.
 VAR * VarMgr::registerVar(
-        SYM * var_name,
+        SYM const* var_name,
         Type const* type,
         UINT align,
         UINT flag)

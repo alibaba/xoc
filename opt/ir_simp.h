@@ -81,12 +81,14 @@ public:
         UINT simp_ild_ist:1; //simplify ILD and IST.
 
         //Propagate info top down.
-        //Simplify IR expression tree into the simplest
-        //mode, which IR tree's height is not more than 2,
+        //Simplify IR tree to the tree with lowest height,
+        //that means the tree height is not more than 2,
         //namely, non-leaf IR is no more than 1.
-        //e.g:
-        //    st(id, add(ld(v2), ld(v3)))
-        //    ADD is non-leaf IR, its children can not be non-leaf also.
+        //e.g: id = v2 + v3 is the lowest tree.
+        //the IR format is:
+        //  st(id, add(ld(v2), ld(v3)))
+        //Here, add is non-leaf IR, its children can
+        //not be non-leaf node anymore.
         UINT simp_to_lowest_height:1;
 
         //Propagate info top down.
@@ -170,17 +172,17 @@ public:
 
     //Append irs to current simplification context and
     //return back to up level.
-    void append_irs(SimpCtx & c)
+    void appendStmt(SimpCtx & c)
     { add_next(&SIMP_stmtlist(this), SIMP_stmtlist(&c)); }
 
     //Append irs to current simplification context and
     //return back to up level.
-    void append_irs(IR * irs)
+    void appendStmt(IR * irs)
     { add_next(&SIMP_stmtlist(this), irs); }
 
     //Unify the actions which propagated top down
     //during processing IR tree.
-    void copy_topdown_flag(SimpCtx & c)
+    void copyTopdownFlag(SimpCtx & c)
     {
         prop_top_down = c.prop_top_down;
         cfs_mgr = c.cfs_mgr;
@@ -188,19 +190,18 @@ public:
 
     //Copy the actions which propagated bottom up
     //during processing IR tree.
-    void copy_bottomup_flag(SimpCtx & c)
-    { prop_bottom_up = c.prop_bottom_up; }
+    void copyBottomupFlag(SimpCtx & c) { prop_bottom_up = c.prop_bottom_up; }
 
     //Unify the actions which propagated bottom up
     //during processing IR tree.
-    void union_bottomup_flag(SimpCtx & c)
+    void unionBottomupFlag(SimpCtx & c)
     {
         SIMP_changed(this) |= SIMP_changed(&c);
         SIMP_need_recon_bblist(this) |= SIMP_need_recon_bblist(&c);
     }
 
-    //Set actions to simplify control flow structure.
-    inline void set_simp_cf()
+    //Set action flags to simplify control flow structure.
+    void setSimpCFS()
     {
         SIMP_if(this) = true;
         SIMP_doloop(this) = true;
@@ -211,8 +212,9 @@ public:
         SIMP_continue(this) = true;
     }
 
-    //Return true if the simplification involved following actions.
-    bool is_simp_cfg()
+    //Return true if current simplifying policy
+    //involved one of these actions.
+    bool isSimpCFG()
     {
         return SIMP_if(this) ||
                SIMP_doloop(this) ||
@@ -223,29 +225,29 @@ public:
                SIMP_continue(this);
     }
 
-    //Simplify IR_ARRAY to linear address computation.
-    void set_simp_array() { SIMP_array(this) = true; }
+    //Simplify IR_ARRAY to linear address computational stmt/expression.
+    void setSimpArray() { SIMP_array(this) = true; }
 
-    //Reduce the tree height of IST/ILD to be lowest.
-    void set_simp_ild_ist() { SIMP_ild_ist(this) = true; }
+    //Simplify IR tree and reduce the tree height of IST/ILD to be lowest.
+    //
+    void setSimpIldIst() { SIMP_ild_ist(this) = true; }
 
-    //Simplify IR_SELECT to control flow operation.
-    void set_simp_select() { SIMP_select(this) = true; }
+    //Simplify IR_SELECT to IR_TRUBR/IR_FALSEBR operation.
+    void setSimpSelect() { SIMP_select(this) = true; }
 
     //Simplify IR_LAND and IR_LOR operation.
-    void set_simp_land_lor() { SIMP_lor_land(this) = true; }
+    void setSimpLandLor() { SIMP_lor_land(this) = true; }
 
     //Simplify IR_LNOT operation.
-    void set_simp_lnot() { SIMP_lnot(this) = true; }
+    void setSimpLnot() { SIMP_lnot(this) = true; }
 
-    //Simplify IR tree to reduce the tree height to be not
-    //more than 2.
+    //Simplify IR tree to be the tree with lowest height.
     //e.g: The height of 'a + b' is 2, the lowest height,
     //whereas 'a + b + c' is not.
     //Note that if ARRAY/STARRAY/ILD/IST/SELECT are not demanded to be
     //lowered, regarding it as a whole node.
     //e.g: Treat a[1][2] + b to be the lowest height.
-    void set_simp_to_lowest_height()
+    void setSimpToLowestHeight()
     {
         ASSERT(SIMP_lor_land(this) && SIMP_lnot(this),
                ("these operations should be lowered as well."));
@@ -261,16 +263,16 @@ public:
     //    pr3 = c
     //    pr4 = pr2 + pr3
     //    ist(pr1, pr4)
-    void set_simp_to_pr_mode()
+    void setSimpToPRmode()
     {
         SIMP_to_pr_mode(this) = true;
-        set_simp_cf();
-        set_simp_array();
-        set_simp_ild_ist();
-        set_simp_select();
-        set_simp_land_lor();
-        set_simp_lnot();
-        set_simp_to_lowest_height();
+        setSimpCFS();
+        setSimpArray();
+        setSimpIldIst();
+        setSimpSelect();
+        setSimpLandLor();
+        setSimpLnot();
+        setSimpToLowestHeight();
     }
 };
 

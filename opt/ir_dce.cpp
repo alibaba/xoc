@@ -388,7 +388,7 @@ void IR_DCE::iter_collect(IN OUT EFFECT_STMT & is_stmt_effect,
                         }
                     }
                 } else {
-                    DUSet const* defset = x->get_duset_c();
+                    DUSet const* defset = x->readDUSet();
                     if (defset == NULL) { continue; }
 
                     DUIter di = NULL;
@@ -443,7 +443,7 @@ void IR_DCE::fix_control_flow(List<IRBB*> & bblst, List<C<IRBB*>*> & ctlst)
         bbl->get_next(&next_ct);
         IRBB * next_bb = NULL;
         if (next_ct != NULL) {
-            next_bb = C_val(next_ct);
+            next_bb = next_ct->val();
         }
 
         while (vout != NULL) {
@@ -541,7 +541,7 @@ void IR_DCE::revise_successor(IRBB * bb, C<IRBB*> * bbct, BBList * bbl)
     bbl->get_next(&next_ct);
     IRBB * next_bb = NULL;
     if (next_ct != NULL) {
-        next_bb = C_val(next_ct);
+        next_bb = next_ct->val();
     }
 
     while (ec != NULL) {
@@ -621,7 +621,7 @@ bool IR_DCE::perform(OptCtx & oc)
         bool tobecheck = false;
         for (BB_irlist(bb).get_head(&ctir), next = ctir;
              ctir != NULL; ctir = next) {
-            IR * stmt = C_val(ctir);
+            IR * stmt = ctir->val();
             BB_irlist(bb).get_next(&next);
             if (!is_stmt_effect.is_contain(IR_id(stmt))) {
                 //Revise SSA info if PR is in SSA form.

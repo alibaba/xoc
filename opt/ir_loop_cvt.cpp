@@ -127,7 +127,7 @@ bool IR_LOOP_CVT::try_convert(LI<IRBB> * li, IRBB * gobackbb,
                     rmvec.set(cnt++, def);
                 }
             } else {
-                DUSet const* defset = x->get_duset_c();
+                DUSet const* defset = x->readDUSet();
                 if (defset == NULL) { continue; }
 
                 for (INT d = defset->get_first(&di);

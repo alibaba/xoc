@@ -37,6 +37,32 @@ author: Su Zhenyu
 #include "ir_ssa.h"
 
 namespace xoc {
+//
+//START BBIRList
+//
+//Insert ir prior to cond_br, uncond_br, call, return.
+C<IR*> * BBIRList::append_tail_ex(IR * ir)
+{
+    if (ir == NULL) { return NULL; }
+
+    C<IR*> * ct;
+    for (List<IR*>::get_tail(&ct);
+         ct != List<IR*>::end(); ct = List<IR*>::get_prev(ct)) {
+        if (!m_bb->is_bb_down_boundary(ct->val())) {
+            break;
+        }
+    }
+
+    ASSERT0(m_bb);
+    ir->set_bb(m_bb);
+    if (ct == NULL) {
+        //The only one stmt of BB is down boundary or bb is empty.
+        return EList<IR*, IR2Holder>::append_head(ir);
+    }
+    return EList<IR*, IR2Holder>::insert_after(ir, ct);
+}
+//END BBIRList
+
 
 //
 //START IRBB
@@ -54,7 +80,7 @@ size_t IRBB::count_mem() const
 bool IRBB::is_bb_down_boundary(IR * ir)
 {
     ASSERT(ir->isStmtInBB() || ir->is_lab(), ("illegal stmt in bb"));
-    switch (IR_code(ir)) {
+    switch (ir->get_code()) {
     case IR_CALL:
     case IR_ICALL: //indirective call
         return ((CCall*)ir)->isMustBBbound();

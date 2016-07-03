@@ -52,13 +52,13 @@ public:
     void dump(DGraph & g);
 
     //Return the BB set controlled by bbid.
-    BitSet const* get_df_ctrlset_c(UINT bbid) const
+    BitSet const* read_df_ctrlset(UINT bbid) const
     { return m_df_vec.get(bbid); }
 
     //Get the BB set controlled by v.
     BitSet * get_df_ctrlset(Vertex const* v);
 
-    inline void rebuild(DGraph & g) { clean(); build(g); }
+    void rebuild(DGraph & g) { clean(); build(g); }
 };
 
 
@@ -130,7 +130,7 @@ protected:
                          IN PRDF & live_mgr,
                          IN Vector<BitSet*> & pr2defbb);
 
-    void destructBBSSAInfo(IRBB * bb, IN OUT bool & insert_stmt_after_call);
+    void destructBBSSAInfo(IRBB * bb);
     void destructionInDomTreeOrder(IRBB * root, Graph & domtree);
 
     void handleBBRename(IRBB * bb,
@@ -138,8 +138,7 @@ protected:
                         IN OUT BB2VP & bb2vp);
 
     Stack<VP*> * mapPRNO2VPStack(UINT prno);
-    inline IR * mapPRNO2IR(UINT prno)
-    { return m_prno2ir.get(prno); }
+    IR * mapPRNO2IR(UINT prno) { return m_prno2ir.get(prno); }
 
     VP * newVP()
     {
@@ -162,7 +161,7 @@ protected:
 
     void stripVersionForBBList();
     void stripVersionForAllVP();
-    bool stripPhi(IR * phi, C<IR*> * phict);
+    void stripPhi(IR * phi, C<IR*> * phict);
     void stripSpecifiedVP(VP * vp);
     void stripStmtVersion(IR * stmt, BitSet & visited);
 
@@ -264,8 +263,8 @@ public:
     void construction(DomTree & domtree);
     size_t count_mem();
 
-    inline Vector<VP*> const* get_vp_vec() const { return &m_vp_vec; }
-    inline VP * get_vp(UINT id) const { return m_vp_vec.get(id); }
+    Vector<VP*> const* get_vp_vec() const { return &m_vp_vec; }
+    VP * get_vp(UINT id) const { return m_vp_vec.get(id); }
 
     IR * initVP(IN IR * ir);
     void insertPhi(UINT prno, IN IRBB * bb);
@@ -275,10 +274,11 @@ public:
     //If SSA constructed, DU mananger will not compute any information for PR.
     bool is_ssa_constructed() const { return m_is_ssa_constructed; }
 
-    /* Return true if phi is redundant, otherwise return false.
-    If all opnds have same defintion or defined by current phi,
-    the phi is redundant.
-    common_def: record the common_def if the definition of all opnd is the same. */
+    //Return true if phi is redundant, otherwise return false.
+    //If all opnds have same defintion or defined by current phi,
+    //the phi is redundant.
+    //common_def: record the common_def if the definition
+    //  of all opnd is the same.
     bool is_redundant_phi(IR const* phi, OUT IR ** common_def) const;
 
     //Allocate VP and ensure it is unique according to 'version' and 'prno'.
@@ -310,7 +310,7 @@ public:
 
 
     //Allocate SSAInfo for specified PR indicated by 'prno'.
-    inline SSAInfo * newSSAInfo(UINT prno)
+    SSAInfo * newSSAInfo(UINT prno)
     {
         ASSERT0(prno > 0);
         return (SSAInfo*)newVP(prno, 0);

@@ -72,8 +72,7 @@ public:
         bs.copy(src.bs);
     }
 
-    inline size_t count_mem() const
-    { return sizeof(start) + bs.count_mem(); }
+    size_t count_mem() const { return sizeof(start) + bs.count_mem(); }
 
     inline void clean()
     {
@@ -93,9 +92,10 @@ public:
     }
 
     //Return the start position of current segment.
-    inline UINT get_start() const { return start; }
+    UINT get_start() const { return start; }
+
     //Return the end position of current segment.
-    inline UINT get_end() const { return start + BitsPerSeg - 1; }
+    UINT get_end() const { return start + BitsPerSeg - 1; }
 };
 
 
@@ -289,9 +289,8 @@ public:
     void intersect(SBitSetCore<BitsPerSeg> const& src,
                    SegMgr<BitsPerSeg> * sm,
                    TSEGIter ** free_list);
-    void intersect(
-            SBitSetCore<BitsPerSeg> const& src,
-            MiscBitSetMgr<BitsPerSeg> & m)
+    void intersect(SBitSetCore<BitsPerSeg> const& src,
+                   MiscBitSetMgr<BitsPerSeg> & m)
     { intersect(src, &m.sm, &m.scflst); }
 
     bool is_equal(SBitSetCore<BitsPerSeg> const& src) const;
@@ -411,10 +410,9 @@ protected:
     }
 
     //Get BitSet, alloc BitSet if it not exist.
-    BitSet * alloc_bs(
-            SegMgr<BitsPerSeg> * sm,
-            TSEGIter ** flst,
-            SMemPool * pool)
+    BitSet * alloc_bs(SegMgr<BitsPerSeg> * sm,
+                      TSEGIter ** flst,
+                      SMemPool * pool)
     {
         ASSERT(!m_is_sparse, ("only used by dense bitset"));
         TSEGIter * sc = SBitSetCore<BitsPerSeg>::segs.get_head();
@@ -709,12 +707,9 @@ public:
         return count;
     }
 
-    void clean()
-    { DBitSetCore<BitsPerSeg>::clean(m_sm, &m_flst); }
+    void clean() { DBitSetCore<BitsPerSeg>::clean(m_sm, &m_flst); }
 
-    void diff(UINT elem)
-    { DBitSetCore<BitsPerSeg>::diff(elem, m_sm, &m_flst); }
-
+    void diff(UINT elem) { DBitSetCore<BitsPerSeg>::diff(elem, m_sm, &m_flst); }
     void diff(DBitSet<BitsPerSeg> const& src)
     { DBitSetCore<BitsPerSeg>::diff(src, m_sm, &m_flst); }
 
@@ -744,9 +739,8 @@ protected:
     {
         ASSERT(m_sbitsetcore_pool, ("not yet initialized."));
         SBitSetCore<BitsPerSeg> * p =
-                (SBitSetCore<BitsPerSeg>*)smpoolMallocConstSize(
-                                sizeof(SBitSetCore<BitsPerSeg>),
-                                m_sbitsetcore_pool);
+            (SBitSetCore<BitsPerSeg>*)smpoolMallocConstSize(
+                sizeof(SBitSetCore<BitsPerSeg>), m_sbitsetcore_pool);
         ASSERT(p, ("malloc failed"));
         memset(p, 0, sizeof(SBitSetCore<BitsPerSeg>));
         return p;
@@ -757,8 +751,7 @@ protected:
         ASSERT(m_dbitsetcore_pool, ("not yet initialized."));
         DBitSetCore<BitsPerSeg> * p =
             (DBitSetCore<BitsPerSeg>*)smpoolMallocConstSize(
-                                sizeof(DBitSetCore<BitsPerSeg>),
-                                m_dbitsetcore_pool);
+                sizeof(DBitSetCore<BitsPerSeg>), m_dbitsetcore_pool);
         ASSERT(p, ("malloc failed"));
         memset(p, 0, sizeof(DBitSetCore<BitsPerSeg>));
         return p;
@@ -784,11 +777,9 @@ public:
 
         ptr_pool = smpoolCreate(sizeof(TSEGIter) * 10, MEM_CONST_SIZE);
         m_sbitsetcore_pool = smpoolCreate(
-                    sizeof(SBitSetCore<BitsPerSeg>) * 10,
-                    MEM_CONST_SIZE);
+            sizeof(SBitSetCore<BitsPerSeg>) * 10, MEM_CONST_SIZE);
         m_dbitsetcore_pool = smpoolCreate(
-                    sizeof(DBitSetCore<BitsPerSeg>) * 10,
-                    MEM_CONST_SIZE);
+            sizeof(DBitSetCore<BitsPerSeg>) * 10, MEM_CONST_SIZE);
 
         m_sbitset_list.set_pool(ptr_pool);
         m_dbitset_list.set_pool(ptr_pool);

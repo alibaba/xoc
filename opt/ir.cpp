@@ -357,7 +357,7 @@ bool verifyIRandBB(BBList * bblst, Region const* ru)
 //Function to verify stmt info after IR simplified.
 bool verify_simp(IR * ir_list, SimpCtx & simp)
 {
-    if (simp.is_simp_cfg()) {
+    if (simp.isSimpCFG()) {
         for (IR * p = ir_list; p != NULL; p = p->get_next()) {
             ASSERT0(p->is_stmt());
             ASSERT0(IR_parent(p) == NULL);
@@ -485,7 +485,7 @@ void dump_ir(IR const* ir,
     if (IR_may_throw(ir)) {
         strcat(p, " throw");
     }
-    if (IR_is_termiate(ir)) {
+    if (IR_is_terminate(ir)) {
         strcat(p, " terminate");
     }
     if (IR_is_atomic(ir)) {
@@ -2401,7 +2401,7 @@ IR * IR::getResultPR(UINT prno)
 //Copy MD that ir referenced accroding to 'mds'.
 void IR::setRefMD(MD const* md, Region * ru)
 {
-    DU * du = get_du();
+    DU * du = getDU();
     if (du == NULL) {
         if (md == NULL) { return; }
 
@@ -2416,7 +2416,7 @@ void IR::setRefMD(MD const* md, Region * ru)
 //Copy the set of MD that ir referenced accroding to 'mds'.
 void IR::setRefMDSet(MDSet const* mds, Region * ru)
 {
-    DU * du = get_du();
+    DU * du = getDU();
     if (du == NULL) {
         if (mds == NULL) { return; }
 
@@ -2464,7 +2464,7 @@ void IR::invertLor(Region * ru)
 void IR::removePROutFromUseset(DefMiscBitSetMgr & sbs_mgr, Region * ru)
 {
     ASSERT0(is_calls_stmt() && ru);
-    DUSet * useset = get_duset();
+    DUSet * useset = getDUSet();
     if (useset == NULL) { return; }
 
     DUIter di = NULL;
@@ -2530,7 +2530,7 @@ void IR::copyRef(IR const* src, Region * ru)
     ASSERT(is_memory_ref(), ("not memory reference"));
     ASSERT0(!src->is_undef());
     setRefMD(src->getRefMD(), ru);
-    if ((is_read_pr() || is_write_pr()) && ru->isPRUniqueForSameNo()) {;}
+    if (is_read_pr() || is_write_pr()) {;}
     else { setRefMDSet(src->getRefMDSet(), ru); }
 }
 //END IR

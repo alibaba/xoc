@@ -320,7 +320,7 @@ bool IR_CP::doProp(IN IRBB * bb, Vector<IR*> & usevec)
     for (BB_irlist(bb).get_head(&cur_iter),
          next_iter = cur_iter; cur_iter != NULL; cur_iter = next_iter) {
 
-        IR * def_stmt = C_val(cur_iter);
+        IR * def_stmt = cur_iter->val();
 
         BB_irlist(bb).get_next(&next_iter);
 
@@ -347,7 +347,7 @@ bool IR_CP::doProp(IN IRBB * bb, Vector<IR*> & usevec)
                    !def_stmt->is_void()) {
             //Allowing copy propagate exact or VOID value.
             continue;
-        } else if ((useset = def_stmt->get_duset_c()) != NULL &&
+        } else if ((useset = def_stmt->readDUSet()) != NULL &&
                    useset->get_elem_count() != 0) {
             //Record use_stmt in another vector to facilitate this function
             //if it is not in use-list any more after copy-propagation.
@@ -428,7 +428,7 @@ bool IR_CP::doProp(IN IRBB * bb, Vector<IR*> & usevec)
 
             //Indicate whether use_stmt is the next stmt of def_stmt.
             bool is_next = false;
-            if (next_iter != NULL && use_stmt == C_val(next_iter)) {
+            if (next_iter != NULL && use_stmt == next_iter->val()) {
                 is_next = true;
             }
 

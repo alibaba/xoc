@@ -72,6 +72,17 @@ typedef void* OBJTY;
 //    1. T * next
 //    2. T * prev
 template <class T>
+inline UINT find_position(T const* list, T const* t)
+{    
+    for (UINT c = 0; list != NULL; c++, list = list->next) { 
+        if (list == t) { return c; }        
+    }
+    UNREACH(); //not find.
+    return 0;
+}
+
+
+template <class T>
 inline UINT cnt_list(T const* t)
 {
     UINT c = 0;
@@ -326,6 +337,25 @@ inline void insertafter_one(T ** marker, T * t)
     }
     (*marker)->next = t;
     t->prev = *marker;
+}
+
+
+//Append t into head of list.
+//e.g: given head->a->b->c, and t1->t2.
+//    output is: t1->t2->a->b->c
+//This function will update the head of list.
+template <class T>
+inline void append_head(T ** head, T * t)
+{
+    if (*head == NULL) { 
+        *head = t; 
+        return; 
+    }
+
+    T * last = get_last(t);
+    (*head)->prev = last;
+    last->next = *head;
+    *head = t;
 }
 
 
@@ -805,7 +835,7 @@ public:
         C_val(c) = t;
 
         ASSERT0(m_tail);
-        if (marker == C_val(m_tail)) {
+        if (marker == m_tail->val()) {
             if (C_prev(m_tail) != NULL) {
                 C_next(C_prev(m_tail)) = c;
                 C_prev(c) = C_prev(m_tail);
@@ -816,7 +846,7 @@ public:
             //find marker
             C<T> * mc = m_head;
             while (mc != NULL) {
-                if (C_val(mc) == marker) {
+                if (mc->val() == marker) {
                     break;
                 }
                 mc = C_next(mc);
@@ -934,7 +964,7 @@ public:
         if (list.m_head == NULL) { return; }
         ASSERT0(marker);
         C<T> * list_ct = list.m_tail;
-        marker = insert_before(C_val(list_ct), marker);
+        marker = insert_before(list_ct->val(), marker);
         if (list_tail_ct != NULL) {
             *list_tail_ct = marker;
         }
@@ -942,7 +972,7 @@ public:
         C<T> * prev_ct = marker;
 
         for (; list_ct != NULL; list_ct = C_prev(list_ct)) {
-            marker = insert_before(C_val(list_ct), marker);
+            marker = insert_before(list_ct->val(), marker);
             prev_ct = marker;
         }
 
@@ -954,7 +984,7 @@ public:
     C<T> * insert_after(T t, T marker)
     {
         ASSERT(t != marker,("element of list cannot be identical"));
-        if (m_tail == NULL || marker == C_val(m_tail)) {
+        if (m_tail == NULL || marker == m_tail->val()) {
             append_tail(t);
             return m_tail;
         }
@@ -962,7 +992,7 @@ public:
         C<T> * c = newc();
         ASSERT(c != NULL, ("newc return NULL"));
         C_val(c) = t;
-        if (marker == C_val(m_head)) {
+        if (marker == m_head->val()) {
             if (C_next(m_head) != NULL) {
                 C_prev(C_next(m_head)) = c;
                 C_next(c) = C_next(m_head);
@@ -973,7 +1003,7 @@ public:
             //find marker
             C<T> * mc = m_head;
             while (mc != NULL) {
-                if (C_val(mc) == marker) {
+                if (mc->val() == marker) {
                     break;
                 }
                 mc = C_next(mc);
@@ -1090,7 +1120,7 @@ public:
 
         ASSERT0(marker);
         C<T> * list_ct = list.m_head;
-        marker = insert_after(C_val(list_ct), marker);
+        marker = insert_after(list_ct->val(), marker);
 
         if (list_head_ct != NULL) {
             *list_head_ct = marker;
@@ -1100,7 +1130,7 @@ public:
         C<T> * prev_ct = marker;
 
         for (; list_ct != NULL; list_ct = C_next(list_ct)) {
-            marker = insert_after(C_val(list_ct), marker);
+            marker = insert_after(list_ct->val(), marker);
             prev_ct = marker;
         }
 
@@ -1114,7 +1144,7 @@ public:
     T get_cur() const
     {
         if (m_cur == NULL) { return T(0); }
-        return C_val(m_cur);
+        return m_cur->val();
     }
 
     //Return m_cur and related container, and it does not modify m_cur.
@@ -1126,7 +1156,7 @@ public:
         }
         ASSERT0(holder != NULL);
         *holder = m_cur;
-        return C_val(m_cur);
+        return m_cur->val();
     }
 
     //Get tail of list, return the CONTAINER.
@@ -1136,7 +1166,7 @@ public:
         ASSERT0(holder);
         *holder = m_tail;
         if (m_tail != NULL) {
-            return C_val(m_tail);
+            return m_tail->val();
         }
         return T(0);
     }
@@ -1147,7 +1177,7 @@ public:
     {
         m_cur = m_tail;
         if (m_tail != NULL) {
-            return C_val(m_tail);
+            return m_tail->val();
         }
         return T(0);
     }
@@ -1158,7 +1188,7 @@ public:
     {
         m_cur = m_head;
         if (m_head != NULL) {
-            return C_val(m_head);
+            return m_head->val();
         }
         return T(0);
     }
@@ -1170,7 +1200,7 @@ public:
         ASSERT0(holder);
         *holder = m_head;
         if (m_head != NULL) {
-            return C_val(m_head);
+            return m_head->val();
         }
         return T(0);
     }
@@ -1184,7 +1214,7 @@ public:
             return T(0);
         }
         m_cur = m_cur->next;
-        return C_val(m_cur);
+        return m_cur->val();
     }
 
     //Return next container.
@@ -1217,7 +1247,7 @@ public:
             return T(0);
         }
         m_cur = m_cur->prev;
-        return C_val(m_cur);
+        return m_cur->val();
     }
 
     //Return list member and update holder to prev member.
@@ -1265,7 +1295,7 @@ public:
         if (holder != NULL) {
             *holder = c;
         }
-        return C_val(c);
+        return c->val();
     }
 
     //Get element for nth at head.
@@ -1292,14 +1322,14 @@ public:
         if (holder != NULL) {
             *holder = c;
         }
-        return C_val(c);
+        return c->val();
     }
 
     bool find(IN T t, OUT C<T> ** holder = NULL) const
     {
         C<T> * c = m_head;
         while (c != NULL) {
-            if (C_val(c) == t) {
+            if (c->val() == t) {
                 if (holder != NULL) {
                     *holder = c;
                 }
@@ -1353,27 +1383,23 @@ public:
         m_elem_count--;
         C_prev(holder) = C_next(holder) = NULL;
         m_free_list.add_free_elem(holder);
-        return C_val(holder);
+        return holder->val();
     }
 
     //Remove from list, and searching for 't' begin at head
     T remove(T t)
     {
-        if (m_head == NULL) return T(0);
-        if (C_val(m_head) == t) {
-            return remove_head();
-        }
-        if (C_val(m_tail) == t) {
-            return remove_tail();
-        }
+        if (m_head == NULL) { return T(0); }
+        if (m_head->val() == t) { return remove_head(); }
+        if (m_tail->val() == t) { return remove_tail(); }
 
         C<T> * c = m_head;
         while (c != NULL) {
-            if (C_val(c) == t) { break; }
+            if (c->val() == t) { break; }
             c = C_next(c);
         }
 
-        if (c == NULL) return T(0);
+        if (c == NULL) { return T(0); }
 
         return remove(c);
     }
@@ -1402,7 +1428,7 @@ public:
 
         m_elem_count--;
         m_free_list.add_free_elem(c);
-        return C_val(c);
+        return c->val();
     }
 
     //Remove from head.
@@ -1428,7 +1454,7 @@ public:
 
         m_free_list.add_free_elem(c);
         m_elem_count--;
-        return C_val(c);
+        return c->val();
     }
 };
 
@@ -2213,7 +2239,7 @@ public:
 
     T remove(C<T> * holder)
     {
-        ASSERT0(m_typename2holder.get(C_val(holder)) == holder);
+        ASSERT0(m_typename2holder.get(holder->val()) == holder);
         T t = List<T>::remove(holder);
         m_typename2holder.setAlways(t, NULL);
         return t;
@@ -2252,7 +2278,7 @@ public:
     //and marker will be modified.
     C<T> * insert_before(T t, C<T> * marker)
     {
-        ASSERT0(marker && m_typename2holder.get(C_val(marker)) == marker);
+        ASSERT0(marker && m_typename2holder.get(marker->val()) == marker);
         C<T> * t_holder = List<T>::insert_before(t, marker);
         m_typename2holder.setAlways(t, t_holder);
         return t_holder;
@@ -2261,9 +2287,9 @@ public:
     //NOTICE: 'marker' should have been in the list.
     void insert_before(C<T> * c, C<T> * marker)
     {
-        ASSERT0(c && marker && m_typename2holder.get(C_val(marker)) == marker);
+        ASSERT0(c && marker && m_typename2holder.get(marker->val()) == marker);
         List<T>::insert_before(c, marker);
-        m_typename2holder.setAlways(C_val(c), c);
+        m_typename2holder.setAlways(c->val(), c);
     }
 
     //NOTICE: 'marker' should have been in the list.
@@ -2284,7 +2310,7 @@ public:
     //NOTICE: 'marker' should have been in the list.
     C<T> * insert_after(T t, C<T> * marker)
     {
-        ASSERT0(marker && m_typename2holder.get(C_val(marker)) == marker);
+        ASSERT0(marker && m_typename2holder.get(marker->val()) == marker);
         C<T> * marker_holder = marker;
         C<T> * t_holder = List<T>::insert_after(t, marker_holder);
         m_typename2holder.setAlways(t, t_holder);
@@ -2294,9 +2320,9 @@ public:
     //NOTICE: 'marker' should have been in the list.
     void insert_after(C<T> * c, C<T> * marker)
     {
-        ASSERT0(c && marker && m_typename2holder.get(C_val(marker)) == marker);
+        ASSERT0(c && marker && m_typename2holder.get(marker->val()) == marker);
         List<T>::insert_after(c, marker);
-        m_typename2holder.setAlways(C_val(c), c);
+        m_typename2holder.setAlways(c->val(), c);
     }
 
     bool find(T t, C<T> ** holder = NULL) const
@@ -2491,7 +2517,7 @@ public:
     //Note this operation can not be used to create lvalue.
     //e.g: Vector<int> const v;
     //    int ex = v[i];
-    inline T const operator[](UINT index) const
+    T const operator[](UINT index) const
     {
         ASSERT(is_init(), ("VECTOR not yet initialized."));
         ASSERT(index < (UINT)m_elem_num, ("array subscript over boundary."));
@@ -2551,8 +2577,7 @@ public:
         m_last_idx = -1; //No any elements
     }
 
-    inline UINT count_mem() const
-    { return m_elem_num * sizeof(T) + sizeof(Vector<T>); }
+    UINT count_mem() const { return m_elem_num * sizeof(T) + sizeof(Vector<T>); }
 
     //Place elem to vector according to index.
     //Growing vector if 'index' is greater than m_elem_num.
@@ -2824,8 +2849,7 @@ public:
         memset(m_vec, 0, sizeof(T) * SVEC_elem_num(this));
     }
 
-    inline UINT count_mem() const
-    { return SVEC_elem_num(this) + sizeof(Vector<T>); }
+    UINT count_mem() const { return SVEC_elem_num(this) + sizeof(Vector<T>); }
 
     //Return NULL if 'i' is illegal, otherwise return 'elem'.
     void set(UINT i, T elem)
@@ -3668,13 +3692,13 @@ protected:
         }
     }
 
-    inline bool is_lchild(TN const* z) const
+    bool is_lchild(TN const* z) const
     {
         ASSERT0(z && z->parent);
         return z == z->parent->lchild;
     }
 
-    inline bool is_rchild(TN const* z) const
+    bool is_rchild(TN const* z) const
     {
         ASSERT0(z && z->parent);
         return z == z->parent->rchild;
@@ -3781,7 +3805,6 @@ public:
 
     UINT get_elem_count() const { return m_num_of_tn; }
     SMemPool * get_pool() { return m_pool; }
-    TN const* get_root_c() const { return m_root; }
     TN * get_root() { return m_root; }
 
     TN * find_with_key(T keyt) const
@@ -4327,19 +4350,6 @@ public:
 
     //Get mapped pointer of 't'
     Ttgt get(Tsrc t, bool * find = NULL)
-    {
-        ASSERT((Hash<Tsrc, HF>::m_bucket != NULL), ("not yet initialize."));
-        HC<Tsrc> * elemhc = findhc(t);
-        if (elemhc != NULL) {
-            if (find != NULL) { *find = true; }
-            return m_mapped_elem_table.get(HC_vec_idx(elemhc));
-        }
-        if (find != NULL) { *find = false; }
-        return Ttgt(0);
-    }
-
-    //Get mapped object of 't', this function is readonly.
-    Ttgt get_c(Tsrc t, bool * find = NULL) const
     {
         ASSERT((Hash<Tsrc, HF>::m_bucket != NULL), ("not yet initialize."));
         HC<Tsrc> * elemhc = findhc(t);

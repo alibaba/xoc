@@ -151,7 +151,7 @@ bool Region::HighProcess(OptCtx & oc)
         SIMP_cfs_mgr(&simp) = cfsmgr;
     }
 
-    simp.set_simp_cf();
+    simp.setSimpCFS();
     set_ir_list(simplifyStmtList(get_ir_list(), &simp));
     ASSERT0(verify_simp(get_ir_list(), simp));
     ASSERT0(verify_irs(get_ir_list(), NULL, this));

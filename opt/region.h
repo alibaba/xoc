@@ -139,10 +139,6 @@ public:
 //Record memory reference for region.
 #define REGION_refinfo(r)               ((r)->m_ref_info)
 
-//True if PR is unique which do not consider PR's data type.
-#define REGION_is_pr_unique_for_same_number(r)    \
-            ((r)->m_u2.s1.isPRUniqueForSameNo)
-
 //True if region does not modify any memory and live-in variables which
 //include VAR and PR.
 //This property is very useful if region is a blackbox.
@@ -180,14 +176,6 @@ public:
         struct {
             BYTE is_expect_inline:1; //see above macro declaration.
             BYTE is_du_valid:1;  //see above macro declaration.
-
-            //Set to true if there is single map between
-            //PR and MD. If PR may corresponde to multiple
-            //MD, set it to false.
-            //e.g: If one use same pr with different type U8 and U32,
-            //there will have two mds refer to pr1(U8) and pr1(U32),
-            //MD2->pr1(U8), MD8->pr1(U32).
-            BYTE isPRUniqueForSameNo:1;
 
             //True if region does not modify any live-in variables
             //which include VAR and PR. We say the region is readonly.
@@ -339,7 +327,7 @@ public:
     IR * buildStorePR(Type const* type, IR * rhs);
     IR * buildIstore(IR * base, IR * rhs, Type const* type);
     IR * buildIstore(IR * base, IR * rhs, UINT ofst, Type const* type);
-    IR * buildString(SYM * strtab);
+    IR * buildString(SYM const* strtab);
     IR * buildStoreArray(
             IR * base,
             IR * sublist,
@@ -505,7 +493,7 @@ public:
     {
         if (REGION_analysis_instrument(this)->m_call_list == NULL) {
             REGION_analysis_instrument(this)->m_call_list =
-                                        new List<IR const*>();
+                new List<IR const*>();
         }
         return REGION_analysis_instrument(this)->m_call_list;
     }
@@ -627,7 +615,7 @@ public:
     inline Type const* getTargetMachineArrayIndexType()
     {
         return get_type_mgr()->getSimplexTypeEx(get_type_mgr()->
-                    get_dtype(WORD_LENGTH_OF_TARGET_MACHINE, false));
+            get_dtype(WORD_LENGTH_OF_TARGET_MACHINE, false));
     }
 
     //Perform high level optmizations.
@@ -665,8 +653,6 @@ public:
     bool isLowestHeightExp(IR const* ir, SimpCtx const* ctx) const;
     bool isLowestHeightSelect(IR const* ir) const;
     bool isLowestHeightArrayOp(IR const* ir) const;
-    bool isPRUniqueForSameNo() const
-    { return REGION_is_pr_unique_for_same_number(this); }
 
     //Return true if Region name is equivalent to 'n'.
     bool isRegionName(CHAR const* n) const

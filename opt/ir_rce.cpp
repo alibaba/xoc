@@ -257,7 +257,7 @@ bool IR_RCE::performSimplyRCE(IN OUT bool & cfg_mod)
         C<IR*> * ct, * next_ct;
         for (ir_list->get_head(&next_ct), ct = next_ct;
              ct != NULL; ct = next_ct) {
-            IR * ir = C_val(ct);
+            IR * ir = ct->val();
             ir_list->get_next(&next_ct);
             IR * newIR = ir;
             switch (IR_code(ir)) {

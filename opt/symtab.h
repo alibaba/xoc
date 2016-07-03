@@ -100,7 +100,7 @@ public:
         return v;
     }
 
-    UINT get_hash_value(SYM * s, UINT bs) const
+    UINT get_hash_value(SYM const* s, UINT bs) const
     {
         ASSERT0(isPowerOf2(bs));
         UINT v = computeCharSum(SYM_name(s));
@@ -111,16 +111,16 @@ public:
     UINT get_hash_value(OBJTY v, UINT bs) const
     {
         ASSERT(sizeof(OBJTY) == sizeof(CHAR*),
-                ("exception will taken place in type-cast"));
+               ("exception will taken place in type-cast"));
         ASSERT0(isPowerOf2(bs));
         UINT n = computeCharSum((CHAR*)v);
         return hash32bit(n) & (bs - 1);
     }
 
-    bool compare(SYM * s1, SYM * s2) const
+    bool compare(SYM const* s1, SYM const* s2) const
     { return strcmp(SYM_name(s1),  SYM_name(s2)) == 0; }
 
-    bool compare(SYM * s, OBJTY val) const
+    bool compare(SYM const* s, OBJTY val) const
     {
         ASSERT(sizeof(OBJTY) == sizeof(CHAR*),
                 ("exception will taken place in type-cast"));
@@ -167,7 +167,7 @@ public:
         return Hash<SYM*, SymbolHashFunc>::append((OBJTY)s);
     }
 
-    inline SYM * get(CHAR const* s)
+    SYM * get(CHAR const* s)
     { return Hash<SYM*, SymbolHashFunc>::find((OBJTY)s); }
 };
 

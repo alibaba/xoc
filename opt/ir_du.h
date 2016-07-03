@@ -163,16 +163,64 @@ public:
 };
 
 
-class DefDBitSetCoreHash : public SBitSetCoreHash<DefDBitSetCoreHashAllocator> {
+#define HASH_DBITSETCORE
+
+class DefDBitSetCoreReserveTab : public
+    SBitSetCoreHash<DefDBitSetCoreHashAllocator> {
+    #ifdef HASH_DBITSETCORE
+    #else
+    List<DefDBitSetCore*> m_allocated;
+    #endif
+
 public:
-    DefDBitSetCoreHash(DefDBitSetCoreHashAllocator * allocator) :
+    DefDBitSetCoreReserveTab(DefDBitSetCoreHashAllocator * allocator) :
         SBitSetCoreHash<DefDBitSetCoreHashAllocator>(allocator) {}
-    virtual ~DefDBitSetCoreHash() {}
+
+    virtual ~DefDBitSetCoreReserveTab()
+    {
+        #ifdef HASH_DBITSETCORE
+        #else
+        C<DefDBitSetCore*> * ct;
+        for (m_allocated.get_head(&ct);
+             ct != m_allocated.end(); ct = m_allocated.get_next(ct)) {
+            DefDBitSetCore * s = ct->val();
+            ASSERT0(s);
+            get_allocator()->free(s);
+        }
+        #endif
+    }
 
     DefDBitSetCore const* append(DefDBitSetCore const& set)
     {
+        #ifdef HASH_DBITSETCORE
         return (DefDBitSetCore const*)SBitSetCoreHash
                <DefDBitSetCoreHashAllocator>::append(set);
+        #else
+        DefDBitSetCore * s = (DefDBitSetCore*)m_allocator->alloc();
+        ASSERT0(s);
+        m_allocated.append_tail(s);
+        s->copy(set, *m_allocator->getBsMgr());
+        return s;
+        #endif
+    }
+
+    void dump(FILE * h)
+    {
+        #ifdef HASH_DBITSETCORE
+        dump_hashed_set(h);
+        #else
+        if (h == NULL) { return; }
+        fprintf(h, "\n==---- DUMP DefDBitSetCoreReserveTab ----==");
+        C<DefDBitSetCore*> * ct;
+        for (m_allocated.get_head(&ct);
+             ct != m_allocated.end(); ct = m_allocated.get_next(ct)) {
+            DefDBitSetCore * s = ct->val();
+            ASSERT0(s);
+            fprintf(h, "\n");
+            s->dump(h);
+        }
+        fflush(h);
+        #endif
     }
 };
 
@@ -421,12 +469,12 @@ public:
     void computeMDDUforBB(IRBB * bb);
     void computeMDRef();
     void computeKillSet(
-            DefDBitSetCoreHash & dbitsetchash,
+            DefDBitSetCoreReserveTab & dbitsetchash,
             Vector<MDSet*> const* mustdefs,
             Vector<MDSet*> const* maydefs,
             DefMiscBitSetMgr & bsmgr);
     void computeAuxSetForExpression(
-            DefDBitSetCoreHash & dbitsetchash,
+            DefDBitSetCoreReserveTab & dbitsetchash,
             OUT DefDBitSetCore * expr_universe,
             Vector<MDSet*> const* maydefmds,
             DefMiscBitSetMgr & bsmgr);
@@ -440,7 +488,7 @@ public:
     //Return the DU structure if has to facilitate other free or destroy process.
     inline DU * freeDUSetAndCleanMDRefs(IR * ir)
     {
-        DU * du = ir->get_du();
+        DU * du = ir->getDU();
         if (du == NULL) { return NULL; }
 
         if (DU_duset(du) != NULL) {
@@ -489,9 +537,9 @@ public:
     {
         //tgt and src should either both be stmt or both be exp.
         ASSERT0(!(tgt->is_stmt() ^ src->is_stmt()));
-        DUSet const* srcduinfo = src->get_duset_c();
+        DUSet const* srcduinfo = src->readDUSet();
         if (srcduinfo == NULL) {
-            DUSet * tgtduinfo = tgt->get_duset();
+            DUSet * tgtduinfo = tgt->getDUSet();
             if (tgtduinfo != NULL) {
                 tgtduinfo->clean(*m_misc_bs_mgr);
             }
@@ -508,7 +556,7 @@ public:
     inline void copyDUSet(IR * tgt, DUSet const* srcset)
     {
         if (srcset == NULL) {
-            DUSet * tgtduinfo = tgt->get_duset();
+            DUSet * tgtduinfo = tgt->getDUSet();
             if (tgtduinfo != NULL) {
                 tgtduinfo->clean(*m_misc_bs_mgr);
             }
@@ -526,7 +574,7 @@ public:
     void copyDUChain(IR * tgt, IR * src)
     {
         copyDUSet(tgt, src);
-        DUSet const* from_du = src->get_duset_c();
+        DUSet const* from_du = src->readDUSet();
 
         DUIter di = NULL;
         for (UINT i = (UINT)from_du->get_first(&di);
@@ -534,7 +582,7 @@ public:
             IR const* ref = m_ru->get_ir(i);
             //ref may be stmt or exp.
 
-            DUSet * ref_defuse_set = ref->get_duset();
+            DUSet * ref_defuse_set = ref->getDUSet();
             if (ref_defuse_set == NULL) { continue; }
             ref_defuse_set->add(IR_id(tgt), *m_misc_bs_mgr);
         }
@@ -546,12 +594,11 @@ public:
     //'from': copy from stmt's id.
     //'useset': each element is USE, it is the USE expression set of 'from'.
     //e.g: from->USE change to to->USE.
-    void changeDef(
-            UINT to,
-            UINT from,
-            DUSet * useset_of_to,
-            DUSet * useset_of_from,
-            DefMiscBitSetMgr * m)
+    void changeDef(UINT to,
+                   UINT from,
+                   DUSet * useset_of_to,
+                   DUSet * useset_of_from,
+                   DefMiscBitSetMgr * m)
     {
         ASSERT0(m_ru->get_ir(from)->is_stmt() &&
                 m_ru->get_ir(to)->is_stmt() &&
@@ -562,7 +609,7 @@ public:
             IR const* exp = m_ru->get_ir((UINT)i);
             ASSERT0(exp->is_memory_ref());
 
-            DUSet * defset = exp->get_duset();
+            DUSet * defset = exp->getDUSet();
             if (defset == NULL) { continue; }
             defset->diff(from, *m_misc_bs_mgr);
             defset->bunion(to, *m_misc_bs_mgr);
@@ -579,7 +626,7 @@ public:
     inline void changeDef(IR * to, IR * from, DefMiscBitSetMgr * m)
     {
         ASSERT0(to && from && to->is_stmt() && from->is_stmt());
-        DUSet * useset_of_from = from->get_duset();
+        DUSet * useset_of_from = from->getDUSet();
         if (useset_of_from == NULL) { return; }
 
         DUSet * useset_of_to = getAndAllocDUSet(to);
@@ -592,12 +639,11 @@ public:
     //'from': indicate the source expression which copy from.
     //'defset': it is the DEF stmt set of 'from'.
     //e.g: DEF->from change to DEF->to.
-    void changeUse(
-            UINT to,
-            UINT from,
-            DUSet * defset_of_to,
-            DUSet * defset_of_from,
-            DefMiscBitSetMgr * m)
+    void changeUse(UINT to,
+                   UINT from,
+                   DUSet * defset_of_to,
+                   DUSet * defset_of_from,
+                   DefMiscBitSetMgr * m)
     {
         ASSERT0(m_ru->get_ir(from)->is_exp() && m_ru->get_ir(to)->is_exp() &&
                 defset_of_from && defset_of_to && m);
@@ -606,7 +652,7 @@ public:
              di != NULL; i = defset_of_from->get_next((UINT)i, &di)) {
             IR * stmt = m_ru->get_ir((UINT)i);
             ASSERT0(stmt->is_stmt());
-            DUSet * useset = stmt->get_duset();
+            DUSet * useset = stmt->getDUSet();
             if (useset == NULL) { continue; }
             useset->diff(from, *m_misc_bs_mgr);
             useset->bunion(to, *m_misc_bs_mgr);
@@ -623,7 +669,7 @@ public:
     inline void changeUse(IR * to, IR const* from, DefMiscBitSetMgr * m)
     {
         ASSERT0(to && from && to->is_exp() && from->is_exp());
-        DUSet * defset_of_from = from->get_duset();
+        DUSet * defset_of_from = from->getDUSet();
         if (defset_of_from == NULL) { return; }
 
         DUSet * defset_of_to = getAndAllocDUSet(to);
@@ -721,7 +767,7 @@ public:
     inline bool is_du_exist(IR const* def, IR const* use) const
     {
         ASSERT0(def->is_stmt() && use->is_exp());
-        DUSet const* du = def->get_duset_c();
+        DUSet const* du = def->readDUSet();
         if (du == NULL) { return false; }
         return du->is_contain(IR_id(use));
     }
@@ -832,10 +878,10 @@ public:
     inline void removeDUChain(IR const* def, IR const* use)
     {
         ASSERT0(def->is_stmt() && use->is_exp());
-        DUSet * useset = def->get_duset();
+        DUSet * useset = def->getDUSet();
         if (useset != NULL) { useset->remove(IR_id(use), *m_misc_bs_mgr); }
 
-        DUSet * defset= use->get_duset();
+        DUSet * defset= use->getDUSet();
         if (defset != NULL) { defset->remove(IR_id(def), *m_misc_bs_mgr); }
     }
 

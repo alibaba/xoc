@@ -43,8 +43,13 @@ RegionMgr::~RegionMgr()
 {
     for (INT id = 0; id <= m_id2ru.get_last_idx(); id++) {
         Region * ru = m_id2ru.get(id);
-        if (ru != NULL) { delete ru; }
+        if (ru == NULL) { continue; }
+        deleteRegion(ru, false);
     }
+
+    #ifdef _DEBUG_
+    ASSERT(m_num_allocated == 0, ("there is still region leave out"));
+    #endif
 
     if (m_md_sys != NULL) {
         delete m_md_sys;
@@ -149,6 +154,10 @@ Region * RegionMgr::allocRegion(REGION_TYPE rt)
 
 Region * RegionMgr::newRegion(REGION_TYPE rt)
 {
+    #ifdef _DEBUG_
+    m_num_allocated++;
+    #endif
+
     Region * ru = allocRegion(rt);
     UINT free_id = m_free_ru_id.remove_head();
     if (free_id == 0) {
@@ -156,6 +165,7 @@ Region * RegionMgr::newRegion(REGION_TYPE rt)
     } else {
         REGION_id(ru) = free_id;
     }
+
     return ru;
 }
 
@@ -227,19 +237,24 @@ void RegionMgr::dump(bool dump_inner_region)
 }
 
 
-void RegionMgr::deleteRegion(Region * ru)
+//This function destroy region, and free the region id
+//to next region alloction.
+void RegionMgr::deleteRegion(Region * ru, bool collect_id)
 {
     ASSERT0(ru);
     UINT id = REGION_id(ru);
-
-    //User may not record the region.
-    //ASSERT(get_region(id), ("Does not belong to current region mgr"));
+    ASSERT(get_region(id), ("not registered region"));
     delete ru;
 
-    if (id != 0) {
+    if (collect_id && id != 0) {
         m_id2ru.set(id, NULL);
         m_free_ru_id.append_head(id);
     }
+
+    #ifdef _DEBUG_
+    ASSERT0(m_num_allocated != 0);
+    m_num_allocated--;
+    #endif
 }
 
 

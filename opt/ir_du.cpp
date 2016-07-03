@@ -442,7 +442,7 @@ DefDBitSetCore * IR_DU_MGR::getAvailOutExpr(UINT bbid, DefMiscBitSetMgr * mgr)
 DUSet * IR_DU_MGR::getAndAllocDUSet(IR * ir)
 {
     ASSERT0(ir->isContainMemRef());
-    DU * du = ir->get_du();
+    DU * du = ir->getDU();
     if (du == NULL) {
         du = m_ru->allocDU();
         ir->set_du(du);
@@ -468,10 +468,10 @@ bool IR_DU_MGR::isExactAndUniqueDef(IR const* def, IR const* exp)
     ASSERT0(def->is_stmt() && exp->is_exp());
     MD const* def_md = def->get_exact_ref();
     if (def_md == NULL) { return false; }
-    ASSERT0(def->get_duset_c()); //At least contains 'exp'.
+    ASSERT0(def->readDUSet()); //At least contains 'exp'.
 
     MD const* use_md = exp->get_exact_ref();
-    DUSet const* defset = exp->get_duset_c();
+    DUSet const* defset = exp->readDUSet();
     if (defset == NULL) { return false; }
     if (use_md == def_md && hasSingleDefToMD(*defset, def_md)) {
         return true;
@@ -488,7 +488,7 @@ IR const* IR_DU_MGR::getExactAndUniqueDef(IR const* exp)
     MD const* use_md = exp->get_exact_ref();
     if (use_md == NULL) { return NULL; }
 
-    DUSet const* defset = exp->get_duset_c();
+    DUSet const* defset = exp->readDUSet();
     if (defset == NULL) { return NULL; }
 
     DUIter di = NULL;
@@ -550,35 +550,15 @@ bool IR_DU_MGR::is_stpr_may_def(IR const* def, IR const* use, bool is_recur)
 {
     ASSERT0(def->is_stpr());
     UINT prno = STPR_no(def);
-    MDSet const* maydef = get_may_def(def);
     if (is_recur) {
         m_citer.clean();
         for (IR const* x = iterInitC(use, m_citer);
              x != NULL; x = iterNextC(m_citer)) {
             if (!x->is_pr()) { continue; }
             if (PR_no(x) == prno) { return true; }
-            if (!m_ru->isPRUniqueForSameNo() && maydef != NULL) {
-                MDSet const* mayuse = get_may_use(x);
-                if (mayuse != NULL &&
-                    (mayuse == maydef ||
-                     mayuse->is_intersect(*maydef))) {
-                    return true;
-                }
-            }
         }
-    } else {
-        if (!use->is_pr()) { return false; }
-        if (PR_no(use) == prno) { return true; }
-        if (!m_ru->isPRUniqueForSameNo() && maydef != NULL) {
-            MDSet const* mayuse = get_may_use(use);
-            if (mayuse != NULL &&
-                (mayuse == maydef ||
-                 mayuse->is_intersect(*maydef))) {
-                ASSERT0(mayuse->is_pr_set(m_md_sys) &&
-                         maydef->is_pr_set(m_md_sys));
-                return true;
-            }
-        }
+    } else if (use->is_pr() && PR_no(use) == prno) {
+        return true;
     }
     return false;
 }
@@ -703,18 +683,8 @@ bool IR_DU_MGR::is_may_def(IR const* def, IR const* use, bool is_recur)
 bool IR_DU_MGR::is_may_kill(IR const* def1, IR const* def2)
 {
     ASSERT0(def1->is_stmt() && def2->is_stmt());
-    if (def1->is_stpr() && def2->is_stpr()) {
-        if (STPR_no(def1) == STPR_no(def2)) {
-            return true;
-        }
-
-        MDSet const* maydef1;
-        MDSet const* maydef2;
-        if (!m_ru->isPRUniqueForSameNo() &&
-            (maydef1 = def1->getRefMDSet()) != NULL &&
-            (maydef2 = def2->getRefMDSet()) != NULL) {
-            return maydef1->is_intersect(*maydef2);
-        }
+    if (def1->is_stpr() && def2->is_stpr() && STPR_no(def1) == STPR_no(def2)) {
+        return true;
     }
 
     MD const* md1 = get_must_def(def1);
@@ -875,13 +845,13 @@ void IR_DU_MGR::computeExpression(IR * ir, OUT MDSet * ret_mds, UINT flag)
         //Binary operation.
         computeExpression(BIN_opnd0(ir), ret_mds, flag);
         computeExpression(BIN_opnd1(ir), ret_mds, flag);
-        ASSERT0(ir->get_du() == NULL);
+        ASSERT0(ir->getDU() == NULL);
         break;
     case IR_BNOT:
     case IR_LNOT:
     case IR_NEG:
         computeExpression(UNA_opnd0(ir), ret_mds, flag);
-        ASSERT0(ir->get_du() == NULL);
+        ASSERT0(ir->getDU() == NULL);
         break;
     case IR_LABEL:
         break;
@@ -892,15 +862,7 @@ void IR_DU_MGR::computeExpression(IR * ir, OUT MDSet * ret_mds, UINT flag)
         computeExpression(CVT_exp(ir), ret_mds, flag);
         break;
     case IR_PR:
-        if (HAVE_FLAG(flag, COMP_EXP_RECOMPUTE)) {
-            //e.g: PR1(U8) = ...
-            //         ... = PR(U32)
-            //PR1(U8) is correspond to MD7,
-            //PR1(U32) is correspond to MD9, therefore MD7 and MD9 are overlapped.
-            if (!m_ru->isPRUniqueForSameNo()) {
-                computeOverlapUseMDSet(ir, false);
-            }
-        } else if (HAVE_FLAG(flag, COMP_EXP_COLLECT_MUST_USE)) {
+        if (HAVE_FLAG(flag, COMP_EXP_COLLECT_MUST_USE)) {
             MD const* t = ir->getRefMD();
             ASSERT0(t && t->is_exact());
             ret_mds->bunion(t, *m_misc_bs_mgr);
@@ -933,7 +895,7 @@ void IR_DU_MGR::dumpDUGraph(CHAR const* name, bool detail)
              ir != NULL; ir = BB_next_ir(bb)) {
 
             dug.addVertex(IR_id(ir));
-            DUSet const* useset = ir->get_duset_c();
+            DUSet const* useset = ir->readDUSet();
             if (useset == NULL) { continue; }
 
             DUIter di = NULL;
@@ -1500,7 +1462,7 @@ void IR_DU_MGR::dumpBBDUChainDetail(IRBB * bb)
                 fprintf(g_tfile, "\n\t  DEF List:");
             }
 
-            DUSet const* set = k->get_duset_c();
+            DUSet const* set = k->readDUSet();
             if (set != NULL) {
                 DUIter di = NULL;
                 for (INT i = set->get_first(&di);
@@ -1633,7 +1595,7 @@ void IR_DU_MGR::dumpDUChain()
                  x != NULL; x = iterRhsNextC(m_citer)) {
                  if (!x->is_memory_opnd()) { continue; }
 
-                DUSet const* defset = x->get_duset_c();
+                DUSet const* defset = x->readDUSet();
                 if (defset == NULL || defset->get_elem_count() == 0) {
                     continue;
                 }
@@ -1652,7 +1614,7 @@ void IR_DU_MGR::dumpDUChain()
             }
 
             //Dump use chain.
-            DUSet const* useset = ir->get_duset_c();
+            DUSet const* useset = ir->readDUSet();
             if (useset == NULL || useset->get_elem_count() == 0) { continue; }
 
             fprintf(g_tfile, "\n>>USE List:");
@@ -1925,7 +1887,7 @@ void IR_DU_MGR::copyIRTreeDU(IR * to, IR const* from, bool copyDUChain)
             PR_ssainfo(to_ir) = ssainfo;
             SSA_uses(ssainfo).append(to_ir);
         } else {
-            DUSet const* from_du = from_ir->get_duset_c();
+            DUSet const* from_du = from_ir->readDUSet();
             if (from_du == NULL || from_du->is_empty()) { continue; }
 
             DUSet * to_du = getAndAllocDUSet(to_ir);
@@ -1939,7 +1901,7 @@ void IR_DU_MGR::copyIRTreeDU(IR * to, IR const* from, bool copyDUChain)
                 //x is stmt if from_ir is expression.
                 //x is expression if from_ir is stmt.
                 IR const* x = m_ru->get_ir(i);
-                DUSet * x_du_set = x->get_duset();
+                DUSet * x_du_set = x->getDUSet();
                 if (x_du_set == NULL) { continue; }
                 x_du_set->add(IR_id(to_ir), *m_misc_bs_mgr);
             }
@@ -1953,7 +1915,7 @@ void IR_DU_MGR::copyIRTreeDU(IR * to, IR const* from, bool copyDUChain)
 void IR_DU_MGR::removeDef(IR const* ir, IR const* def)
 {
     ASSERT0(ir->is_exp() && def->is_stmt());
-    DUSet * duset = ir->get_duset();
+    DUSet * duset = ir->getDUSet();
     if (duset == NULL) { return; }
     duset->removeDef(def, *m_misc_bs_mgr);
 }
@@ -2034,7 +1996,7 @@ bool IR_DU_MGR::removeExpiredDUForStmt(IR * stmt)
         return change;
     }
 
-    DUSet const* useset = stmt->get_duset_c();
+    DUSet const* useset = stmt->readDUSet();
     if (useset == NULL) { return false; }
 
     ASSERT0(stmt->is_memory_ref());
@@ -2093,7 +2055,7 @@ bool IR_DU_MGR::removeExpiredDUForOperand(IR * stmt)
             continue;
         }
 
-        DUSet const* defset = k->get_duset_c();
+        DUSet const* defset = k->readDUSet();
         if (defset == NULL) { continue; }
 
         DUIter di = NULL;
@@ -2166,7 +2128,7 @@ void IR_DU_MGR::removeUseOutFromDefset(IR * ir)
             continue;
         }
 
-        DUSet * defset = k->get_duset();
+        DUSet * defset = k->getDUSet();
         if (defset == NULL) { continue; }
 
         DUIter di = NULL;
@@ -2177,7 +2139,7 @@ void IR_DU_MGR::removeUseOutFromDefset(IR * ir)
             IR const* stmt = m_ru->get_ir(i);
             ASSERT0(stmt->is_stmt());
 
-            DUSet * useset = stmt->get_duset();
+            DUSet * useset = stmt->getDUSet();
             if (useset == NULL) { continue; }
             useset->remove_use(k, *m_misc_bs_mgr);
         }
@@ -2202,7 +2164,7 @@ void IR_DU_MGR::removeDefOutFromUseset(IR * def)
     //and make sure they are all removable. Use SSA form related api.
     ASSERT0(def->get_ssainfo() == NULL);
 
-    DUSet * useset = def->get_duset();
+    DUSet * useset = def->getDUSet();
     if (useset == NULL) { return; }
 
     DUIter di = NULL;
@@ -2214,7 +2176,7 @@ void IR_DU_MGR::removeDefOutFromUseset(IR * def)
         IR const* exp = m_ru->get_ir(i);
         ASSERT0(exp->is_exp());
 
-        DUSet * du = exp->get_duset();
+        DUSet * du = exp->getDUSet();
         if (du != NULL) { du->removeDef(def, *m_misc_bs_mgr); }
     }
 
@@ -2363,7 +2325,7 @@ size_t IR_DU_MGR::count_mem_duset()
     INT l = vec->get_last_idx();
     for (INT i = 1; i <= l; i++) {
         IR const* ir = vec->get(i);
-        DUSet const* duset = ir->get_duset_c();
+        DUSet const* duset = ir->readDUSet();
         if (duset != NULL) {
             count += duset->count_mem();
         }
@@ -2455,9 +2417,6 @@ void IR_DU_MGR::inferStoreArray(IR * ir)
 void IR_DU_MGR::inferStorePR(IR * ir)
 {
     ASSERT0(ir->is_stpr() && ir->getRefMD() && ir->getRefMDSet() == NULL);
-    if (!m_ru->isPRUniqueForSameNo()) {
-        computeOverlapUseMDSet(ir, false);
-    }
     computeExpression(STPR_rhs(ir), NULL, COMP_EXP_RECOMPUTE);
 }
 
@@ -2465,10 +2424,6 @@ void IR_DU_MGR::inferStorePR(IR * ir)
 void IR_DU_MGR::inferPhi(IR * ir)
 {
     ASSERT0(ir->is_phi() && ir->getRefMD() && ir->getRefMDSet() == NULL);
-    if (!m_ru->isPRUniqueForSameNo()) {
-        computeOverlapUseMDSet(ir, false);
-    }
-
     //Set call result list MD.
     IR * r = PHI_opnd_list(ir);
     while (r != NULL) {
@@ -2501,10 +2456,6 @@ void IR_DU_MGR::inferIstore(IR * ir)
 void IR_DU_MGR::inferCall(IR * ir, IN MD2MDSet * mx)
 {
     ASSERT0(ir->is_calls_stmt());
-    if (!m_ru->isPRUniqueForSameNo()) {
-        computeOverlapUseMDSet(ir, false);
-    }
-
     if (ir->is_icall()) {
         computeExpression(ICALL_callee(ir), NULL, COMP_EXP_RECOMPUTE);
     }
@@ -2566,15 +2517,7 @@ void IR_DU_MGR::collectMayUse(IR const* ir, MDSet & may_use, bool computePR)
 
         if (x->is_pr() && computePR) {
             ASSERT0(get_must_use(x));
-
             may_use.bunion_pure(MD_id(get_must_use(x)), *m_misc_bs_mgr);
-
-            if (!m_ru->isPRUniqueForSameNo()) {
-                MDSet const* ts = get_may_use(x);
-                if (ts != NULL) {
-                    may_use.bunion_pure(*ts, *m_misc_bs_mgr);
-                }
-            }
             continue;
         }
 
@@ -2781,13 +2724,6 @@ void IR_DU_MGR::collectMayUseRecursive(
 
         ASSERT0(get_must_use(ir));
         may_use.bunion_pure(MD_id(get_must_use(ir)), bsmgr);
-
-        if (!m_ru->isPRUniqueForSameNo()) {
-            MDSet const* ts = get_may_use(ir);
-            if (ts != NULL) {
-                may_use.bunion_pure(*ts, bsmgr);
-            }
-        }
         return;
     case IR_TRUEBR:
     case IR_FALSEBR:
@@ -2826,7 +2762,7 @@ void IR_DU_MGR::computeMayDef(
         DefDBitSetCore * maygen_stmt,
         DefMiscBitSetMgr & bsmgr)
 {
-    if (!ir->is_stpr() || !m_ru->isPRUniqueForSameNo()) {
+    if (!ir->is_stpr()) {
         MD const* ref = get_effect_def_md(ir);
         if (ref != NULL && !ref->is_exact()) {
             bb_maydefmds->bunion(ref, bsmgr);
@@ -3080,7 +3016,7 @@ void IR_DU_MGR::computeMDRef()
 //flag: switches.
 //NOTE: compute maykill and mustkill both need may-gen-def.
 void IR_DU_MGR::computeKillSet(
-        DefDBitSetCoreHash & dbitsetchash,
+        DefDBitSetCoreReserveTab & dbitsetchash,
         Vector<MDSet*> const* mustexactdefmds,
         Vector<MDSet*> const* maydefmds,
         DefMiscBitSetMgr & bsmgr)
@@ -3457,7 +3393,7 @@ void IR_DU_MGR::computeGenForBB(
 //Compute local-gen IR-EXPR set and killed IR-EXPR set.
 //'expr_universe': record the universal of all ir-expr of region.
 void IR_DU_MGR::computeAuxSetForExpression(
-        DefDBitSetCoreHash & dbitsetchash,
+        DefDBitSetCoreReserveTab & dbitsetchash,
         OUT DefDBitSetCore * expr_universe,
         Vector<MDSet*> const* maydefmds,
         DefMiscBitSetMgr & bsmgr)
@@ -3807,7 +3743,7 @@ UINT IR_DU_MGR::checkIsLocalKillingDef(
     //    *base = ...
     //    ... //base can not be modified in between ist and ild.
     //    = *base
-    DUSet const* defset_of_t = t->get_duset_c();
+    DUSet const* defset_of_t = t->readDUSet();
     if (defset_of_t != NULL) {
         DUIter di = NULL;
         for (UINT d = defset_of_t->get_first(&di);
@@ -3919,7 +3855,7 @@ bool IR_DU_MGR::buildLocalDUChain(
     ASSERT0(expdu);
     expdu->add_def(nearest_def, *m_misc_bs_mgr);
 
-    DUSet * xdu = nearest_def->get_duset();
+    DUSet * xdu = nearest_def->getDUSet();
     ASSERT0(xdu);
     if (!m_is_init->is_contain(IR_id(nearest_def))) {
         m_is_init->bunion(IR_id(nearest_def));
@@ -4409,13 +4345,19 @@ void IR_DU_MGR::updateDefWithMustEffectMD(IR * ir, MD const* musteffect)
 
 void IR_DU_MGR::updateDef(IR * ir)
 {
+    if (!m_is_init->is_contain(IR_id(ir))) {
+        m_is_init->bunion(IR_id(ir));
+        DUSet * set = ir->getDUSet();
+        if (set != NULL) {
+            set->clean(*m_misc_bs_mgr);
+        }
+    }
+
     switch (ir->get_code()) {
     case IR_REGION:
         updateRegion(ir);
         return;
     case IR_STPR:
-    case IR_CALL:
-    case IR_ICALL:
     case IR_PHI:
         if (!isComputePRDU()) { return; }
         break;
@@ -4424,6 +4366,11 @@ void IR_DU_MGR::updateDef(IR * ir)
 
     ASSERT0(ir->is_st() || ir->is_ist() || ir->is_starray() ||
             ir->is_stpr() || ir->is_phi() || ir->is_calls_stmt());
+
+    if (!isComputePRDU() && ir->is_calls_stmt()) {
+        updateDefWithMustEffectMD(ir, NULL);
+        return;
+    }
 
     MD const* must = ir->getRefMD();
     if (must != NULL && must->is_exact()) {
@@ -4536,7 +4483,7 @@ bool IR_DU_MGR::checkIsTruelyDep(IR const* def, IR const* use)
                 //them individually.
                 if (mustdef == mustuse || mustdef->is_overlap(mustuse)) {
                     ; //Do nothing.
-                } else if (maydef->is_overlap(mustuse)) {
+                } else if (maydef != NULL && maydef->is_overlap(mustuse)) {
                     ; //Do nothing.
                 } else {
                     UNREACH();
@@ -4572,12 +4519,13 @@ bool IR_DU_MGR::checkIsTruelyDep(IR const* def, IR const* use)
 //Verify if DU chain is correct between each Def and Use of MD.
 bool IR_DU_MGR::verifyMDDUChainForIR(IR const* ir)
 {
-    bool precision_check = true;
+    bool precision_check = g_verify_level >= VERIFY_LEVEL_2;
     ASSERT0(ir->is_stmt());
 
-    if (ir->get_ssainfo() == NULL) {
+    if (ir->get_ssainfo() == NULL ||
+        ir->is_calls_stmt() /* Need to check memory DU for call */) {
         //ir is in MD DU form.
-        DUSet const* useset = ir->get_duset_c();
+        DUSet const* useset = ir->readDUSet();
 
         if (useset != NULL) {
             DUIter di = NULL;
@@ -4597,10 +4545,10 @@ bool IR_DU_MGR::verifyMDDUChainForIR(IR const* ir)
                 ASSERT0(use->is_memory_opnd());
 
                 //ir must be DEF of 'use'.
-                ASSERT0(use->get_duset_c());
+                ASSERT0(use->readDUSet());
 
                 //Check consistence between ir and use duchain.
-                ASSERT0(use->get_duset_c()->is_contain(IR_id(ir)));
+                ASSERT0(use->readDUSet()->is_contain(IR_id(ir)));
 
                 if (precision_check) {
                     ASSERT0(checkIsTruelyDep(ir, use));
@@ -4619,7 +4567,7 @@ bool IR_DU_MGR::verifyMDDUChainForIR(IR const* ir)
             continue;
         }
 
-        DUSet const* defset = u->get_duset_c();
+        DUSet const* defset = u->readDUSet();
         if (defset == NULL) { continue; }
 
         ASSERT(u->is_memory_opnd(), ("only memory operand has DUSet"));
@@ -4635,10 +4583,10 @@ bool IR_DU_MGR::verifyMDDUChainForIR(IR const* ir)
             ASSERT0(BB_irlist(def->get_bb()).find(const_cast<IR*>(def)));
 
             //u must be use of 'def'.
-            ASSERT0(def->get_duset_c());
+            ASSERT0(def->readDUSet());
 
             //Check consistence between DEF and USE.
-            ASSERT0(def->get_duset_c()->is_contain(IR_id(u)));
+            ASSERT0(def->readDUSet()->is_contain(IR_id(u)));
 
             if (precision_check) {
                 ASSERT0(checkIsTruelyDep(def, u));
@@ -5031,7 +4979,7 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
         END_TIMERS(t3);
 
         DefDBitSetCoreHashAllocator dbitsetchashallocator(&bsmgr);
-        DefDBitSetCoreHash dbitsetchash(&dbitsetchashallocator);
+        DefDBitSetCoreReserveTab dbitsetchash(&dbitsetchashallocator);
         if (HAVE_FLAG(flag, SOL_REACH_DEF) ||
             HAVE_FLAG(flag, SOL_AVAIL_REACH_DEF)) {
             START_TIMERS("Build KillSet", t);

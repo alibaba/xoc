@@ -44,6 +44,10 @@ class PassMgr;
 #define OPT_LEVEL3    3
 #define SIZE_OPT      4
 
+#define VERIFY_LEVEL_1  1 //only perform basic verifications.
+#define VERIFY_LEVEL_2  2 //do more aggressive check.
+#define VERIFY_LEVEL_3  3 //do all verifications.
+
 //Optimization Context
 //This class record and propagate auxiliary information to optimizations.
 #define OC_is_ref_valid(o)              ((o).u1.s1.is_du_ref_valid)
@@ -198,10 +202,6 @@ extern UINT g_inline_threshold;
 extern bool g_is_opt_float; //Optimize float point operation.
 extern bool g_is_lower_to_pr_mode; //Lower IR to PR mode.
 
-//True if each type of PRs are assigned unique number.
-//e.g: PR:I32 and PR:F64 are the same one.
-extern bool g_is_pr_unique_for_same_number;
-
 //Enable XOC support dynamic type.
 //That means the type of IR_ST, IR_LD, IR_STPR, IR_PR may be VOID.
 extern bool g_is_support_dynamic_type;
@@ -255,6 +255,7 @@ extern UINT g_thres_opt_bb_num;
 extern bool g_do_loop_convert;
 extern bool g_do_poly_tran;
 extern bool g_retain_pass_mgr_for_region;
+extern UINT g_verify_level;
 
 } //namespace xoc
 #endif

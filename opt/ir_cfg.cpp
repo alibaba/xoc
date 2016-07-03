@@ -808,7 +808,7 @@ bool IR_CFG::removeRedundantBranch()
                 m_bb_list->get_next(&tmp_ct);
                 for (IRBB * s = succs.get_head();
                      s != NULL; s = succs.get_next()) {
-                    if (s == C_val(tmp_ct)) {
+                    if (s == tmp_ct->val()) {
                         //Remove branch edge, leave fallthrough edge.
                         removeEdge(bb, s);
                     }
@@ -828,7 +828,7 @@ bool IR_CFG::removeRedundantBranch()
                 m_bb_list->get_next(&tmp_ct);
                 for (IRBB * s = succs.get_head();
                      s != NULL; s = succs.get_next()) {
-                    if (s != C_val(tmp_ct)) {
+                    if (s != tmp_ct->val()) {
                         removeEdge(bb, s);
                     }
                 }

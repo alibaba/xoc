@@ -239,7 +239,7 @@ public:
     AACtx() { clean(); }
     AACtx(AACtx const& ic) { copy(ic); }
 
-    inline void copy(AACtx const& ic) { u1.i1 = ic.u1.i1; }
+    void copy(AACtx const& ic) { u1.i1 = ic.u1.i1; }
 
     //Only copy top down flag.
     inline void copyTopDownFlag(AACtx const& ic)

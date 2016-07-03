@@ -80,8 +80,9 @@ protected:
     TypeMgr * m_tm;
     UINT m_prop_kind;
 
-    inline bool checkTypeConsistency(IR const* ir,
-                                       IR const* cand_expr) const;
+    inline bool checkTypeConsistency(
+            IR const* ir,
+            IR const* cand_expr) const;
     bool doProp(IN IRBB * bb, Vector<IR*> & usevec);
     void doFinalRefine();
 
@@ -92,10 +93,15 @@ protected:
 
     bool performDomTree(IN Vertex * v, IN Graph & domtree);
 
-    void replaceExp(IR * exp, IR const* cand_expr,
-                    IN OUT CPCtx & ctx, bool exp_use_ssadu);
-    void replaceExpViaSSADu(IR * exp, IR const* cand_expr,
-                            IN OUT CPCtx & ctx);
+    void replaceExp(
+            IR * exp,
+            IR const* cand_expr,
+            IN OUT CPCtx & ctx,
+            bool exp_use_ssadu);
+    void replaceExpViaSSADu(
+            IR * exp,
+            IR const* cand_expr,
+            IN OUT CPCtx & ctx);
 public:
     IR_CP(Region * ru)
     {

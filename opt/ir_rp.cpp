@@ -589,7 +589,7 @@ bool IR_RP::checkExpressionIsLoopInvariant(IN IR * ir, LI<IRBB> const* li)
             return true;
         }
 
-        DUSet const* duset = ir->get_duset_c();
+        DUSet const* duset = ir->readDUSet();
         if (duset == NULL) { return true; }
 
         DUIter dui = NULL;
@@ -1393,7 +1393,7 @@ bool IR_RP::hasLoopOutsideUse(IR const* stmt, LI<IRBB> const* li)
     ASSERT0(stmt->is_stmt());
     ASSERT0(stmt->get_ssainfo() == NULL);
 
-    DUSet const* useset = stmt->get_duset_c();
+    DUSet const* useset = stmt->readDUSet();
     if (useset == NULL) { return false; }
 
     DUIter di = NULL;
@@ -1421,7 +1421,7 @@ void IR_RP::removeRedundantDUChain(List<IR*> & fixup_list)
          ref != NULL; ref = fixup_list.get_next()) {
         ASSERT0(ref->is_stpr() || ref->is_pr());
 
-        DUSet const* duset = ref->get_duset_c();
+        DUSet const* duset = ref->readDUSet();
         if (duset == NULL) { continue; }
 
         DUIter di = NULL;
@@ -1776,7 +1776,7 @@ void IR_RP::computeOuterDefUse(
         ASSERT(ref->get_ssainfo() == NULL, ("should not have SSA du"));
 
         DUSet * defset = delegate2def.get(delegate);
-        DUSet const* refduset = ref->get_duset_c();
+        DUSet const* refduset = ref->readDUSet();
         if (defset == NULL && refduset != NULL) {
             defset = (DUSet*)sbs_mgr->create_sbitsetc();
             delegate2def.set(delegate, defset);
@@ -1797,7 +1797,7 @@ void IR_RP::computeOuterDefUse(
         //ref is DEF.
         ASSERT0(ref->is_st() || ref->is_ist() || ref->is_starray());
         DUSet * set = delegate2use.get(delegate);
-        DUSet const* refduset = ref->get_duset_c();
+        DUSet const* refduset = ref->readDUSet();
         if (set == NULL && refduset != NULL) {
             set = (DUSet*)sbs_mgr->create_sbitsetc();
             delegate2use.set(delegate, set);
@@ -2028,7 +2028,7 @@ void IR_RP::checkAndRemoveInvalidExactOcc(List<IR*> & exact_occ_list)
 {
     C<IR*> * ct, * nct;
     for (exact_occ_list.get_head(&ct), nct = ct; ct != NULL; ct = nct) {
-        IR * occ = C_val(ct);
+        IR * occ = ct->val();
         exact_occ_list.get_next(&nct);
 
         MD const* md = occ->getRefMD();

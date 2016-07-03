@@ -45,10 +45,6 @@ bool g_is_lower_to_pr_mode = false;
 //That means the type of IR_ST may be VOID.
 bool g_is_support_dynamic_type = false;
 
-//True if each type of PRs are assigned unique number.
-//e.g: PR:I32 and PR:F64 are the same one.
-bool g_is_pr_unique_for_same_number = true;
-
 //If true to hoist short type to integer type.
 bool g_is_hoist_type = false;
 
@@ -217,5 +213,9 @@ bool g_do_poly_tran = false;
 
 //Set to true to retain the PassMgr even if Region processing finished.
 bool g_retain_pass_mgr_for_region = false;
+
+//This variable show the verification level that compiler will perform.
+//More higher the level is, more verifications will be performed.
+UINT g_verify_level = VERIFY_LEVEL_2;
 
 } //namespace xoc

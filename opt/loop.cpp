@@ -127,14 +127,14 @@ IRBB * findAndInsertPreheader(
 
     //Find appropriate BB to be prehead.
     bool find_appropriate_prev_bb = false;
-    EdgeC const* ec = VERTEX_in_list(cfg->get_vertex(BB_id(head)));
-    while (ec != NULL) {
+
+    for (EdgeC const* ec = VERTEX_in_list(cfg->get_vertex(BB_id(head)));
+         ec != NULL; ec = EC_next(ec)) {
         UINT pred = VERTEX_id(EDGE_from(EC_edge(ec)));
         if (pred == BB_id(prev)) {
             find_appropriate_prev_bb = true;
             break;
         }
-        ec = EC_next(ec);
     }
 
     if (BB_last_ir(prev) != NULL &&

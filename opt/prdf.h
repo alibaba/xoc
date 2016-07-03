@@ -74,15 +74,15 @@ protected:
     }
 
     inline void processOpnd(
-                    IR const* exp,
-                    List<IR const*> & lst,
-                    DefSBitSetCore * use,
-                    DefSBitSetCore * gen);
+            IR const* exp,
+            List<IR const*> & lst,
+            DefSBitSetCore * use,
+            DefSBitSetCore * gen);
     inline void processMay(
-                    IR const* pr,
-                    DefSBitSetCore * gen,
-                    DefSBitSetCore * use,
-                    bool is_lhs);
+            IR const* pr,
+            DefSBitSetCore * gen,
+            DefSBitSetCore * use,
+            bool is_lhs);
 public:
     PRDF(Region * ru)
     {
@@ -174,7 +174,7 @@ public:
     DefMiscBitSetMgr & getMiscBitSetMgr() { return m_sbs_mgr; }
 
     //Get livein PR. The return set is readonly.
-    DefSBitSetCore const* get_livein_c(UINT bbid) const
+    DefSBitSetCore const* read_livein(UINT bbid) const
     { return m_livein.get(bbid); }
 
     //Get livein PR.

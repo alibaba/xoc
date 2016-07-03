@@ -76,7 +76,7 @@ public:
     MDSet const* mds; //indicate May MDSet reference.
     DUSet * duset; //indicate Def/Use of stmt/expr set.
 
-    inline void clean()
+    void clean()
     {
         md = NULL;
         mds = NULL;

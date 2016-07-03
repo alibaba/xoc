@@ -40,16 +40,16 @@ void Region::lowerIRTreeToLowestHeight(OptCtx & oc)
 {
     SimpCtx simp;
     if (g_is_lower_to_pr_mode) {
-        simp.set_simp_to_pr_mode();
+        simp.setSimpToPRmode();
     }
 
     if (g_do_ssa) {
         //Note if this flag enable,
         //AA may generate imprecise result.
         //TODO: use SSA info to improve the precision of AA.
-        simp.set_simp_land_lor();
-        simp.set_simp_lnot();
-        simp.set_simp_cf();
+        simp.setSimpLandLor();
+        simp.setSimpLnot();
+        simp.setSimpCFS();
     }
 
     //Simplify IR tree if it is needed.
@@ -103,19 +103,22 @@ bool Region::MiddleProcess(OptCtx & oc)
     BBList * bbl = get_bb_list();
     if (bbl->get_elem_count() == 0) { return true; }
 
+    if (g_verify_level >= VERIFY_LEVEL_3) {
+        ASSERT0(get_du_mgr() == NULL || get_du_mgr()->verifyMDDUChain());
+    }
+
     SimpCtx simp;
-    simp.set_simp_cf();
-    simp.set_simp_array();
-    simp.set_simp_select();
-    simp.set_simp_land_lor();
-    simp.set_simp_lnot();
-    simp.set_simp_ild_ist();
-    simp.set_simp_to_lowest_height();
+    simp.setSimpCFS();
+    simp.setSimpArray();
+    simp.setSimpSelect();
+    simp.setSimpLandLor();
+    simp.setSimpLnot();
+    simp.setSimpIldIst();
+    simp.setSimpToLowestHeight();
     if (g_is_lower_to_pr_mode) {
-        simp.set_simp_to_pr_mode();
+        simp.setSimpToPRmode();
     }
     simplifyBBlist(bbl, &simp);
-
     if (g_do_cfg &&
         g_cst_bb_list &&
         SIMP_need_recon_bblist(&simp) &&
@@ -150,31 +153,35 @@ bool Region::MiddleProcess(OptCtx & oc)
         ASSERT0(verifyMDRef());
     }
 
+    if (g_verify_level >= VERIFY_LEVEL_3 && OC_is_du_chain_valid(oc)) {
+        ASSERT0(get_du_mgr() == NULL || get_du_mgr()->verifyMDDUChain());
+    }
+
     if (g_do_ssa) {
         ASSERT0(get_pass_mgr());
         IR_SSA_MGR * ssamgr =
             (IR_SSA_MGR*)get_pass_mgr()->registerPass(PASS_SSA_MGR);
         ASSERT0(ssamgr);
-        //if (ssamgr == NULL || !ssamgr->is_ssa_constructed()) {
-        //    lowerIRTreeToLowestHeight(oc);
-        //}
         ssamgr->construction(oc);
     }
 
     if (g_opt_level > NO_OPT) {
         PassMgr * passmgr = get_pass_mgr();
         ASSERT0(passmgr);
-
-        //Perform scalar optimizations.
         passmgr->performScalarOpt(oc);
     }
 
     ASSERT0(verifyRPO(oc));
-    ASSERT0(verifyIRandBB(bbl, this));
-
     if (g_do_refine) {
         RefineCtx rf;
-        refineBBlist(bbl, rf);
+        if (refineBBlist(bbl, rf)) {
+            ASSERT0(verifyIRandBB(bbl, this));
+            if (g_verify_level >= VERIFY_LEVEL_3 && OC_is_du_chain_valid(oc)) {
+                ASSERT0(get_du_mgr() == NULL ||
+                        get_du_mgr()->verifyMDDUChain());
+            }
+        } else { ASSERT0(verifyIRandBB(bbl, this)); }
+    } else {
         ASSERT0(verifyIRandBB(bbl, this));
     }
     return true;

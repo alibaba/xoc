@@ -167,9 +167,11 @@ AnalysisInstrument::~AnalysisInstrument()
     for (INT i = 1; i <= l; i++) {
         IR * ir = m_ir_vector.get(i);
         ASSERT0(ir);
-        if (ir->is_region()) {
-            m_ru_mgr->deleteRegion(REGION_ru(ir));
-        }
+        //if (ir->is_region()) {
+        //    //All region should be deleted by regionmgr.
+        //    m_ru_mgr->deleteRegion(REGION_ru(ir));
+        //}
+
         if (IR_ai(ir) != NULL) {
             IR_ai(ir)->destroy_vec();
         }
@@ -296,7 +298,6 @@ void Region::init(REGION_TYPE rt, RegionMgr * rm)
     REGION_parent(this) = NULL;
     REGION_refinfo(this) = NULL;
     REGION_analysis_instrument(this) = NULL;
-    REGION_is_pr_unique_for_same_number(this) = g_is_pr_unique_for_same_number;
 
     if (is_program() ||
         is_function() ||
@@ -449,7 +450,7 @@ IR * Region::buildLda(VAR * var)
 
 //Build IR_CONST operation.
 //The result IR indicates a string.
-IR * Region::buildString(SYM * strtab)
+IR * Region::buildString(SYM const* strtab)
 {
     ASSERT0(strtab);
     IR * str = allocIR(IR_CONST);
@@ -1236,6 +1237,10 @@ IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
                irt == IR_XOR ||
                irt == IR_BAND ||
                irt == IR_BOR ||
+               irt == IR_LT ||
+               irt == IR_GT ||
+               irt == IR_LE ||
+               irt == IR_GE ||
                irt == IR_EQ ||
                irt == IR_NE, ("illegal pointer operation"));
         ASSERT(lchild->is_int() || lchild->is_mc() || lchild->is_void(),
@@ -1367,7 +1372,7 @@ IR * Region::buildJudge(IR * exp)
         type = dm->getI32();
     }
 
-    return buildCmp(IR_NE, exp, type->is_fp() ? 
+    return buildCmp(IR_NE, exp, type->is_fp() ?
         buildImmFp(HOST_FP(0), type) : buildImmInt(0, type));
 }
 
@@ -1557,13 +1562,13 @@ bool Region::reconstructBBlist(OptCtx & oc)
     C<IRBB*> * ctbb;
     BBList * bbl = get_bb_list();
     for (bbl->get_head(&ctbb); ctbb != NULL; bbl->get_next(&ctbb)) {
-        IRBB * bb = C_val(ctbb);
+        IRBB * bb = ctbb->val();
         C<IR*> * ctir;
         BBIRList * irlst = &BB_irlist(bb);
 
         IR * tail = irlst->get_tail();
         for (irlst->get_head(&ctir); ctir != NULL; irlst->get_next(&ctir)) {
-            IR * ir = C_val(ctir);
+            IR * ir = ctir->val();
 
             if (bb->is_bb_down_boundary(ir) && ir != tail) {
                 change = true;
@@ -1576,7 +1581,7 @@ bool Region::reconstructBBlist(OptCtx & oc)
                      ctir != NULL; ctir = next_ctir) {
                     irlst->get_next(&next_ctir);
                     irlst->remove(ctir);
-                    add_next(&restirs, &last, C_val(ctir));
+                    add_next(&restirs, &last, ctir->val());
                 }
 
                 ctbb = splitIRlistIntoBB(restirs, bbl, ctbb);
@@ -1594,7 +1599,7 @@ bool Region::reconstructBBlist(OptCtx & oc)
                      ctir != NULL; ctir = next_ctir) {
                     irlst->get_next(&next_ctir);
                     irlst->remove(ctir);
-                    add_next(&restirs, &last, C_val(ctir));
+                    add_next(&restirs, &last, ctir->val());
                 }
 
                 ctbb = splitIRlistIntoBB(restirs, bbl, ctbb);
@@ -1816,18 +1821,7 @@ MD const* Region::genMDforPR(UINT prno, Type const* type)
     MD md;
     MD_base(&md) = pr_var; //correspond to VAR
     MD_ofst(&md) = 0;
-
-    if (isPRUniqueForSameNo()) {
-        MD_ty(&md) = MD_UNBOUND;
-    } else {
-        MD_size(&md) = get_type_mgr()->get_bytesize(type);
-        if (type->is_void()) {
-            MD_ty(&md) = MD_UNBOUND;
-        } else {
-            MD_ty(&md) = MD_EXACT;
-        }
-    }
-
+    MD_ty(&md) = MD_UNBOUND;
     MD const* e = get_md_sys()->registerMD(md);
     ASSERT0(MD_id(e) > 0);
     return e;
@@ -2473,7 +2467,7 @@ void Region::dumpAllocatedIR()
         IR * ir = get_ir_vec()->get(i);
         ASSERT0(ir);
         i++;
-        DU * du = ir->get_du();
+        DU * du = ir->getDU();
         if (du != NULL) {
             num_has_du++;
         }
@@ -2531,7 +2525,7 @@ void Region::dumpAllocatedIR()
 
         i++;
 
-        DU * du = ir->get_du();
+        DU * du = ir->getDU();
         if (du != NULL) {
             fprintf(g_tfile, " has du");
         }
@@ -2607,18 +2601,7 @@ bool Region::verifyMDRef()
                                ("MD must present a PR."));
                     }
 
-                    if (isPRUniqueForSameNo()) {
-                        ASSERT0(t->getRefMDSet() == NULL);
-                    } else {
-                        //If the mapping between pr and md is not unique,
-                        //maydef is not NULL.
-                        //Same PR may have different referrence type.
-                        //e.g: PR1(U8)=...
-                        //    ...=PR(U32)
-                        if (t->getRefMDSet() != NULL) {
-                            ASSERT0(get_mds_hash()->find(*t->getRefMDSet()));
-                        }
-                    }
+                    ASSERT0(t->getRefMDSet() == NULL);
                     break;
                 case IR_STARRAY:
                     {
@@ -2700,18 +2683,7 @@ bool Region::verifyMDRef()
                                ("MD must present a PR."));
                     }
 
-                    if (isPRUniqueForSameNo()) {
-                        ASSERT0(t->getRefMDSet() == NULL);
-                    } else {
-                        //If the mapping between pr and md is not unique,
-                        //maydef is not NULL.
-                        //Same PR may have different referrence type.
-                        //e.g: PR1(U8)=...
-                        //    ...=PR(U32)
-                        if (t->getRefMDSet() != NULL) {
-                            ASSERT0(get_mds_hash()->find(*t->getRefMDSet()));
-                        }
-                    }
+                    ASSERT0(t->getRefMDSet() == NULL);
                     break;
                 case IR_IST:
                     {
@@ -2748,20 +2720,8 @@ bool Region::verifyMDRef()
                     }
                     break;
                 case IR_PHI:
-                    if (isPRUniqueForSameNo()) {
-                        ASSERT0(t->get_effect_ref() && t->get_effect_ref()->is_pr());
-                        ASSERT0(t->getRefMDSet() == NULL);
-                    } else {
-                        ASSERT0(t->get_exact_ref() && t->get_exact_ref()->is_pr());
-                        //If the mapping between pr and md is not unique,
-                        //maydef is not NULL.
-                        //Same PR may have different referrence type.
-                        //e.g: PR1(U8)=...
-                        //    ...=PR(U32)
-                        if (t->getRefMDSet() != NULL) {
-                            ASSERT0(get_mds_hash()->find(*t->getRefMDSet()));
-                        }
-                    }
+                    ASSERT0(t->get_effect_ref() && t->get_effect_ref()->is_pr());
+                    ASSERT0(t->getRefMDSet() == NULL);
                     break;
                 case IR_CVT:
                     //CVT should not have any reference. Even if the
@@ -3366,6 +3326,7 @@ bool Region::process()
             //Thus it does not need to scan call-list here.
             bool succ = get_region_mgr()->initCallGraph(true, true);
             ASSERT0(succ);
+            UNUSED(succ);
             OC_is_callg_valid(oc) = true;
         }
 

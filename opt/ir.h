@@ -267,7 +267,7 @@ extern IRDesc const g_ir_desc[];
 
 //Indicate IR will terminate current control flow.
 //If this flag is true, the code that followed subsequently is unreachable.
-#define IR_is_termiate(ir)       ((ir)->is_terminate_control_flow)
+#define IR_is_terminate(ir)      ((ir)->is_terminate_control_flow)
 
 //Record IR type.
 #define IR_code(ir)              ((ir)->code)
@@ -370,21 +370,21 @@ public:
     inline void clearSSAInfo();
     void cleanRefMD()
     {
-        DU * du = get_du();
+        DU * du = getDU();
         if (du == NULL) { return; }
         DU_md(du) = NULL;
     }
 
     void cleanRefMDSet()
     {
-        DU * du = get_du();
+        DU * du = getDU();
         if (du == NULL) { return; }
         DU_mds(du) = NULL;
     }
 
     void cleanRef()
     {
-        DU * du = get_du();
+        DU * du = getDU();
         if (du == NULL) { return; }
         DU_mds(du) = NULL;
         DU_md(du) = NULL;
@@ -422,7 +422,7 @@ public:
     //Clean all DU-Chain and Defined/Used-MD reference info.
     inline void freeDUset(DefMiscBitSetMgr & sbs_mgr)
     {
-        DU * du = get_du();
+        DU * du = getDU();
         if (du == NULL || DU_duset(du) == NULL) { return; }
 
         //Free DUSet back to DefSegMgr, or it will
@@ -437,7 +437,7 @@ public:
     IR * get_parent() const { return IR_parent(this); }
     inline IR * get_kid(UINT idx) const;
     inline IRBB * get_bb() const;
-    inline DU * get_du() const;
+    inline DU * getDU() const;
 
     //Get byte offset if any.
     inline UINT get_offset() const;
@@ -472,7 +472,7 @@ public:
     inline UINT getArrayElemDtSize(TypeMgr const* tm) const;
 
     //Return byte size of ir data type.
-    inline UINT get_dtype_size(TypeMgr const* tm) const
+    UINT get_dtype_size(TypeMgr const* tm) const
     { return tm->get_bytesize(IR_dt(this)); }
 
     DATA_TYPE get_dtype() const { return TY_dtype(IR_dt(this)); }
@@ -517,24 +517,24 @@ public:
     //Get the MD that IR referrenced.
     MD const* getRefMD() const
     {
-        DU * du = get_du();
+        DU * du = getDU();
         return du == NULL ? NULL : DU_md(du);
     }
 
     //Get the MD DefUse Set. This function is readonly.
-    DUSet const* get_duset_c() const { return get_duset();    }
+    DUSet const* readDUSet() const { return getDUSet(); }
 
     //Get the MD DefUse Set.
-    inline DUSet * get_duset() const
+    inline DUSet * getDUSet() const
     {
-        DU * const du = get_du();
+        DU * const du = getDU();
         return du == NULL ? NULL : DU_duset(du);
     }
 
     //Get the MDSet that IR referrenced.
     MDSet const* getRefMDSet() const
     {
-        DU * du = get_du();
+        DU * du = getDU();
         return du == NULL ? NULL : DU_mds(du);
     }
 
@@ -656,7 +656,7 @@ public:
     inline bool is_lhs(IR const* k) const;
 
     //Return true if ir terminates the control flow.
-    bool is_terminate() const { return IR_is_termiate(this); }
+    bool is_terminate() const { return IR_is_terminate(this); }
 
     //Return true if ir is volatile.
     inline bool is_volatile() const;
@@ -770,7 +770,7 @@ public:
     { return is_stpr() || is_phi() || is_setelem() || is_getelem(); }
 
     //Return true if current stmt read value from PR.
-    inline bool is_read_pr() const  { return is_pr(); }
+    bool is_read_pr() const  { return is_pr(); }
 
     //Return true if current operation references memory.
     //These kinds of operation always define or use MD.
@@ -988,7 +988,7 @@ class CConst : public IR {
 public:
     union {
         //record string const if ir is IR_CONST.
-        SYM * str_value;
+        SYM const* str_value;
 
         //Record integer const with length at host machine.
         HOST_INT int_const_value;
@@ -1930,7 +1930,7 @@ IRBB * IR::get_bb() const
 }
 
 
-DU * IR::get_du() const
+DU * IR::getDU() const
 {
     switch (get_code()) {
     case IR_ID:

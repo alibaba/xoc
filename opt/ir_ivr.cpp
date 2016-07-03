@@ -80,7 +80,7 @@ bool IR_IVR::computeInitVal(IR const* ir, IV * iv)
 //otherwise return false.
 bool IR_IVR::findInitVal(IV * iv)
 {
-    DUSet const* defs = IV_iv_occ(iv)->get_duset_c();
+    DUSet const* defs = IV_iv_occ(iv)->readDUSet();
     ASSERT0(defs);
     ASSERT0(IV_iv_occ(iv)->is_exp());
     ASSERT0(IV_iv_def(iv)->is_stmt());
@@ -314,7 +314,7 @@ void IR_IVR::findBIV(
         }
 
         //Find the self modify stmt: i = i + ...
-        DUSet const* useset = def->get_duset_c();
+        DUSet const* useset = def->readDUSet();
         if (useset == NULL) { continue; }
         bool selfmod = false;
         DUIter di = NULL;
@@ -349,7 +349,7 @@ void IR_IVR::findBIV(
 bool IR_IVR::is_loop_invariant(LI<IRBB> const* li, IR const* ir)
 {
     ASSERT0(ir->is_exp());
-    DUSet const* defs = ir->get_duset_c();
+    DUSet const* defs = ir->readDUSet();
     if (defs == NULL) { return true; }
     DUIter di = NULL;
     for (INT i = defs->get_first(&di); i >= 0; i = defs->get_next(i, &di)) {

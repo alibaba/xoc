@@ -330,6 +330,51 @@ public:
         fflush(h);
     }
 
+    //Dump bitset that hashed.
+    void dump_hashed_set(FILE * h)
+    {
+        if (h == NULL) { return; }
+        fprintf(h, "\n==---- DUMP SBitSetCoreHashHash ----==");
+
+        List<B2NType*> wl;
+
+        #ifdef _BIT2NODE_IN_HASH_
+        //Do nothing.
+        #else
+        TMapIter<UINT, B2NType*> ti;
+        #endif
+
+        wl.append_tail(get_root());
+        while (wl.get_elem_count() != 0) {
+            B2NType * mn = wl.remove_head();
+            ASSERT0(mn);
+
+            B2NType * nextmn = NULL;
+
+            #ifdef _BIT2NODE_IN_HASH_
+            INT pos = 0;
+            for (nextmn = mn->next.get_first_elem(pos);
+                 nextmn != NULL; nextmn = mn->next.get_next_elem(pos)) {
+                wl.append_tail(nextmn);
+            }
+            #else
+            ti.clean();
+            for (UINT id = mn->next.get_first(ti, &nextmn);
+                 id != 0; id = mn->next.get_next(ti, &nextmn)) {
+                ASSERT0(nextmn);
+                wl.append_tail(nextmn);
+            }
+            #endif
+
+            if (mn->set != NULL) {
+                fprintf(h, "\n");
+                mn->set->dump(h);
+            }
+        }
+
+        fflush(h);
+    }
+
     Allocator * get_allocator() const { return m_allocator; }
     B2NType * get_root() const  { return m_bit2node; }
 

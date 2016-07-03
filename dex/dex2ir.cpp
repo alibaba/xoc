@@ -1387,7 +1387,7 @@ IR * Dex2IR::convertThrow(IN LIR * lir)
     CALL_is_readonly(c) = true;
     CALL_is_intrinsic(c) = true;
     IR_has_sideeffect(c) = true;
-    IR_is_termiate(c) = true;
+    IR_is_terminate(c) = true;
     attachCatchInfo(c);
     return c;
 }

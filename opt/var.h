@@ -327,7 +327,7 @@ protected:
     VarVec m_var_vec;
     ConstSym2Var m_str_tab;
     size_t m_str_count;
-    List<UINT> m_freelist_of_varid;
+    DefSBitSetCore m_freelist_of_varid;
     RegionMgr * m_ru_mgr;
     TypeMgr * m_tm;
 
@@ -339,15 +339,8 @@ public:
     COPY_CONSTRUCTOR(VarMgr);
     virtual ~VarMgr() { destroy(); }
 
-    void destroy()
-    {
-        for (INT i = 0; i <= m_var_vec.get_last_idx(); i++) {
-            VAR * v = m_var_vec.get((UINT)i);
-            if (v == NULL) { continue; }
-            delete v;
-        }
-    }
-
+    void destroy();
+    void destroyVar(VAR * v); //Free VAR memory.
     void dump(IN OUT CHAR * name = NULL);
 
     TypeMgr * get_type_mgr() const { return m_tm; }
@@ -358,16 +351,7 @@ public:
 
     //Interface to target machine.
     //Customer could specify additional attributions for specific purpose.
-    virtual VAR * allocVAR()    { return new VAR(); }
-
-    //Free VAR memory.
-    inline void destroyVar(VAR * v)
-    {
-        ASSERT0(VAR_id(v) != 0);
-        m_freelist_of_varid.append_head(VAR_id(v));
-        m_var_vec.set(VAR_id(v), NULL);
-        delete v;
-    }
+    virtual VAR * allocVAR() { return new VAR(); }
 
     //Create a VAR.
     VAR * registerVar(
@@ -375,7 +359,11 @@ public:
             Type const* type,
             UINT align,
             UINT flag);
-    VAR * registerVar(SYM * var_name, Type const* type, UINT align, UINT flag);
+    VAR * registerVar(
+            SYM const* var_name,
+            Type const* type,
+            UINT align,
+            UINT flag);
 
     //Create a String VAR.
     VAR * registerStringVar(CHAR const* var_name, SYM const* s, UINT align);

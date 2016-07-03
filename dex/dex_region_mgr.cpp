@@ -70,7 +70,9 @@ bool DexRegionMgr::processProgramRegion(Region * program)
     ASSERT0(program && program->is_program());
 
     //Function region has been handled. And call list should be available.
-    CallGraph * callg = initCallGraph(false);
+    bool succ = initCallGraph(false);
+    ASSERT0(succ);
+    CallGraph * callg = get_call_graph();
 
     //callg->dump_vcg();
 

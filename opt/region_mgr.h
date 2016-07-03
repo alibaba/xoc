@@ -72,8 +72,12 @@ class IPA;
 class RegionMgr {
 friend class Region;
 protected:
+    #ifdef _DEBUG_
+    UINT m_num_allocated;
+    #endif
     Vector<Region*> m_id2ru;
     BitSetMgr m_bs_mgr;
+    DefMiscBitSetMgr m_sbs_mgr;
     SymTab m_sym_tab;
     TypeMgr m_type_mgr;
     VarMgr * m_var_mgr;
@@ -87,16 +91,18 @@ protected:
     TargInfo * m_targinfo;
 
 protected:
-    void estimateEV(
-            OUT UINT & num_call,
-            OUT UINT & num_ru,
-            bool scan_call,
-            bool scan_inner_region);
+    void estimateEV(OUT UINT & num_call,
+                    OUT UINT & num_ru,
+                    bool scan_call,
+                    bool scan_inner_region);
 
 public:
     explicit RegionMgr() : m_sym_tab(0)
     {
         ASSERT0(verifyPreDefinedInfo());
+        #ifdef _DEBUG_
+        m_num_allocated = 0;
+        #endif
         m_ru_count = 1;
         m_label_count = 1;
         m_var_mgr = NULL;
@@ -128,12 +134,13 @@ public:
     IPA * allocIPA(Region * program);
 
     //Destroy specific region by given id.
-    void deleteRegion(Region * ru);
+    void deleteRegion(Region * ru, bool collect_id = true);
 
     //Dump regions recorded via addToRegionTab().
     void dump(bool dump_inner_region);
 
     BitSetMgr * get_bs_mgr() { return &m_bs_mgr; }
+    DefMiscBitSetMgr * get_sbs_mgr() { return &m_sbs_mgr; }
     virtual Region * get_region(UINT id) { return m_id2ru.get(id); }
     UINT getNumOfRegion() const { return (UINT)(m_id2ru.get_last_idx() + 1); }
     VarMgr * get_var_mgr() { return m_var_mgr; }

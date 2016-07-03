@@ -65,29 +65,7 @@ public:
     }
 
     //Insert ir prior to cond_br, uncond_br, call, return.
-    C<IR*> * append_tail_ex(IR * ir)
-    {
-        if (ir == NULL) { return NULL; }
-        C<IR*> * ct;
-        for (IR * tir = List<IR*>::get_tail(&ct);
-             tir != NULL; tir = List<IR*>::get_prev(&ct)) {
-            if (!tir->is_uncond_br() &&
-                !tir->is_cond_br() &&
-                !tir->is_multicond_br() &&
-                !tir->is_return() &&
-                !tir->is_calls_stmt()) {
-                break;
-            }
-        }
-
-        ASSERT0(m_bb);
-        ir->set_bb(m_bb);
-        if (ct == NULL) {
-            //BB is empty.
-            return EList<IR*, IR2Holder>::append_tail(ir);
-        }
-        return EList<IR*, IR2Holder>::insert_after(ir, ct);
-    }
+    C<IR*> * append_tail_ex(IR * ir);
 
     //Count up memory size of BBIRList
     size_t count_mem() const
@@ -140,7 +118,7 @@ public:
     inline IR * remove(IN C<IR*> * holder)
     {
         if (holder == NULL) return NULL;
-        C_val(holder)->set_bb(NULL);
+        holder->val()->set_bb(NULL);
         return EList<IR*, IR2Holder>::remove(holder);
     }
 
@@ -152,7 +130,7 @@ public:
         return EList<IR*, IR2Holder>::remove(ir);
     }
 
-    inline void set_bb(IRBB * bb) { m_bb = bb; }
+    void set_bb(IRBB * bb) { m_bb = bb; }
 };
 //END BBIRList
 

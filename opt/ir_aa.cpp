@@ -2247,7 +2247,7 @@ void IR_AA::processCallSideeffect(IN OUT MD2MDSet & mx, MDSet const& by_addr_mds
     MDId2MD const* id2md = m_md_sys->get_id2md_map();
     for (INT j = MD_FIRST; j <= id2md->get_last_idx(); j++) {
         MD const* t = id2md->get((UINT)j);
-        ASSERT0(t);
+        if (t == NULL) { continue; }
 
         VAR const* v = t->get_base();
         if (VAR_is_global(v) &&
@@ -3231,9 +3231,8 @@ void IR_AA::dumpMD2MDSet(IN MD2MDSet * mx, bool dump_ptg)
     Graph g;
     MDId2MD const* id2md = m_md_sys->get_id2md_map();
     for (INT i = MD_FIRST; i <= id2md->get_last_idx(); i++) {
-        MD * md = id2md->get((UINT)i);
-        ASSERT0(md);
-
+        if (id2md->get((UINT)i) == NULL) { continue; }
+        
         MDSet const* mds = getPointTo((UINT)i, *mx);
         if (mds != NULL) {
             fprintf(g_tfile, "\nMD%u -- PT_SET: ", (UINT)i);

@@ -1607,7 +1607,7 @@ bool Region::refineStmtList(IN OUT BBIRList & ir_list, RefineCtx & rc)
     ir_list.get_head(&next_ct);
     C<IR*> * ct = next_ct;
     for (; ct != NULL; ct = next_ct) {
-        IR * ir = C_val(ct);
+        IR * ir = ct->val();
         next_ct = ir_list.get_next(next_ct);
 
         bool tmpc = false;

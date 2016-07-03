@@ -232,11 +232,12 @@ VN * IR_GVN::registerVNviaMC(LONGLONG v)
 }
 
 
-VN * IR_GVN::registerVNviaSTR(SYM * v)
+VN * IR_GVN::registerVNviaSTR(SYM const* v)
 {
     if (m_str2vn.get_bucket_size() == 0) {
         m_str2vn.init(16/*TO reevaluate*/);
     }
+
     VN * vn = m_str2vn.get(v);
     if (vn != NULL) {
         return vn;
@@ -479,7 +480,7 @@ VN * IR_GVN::computeExactMemory(IR const* exp, bool & change)
         return defvn;
     }
 
-    DUSet const* defset = exp->get_duset_c();
+    DUSet const* defset = exp->readDUSet();
     if (defset == NULL) {
         return allocLiveinVN(exp, emd, change);
     } else {
@@ -574,7 +575,7 @@ VN * IR_GVN::computeIload(IR const* exp, bool & change)
     evn = computeExactMemory(exp, change);
     if (evn != NULL) { return evn; }
 
-    DUSet const* defset = exp->get_duset_c();
+    DUSet const* defset = exp->readDUSet();
     if (defset == NULL || defset->get_elem_count() == 0) {
         VN * v = registerTripleVN(IR_ILD, mlvn,
                                   registerVNviaINT(ILD_ofst(exp)),
@@ -701,7 +702,7 @@ VN * IR_GVN::computeArray(IR const* exp, bool & change)
         return NULL;
     }
 
-    DUSet const* du = exp->get_duset_c();
+    DUSet const* du = exp->readDUSet();
     if (du == NULL || du->get_elem_count() == 0) {
         //Array does not have any DEF.
         VN * x = registerQuadVN(IR_ARRAY, abase_vn, aofst_vn,
@@ -809,7 +810,7 @@ VN * IR_GVN::computeScalar(IR const* exp, bool & change)
         return NULL;
     }
 
-    DUSet const* du = exp->get_duset_c();
+    DUSet const* du = exp->readDUSet();
     ASSERT(du, ("If exact MD DU is empty, should assigned region LiveIn VN"));
     ASSERT0(du->get_elem_count() > 0);
 

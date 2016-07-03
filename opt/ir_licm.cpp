@@ -108,7 +108,7 @@ bool IR_LICM::scanOpnd(
                     continue;
                 }
 
-                DUSet const* defset = x->get_duset_c();
+                DUSet const* defset = x->readDUSet();
                 if (defset == NULL) { continue; }
 
                 DUIter di = NULL;
@@ -503,7 +503,7 @@ bool IR_LICM::is_dom_all_use_in_loop(IR const* ir, LI<IRBB> * li)
         return true;
     }
 
-    DUSet const* useset = ir->get_duset_c();
+    DUSet const* useset = ir->readDUSet();
     if (useset == NULL) { return true; }
 
     DUIter di = NULL;
@@ -559,7 +559,7 @@ bool IR_LICM::hoistInvariantStmt(
             continue;
         }
 
-        DUSet const* defset = x->get_duset_c();
+        DUSet const* defset = x->readDUSet();
         if (defset == NULL) { continue; }
 
         DUIter di = NULL;
@@ -649,7 +649,7 @@ bool IR_LICM::hoistCand(
                     break;
                 }
 
-                DUSet const* defset = x->get_duset_c();
+                DUSet const* defset = x->readDUSet();
                 if (defset == NULL) { continue; }
 
                 DUIter di = NULL;

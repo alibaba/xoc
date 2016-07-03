@@ -64,7 +64,7 @@ public:
     union {
         LONGLONG iv;
         double dv;
-        SYM * str;
+        SYM const* str;
         IR_TYPE op; //operation
     } u1;
 
@@ -99,9 +99,9 @@ typedef HMap<MD const*, VN*> MD2VN_MAP;
 
 
 //Note: SymbolHashFunc request bucket size must be the power of 2.
-class SYM2VN_MAP : public HMap<SYM*, VN*, SymbolHashFunc> {
+class SYM2VN_MAP : public HMap<SYM const*, VN*, SymbolHashFunc> {
 public:
-    SYM2VN_MAP() : HMap<SYM*, VN*, SymbolHashFunc>(0) {}
+    SYM2VN_MAP() : HMap<SYM const*, VN*, SymbolHashFunc>(0) {}
 };
 
 
@@ -520,17 +520,24 @@ protected:
         return p;
     }
 
-    VN * registerQuadVN(IR_TYPE irt, VN const* v0, VN const* v1,
-                         VN const* v2, VN const* v3);
-    VN * registerTripleVN(IR_TYPE irt, VN const* v0, VN const* v1,
-                         VN const* v2);
+    VN * registerQuadVN(
+            IR_TYPE irt,
+            VN const* v0,
+            VN const* v1,
+            VN const* v2,
+            VN const* v3);
+    VN * registerTripleVN(
+            IR_TYPE irt,
+            VN const* v0,
+            VN const* v1,
+            VN const* v2);
     VN * registerBinVN(IR_TYPE irt, VN const* v0, VN const* v1);
     VN * registerUnaVN(IR_TYPE irt, VN const* v0);
     VN * registerVNviaMD(MD const* md);
     VN * registerVNviaMC(LONGLONG v);
     VN * registerVNviaINT(LONGLONG v);
     VN * registerVNviaFP(double v);
-    VN * registerVNviaSTR(SYM * v);
+    VN * registerVNviaSTR(SYM const* v);
 
     inline VN * newVN()
     {

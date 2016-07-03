@@ -59,8 +59,8 @@ public:
     Rational(Rational const& r);
     Rational(INT num, INT den = 1);
     Rational & operator = (Rational const& a);
-    inline INT typecast2int() { return m_num / m_den; }
-    inline bool is_int() { return m_den == 1; }
+    INT typecast2int() { return m_num / m_den; }
+    bool is_int() { return m_den == 1; }
     void reduce();
     Rational rabs();
     FRAC_TYPE num() const {return m_num;}
@@ -93,7 +93,9 @@ Rational operator + (Rational const& a, Rational const& b);
 Rational operator - (Rational const& a, Rational const& b);
 Rational operator - (Rational const& a);
 //Subtraction
-inline Rational operator - (Rational const& a, Rational const& b) { return a + (-b); }
+inline Rational operator - (Rational const& a, Rational const& b)
+{ return a + (-b); }
+
 //Minus
 inline Rational operator - (Rational const& a)
 {
