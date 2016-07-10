@@ -230,7 +230,7 @@ void SBitSetCore<BitsPerSeg>::clean(
 
 
 template <UINT BitsPerSeg>
-void SBitSetCore<BitsPerSeg>::destroy_seg_and_clean(
+void SBitSetCore<BitsPerSeg>::destroySEGandClean(
         SegMgr<BitsPerSeg> * sm,
         TSEGIter ** free_list)
 {
@@ -449,9 +449,7 @@ INT SBitSetCore<BitsPerSeg>::get_last(TSEGIter ** cur) const
 
 //Note *cur must be initialized.
 template <UINT BitsPerSeg>
-INT SBitSetCore<BitsPerSeg>::get_next(
-        UINT elem,
-        TSEGIter ** cur) const
+INT SBitSetCore<BitsPerSeg>::get_next(UINT elem, TSEGIter ** cur) const
 {
     if (cur == NULL) {
         for (TSEGIter * st = segs.get_head();
@@ -534,7 +532,7 @@ bool SBitSetCore<BitsPerSeg>::is_equal(SBitSetCore<BitsPerSeg> const& src) const
 
 template <UINT BitsPerSeg>
 bool SBitSetCore<BitsPerSeg>::is_intersect(
-            SBitSetCore<BitsPerSeg> const& src) const
+        SBitSetCore<BitsPerSeg> const& src) const
 {
     ASSERT(this != &src, ("operate on same set"));
     TSEGIter * srcst = src.segs.get_head();

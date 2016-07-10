@@ -550,7 +550,7 @@ public:
         return li;
     }
 
-    LabelInfo * genCustomLabel(SYM * labsym)
+    LabelInfo * genCustomLabel(SYM const* labsym)
     {
         ASSERT0(labsym);
         return allocCustomerLabel(labsym, get_pool());

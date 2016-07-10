@@ -162,7 +162,7 @@ void bs_test3()
     if (g_tfile == NULL) { return; }
     fprintf(g_tfile, "\n===");
     MiscBitSetMgr<33> mbsm;
-    SBitSet<33> x1(mbsm.get_seg_mgr());
+    SBitSet<33> x1(mbsm.getSegMgr());
     for (int i = 0; i < 600; i+=3) {
         x1.bunion(i);
     }
@@ -170,7 +170,7 @@ void bs_test3()
     fprintf(g_tfile, "\n===");
 
     MiscBitSetMgr<123> mbsm2;
-    SBitSet<123> x2(mbsm2.get_seg_mgr());
+    SBitSet<123> x2(mbsm2.getSegMgr());
     for (int i = 0; i < 600; i+=3) {
         x2.bunion(i);
     }

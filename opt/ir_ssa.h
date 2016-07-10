@@ -187,7 +187,7 @@ public:
         ASSERT0(m_tm);
 
         ASSERT0(ru->getMiscBitSetMgr());
-        m_seg_mgr = ru->getMiscBitSetMgr()->get_seg_mgr();
+        m_seg_mgr = ru->getMiscBitSetMgr()->getSegMgr();
         ASSERT0(m_seg_mgr);
 
         m_cfg = ru->get_cfg();

@@ -691,7 +691,7 @@ IR * Region::refineDiv(IR * ir, bool & change, RefineCtx & rc)
         CONST_int_val(op1) = xcom::getPowerOf2(CONST_int_val(op1));
         change = true;
         return ir; //No need to update DU.
-    } else if (op0->is_ir_equal(op1, true)) {
+    } else if (op0->isIREqual(op1, true)) {
         //X/X => 1.
         IR * tmp = ir;
         Type const* ty;

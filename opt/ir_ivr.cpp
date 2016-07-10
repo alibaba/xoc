@@ -423,7 +423,7 @@ void IR_IVR::addDIVList(LI<IRBB> const* li, IR const* e)
          sc != divlst->end(); sc = divlst->get_next(sc)) {
         IR const* ive = sc->val();
         ASSERT0(ive);
-        if (ive->is_ir_equal(e, true)) {
+        if (ive->isIREqual(e, true)) {
             find = true;
             break;
         }

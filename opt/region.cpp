@@ -151,7 +151,7 @@ AnalysisInstrument::~AnalysisInstrument()
 {
     #if defined(_DEBUG_) && defined(DEBUG_SEG)
     //Just dump the seg info if you really need to see.
-    //DefSegMgr * segmgr = m_sbs_mgr.get_seg_mgr();
+    //DefSegMgr * segmgr = m_sbs_mgr.getSegMgr();
     //dumpSegMgr(segmgr, g_tfile);
     #endif
 
@@ -3302,14 +3302,12 @@ bool Region::process()
 
     if (g_do_inline && is_program()) {
         //Need to scan call-list.
-        if (get_region_mgr()->get_call_graph() == NULL) {
-            get_region_mgr()->initCallGraph(true, true);
+        get_region_mgr()->buildCallGraph(oc, true, true);
+        if (OC_is_callg_valid(oc)) {
+            Inliner * inl = (Inliner*)get_pass_mgr()->registerPass(PASS_INLINER);
+            inl->perform(oc);
+            get_pass_mgr()->destroyPass(inl);
         }
-
-        OC_is_callg_valid(oc) = true;
-        Inliner * inl = (Inliner*)get_pass_mgr()->registerPass(PASS_INLINER);
-        inl->perform(oc);
-        get_pass_mgr()->destroyPass(inl);
     }
 
     IR_SSA_MGR * ssamgr;
@@ -3324,10 +3322,8 @@ bool Region::process()
         if (!OC_is_callg_valid(oc)) {
             //processFuncRegion has scanned and collected call-list.
             //Thus it does not need to scan call-list here.
-            bool succ = get_region_mgr()->initCallGraph(true, true);
-            ASSERT0(succ);
-            UNUSED(succ);
-            OC_is_callg_valid(oc) = true;
+            get_region_mgr()->buildCallGraph(oc, true, true);
+            ASSERT0(OC_is_callg_valid(oc));
         }
 
         ASSERT0(get_pass_mgr());

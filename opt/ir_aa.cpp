@@ -3232,7 +3232,7 @@ void IR_AA::dumpMD2MDSet(IN MD2MDSet * mx, bool dump_ptg)
     MDId2MD const* id2md = m_md_sys->get_id2md_map();
     for (INT i = MD_FIRST; i <= id2md->get_last_idx(); i++) {
         if (id2md->get((UINT)i) == NULL) { continue; }
-        
+
         MDSet const* mds = getPointTo((UINT)i, *mx);
         if (mds != NULL) {
             fprintf(g_tfile, "\nMD%u -- PT_SET: ", (UINT)i);

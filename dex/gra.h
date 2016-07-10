@@ -596,7 +596,7 @@ public:
         for (INT i = 0; i <= gltv->get_last_idx(); i++) {
             GLT * g = gltv->get(i);
             if (g == NULL) { continue; }
-            m_sbs_mgr.free_dbitsetc(GLT_bbs(g));
+            m_sbs_mgr.freeDBitSetCore(GLT_bbs(g));
         }
     }
 

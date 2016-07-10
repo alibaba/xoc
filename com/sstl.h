@@ -73,9 +73,9 @@ typedef void* OBJTY;
 //    2. T * prev
 template <class T>
 inline UINT find_position(T const* list, T const* t)
-{    
-    for (UINT c = 0; list != NULL; c++, list = list->next) { 
-        if (list == t) { return c; }        
+{
+    for (UINT c = 0; list != NULL; c++, list = list->next) {
+        if (list == t) { return c; }
     }
     UNREACH(); //not find.
     return 0;
@@ -347,9 +347,9 @@ inline void insertafter_one(T ** marker, T * t)
 template <class T>
 inline void append_head(T ** head, T * t)
 {
-    if (*head == NULL) { 
-        *head = t; 
-        return; 
+    if (*head == NULL) {
+        *head = t;
+        return;
     }
 
     T * last = get_last(t);

@@ -57,7 +57,7 @@ protected:
     {
         DefSBitSetCore * set = m_def.get(bbid);
         if (set == NULL) {
-            set = m_sbs_mgr.create_sbitsetc();
+            set = m_sbs_mgr.allocSBitSetCore();
             m_def.set(bbid, set);
         }
         return set;
@@ -67,7 +67,7 @@ protected:
     {
         DefSBitSetCore * set = m_use.get(bbid);
         if (set == NULL) {
-            set = m_sbs_mgr.create_sbitsetc();
+            set = m_sbs_mgr.allocSBitSetCore();
             m_use.set(bbid, set);
         }
         return set;
@@ -98,28 +98,28 @@ public:
         for (INT i = 0; i <= m_def.get_last_idx(); i++) {
             DefSBitSetCore * bs = m_def.get((UINT)i);
             if (bs != NULL) {
-                m_sbs_mgr.free_sbitsetc(bs);
+                m_sbs_mgr.freeSBitSetCore(bs);
             }
         }
 
         for (INT i = 0; i <= m_use.get_last_idx(); i++) {
             DefSBitSetCore * bs = m_use.get((UINT)i);
             if (bs != NULL) {
-                m_sbs_mgr.free_sbitsetc(bs);
+                m_sbs_mgr.freeSBitSetCore(bs);
             }
         }
 
         for (INT i = 0; i <= m_livein.get_last_idx(); i++) {
             DefSBitSetCore * bs = m_livein.get((UINT)i);
             if (bs != NULL) {
-                m_sbs_mgr.free_sbitsetc(bs);
+                m_sbs_mgr.freeSBitSetCore(bs);
             }
         }
 
         for (INT i = 0; i <= m_liveout.get_last_idx(); i++) {
             DefSBitSetCore * bs = m_liveout.get((UINT)i);
             if (bs != NULL) {
-                m_sbs_mgr.free_sbitsetc(bs);
+                m_sbs_mgr.freeSBitSetCore(bs);
             }
         }
     }
@@ -182,7 +182,7 @@ public:
     {
         DefSBitSetCore * x = m_livein.get(bbid);
         if (x == NULL) {
-            x = m_sbs_mgr.create_sbitsetc();
+            x = m_sbs_mgr.allocSBitSetCore();
             m_livein.set(bbid, x);
         }
         return x;
@@ -197,7 +197,7 @@ public:
     {
         DefSBitSetCore * x = m_liveout.get(bbid);
         if (x == NULL) {
-            x = m_sbs_mgr.create_sbitsetc();
+            x = m_sbs_mgr.allocSBitSetCore();
             m_liveout.set(bbid, x);
         }
         return x;

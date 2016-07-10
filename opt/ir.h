@@ -399,7 +399,7 @@ public:
     //'copy_kid_ref': copy MD reference for kid recursively.
     void copyRefForTree(IR const* src, Region * ru)
     {
-        ASSERT0(src && is_ir_equal(src, true) && ru);
+        ASSERT0(src && isIREqual(src, true) && ru);
         ASSERT0(src != this);
         if (is_memory_ref()) {
             setRefMD(src->getRefMD(), ru);
@@ -427,7 +427,7 @@ public:
 
         //Free DUSet back to DefSegMgr, or it will
         //complain and make an assertion.
-        sbs_mgr.free_sbitsetc(DU_duset(du));
+        sbs_mgr.freeSBitSetCore(DU_duset(du));
         DU_duset(du) = NULL;
     }
 
@@ -615,13 +615,17 @@ public:
     bool is_lab() const { return get_code() == IR_LABEL; }
 
     //Return true if current ir equal to src.
-    bool is_ir_equal(IR const* src, bool is_cmp_kid = true) const;
+    bool isIREqual(IR const* src, bool is_cmp_kid = true) const;
 
     //Return true if current ir is both PR and equal to src.
     inline bool is_pr_equal(IR const* src) const;
 
     //Return true if ir-list are equivalent.
     bool isIRListEqual(IR const* irs, bool is_cmp_kid = true) const;
+
+    //Return true if IR tree is exactly congruent, or
+    //they are parity memory reference.
+    bool isMemRefEqual(IR const* src) const;
 
     //Return true if ir does not have any sibling.
     bool is_single() const { return get_next() == NULL && get_prev() == NULL; }
@@ -764,10 +768,15 @@ public:
     inline bool isCallHasRetVal() const
     { return is_calls_stmt() && hasReturnValue(); }
 
-    //Return true if current stmt exactly modifies a PR.
+    //Return true if stmt modify PR.
     //CALL/ICALL may modify PR if it has a return value.
     inline bool is_write_pr() const
     { return is_stpr() || is_phi() || is_setelem() || is_getelem(); }
+
+    //Return true if current stmt exactly modifies a PR.
+    //CALL/ICALL may modify PR if it has a return value.
+    //IR_SETELEM and IR_GETELEM may modify part of PR rather the whole.
+    inline bool is_overwrite_pr() const { return is_stpr() || is_phi(); }
 
     //Return true if current stmt read value from PR.
     bool is_read_pr() const  { return is_pr(); }
@@ -1580,8 +1589,7 @@ public:
     }
 
     //Return true if exp is array base.
-    bool is_base(IR const* exp) const
-    { return exp == ARR_base(this); }
+    bool is_base(IR const* exp) const { return exp == ARR_base(this); }
 
     //Return true if exp is array subscript expression list.
     bool isInSubList(IR const* exp) const

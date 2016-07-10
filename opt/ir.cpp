@@ -1942,7 +1942,7 @@ bool IR::isIRListEqual(IR const* irs, bool is_cmp_kid) const
 {
     IR const* pthis = this;
     while (irs != NULL && pthis != NULL) {
-        if (!pthis->is_ir_equal(irs, is_cmp_kid)) {
+        if (!pthis->isIREqual(irs, is_cmp_kid)) {
             return false;
         }
         irs = irs->get_next();
@@ -1955,9 +1955,128 @@ bool IR::isIRListEqual(IR const* irs, bool is_cmp_kid) const
 }
 
 
-//Return true if ir are equivalent.
-//'is_cmp_kid': it is true if comparing kids as well.
-bool IR::is_ir_equal(IR const* src, bool is_cmp_kid) const
+//Return true if IR tree is exactly congruent, or
+//they are parity memory reference.
+bool IR::isMemRefEqual(IR const* src) const
+{
+    ASSERT(is_memory_ref() && src->is_memory_ref(), ("Not memory expression"));
+    if (isIREqual(src, true)) { return true; }
+
+    switch (get_code()) {
+    case IR_LD:
+        if (src->is_st() &&
+            LD_idinfo(this) == ST_idinfo(src) &&
+            LD_ofst(this) == ST_ofst(src) &&
+            get_type() == src->get_type()) {
+            return true;
+        }
+        return false;
+    case IR_ST:
+        if (src->is_ld() &&
+            LD_idinfo(src) == ST_idinfo(this) &&
+            LD_ofst(src) == ST_ofst(this) &&
+            get_type() == src->get_type()) {
+            return true;
+        }
+        return false;
+    case IR_ILD:
+        if (src->is_ist() &&
+            ILD_base(this)->isIREqual(IST_base(src), true) &&
+            ILD_ofst(this) == IST_ofst(src) &&
+            get_type() == src->get_type()) {
+            return true;
+        }
+        return false;
+    case IR_IST:
+        if (src->is_ild() &&
+            ILD_base(src)->isIREqual(IST_base(this), true) &&
+            ILD_ofst(src) == IST_ofst(this) &&
+            get_type() == src->get_type()) {
+            return true;
+        }
+        return false;
+    case IR_ARRAY:
+        if (src->is_starray() &&
+            ARR_base(src)->isIREqual(ARR_base(this), true) &&
+            ARR_ofst(src) == ARR_ofst(this) &&
+            ARR_elemtype(src) == ARR_elemtype(this) &&
+            get_type() == src->get_type()) {
+            if ((ARR_sub_list(src) != NULL) ^ (ARR_sub_list(this) != NULL)) {
+                return false;
+            }
+            if (ARR_sub_list(src) != NULL &&
+                !ARR_sub_list(src)->isIRListEqual(ARR_sub_list(this))) {
+                return false;
+            }
+            if ((ARR_elem_num_buf(src) != NULL) ^ 
+                (ARR_elem_num_buf(this) != NULL)) {
+                return false;
+            }
+            if (ARR_elem_num_buf(src) != NULL) {
+                ASSERT0(ARR_elem_num_buf(this));
+                TMWORD dimnum = ((CArray*)this)->getDimNum();
+                ASSERT0(((CArray*)src)->getDimNum() == dimnum);
+                for (UINT i = 0; i < dimnum; i++) {
+                    if (((CArray*)this)->getElementNumOfDim(i) !=
+                        ((CArray*)src)->getElementNumOfDim(i)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    case IR_STARRAY:
+        if (src->is_array() &&
+            ARR_base(src)->isIREqual(ARR_base(this), true) &&
+            ARR_ofst(src) == ARR_ofst(this) &&
+            ARR_elemtype(src) == ARR_elemtype(this) &&
+            get_type() == src->get_type()) {
+            if ((ARR_sub_list(src) != NULL) ^ (ARR_sub_list(this) != NULL)) {
+                return false;
+            }
+            if (ARR_sub_list(src) != NULL &&
+                !ARR_sub_list(src)->isIRListEqual(ARR_sub_list(this))) {
+                return false;
+            }
+            if ((ARR_elem_num_buf(src) != NULL) ^
+                (ARR_elem_num_buf(this) != NULL)) {
+                return false;
+            }
+            if (ARR_elem_num_buf(src) != NULL) {
+                ASSERT0(ARR_elem_num_buf(this));
+                TMWORD dimnum = ((CStArray*)this)->getDimNum();
+                ASSERT0(((CArray*)src)->getDimNum() == dimnum);
+                for (UINT i = 0; i < dimnum; i++) {
+                    if (((CStArray*)this)->getElementNumOfDim(i) !=
+                        ((CArray*)src)->getElementNumOfDim(i)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    case IR_PR:
+    case IR_STPR:
+    case IR_CALL:
+    case IR_ICALL:
+    case IR_SETELEM:
+    case IR_GETELEM:
+    case IR_PHI:
+        if (src->is_read_pr() || src->is_write_pr() || src->is_calls_stmt()) {
+            return get_prno() == src->get_prno();
+        }
+        return false;
+    default: UNREACH();
+    }
+    return false;
+}
+
+
+//Return true if current ir tree is equivalent to src.
+//is_cmp_kid: it is true if comparing kids as well.
+bool IR::isIREqual(IR const* src, bool is_cmp_kid) const
 {
     ASSERT0(src);
     if (get_code() != src->get_code()) { return false; }
@@ -1995,6 +2114,21 @@ bool IR::is_ir_equal(IR const* src, bool is_cmp_kid) const
     case IR_STARRAY:
         if (ARR_ofst(this) != ARR_ofst(src) || get_type() != src->get_type()) {
             return false;
+        }
+        if ((ARR_elem_num_buf(src) != NULL) ^
+            (ARR_elem_num_buf(this) != NULL)) {
+            return false;
+        }
+        if (ARR_elem_num_buf(src) != NULL) {
+            ASSERT0(ARR_elem_num_buf(this));
+            TMWORD dimnum = ((CStArray*)this)->getDimNum();
+            ASSERT0(((CStArray*)src)->getDimNum() == dimnum);
+            for (UINT i = 0; i < dimnum; i++) {
+                if (((CStArray*)this)->getElementNumOfDim(i) !=
+                    ((CStArray*)src)->getElementNumOfDim(i)) {
+                    return false;
+                }
+            }
         }
         break;
     case IR_IST:
@@ -2057,6 +2191,21 @@ bool IR::is_ir_equal(IR const* src, bool is_cmp_kid) const
     case IR_ARRAY:
         if (ARR_ofst(this) != ARR_ofst(src) || get_type() != src->get_type()) {
             return false;
+        }
+        if ((ARR_elem_num_buf(src) != NULL) ^
+            (ARR_elem_num_buf(this) != NULL)) {
+            return false;
+        }
+        if (ARR_elem_num_buf(src) != NULL) {
+            ASSERT0(ARR_elem_num_buf(this));
+            TMWORD dimnum = ((CArray*)this)->getDimNum();
+            ASSERT0(((CArray*)src)->getDimNum() == dimnum);
+            for (UINT i = 0; i < dimnum; i++) {
+                if (((CArray*)this)->getElementNumOfDim(i) !=
+                    ((CArray*)src)->getElementNumOfDim(i)) {
+                    return false;
+                }
+            }
         }
         break;
     case IR_PR:

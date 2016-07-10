@@ -154,10 +154,10 @@ public:
     DefDBitSetCoreHashAllocator(DefMiscBitSetMgr * sbsmgr)
     { ASSERT0(sbsmgr); m_sbs_mgr = sbsmgr; }
 
-    DefSBitSetCore * alloc() { return m_sbs_mgr->create_dbitsetc(); }
+    DefSBitSetCore * alloc() { return m_sbs_mgr->allocDBitSetCore(); }
 
     void free(DefSBitSetCore * set)
-    { m_sbs_mgr->free_dbitsetc((DefDBitSetCore*)set); }
+    { m_sbs_mgr->freeDBitSetCore((DefDBitSetCore*)set); }
 
     DefMiscBitSetMgr * getBsMgr() const { return m_sbs_mgr; }
 };
@@ -495,7 +495,7 @@ public:
             //Free DUSet back to DefSegMgr, or it will
             //complain and make an assertion.
             ASSERT0(m_misc_bs_mgr);
-            m_misc_bs_mgr->free_sbitsetc(DU_duset(du));
+            m_misc_bs_mgr->freeSBitSetCore(DU_duset(du));
             DU_duset(du) = NULL;
         }
 

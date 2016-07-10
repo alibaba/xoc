@@ -73,9 +73,9 @@ public:
     LABEL_TYPE ltype;
 
     union {
-        SYM * lab_name;
+        SYM const* lab_name;
+        SYM const* pragma_str;
         UINT lab_num;
-        SYM * pragma_str;
     } u1;
 
     union {
@@ -134,7 +134,7 @@ inline UINT computeLabelHashValue(LabelInfo const* li)
 
 LabelInfo * allocLabel(SMemPool * pool);
 LabelInfo * allocInternalLabel(SMemPool * pool);
-LabelInfo * allocCustomerLabel(SYM * st, SMemPool * pool);
+LabelInfo * allocCustomerLabel(SYM const* st, SMemPool * pool);
 inline bool isSameLabel(LabelInfo const* li1, LabelInfo const* li2)
 {
     ASSERT0(li1 && li2);

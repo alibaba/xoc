@@ -44,7 +44,7 @@ using namespace xcom;
 
 namespace xoc {
 
-LabelInfo * allocCustomerLabel(SYM * st, SMemPool * pool)
+LabelInfo * allocCustomerLabel(SYM const* st, SMemPool * pool)
 {
     LabelInfo * li = allocLabel(pool);
     LABEL_INFO_name(li) = st;

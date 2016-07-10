@@ -664,7 +664,7 @@ void IR_SSA_MGR::placePhi(IN DfMgr & dfm,
     //DefSBitSet defed_prs;
     for (IRBB * bb = bblst->get_head(); bb != NULL; bb = bblst->get_next()) {
         //defed_prs.clean();
-        DefSBitSet * bs = bs_mgr.create_sbitset();
+        DefSBitSet * bs = bs_mgr.allocSBitSet();
         defed_prs_vec.set(BB_id(bb), bs);
         collectDefinedPR(bb, *bs);
         //computeEffectPR(effect_prs, tmp, bb, live_mgr, pr2defbb);
@@ -978,7 +978,7 @@ void IR_SSA_MGR::destructBBSSAInfo(IRBB * bb)
         next_ct = BB_irlist(bb).get_next(next_ct);
         IR * ir = ct->val();
         if (!ir->is_phi()) { break; }
-        
+
         stripPhi(ir, ct);
         BB_irlist(bb).remove(ct);
         m_ru->freeIRTree(ir);
@@ -1064,7 +1064,7 @@ void IR_SSA_MGR::stripPhi(IR * phi, C<IR*> * phict)
     IR * opnd = PHI_opnd_list(phi);
 
     //opnd may be const, lda or pr.
-    //ASSERT0(opnd->is_pr());    
+    //ASSERT0(opnd->is_pr());
     ASSERT0(PHI_ssainfo(phi));
 
     UINT pos = 0;
@@ -1787,7 +1787,7 @@ void IR_SSA_MGR::construction(DomTree & domtree)
 
     List<IRBB*> wl;
     DefMiscBitSetMgr sm;
-    DefSBitSet effect_prs(sm.get_seg_mgr());
+    DefSBitSet effect_prs(sm.getSegMgr());
     Vector<DefSBitSet*> defed_prs_vec;
 
     placePhi(dfm, effect_prs, sm, defed_prs_vec, wl);

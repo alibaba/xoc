@@ -387,7 +387,7 @@ void Graph::insertVertexBetween(
             }
             v2pos_in_list = ec;
         }
-    
+
         for (EdgeC * ec = VERTEX_in_list(v2); ec != NULL; ec = EC_next(ec)) {
             if (EDGE_from(EC_edge(ec)) == v1) {
                 break;

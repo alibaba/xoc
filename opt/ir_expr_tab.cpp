@@ -219,7 +219,7 @@ ExpRep * IR_EXPR_TAB::append_expr(IR * ir)
     //Scanning in ExpRep list in level2 hash tab.
     ExpRep * last = NULL;
     while (ie != NULL) {
-        if (ir->is_ir_equal(EXPR_ir(ie))) {
+        if (ir->isIREqual(EXPR_ir(ie))) {
             return ie;
         }
         last = ie;
@@ -352,7 +352,7 @@ ExpRep * IR_EXPR_TAB::remove_expr(IR * ir)
 
     //Scanning in ExpRep list in level2 hash tab.
     while (ie != NULL) {
-        if (ir->is_ir_equal(EXPR_ir(ie))) {
+        if (ir->isIREqual(EXPR_ir(ie))) {
             remove(&level2_hash_tab[level2_hashv], ie);
             m_ir_expr_vec.remove(EXPR_id(ie), NULL);
             return ie;
@@ -387,7 +387,7 @@ ExpRep * IR_EXPR_TAB::find_expr(IR * ir)
 
     //Scanning in ExpRep list in level2 hash tab.
     while (ie != NULL) {
-        if (ir->is_ir_equal(EXPR_ir(ie))) {
+        if (ir->isIREqual(EXPR_ir(ie))) {
             return ie;
         }
         ie = EXPR_next(ie);

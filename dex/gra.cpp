@@ -1020,7 +1020,7 @@ void GltMgr::localize(GLT * g)
     }
     m_pr2glt.set(prno, NULL);
     m_gltid2glt_map.set(GLT_id(g), NULL);
-    m_sbs_mgr.free_dbitsetc(bbs);
+    m_sbs_mgr.freeDBitSetCore(bbs);
 }
 
 
@@ -1031,7 +1031,7 @@ GLT * GltMgr::buildGltLike(IR * pr, GLT * cand)
     GLT * newglt = new_glt(PR_no(pr));
     DefDBitSetCore * bbs = GLT_bbs(cand);
     if (bbs != NULL) {
-        GLT_bbs(newglt) = m_sbs_mgr.create_dbitsetc();
+        GLT_bbs(newglt) = m_sbs_mgr.allocDBitSetCore();
         GLT_bbs(newglt)->copy(*bbs, m_sbs_mgr);
         SEGIter * sc = NULL;
         UINT candprno = GLT_prno(cand);
@@ -1330,7 +1330,7 @@ void GltMgr::build(bool build_group_part)
                     glt = new_glt(i);
                 }
                 if (GLT_bbs(glt) == NULL) {
-                    GLT_bbs(glt) = m_sbs_mgr.create_dbitsetc();
+                    GLT_bbs(glt) = m_sbs_mgr.allocDBitSetCore();
                 }
                 GLT_bbs(glt)->bunion(BB_id(bb), m_sbs_mgr);
             }
@@ -1345,7 +1345,7 @@ void GltMgr::build(bool build_group_part)
                     glt = new_glt(i);
                 }
                 if (GLT_bbs(glt) == NULL) {
-                    GLT_bbs(glt) = m_sbs_mgr.create_dbitsetc();
+                    GLT_bbs(glt) = m_sbs_mgr.allocDBitSetCore();
                 }
                 GLT_bbs(glt)->bunion(BB_id(bb), m_sbs_mgr);
             }
@@ -5419,8 +5419,8 @@ void RA::assignLTG(LTG * ltg, IR * ir)
 
     BitSet assigned; //the phys that ltg has assigned.
     bool all_assigned = true;
-    DefSBitSet nis(m_gltm.m_sbs_mgr.get_seg_mgr());
-    DefSBitSet gnis(m_gltm.m_sbs_mgr.get_seg_mgr());
+    DefSBitSet nis(m_gltm.m_sbs_mgr.getSegMgr());
+    DefSBitSet gnis(m_gltm.m_sbs_mgr.getSegMgr());
     IG * ig = ltm->get_ig();
     ASSERT0(ig);
     BitSet liveout_phy;

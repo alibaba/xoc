@@ -228,8 +228,6 @@ bool DexRegion::process()
     //note("\n==---- REGION_NAME:%s ----==", get_ru_name());
     prescan(get_ir_list());
 
-    REGION_is_pr_unique_for_same_number(this) = true;
-
     PassMgr * passmgr = initPassMgr();
 
     HighProcess(oc);

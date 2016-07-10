@@ -1308,7 +1308,7 @@ bool IR_RP::promoteExactAccess(
     //They may be freed.
     //e.g: a[i], if array referrence is freed, the occurrence of variable
     //i also be freed.
-    PromotedTab promoted(m_ru->getMiscBitSetMgr()->get_seg_mgr());
+    PromotedTab promoted(m_ru->getMiscBitSetMgr()->getSegMgr());
 
     for (IR * ref = exact_occ_list.get_head();
          ref != NULL; ref = exact_occ_list.get_next()) {
@@ -1778,7 +1778,7 @@ void IR_RP::computeOuterDefUse(
         DUSet * defset = delegate2def.get(delegate);
         DUSet const* refduset = ref->readDUSet();
         if (defset == NULL && refduset != NULL) {
-            defset = (DUSet*)sbs_mgr->create_sbitsetc();
+            defset = (DUSet*)sbs_mgr->allocSBitSetCore();
             delegate2def.set(delegate, defset);
         }
 
@@ -1799,7 +1799,7 @@ void IR_RP::computeOuterDefUse(
         DUSet * set = delegate2use.get(delegate);
         DUSet const* refduset = ref->readDUSet();
         if (set == NULL && refduset != NULL) {
-            set = (DUSet*)sbs_mgr->create_sbitsetc();
+            set = (DUSet*)sbs_mgr->allocSBitSetCore();
             delegate2use.set(delegate, set);
         }
 
@@ -1971,7 +1971,7 @@ void IR_RP::freeLocalStruct(
     for (IR * x = delegate2use.get_first(map_iter2, &duset);
          x != NULL; x = delegate2use.get_next(map_iter2, &duset)) {
         if (duset != NULL) {
-            sbs_mgr->free_sbitsetc(duset);
+            sbs_mgr->freeSBitSetCore(duset);
         }
     }
 
@@ -1979,7 +1979,7 @@ void IR_RP::freeLocalStruct(
     for (IR * x = delegate2def.get_first(map_iter2, &duset);
          x != NULL; x = delegate2def.get_next(map_iter2, &duset)) {
         if (duset != NULL) {
-            sbs_mgr->free_sbitsetc(duset);
+            sbs_mgr->freeSBitSetCore(duset);
         }
     }
 

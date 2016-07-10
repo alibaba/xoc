@@ -531,8 +531,8 @@ public:
     MDSetHashAllocator(MiscBitSetMgr<> * sbsmgr)
     { ASSERT0(sbsmgr); m_sbs_mgr = sbsmgr; }
 
-    SBitSetCore<> * alloc() { return m_sbs_mgr->create_sbitsetc(); }
-    void free(SBitSetCore<> * set) { m_sbs_mgr->free_sbitsetc(set); }
+    SBitSetCore<> * alloc() { return m_sbs_mgr->allocSBitSetCore(); }
+    void free(SBitSetCore<> * set) { m_sbs_mgr->freeSBitSetCore(set); }
     MiscBitSetMgr<> * getBsMgr() const { return m_sbs_mgr; }
 };
 

@@ -88,7 +88,7 @@ public:
         MD const* md = m_type2md.get(ty->type);
         if (md != NULL) {
             MD const* t = allocLoadMD(ld);
-            setPointToMDSetByAddMD(t, *mx, md);
+            setPointToMDSetByAddMD(MD_id(t), *mx, md);
             return;
         }
 
@@ -108,7 +108,7 @@ public:
         m_type2md.set(ty->type, entry);
 
         MD const* t = allocLoadMD(ld);
-        setPointToMDSetByAddMD(t, *mx, entry);
+        setPointToMDSetByAddMD(MD_id(t), *mx, entry);
     }
 };
 

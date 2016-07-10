@@ -68,9 +68,6 @@ author: Su Zhenyu
 //Represent target machine word with host type.
 #define TMWORD                           UINT
 
-//Bit size of word lenght of host machine.
-#define WORD_LENGTH_OF_HOST_MACHINE      64
-
 //Target machine relatived heap memory allocate function name
 #define MALLOC_NAME                       "malloc"
 
