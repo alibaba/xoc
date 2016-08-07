@@ -367,7 +367,7 @@ IR * Region::refineSwitch(IR * ir, bool & change, RefineCtx & rc)
     }
 
     l = false;
-    //SWITCH_body(ir) = refineIRlist(SWITCH_body(ir), l, rc);
+    SWITCH_body(ir) = refineIRlist(SWITCH_body(ir), l, rc);
     change |= l;
     return ir;
 }

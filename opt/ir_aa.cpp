@@ -673,41 +673,52 @@ void IR_AA::inferArrayLdabase(
     ASSERT0(ir->is_array_op() && array_base->is_lda());
     AACtx tic(*ic);
     processLda(array_base, mds, &tic);
-    //inferExpression(array_base, mds, &tic, mx);
 
     if (AC_is_mds_mod(&tic)) {
+        ir->cleanRefMDSet();
+        
         //Compute the MD size and offset if 'ofst' is constant.
         SEGIter * iter;
         ASSERT0(mds.get_elem_count() == 1);
         MD const* org = m_md_sys->get_md((UINT)mds.get_first(&iter));
-        ASSERT0(org->is_exact());
+        if (!org->is_exact()) {            
+        	set_must_addr(ir, org);
+            return;
+        }
+
+        bool changed = false;
         MD tmd(*org);
         if (is_ofst_pred) {
-            MD_ofst(&tmd) += ofst;
-            //MD_ty(&tmd) = MD_EXACT;
+            if (ofst != 0) {
+                MD_ofst(&tmd) += ofst;
+                changed = true;
+            }
         } else {
+            changed = true;
             UINT basesz = m_tm->getPointerBaseByteSize(array_base->get_type());
             ASSERT0(basesz);
-
+        
             MD_ofst(&tmd) = LDA_ofst(array_base);
-
+        
             //The approximate and conservative size of array.
             MD_size(&tmd) = basesz - LDA_ofst(array_base);
             MD_ty(&tmd) = MD_RANGE;
         }
-
-        if (tmd == *org) {
-            //mds is unchanged.
-            set_must_addr(ir, org);
-        } else {
+        
+        if (changed) {
             MD const* entry = m_md_sys->registerMD(tmd);
-            ASSERT0(MD_id(entry) > 0);
-            set_must_addr(ir, entry);
-            mds.clean(*m_misc_bs_mgr);
             ASSERT0(entry->is_effect());
+            ASSERT0(MD_id(entry) > 0);
+        
+            mds.clean(*m_misc_bs_mgr);
             mds.bunion_pure(MD_id(entry), *m_misc_bs_mgr);
+        
+            set_must_addr(ir, entry);
+            return;
         }
-        ir->cleanRefMDSet();
+        
+        //mds is unchanged.
+        set_must_addr(ir, org);
     } else {
         ASSERT(get_may_addr(ir) == NULL, ("have no mayaddr"));
         MD const* x = get_must_addr(ir);

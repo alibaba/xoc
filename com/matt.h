@@ -3544,7 +3544,9 @@ void Matrix<T>::mls(OUT Matrix<T> & x, Matrix<T> const& b)
 
     //For speed up, we do invoke null() instead of sse(). It's only a trick.
     A.null(x);
-    x.del_row(x.m_row_size - 1); //Only number of (m_row_size - 1) unknowns.
+
+    //Contain the number of (m_row_size - 1) unknowns.
+    x.del_row(x.m_row_size - 1); 
 }
 
 

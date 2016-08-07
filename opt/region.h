@@ -656,7 +656,10 @@ public:
 
     //Return true if Region name is equivalent to 'n'.
     bool isRegionName(CHAR const* n) const
-    { return strcmp(get_ru_name(), n) == 0; }
+    {
+        ASSERT(get_ru_name(), ("Region does not have name"));
+        return strcmp(get_ru_name(), n) == 0; 
+    }
 
     bool is_undef() const { return REGION_type(this) == RU_UNDEF; }
     bool is_function() const { return REGION_type(this) == RU_FUNC; }
