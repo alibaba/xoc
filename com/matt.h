@@ -3546,7 +3546,7 @@ void Matrix<T>::mls(OUT Matrix<T> & x, Matrix<T> const& b)
     A.null(x);
 
     //Contain the number of (m_row_size - 1) unknowns.
-    x.del_row(x.m_row_size - 1); 
+    x.del_row(x.m_row_size - 1);
 }
 
 

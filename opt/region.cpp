@@ -3296,6 +3296,11 @@ bool Region::process()
     ASSERT0(verifyIRinRegion());
     note("\nREGION_NAME:%s", get_ru_name());
 
+    if (get_ir_list() == NULL && 
+        get_bb_list()->get_elem_count() == 0) { 
+        return true;
+    }
+
     OptCtx oc;
     OC_show_comp_time(oc) = g_show_comp_time;
     initPassMgr();

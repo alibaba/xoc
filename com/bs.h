@@ -186,7 +186,7 @@ protected:
 
     inline void * xmalloc(size_t size)
     {
-        ASSERT(m_pool, ("List not yet initialized."));
+        ASSERT(m_pool, ("not yet initialized."));
         void * p = smpoolMallocConstSize(size, m_pool);
         ASSERT(p, ("malloc failed"));
         memset(p, 0, size);

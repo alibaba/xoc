@@ -978,6 +978,7 @@ void IR_CFG::dump_dot(CHAR const* name, bool detail, bool dump_eh)
 
 void IR_CFG::dump_node(FILE * h, bool detail)
 {
+    ASSERT0(m_bb_list);
     C<IRBB*> * bbct;
     UINT vertical_order = 1;
     for (IRBB * bb = m_bb_list->get_head(&bbct);
@@ -1104,9 +1105,10 @@ void IR_CFG::dump_edge(FILE * h, bool dump_eh)
 
 void IR_CFG::dump_vcg(CHAR const* name, bool detail, bool dump_eh)
 {
-    if (name == NULL) {
-        name = "graph_cfg.vcg";
-    }
+    ASSERT0(m_ru);
+
+    if (name == NULL) { name = "graph_cfg.vcg"; }
+
     //Note this function does not use g_tfile as output.
     //So it is dispensable to check g_tfile.
     unlink(name);
@@ -1128,11 +1130,11 @@ void IR_CFG::dump_vcg(CHAR const* name, bool detail, bool dump_eh)
             "\nnode: {title:\"\" vertical_order:0 shape:box color:turquoise "
             "borderwidth:0 fontname:\"Courier Bold\" "
             "scaling:2 label:\"RegionName:%s\" }", m_ru->get_ru_name());
-
     old = g_tfile;
     g_tfile = h;
     dump_node(h, detail);
     dump_edge(h, dump_eh);
+
     g_tfile = old;
     fprintf(h, "\n}\n");
     fclose(h);
