@@ -1794,30 +1794,42 @@ bool Region::isRegionIR(IR const* ir)
 }
 
 
+//Generate VAR corresponding to PR load or write.
+VAR * Region::genVARforPR(UINT prno, Type const* type)
+{
+    ASSERT0(type);
+    VAR * pr_var = mapPR2Var(prno);
+    if (pr_var != NULL) { return pr_var; }
+
+    //Create a new PR VAR.
+    CHAR name[64];
+    sprintf(name, "pr%d", prno);
+    ASSERT0(strlen(name) < 64);
+    UINT flag = VAR_LOCAL;
+    SET_FLAG(flag, VAR_IS_PR);
+    pr_var = get_var_mgr()->registerVar(name, type, 0, flag);
+    setMapPR2Var(prno, pr_var);
+
+    //Set the pr-var to be unallocable, means do NOT add
+    //pr-var immediately as a memory-variable.
+    //For now, it is only be regarded as a pseduo-register.
+    //And set it to allocable if the PR is in essence need to be
+    //allocated in memory.
+    VAR_allocable(pr_var) = false;
+    addToVarTab(pr_var);
+    return pr_var;
+}
+
+
 //Generate MD corresponding to PR load or write.
 MD const* Region::genMDforPR(UINT prno, Type const* type)
 {
     ASSERT0(type);
     VAR * pr_var = mapPR2Var(prno);
     if (pr_var == NULL) {
-        //Create a new PR VAR.
-        CHAR name[64];
-        sprintf(name, "pr%d", prno);
-        ASSERT0(strlen(name) < 64);
-        UINT flag = VAR_LOCAL;
-        SET_FLAG(flag, VAR_IS_PR);
-        pr_var = get_var_mgr()->registerVar(name, type, 0, flag);
-        setMapPR2Var(prno, pr_var);
-
-        //Set the pr-var to be unallocable, means do NOT add
-        //pr-var immediately as a memory-variable.
-        //For now, it is only be regarded as a pseduo-register.
-        //And set it to allocable if the PR is in essence need to be
-        //allocated in memory.
-        VAR_allocable(pr_var) = false;
-        addToVarTab(pr_var);
+        pr_var = genVARforPR(prno, type);
     }
-
+    
     MD md;
     MD_base(&md) = pr_var; //correspond to VAR
     MD_ofst(&md) = 0;
@@ -1922,7 +1934,7 @@ void Region::findFormalParam(OUT List<VAR const*> & varlst, bool in_decl_order)
             bool find = false;
             for (VAR const* p = varlst.get_head(&ctp);
                  p != NULL; p = varlst.get_next(&ctp)) {
-                if (VAR_formal_param_pos(v) < VAR_formal_param_pos(p)) {
+                if (v->getFormalParamPos() < p->getFormalParamPos()) {
                     varlst.insert_before(v, ctp);
                     find = true;
                     break;
@@ -2909,7 +2921,7 @@ void Region::dumpVARInRegion()
             for (VAR * v = get_var_tab()->get_first(c);
                  v != NULL; v = get_var_tab()->get_next(c)) {
                 if (VAR_is_formal_param(v)) {
-                    fpvec.set(VAR_formal_param_pos(v), v);
+                    fpvec.set(v->getFormalParamPos(), v);
                 }
             }
 
@@ -3291,7 +3303,7 @@ bool Region::processIRList(OptCtx & oc)
 
 
 //Return true if all passes finished normally, otherwise return false.
-bool Region::process()
+bool Region::process(OptCtx * oc)
 {
     ASSERT0(verifyIRinRegion());
     note("\nREGION_NAME:%s", get_ru_name());
@@ -3301,16 +3313,18 @@ bool Region::process()
         return true;
     }
 
-    OptCtx oc;
-    OC_show_comp_time(oc) = g_show_comp_time;
+    OptCtx loc;
+    if (oc == NULL) { oc = &loc; }
+
+    OC_show_comp_time(*oc) = g_show_comp_time;
     initPassMgr();
 
     if (g_do_inline && is_program()) {
         //Need to scan call-list.
-        get_region_mgr()->buildCallGraph(oc, true, true);
-        if (OC_is_callg_valid(oc)) {
+        get_region_mgr()->buildCallGraph(*oc, true, true);
+        if (OC_is_callg_valid(*oc)) {
             Inliner * inl = (Inliner*)get_pass_mgr()->registerPass(PASS_INLINER);
-            inl->perform(oc);
+            inl->perform(*oc);
             get_pass_mgr()->destroyPass(inl);
         }
     }
@@ -3318,22 +3332,22 @@ bool Region::process()
     IR_SSA_MGR * ssamgr;
 
     if (get_ir_list() != NULL) {
-        if (!processIRList(oc)) { goto ERR_RET; }
+        if (!processIRList(*oc)) { goto ERR_RET; }
     } else {
-        if (!processBBList(oc)) { goto ERR_RET; }
+        if (!processBBList(*oc)) { goto ERR_RET; }
     }
 
     if (g_do_ipa && is_program()) {
-        if (!OC_is_callg_valid(oc)) {
+        if (!OC_is_callg_valid(*oc)) {
             //processFuncRegion has scanned and collected call-list.
             //Thus it does not need to scan call-list here.
-            get_region_mgr()->buildCallGraph(oc, true, true);
-            ASSERT0(OC_is_callg_valid(oc));
+            get_region_mgr()->buildCallGraph(*oc, true, true);
+            ASSERT0(OC_is_callg_valid(*oc));
         }
 
         ASSERT0(get_pass_mgr());
         IPA * ipa = (IPA*)get_pass_mgr()->registerPass(PASS_IPA);
-        ipa->perform(oc);
+        ipa->perform(*oc);
         get_pass_mgr()->destroyPass(ipa);
     }
 

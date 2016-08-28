@@ -164,6 +164,7 @@ protected:
     bool processBBList(OptCtx & oc);
     void prescan(IR const* ir);
     bool partitionRegion();
+    bool performSimplify(OptCtx & oc);
     void HighProcessImpl(OptCtx & oc);
 
 public:
@@ -556,7 +557,10 @@ public:
         return allocCustomerLabel(labsym, get_pool());
     }
 
-    //Allocate MD for IR_PR.
+    //Allocate VAR for PR.
+    VAR * genVARforPR(UINT prno, Type const* type);
+
+    //Allocate MD for PR.
     MD const* genMDforPR(UINT prno, Type const* type);
 
     //Generate MD corresponding to PR load or write.
@@ -658,7 +662,7 @@ public:
     bool isRegionName(CHAR const* n) const
     {
         ASSERT(get_ru_name(), ("Region does not have name"));
-        return strcmp(get_ru_name(), n) == 0; 
+        return strcmp(get_ru_name(), n) == 0;
     }
 
     bool is_undef() const { return REGION_type(this) == RU_UNDEF; }
@@ -801,7 +805,7 @@ public:
 
     void lowerIRTreeToLowestHeight(OptCtx & oc);
 
-    virtual bool process(); //Entry to process region.
+    virtual bool process(OptCtx * oc = NULL); //Entry to process region.
 
     //Check and rescan call list of region if one of elements in list changed.
     void updateCallAndReturnList(bool scan_inner_region);

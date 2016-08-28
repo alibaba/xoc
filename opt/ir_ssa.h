@@ -140,7 +140,7 @@ protected:
     Stack<VP*> * mapPRNO2VPStack(UINT prno);
     IR * mapPRNO2IR(UINT prno) { return m_prno2ir.get(prno); }
 
-    VP * newVP()
+    VP * allocVP()
     {
         ASSERT(m_vp_pool != NULL, ("not init"));
         VP * p = (VP*)smpoolMallocConstSize(sizeof(VP), m_vp_pool);
@@ -203,7 +203,7 @@ public:
         ASSERT0(use->is_read_pr());
         SSAInfo * ssainfo = def->get_ssainfo();
         if (ssainfo == NULL) {
-            ssainfo = newSSAInfo(def->get_prno());
+            ssainfo = allocSSAInfo(def->get_prno());
             def->set_ssainfo(ssainfo);
             SSA_def(ssainfo) = def;
 
@@ -221,8 +221,11 @@ public:
     {
         if (m_vp_pool == NULL) { return; }
 
-        ASSERT(!m_is_ssa_constructed,
-            ("Still in ssa mode, you should out of SSA before the destruction."));
+        //Caution: if you do not destruct SSA prior to destory().
+        //The reference to IR's SSA info will lead to undefined behaviors.
+        //ASSERT(!m_is_ssa_constructed,
+        //   ("Still in ssa mode, you should out of "
+        //    "SSA before the destruction."));
 
         for (INT i = 0; i <= m_map_prno2vp_vec.get_last_idx(); i++) {
             Vector<VP*> * vpv = m_map_prno2vp_vec.get((UINT)i);
@@ -282,7 +285,7 @@ public:
     bool is_redundant_phi(IR const* phi, OUT IR ** common_def) const;
 
     //Allocate VP and ensure it is unique according to 'version' and 'prno'.
-    VP * newVP(UINT prno, UINT version)
+    VP * allocVP(UINT prno, UINT version)
     {
         ASSERT0(prno > 0);
         Vector<VP*> * vec = m_map_prno2vp_vec.get(prno);
@@ -297,7 +300,7 @@ public:
         }
 
         ASSERT(m_seg_mgr, ("SSA manager is not initialized"));
-        v = newVP();
+        v = allocVP();
         v->initNoClean(m_seg_mgr);
         VP_prno(v) = prno;
         VP_ver(v) = version;
@@ -310,10 +313,10 @@ public:
 
 
     //Allocate SSAInfo for specified PR indicated by 'prno'.
-    SSAInfo * newSSAInfo(UINT prno)
+    SSAInfo * allocSSAInfo(UINT prno)
     {
         ASSERT0(prno > 0);
-        return (SSAInfo*)newVP(prno, 0);
+        return (SSAInfo*)allocVP(prno, 0);
     }
 
     //Reinitialize SSA manager.

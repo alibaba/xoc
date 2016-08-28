@@ -38,7 +38,7 @@ namespace xoc {
 
 class PassMgr;
 
-#define NO_OPT        0
+#define OPT_LEVEL0        0
 #define OPT_LEVEL1    1
 #define OPT_LEVEL2    2
 #define OPT_LEVEL3    3

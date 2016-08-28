@@ -2633,6 +2633,9 @@ public:
         m_vec = tmp;
         m_elem_num = num_of_elem;
     }
+
+    //Return true if there is not any element.
+    bool is_empty() const { return get_last_idx() == -1; }
 };
 //END Vector
 

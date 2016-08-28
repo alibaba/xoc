@@ -475,7 +475,7 @@ IR * IR_SSA_MGR::initVP(IN IR * ir)
     //Process result.
     if (prres != NULL) {
         UINT prno = prres->get_prno();
-        ir->set_ssainfo(newVP(prno, 0));
+        ir->set_ssainfo(allocVP(prno, 0));
         if (m_prno2ir.get(prno) == NULL) {
             m_prno2ir.set(prno, ir);
         }
@@ -486,7 +486,7 @@ IR * IR_SSA_MGR::initVP(IN IR * ir)
     for (IR * kid = iterInit(ir, m_iter);
          kid != NULL; kid = iterNext(m_iter)) {
         if (ir->is_rhs(kid) && kid->is_pr()) {
-            PR_ssainfo(kid) = newVP(PR_no(kid), 0);
+            PR_ssainfo(kid) = allocVP(PR_no(kid), 0);
 
             //SSA_uses(PR_ssainfo(kid)).append(kid);
             if (m_prno2ir.get(PR_no(kid)) == NULL) {
@@ -766,7 +766,7 @@ void IR_SSA_MGR::rename_bb(IN IRBB * bb)
             ASSERT0(VP_prno(resvp) == res->get_prno());
             UINT prno = VP_prno(resvp);
             UINT maxv = m_max_version.get(prno);
-            VP * new_v = newVP(prno, maxv + 1);
+            VP * new_v = allocVP(prno, maxv + 1);
             m_max_version.set(prno, maxv + 1);
 
             mapPRNO2VPStack(prno)->push(new_v);
@@ -959,7 +959,7 @@ void IR_SSA_MGR::rename(
     SEGIter * cur = NULL;
     for (INT prno = effect_prs.get_first(&cur);
          prno >= 0; prno = effect_prs.get_next(prno, &cur)) {
-        VP * vp = newVP(prno, 0);
+        VP * vp = allocVP(prno, 0);
         mapPRNO2VPStack(prno)->push(vp);
     }
 

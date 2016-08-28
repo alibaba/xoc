@@ -967,9 +967,7 @@ bool IR_AA::evaluateFromLda(IR const* ir)
     if (ssainfo == NULL) { return false; }
 
     IR * defstmt = SSA_def(ssainfo);
-    if (defstmt == NULL) { return false; }
-
-    ASSERT0(defstmt->is_stpr());
+    if (defstmt == NULL || !defstmt->is_stpr()) { return false; }
 
     IR const* rhs = STPR_rhs(defstmt);
     switch (rhs->get_code()) {

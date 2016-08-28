@@ -207,6 +207,20 @@ public:
     VAR();
     virtual ~VAR() {}
 
+    bool is_local() const { return VAR_is_local(this); }
+    bool is_global() const { return VAR_is_global(this); }
+    bool is_fake() const { return VAR_is_fake(this); }
+    bool is_label() const { return VAR_is_label(this); }
+    bool is_allocable() const { return VAR_allocable(this); }
+    bool is_array() const { return VAR_is_array(this); }
+    bool is_formal_param() const { return VAR_is_formal_param(this); }
+    bool is_readonly() const { return VAR_is_readonly(this); }
+    bool is_func_decl() const { return VAR_is_func_decl(this); }
+    bool is_volatile() const { return VAR_is_volatile(this); }
+    bool is_spill() const { return VAR_is_spill(this); }
+    bool is_addr_taken() const { return VAR_is_addr_taken(this); }
+    bool is_pr() const { return VAR_is_pr(this); }
+    bool is_restrict() const { return VAR_is_restrict(this); }
     bool is_void() const
     {
         ASSERT0(VAR_type(this));
@@ -238,11 +252,9 @@ public:
         return VAR_type(this)->is_vector();
     }
 
-    bool is_label() const { return VAR_is_label(this); }
-    bool is_allocable() const { return VAR_allocable(this); }
-
     SYM const* get_name() const { return VAR_name(this); }
     Type const* get_type() const { return VAR_type(this); }
+    UINT getFormalParamPos() const { return VAR_formal_param_pos(this); }
     UINT getStringLength() const
     {
         ASSERT0(VAR_type(this)->is_string());

@@ -51,7 +51,7 @@ bool g_is_hoist_type = false;
 CHAR * g_func_or_bb_option = NULL;
 
 //Represent optimization level.
-INT g_opt_level = NO_OPT;
+INT g_opt_level = OPT_LEVEL0;
 
 //Construct bb list.
 bool g_cst_bb_list = true;

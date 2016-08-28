@@ -239,7 +239,7 @@ static void do_opt(IR * ir_list, DexRegion * func_ru)
 {
     if (ir_list == NULL) { return; }
 
-    //dump_irs(ir_list, func_ru->get_dm());
+    //dump_irs(ir_list, func_ru->get_type_mgr());
 
     bool change;
 
@@ -518,7 +518,7 @@ static void handleRegion(
         //goto FIN;
     }
 
-    //dump_irs(ir_list, func_ru->get_dm());
+    //dump_irs(ir_list, func_ru->get_type_mgr());
     func_ru->setPrno2Vreg(&prno2v);
 
     #if 1

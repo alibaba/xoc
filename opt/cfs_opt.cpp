@@ -552,12 +552,12 @@ bool IR_CFS_OPT::perform_cfs_optimization(IN OUT IR ** ir_list,
 }
 
 
-/* Control flow structure optimization and up to bottom walk through
-the IR tree. High level IRs include IR_IF, IR_WHILE_DO...
-High Level Reshaping phase consist of:
-    1. goto reduction
-    2. if restructure
-    3. loop restructure */
+//Control flow structure optimization and up to bottom walk through
+//the IR tree. High level IRs include IR_IF, IR_WHILE_DO...
+//High Level Reshaping phase consist of:
+//  1. goto reduction
+//  2. if restructure
+//  3. loop restructure
 bool IR_CFS_OPT::perform(SimpCtx const& sc)
 {
     ASSERT0(!SIMP_if(&sc) &&
@@ -567,7 +567,7 @@ bool IR_CFS_OPT::perform(SimpCtx const& sc)
             !SIMP_switch(&sc) &&
             !SIMP_break(&sc) &&
             !SIMP_continue(&sc));
-    if (g_opt_level == NO_OPT) { return false; }
+    if (g_opt_level == OPT_LEVEL0) { return false; }
 
     IR * irs = m_ru->get_ir_list();
     bool change = perform_cfs_optimization(&irs, sc);

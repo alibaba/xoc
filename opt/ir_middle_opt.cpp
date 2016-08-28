@@ -73,40 +73,8 @@ void Region::lowerIRTreeToLowestHeight(OptCtx & oc)
 }
 
 
-/*
-Perform general optimizaitions.
-Basis step to do:
-    1. Build control flow.
-    2. Compute data flow dependence.
-    3. Compute live expression info.
-
-Optimizations to be performed:
-    1. GCSE
-    2. DCE
-    3. RVI(register variable recog)
-    4. IVR(induction variable elimination)
-    5. CP(constant propagation)
-    6. CP(copy propagation)
-    7. SCCP (Sparse Conditional Constant Propagation).
-    8. PRE (Partial Redundancy Elimination) with strength reduction.
-    9. Dominator-based optimizations such as copy propagation,
-        constant propagation and redundancy elimination using
-        value numbering.
-    10. Must-alias analysis, to convert pointer de-references
-        into regular variable references whenever possible.
-    11. Scalar Replacement of Aggregates, to convert structure
-        references into scalar references that can be optimized
-        using the standard scalar passes.
-*/
-bool Region::MiddleProcess(OptCtx & oc)
+bool Region::performSimplify(OptCtx & oc)
 {
-    BBList * bbl = get_bb_list();
-    if (bbl->get_elem_count() == 0) { return true; }
-
-    if (g_verify_level >= VERIFY_LEVEL_3) {
-        ASSERT0(get_du_mgr() == NULL || get_du_mgr()->verifyMDDUChain());
-    }
-
     SimpCtx simp;
     simp.setSimpCFS();
     simp.setSimpArray();
@@ -118,7 +86,9 @@ bool Region::MiddleProcess(OptCtx & oc)
     if (g_is_lower_to_pr_mode) {
         simp.setSimpToPRmode();
     }
-    simplifyBBlist(bbl, &simp);
+
+    simplifyBBlist(get_bb_list(), &simp);
+
     if (g_do_cfg &&
         g_cst_bb_list &&
         SIMP_need_recon_bblist(&simp) &&
@@ -156,16 +126,56 @@ bool Region::MiddleProcess(OptCtx & oc)
     if (g_verify_level >= VERIFY_LEVEL_3 && OC_is_du_chain_valid(oc)) {
         ASSERT0(get_du_mgr() == NULL || get_du_mgr()->verifyMDDUChain());
     }
+    return true;
+}
 
-    if (g_do_ssa) {
-        ASSERT0(get_pass_mgr());
-        IR_SSA_MGR * ssamgr =
-            (IR_SSA_MGR*)get_pass_mgr()->registerPass(PASS_SSA_MGR);
-        ASSERT0(ssamgr);
-        ssamgr->construction(oc);
+
+//Perform general optimizaitions.
+//Basis step to do:
+//    1. Build control flow.
+//    2. Compute data flow dependence.
+//    3. Compute live expression info.
+//
+//Optimizations to be performed:
+//    1. GCSE
+//    2. DCE
+//    3. RVI(register variable recog)
+//    4. IVR(induction variable elimination)
+//    5. CP(constant propagation)
+//    6. CP(copy propagation)
+//    7. SCCP (Sparse Conditional Constant Propagation).
+//    8. PRE (Partial Redundancy Elimination) with strength reduction.
+//    9. Dominator-based optimizations such as copy propagation,
+//        constant propagation and redundancy elimination using
+//        value numbering.
+//    10. Must-alias analysis, to convert pointer de-references
+//        into regular variable references whenever possible.
+//    11. Scalar Replacement of Aggregates, to convert structure
+//        references into scalar references that can be optimized
+//       using the standard scalar passes.
+bool Region::MiddleProcess(OptCtx & oc)
+{
+    BBList * bbl = get_bb_list();
+    if (bbl->get_elem_count() == 0) { return true; }
+
+    if (g_verify_level >= VERIFY_LEVEL_3) {
+        ASSERT0(get_du_mgr() == NULL || get_du_mgr()->verifyMDDUChain());
     }
 
-    if (g_opt_level > NO_OPT) {
+    bool can_do_simp = true;
+    if (get_pass_mgr() != NULL) {
+        IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)get_pass_mgr()->
+            queryPass(PASS_SSA_MGR);
+        if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
+            can_do_simp = false;
+        }
+    }
+
+    if (can_do_simp) {
+        performSimplify(oc);
+    }
+
+    if (g_opt_level > OPT_LEVEL0) {
         PassMgr * passmgr = get_pass_mgr();
         ASSERT0(passmgr);
         passmgr->performScalarOpt(oc);

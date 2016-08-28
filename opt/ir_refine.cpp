@@ -2100,8 +2100,7 @@ IR * Region::foldConstFloatBinary(IR * ir, bool & change)
     case IR_GE:
     case IR_EQ:
     case IR_NE:
-        ir = buildImmFp(calcFloatVal(ir->get_code(), v0, v1),
-                          ir->get_type());
+        ir = buildImmFp(calcFloatVal(ir->get_code(), v0, v1), ir->get_type());
         copyDbx(ir, oldir, this);
         lchange = true;
         break;

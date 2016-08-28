@@ -278,5 +278,6 @@ bool DexRegion::process()
         getPrno2Vreg()->clean();
         getPrno2Vreg()->copy(*getDex2IR()->getPR2Vreg());
     }
+
     return true;
 }
