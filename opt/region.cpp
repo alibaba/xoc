@@ -1829,7 +1829,7 @@ MD const* Region::genMDforPR(UINT prno, Type const* type)
     if (pr_var == NULL) {
         pr_var = genVARforPR(prno, type);
     }
-    
+
     MD md;
     MD_base(&md) = pr_var; //correspond to VAR
     MD_ofst(&md) = 0;
@@ -3308,8 +3308,8 @@ bool Region::process(OptCtx * oc)
     ASSERT0(verifyIRinRegion());
     note("\nREGION_NAME:%s", get_ru_name());
 
-    if (get_ir_list() == NULL && 
-        get_bb_list()->get_elem_count() == 0) { 
+    if (get_ir_list() == NULL &&
+        get_bb_list()->get_elem_count() == 0) {
         return true;
     }
 

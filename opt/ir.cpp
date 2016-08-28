@@ -2008,7 +2008,7 @@ bool IR::isMemRefEqual(IR const* src) const
                 !ARR_sub_list(src)->isIRListEqual(ARR_sub_list(this))) {
                 return false;
             }
-            if ((ARR_elem_num_buf(src) != NULL) ^ 
+            if ((ARR_elem_num_buf(src) != NULL) ^
                 (ARR_elem_num_buf(this) != NULL)) {
                 return false;
             }

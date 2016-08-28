@@ -3,4 +3,4 @@
     *. New analysis module: Induction Variable Recognization
     *. SSA-back translation for exception block.
     *. Complete and refine test environment.
-	*. Enable a new code generation module for arm, x86 target.
+    *. Enable a new code generation module for arm, x86 target.

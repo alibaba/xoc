@@ -676,13 +676,13 @@ void IR_AA::inferArrayLdabase(
 
     if (AC_is_mds_mod(&tic)) {
         ir->cleanRefMDSet();
-        
+
         //Compute the MD size and offset if 'ofst' is constant.
         SEGIter * iter;
         ASSERT0(mds.get_elem_count() == 1);
         MD const* org = m_md_sys->get_md((UINT)mds.get_first(&iter));
-        if (!org->is_exact()) {            
-        	set_must_addr(ir, org);
+        if (!org->is_exact()) {
+            set_must_addr(ir, org);
             return;
         }
 
@@ -697,26 +697,26 @@ void IR_AA::inferArrayLdabase(
             changed = true;
             UINT basesz = m_tm->getPointerBaseByteSize(array_base->get_type());
             ASSERT0(basesz);
-        
+
             MD_ofst(&tmd) = LDA_ofst(array_base);
-        
+
             //The approximate and conservative size of array.
             MD_size(&tmd) = basesz - LDA_ofst(array_base);
             MD_ty(&tmd) = MD_RANGE;
         }
-        
+
         if (changed) {
             MD const* entry = m_md_sys->registerMD(tmd);
             ASSERT0(entry->is_effect());
             ASSERT0(MD_id(entry) > 0);
-        
+
             mds.clean(*m_misc_bs_mgr);
             mds.bunion_pure(MD_id(entry), *m_misc_bs_mgr);
-        
+
             set_must_addr(ir, entry);
             return;
         }
-        
+
         //mds is unchanged.
         set_must_addr(ir, org);
     } else {
