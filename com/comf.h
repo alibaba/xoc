@@ -171,7 +171,7 @@ UINT combin(UINT n, UINT m); //Combination
 LONGLONG ceil_align(LONGLONG v, LONGLONG align);
 
 //Caculate the number of bits which longer enough to represent given constant.
-UINT computeConstBitLen(LONGLONG v);
+UINT computeConstBitLen(ULONGLONG v);
 
 //Dumpf() for Vector<TY>.
 void dumpf_svec(void * vec, UINT ty, CHAR const* name, bool is_del);

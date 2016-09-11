@@ -640,6 +640,9 @@ public:
     //Invert condition for relation operation.
     virtual void invertCondition(IR ** cond);
 
+    //Insert CVT for float if necessary.
+    virtual IR * insertCvtForFloat(IR * parent, IR * kid, bool & change);
+
     bool isSafeToOptimize(IR const* ir);
 
     //Return true if ir belongs to current region.

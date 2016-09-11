@@ -1707,6 +1707,14 @@ void Region::insertCvtForBinaryOp(IR * ir, bool & change)
 }
 
 
+//Insert CVT for float if necessary.
+IR * Region::insertCvtForFloat(IR * parent, IR * kid, bool & change)
+{
+    ASSERT0(parent->is_fp() || kid->is_fp());
+    return kid;
+}
+
+
 //Insert CVT if need.
 IR * Region::insertCvt(IR * parent, IR * kid, bool & change)
 {
@@ -1778,12 +1786,17 @@ IR * Region::insertCvt(IR * parent, IR * kid, bool & change)
                 return kid;
             }
 
+            if (parent->is_fp() || kid->is_fp()) {
+                return insertCvtForFloat(parent, kid, change);    
+            }
+
             if (tgt_size <= src_size) {
                 //Do not hoist type.
                 return kid;
             }
 
             if (kid->is_const() && kid->is_int()) {
+                //kid is integer literal.
                 if (tgt_ty->is_pointer()) {
                     IR_dt(kid) = dm->getSimplexTypeEx(dm->getPointerSizeDtype());
                 } else if (tgt_ty->is_string()) {

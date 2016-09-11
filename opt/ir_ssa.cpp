@@ -706,8 +706,7 @@ void IR_SSA_MGR::placePhi(IN DfMgr & dfm,
 //Rename vp from current version to the top-version on stack if it exist.
 void IR_SSA_MGR::rename_bb(IN IRBB * bb)
 {
-     for (IR * ir = BB_first_ir(bb);
-         ir != NULL; ir = BB_next_ir(bb)) {
+     for (IR * ir = BB_first_ir(bb); ir != NULL; ir = BB_next_ir(bb)) {
         if (!ir->is_phi()) {
             //Rename opnd, not include phi.
             //Walk through rhs expression IR tree to rename IR_PR's VP.

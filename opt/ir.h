@@ -602,7 +602,7 @@ public:
     //Return true if ir data type is unsigned integer.
     bool is_uint() const { return IR_dt(this)->is_uint(); }
 
-    //Return true if ir data type is integer.
+    //Return true if ir data type is signed/unsigned integer.
     bool is_int() const { return IR_dt(this)->is_int(); }
 
     //Return true if ir data type is float.

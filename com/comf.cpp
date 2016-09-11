@@ -151,7 +151,7 @@ ASCII g_asc1[] = {
 
 
 //Caculate the number of bits which longer enough to represent given constant.
-UINT computeConstBitLen(LONGLONG v)
+UINT computeConstBitLen(ULONGLONG v)
 {
 #ifdef _VC6_
     if (!(v & 0xffffffffffffff00)) return 8;
