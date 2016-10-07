@@ -221,6 +221,23 @@ bool RegionMgr::verifyPreDefinedInfo()
 }
 
 
+void RegionMgr::dumpRelationGraph(CHAR const* name)
+{
+    if (getNumOfRegion() == 0) { return; }
+    if (name == NULL) {
+        name = "graph_region_relation_graph.vcg";
+    }    
+    unlink(name);
+    xcom::Graph g;
+    for (UINT id = 0; id < getNumOfRegion(); id++) {
+        Region * ru = get_region(id);
+        if (ru == NULL || ru->get_parent() == NULL) { continue; }
+        g.addEdge(ru->get_parent()->id(), ru->id());
+    }
+    g.dump_vcg(name);
+}
+
+
 //Dump regions recorded via addToRegionTab().
 void RegionMgr::dump(bool dump_inner_region)
 {
@@ -307,11 +324,11 @@ void RegionMgr::buildCallGraph(
 
 
 //Process function level region.
-bool RegionMgr::processFuncRegion(Region * func)
+bool RegionMgr::processFuncRegion(Region * func, OptCtx * oc)
 {
     ASSERT0(func->is_function());
     g_indent = 0;
-    bool s = func->process();
+    bool s = func->process(oc);
     tfree();
     return s;
 }
@@ -319,11 +336,11 @@ bool RegionMgr::processFuncRegion(Region * func)
 
 //Process top-level region.
 //Top level region should be program.
-bool RegionMgr::processProgramRegion(Region * program)
+bool RegionMgr::processProgramRegion(Region * program, OptCtx * oc)
 {
     ASSERT0(program && program->is_program());
     g_indent = 0;
-    bool s = program->process();
+    bool s = program->process(oc);
     tfree();
     return s;
 }

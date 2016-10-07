@@ -605,6 +605,7 @@ void IR_SSA_MGR::computeEffectPR(
 //If all opnds have same defintion or defined by current phi,
 //the phi is redundant.
 //common_def: record the common_def if the definition of all opnd is the same.
+//TODO: p=phi(m,p), the only use of p is phi. the phi is redundant.
 bool IR_SSA_MGR::is_redundant_phi(IR const* phi, OUT IR ** common_def) const
 {
     ASSERT0(phi->is_phi());

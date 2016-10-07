@@ -787,7 +787,12 @@ IR * Region::simplifyLogicalOrAtTruebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd0 = BIN_opnd0(ir);
     BIN_opnd0(ir) = NULL;
     if (!opnd0->is_judge()) {
-        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, opnd0->get_type()));
+        Type const* ty1 = opnd0->get_type();
+        if (opnd0->is_ptr()) {
+            ty1 = get_type_mgr()->getSimplexTypeEx(
+                get_type_mgr()->getPointerSizeDtype());
+        }
+        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, ty1));
     }
     IR * true_br = buildBranch(true, opnd0, tgt_label);
     copyDbx(true_br, ir, this);
@@ -797,7 +802,12 @@ IR * Region::simplifyLogicalOrAtTruebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd1 = BIN_opnd1(ir);
     BIN_opnd1(ir) = NULL;
     if (!opnd1->is_judge()) {
-        opnd1 = buildCmp(IR_NE, opnd1, buildImmInt(0, opnd1->get_type()));
+        Type const* ty1 = opnd1->get_type();
+        if (opnd1->is_ptr()) {
+            ty1 = get_type_mgr()->getSimplexTypeEx(
+                get_type_mgr()->getPointerSizeDtype());
+        }
+        opnd1 = buildCmp(IR_NE, opnd1, buildImmInt(0, ty1));
     }
     IR * op = NULL;
     //if (SIMP_lnot(ctx)) {
@@ -1770,7 +1780,7 @@ IR * Region::simplifyCall(IR * ir, SimpCtx * ctx)
     while (CALL_param_list(ir) != NULL) {
         IR * p = removehead(&CALL_param_list(ir));
 
-        if (!p->is_leaf()) {
+        if (g_is_simplify_parameter && !p->is_memory_opnd() && !p->is_lda()) {
             //We always simplify parameters to lowest height to
             //facilitate the query of point-to set.
             //e.g: IR_DU_MGR is going to compute may point-to while

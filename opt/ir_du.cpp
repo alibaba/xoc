@@ -2480,8 +2480,8 @@ void IR_DU_MGR::inferCall(IR * ir, IN MD2MDSet * mx)
     }
 
     MDSet tmpmds;
-    m_md_sys->computeOverlap(
-                 maydefuse, tmpmds, m_tab_iter, *m_misc_bs_mgr, true);
+    m_md_sys->computeOverlap(maydefuse, 
+        tmpmds, m_tab_iter, *m_misc_bs_mgr, true);
     maydefuse.bunion_pure(tmpmds, *m_misc_bs_mgr);
 
     if (!ir->is_readonly_call()) {

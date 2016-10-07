@@ -508,7 +508,7 @@ void dump_ir(IR const* ir,
     static CHAR buf2[MAX_BUF_LEN];
     buf[0] = 0;
     buf2[0] = 0;
-    if (g_dbx_mgr != NULL && dump_src_line) {
+    if (g_dbx_mgr != NULL && dump_src_line) {        
         g_dbx_mgr->printSrcLine(ir);
     }
 

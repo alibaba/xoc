@@ -218,4 +218,21 @@ bool g_retain_pass_mgr_for_region = false;
 //More higher the level is, more verifications will be performed.
 UINT g_verify_level = VERIFY_LEVEL_2;
 
+//We always simplify parameters to lowest height to
+//facilitate the query of point-to set.
+//e.g: IR_DU_MGR is going to compute may point-to while
+//ADD is pointer type. But only MD has point-to set.
+//The query of point-to to ADD(id:6) is failed.
+//So we need to store the add's value to a PR,
+//and it will reserved the point-to set information.
+//
+//    call 'getNeighbour'
+//       add (ptr<24>) param4 id:6
+//           lda (ptr<96>) id:31
+//               id (mc<96>, 'pix_a')
+//           mul (u32) id:13
+//               ld (i32 'i')
+//               intconst 24|0x18 (u32) id:14
+extern bool g_is_simplify_parameter = true;
+
 } //namespace xoc

@@ -331,10 +331,10 @@ void Region::destroy()
     m_var = NULL;
 
     //MDSET would be freed by MDSetMgr.
-    m_ref_info = NULL;
-    id = 0;
-    m_parent = NULL;
-    m_ru_type = RU_UNDEF;
+    REGION_refinfo(this) = NULL;
+    REGION_id(this) = 0;
+    REGION_parent(this) = NULL;
+    REGION_type(this) = RU_UNDEF;
 }
 
 
@@ -3225,8 +3225,8 @@ bool Region::partitionRegion()
     insertafter_one(&start_pos, ir_ru);
     dump_irs(get_ir_list(), get_type_mgr());
     //-------------
-
-    bool succ = REGION_ru(ir_ru)->process();
+    OptCtx oc;
+    bool succ = REGION_ru(ir_ru)->process(&oc);
     ASSERT0(succ);
     UNUSED(succ);
 
@@ -3305,6 +3305,7 @@ bool Region::processIRList(OptCtx & oc)
 //Return true if all passes finished normally, otherwise return false.
 bool Region::process(OptCtx * oc)
 {
+    ASSERT(oc, ("Need OptCtx"));
     ASSERT0(verifyIRinRegion());
     note("\nREGION_NAME:%s", get_ru_name());
 
@@ -3312,9 +3313,6 @@ bool Region::process(OptCtx * oc)
         get_bb_list()->get_elem_count() == 0) {
         return true;
     }
-
-    OptCtx loc;
-    if (oc == NULL) { oc = &loc; }
 
     OC_show_comp_time(*oc) = g_show_comp_time;
     initPassMgr();

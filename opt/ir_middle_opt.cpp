@@ -86,7 +86,7 @@ bool Region::performSimplify(OptCtx & oc)
     if (g_is_lower_to_pr_mode) {
         simp.setSimpToPRmode();
     }
-
+        
     simplifyBBlist(get_bb_list(), &simp);
 
     if (g_do_cfg &&

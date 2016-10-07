@@ -136,6 +136,8 @@ public:
     //Destroy specific region by given id.
     void deleteRegion(Region * ru, bool collect_id = true);
 
+    void dumpRelationGraph(CHAR const* name);
+
     //Dump regions recorded via addToRegionTab().
     void dump(bool dump_inner_region);
 
@@ -178,11 +180,11 @@ public:
     void set_targ_info(TargInfo * ti) { m_targinfo = ti; }
 
     //Process region in the form of function type.
-    virtual bool processFuncRegion(IN Region * func);
+    virtual bool processFuncRegion(IN Region * func, OptCtx * oc);
 
     //Process top-level region unit.
     //Top level region unit should be program unit.
-    virtual bool processProgramRegion(IN Region * program);
+    virtual bool processProgramRegion(IN Region * program, OptCtx * oc);
 
     bool verifyPreDefinedInfo();
 };

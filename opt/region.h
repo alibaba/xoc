@@ -117,7 +117,7 @@ public:
 //START Region
 //
 //Record unique id in RegionMgr.
-#define REGION_id(r)                    ((r)->id)
+#define REGION_id(r)                    ((r)->m_id)
 #define REGION_type(r)                  ((r)->m_ru_type)
 #define REGION_parent(r)                ((r)->m_parent)
 
@@ -170,7 +170,7 @@ protected:
 public:
     RefInfo * m_ref_info; //record use/def info if Region has.
     REGION_TYPE m_ru_type; //region type.
-    UINT id; //region unique id.
+    UINT m_id; //region unique id.
     VAR * m_var; //record VAR if RU has.
     Region * m_parent; //record parent region.
     union {
@@ -625,6 +625,8 @@ public:
     //Perform high level optmizations.
     virtual bool HighProcess(OptCtx & oc);
 
+    UINT id() const { return REGION_id(this); }
+    
     //Initialze Region.
     void init(REGION_TYPE rt, RegionMgr * rm);
 
@@ -808,7 +810,7 @@ public:
 
     void lowerIRTreeToLowestHeight(OptCtx & oc);
 
-    virtual bool process(OptCtx * oc = NULL); //Entry to process region.
+    virtual bool process(OptCtx * oc); //Entry to process region.
 
     //Check and rescan call list of region if one of elements in list changed.
     void updateCallAndReturnList(bool scan_inner_region);

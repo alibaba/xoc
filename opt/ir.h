@@ -286,14 +286,20 @@ extern IRDesc const g_ir_desc[];
 
 //True if current operation is atomic. If ir is atomic load, write or
 //read-modify-write.
+//Read barrier: such as LD/ILD/PR/ARRAY may be regarded as read 
+//barrier if the flag is true.
+//Analogously, ST/STPR/IST/STARRAY/CALL may be regarded as write barrier.
 #define IR_is_atomic(ir)         ((ir)->is_atomic)
 
 //True if current operation is atomic read-modify-write.
 //For given variable, RMW operation read the old value, then compare
 //with new value, then write the new value to the variable. The write
-//operation may be failed.
-//If the variable is volatile, one should not change the order of this
-//operation with other memory operations.
+//operation may be failed. If the variable is volatile, one should 
+//not change the order of this operation with other memory operations.
+//The flag can be used to represent safepoint in code generation, and
+//if it is, the IR modified/invalided each pointers previous defined,
+//and this cuts off the Def-Use chain of those pointers immediately 
+//after the IR.
 #define IR_is_read_mod_write(ir) ((ir)->is_read_mod_write)
 
 //True if ir has sideeffect. This flag often be used to prevent user
@@ -816,7 +822,7 @@ public:
     //True if ir is atomic read-modify-write.
     inline bool is_rmw() const;
 
-    //True if ir is atomic operation.
+    //True if ir is atomic operation.    
     bool is_atom() const { return IR_is_atomic(this); }
 
     bool is_judge() const { return is_relation() || is_logical(); }
