@@ -228,23 +228,21 @@ bool IR_LCSE::processBranch(
         if (ir_pos != NULL) {
             IR * pr = map_expr2avail_pr.get(EXPR_id(ie));
             if (pr == NULL) {
-                /* e.g: before:
-                    =a||b
-                    ...
-                    falsebr(a||b)
-                after:
-                    t=a||b
-                    =t
-                    ...
-                    =a||b
-                */
+                //e.g: before:
+                //    =a||b
+                //    ...
+                //    falsebr(a||b)
+                //after:
+                //    t=a||b
+                //    =t
+                //    ...
+                //    =a||b
                 pr = hoist_cse(bb, ir_pos, ie);
                 ASSERT0(pr != NULL);
                 map_expr2avail_pr.set(EXPR_id(ie), pr);
                 change = true;
             }
-            IR * imm0 = m_ru->buildImmInt(0, IR_dt(pr));
-            BR_det(ir) = m_ru->buildCmp(IR_NE, m_ru->dupIRTree(pr), imm0);
+            BR_det(ir) = m_ru->buildJudge(m_ru->dupIRTree(pr));
             ir->setParentPointer(false);
             change = true;
         } else {
@@ -478,9 +476,7 @@ bool IR_LCSE::processUse(IN IRBB * bb, IN IR * ir,
                                       map_expr2avail_pr);
             if (cse_val != NULL) {
                 if (!cse_val->is_judge()) {
-                    cse_val = m_ru->buildCmp(IR_NE,
-                                m_ru->dupIRTree(cse_val),
-                                m_ru->buildImmInt(0, IR_dt(cse_val)));
+                    cse_val = m_ru->buildJudge(m_ru->dupIRTree(cse_val));
                     BR_det(ir) = cse_val;
                 } else {
                     BR_det(ir) = m_ru->dupIRTree(cse_val);
@@ -501,8 +497,7 @@ bool IR_LCSE::processUse(IN IRBB * bb, IN IR * ir,
                                       map_expr2avail_pr);
             if (IGOTO_vexp(ir) != cse_val) {
                 if (!cse_val->is_judge()) {
-                    cse_val = m_ru->buildCmp(IR_NE, m_ru->dupIRTree(cse_val),
-                                      m_ru->buildImmInt(0, IR_dt(cse_val)));
+                    cse_val = m_ru->buildJudge(m_ru->dupIRTree(cse_val));
                     IGOTO_vexp(ir) = cse_val;
                 } else {
                     IGOTO_vexp(ir) = m_ru->dupIRTree(cse_val);
@@ -523,8 +518,7 @@ bool IR_LCSE::processUse(IN IRBB * bb, IN IR * ir,
                                        map_expr2avail_pr);
             if (SWITCH_vexp(ir) != cse_val) {
                 if (!cse_val->is_judge()) {
-                    cse_val = m_ru->buildCmp(IR_NE, m_ru->dupIRTree(cse_val),
-                                      m_ru->buildImmInt(0, IR_dt(cse_val)));
+                    cse_val = m_ru->buildJudge(m_ru->dupIRTree(cse_val));
                     SWITCH_vexp(ir) = cse_val;
                 } else {
                     SWITCH_vexp(ir) = m_ru->dupIRTree(cse_val);

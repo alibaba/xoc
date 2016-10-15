@@ -479,9 +479,9 @@ public:
 
     //Return byte size of ir data type.
     UINT get_dtype_size(TypeMgr const* tm) const
-    { return tm->get_bytesize(IR_dt(this)); }
+    { return tm->get_bytesize(get_type()); }
 
-    DATA_TYPE get_dtype() const { return TY_dtype(IR_dt(this)); }
+    DATA_TYPE get_dtype() const { return TY_dtype(get_type()); }
 
     //Return data type descriptor.
     Type const* get_type() const { return IR_dt(this); }
@@ -2282,7 +2282,7 @@ void IR::set_kid(UINT idx, IR * kid)
 bool IR::is_pr_equal(IR const* src) const
 {
     ASSERT0(is_write_pr() && src->is_read_pr());
-    return IR_dt(this) == IR_dt(src) && get_prno() == src->get_prno();
+    return get_type() == src->get_type() && get_prno() == src->get_prno();
 }
 
 

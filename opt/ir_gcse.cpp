@@ -149,8 +149,7 @@ void IR_GCSE::elimCseAtBranch(IR * use, IR * use_stmt, IN IR * gen)
     ASSERT0(r_md);
     new_pr->setRefMD(r_md, m_ru);
 
-    IR * newdet = m_ru->buildCmp(IR_NE, new_pr,
-                                m_ru->buildImmInt(0, IR_dt(new_pr)));
+    IR * newdet = m_ru->buildJudge(new_pr);
     IR_parent(newdet) = use_stmt;
     BR_det(use_stmt) = newdet;
     IR_may_throw(use_stmt) = false;

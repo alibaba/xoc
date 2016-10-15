@@ -593,7 +593,7 @@ IR * Region::simplifyLogicalNot(IN IR * ir, SimpCtx * ctx)
     IR * opnd0 = UNA_opnd0(ir);
     UNA_opnd0(ir) = NULL;
     if (!opnd0->is_judge()) {
-        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, opnd0->get_type()));
+        opnd0 = buildJudge(opnd0);
     }
     IR * true_br = buildBranch(true, opnd0, label1);
     copyDbx(true_br, ir, this);
@@ -602,7 +602,7 @@ IR * Region::simplifyLogicalNot(IN IR * ir, SimpCtx * ctx)
     TypeMgr * dm = get_type_mgr();
     //pr = 1
     Type const* t = dm->getSimplexTypeEx(
-                dm->get_dtype(WORD_LENGTH_OF_HOST_MACHINE, true));
+        dm->get_dtype(WORD_LENGTH_OF_HOST_MACHINE, true));
     IR * imm0 = buildImmInt(1, t);
     IR * x = buildStorePR(PR_no(pr), pr->get_type(), imm0);
     allocRefForPR(x);
@@ -702,7 +702,7 @@ IR * Region::simplifyLogicalAndAtTruebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd0 = BIN_opnd0(ir);
     BIN_opnd0(ir) = NULL;
     if (!opnd0->is_judge()) {
-        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, opnd0->get_type()));
+        opnd0 = buildJudge(opnd0);
     }
     //Generate falsebranch label.
     LabelInfo * lab = genIlabel();
@@ -715,7 +715,7 @@ IR * Region::simplifyLogicalAndAtTruebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd1 = BIN_opnd1(ir);
     BIN_opnd1(ir) = NULL;
     if (!opnd1->is_judge()) {
-        opnd1 = buildCmp(IR_NE, opnd1, buildImmInt(0, opnd1->get_type()));
+        opnd1 = buildJudge(opnd1);
     }
     br = buildBranch(true, opnd1, tgt_label);
     copyDbx(br, ir, this);
@@ -746,7 +746,7 @@ IR * Region::simplifyLogicalAndAtFalsebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd0 = BIN_opnd0(ir);
     BIN_opnd0(ir) = NULL;
     if (!opnd0->is_judge()) {
-        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, opnd0->get_type()));
+        opnd0 = buildJudge(opnd0);
     }
     IR * false_br = buildBranch(false, opnd0, tgt_label);
     copyDbx(false_br, ir, this);
@@ -756,7 +756,7 @@ IR * Region::simplifyLogicalAndAtFalsebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd1 = BIN_opnd1(ir);
     BIN_opnd1(ir) = NULL;
     if (!opnd1->is_judge()) {
-        opnd1 = buildCmp(IR_NE, opnd1, buildImmInt(0, opnd1->get_type()));
+        opnd1 = buildJudge(opnd1);
     }
     false_br = buildBranch(false, opnd1, tgt_label);
     copyDbx(false_br, ir, this);
@@ -787,12 +787,7 @@ IR * Region::simplifyLogicalOrAtTruebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd0 = BIN_opnd0(ir);
     BIN_opnd0(ir) = NULL;
     if (!opnd0->is_judge()) {
-        Type const* ty1 = opnd0->get_type();
-        if (opnd0->is_ptr()) {
-            ty1 = get_type_mgr()->getSimplexTypeEx(
-                get_type_mgr()->getPointerSizeDtype());
-        }
-        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, ty1));
+        opnd0 = buildJudge(opnd0);
     }
     IR * true_br = buildBranch(true, opnd0, tgt_label);
     copyDbx(true_br, ir, this);
@@ -802,12 +797,7 @@ IR * Region::simplifyLogicalOrAtTruebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd1 = BIN_opnd1(ir);
     BIN_opnd1(ir) = NULL;
     if (!opnd1->is_judge()) {
-        Type const* ty1 = opnd1->get_type();
-        if (opnd1->is_ptr()) {
-            ty1 = get_type_mgr()->getSimplexTypeEx(
-                get_type_mgr()->getPointerSizeDtype());
-        }
-        opnd1 = buildCmp(IR_NE, opnd1, buildImmInt(0, ty1));
+        opnd1 = buildJudge(opnd1);
     }
     IR * op = NULL;
     //if (SIMP_lnot(ctx)) {
@@ -841,7 +831,7 @@ IR * Region::simplifyLogicalOrAtFalsebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd0 = BIN_opnd0(ir);
     BIN_opnd0(ir) = NULL;
     if (!opnd0->is_judge()) {
-        opnd0 = buildCmp(IR_NE, opnd0, buildImmInt(0, opnd0->get_type()));
+        opnd0 = buildJudge(opnd0);
     }
     LabelInfo * true_lab = genIlabel();
     IR * true_br = buildBranch(true, opnd0, true_lab);
@@ -851,7 +841,7 @@ IR * Region::simplifyLogicalOrAtFalsebr(IR * ir, LabelInfo const* tgt_label)
     IR * opnd1 = BIN_opnd1(ir);
     BIN_opnd1(ir) = NULL;
     if (!opnd1->is_judge()) {
-        opnd1 = buildCmp(IR_NE, opnd1, buildImmInt(0, opnd1->get_type()));
+        opnd1 = buildJudge(opnd1);
     }
     IR * false_br = buildBranch(false, opnd1, tgt_label);
     copyDbx(false_br, ir, this);
