@@ -4945,7 +4945,6 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
     }
     END_TIMERS(t1);
 
-
     if (HAVE_FLAG(flag, SOL_AVAIL_REACH_DEF) ||
         HAVE_FLAG(flag, SOL_REACH_DEF) ||
         HAVE_FLAG(flag, SOL_RU_REF) ||

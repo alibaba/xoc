@@ -45,7 +45,8 @@ Region * IPA::findRegion(IR * call, Region * callru)
     CallNode * callercn = cg->mapRegion2CallNode(callru);
     ASSERT(callercn, ("caller is not on graph"));
 
-    CHAR const* callname = SYM_name(CALL_idinfo(call)->get_name());
+    SYM const* callname = CALL_idinfo(call)->get_name();
+    
     //Iterate accessing successors.
     ASSERT0(cg->get_vertex(CN_id(callercn)));
     for (EdgeC const* ec = VERTEX_out_list(cg->get_vertex(CN_id(callercn)));
@@ -59,7 +60,7 @@ Region * IPA::findRegion(IR * call, Region * callru)
             continue;
         }
 
-        if (strcmp(callname, callee->get_ru_name()) == 0) {
+        if (callname == callee->get_ru_var()->get_name()) {
             return callee;
         }
     }
@@ -132,16 +133,21 @@ void IPA::createCallDummyuse(OptCtx & oc)
         Region * ru = m_rumgr->get_region(i);
         if (ru == NULL) { continue; }
         createCallDummyuse(ru);
-        OptCtx loc(oc);
-        recomputeDUChain(ru, loc);
-        if (!m_is_keep_dumgr && ru->get_pass_mgr() != NULL) {
-            ru->get_pass_mgr()->destroyPass(PASS_DU_MGR);
+        
+        if (g_compute_du_chain) {
+            OptCtx loc(oc);
+            recomputeDUChain(ru, loc);
+            if (!m_is_keep_dumgr && ru->get_pass_mgr() != NULL) {
+                ru->get_pass_mgr()->destroyPass(PASS_DU_MGR);
+            }
         }
     }
 
-    OC_is_du_chain_valid(oc) = true;
-    if (m_is_keep_reachdef) {
-        OC_is_reach_def_valid(oc) = true;
+    if (g_compute_du_chain) {
+        OC_is_du_chain_valid(oc) = true;
+        if (m_is_keep_reachdef) {
+            OC_is_reach_def_valid(oc) = true;
+        }
     }
 }
 
