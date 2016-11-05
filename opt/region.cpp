@@ -2808,7 +2808,7 @@ bool Region::verifyIRinRegion()
     if (ir == NULL) { return true; }
     for (; ir != NULL; ir = ir->get_next()) {
         ASSERT(get_ir(IR_id(ir)) == ir,
-                ("ir id:%d is not allocated in region %s", get_ru_name()));
+               ("ir id:%d is not allocated in region %s", get_ru_name()));
     }
     return true;
 }

@@ -705,31 +705,37 @@ void dump_ir(IR const* ir,
             break;
         }
     case IR_CONST:
-        if (ir->is_sint()) {
-            note("\nintconst:%s %lld|0x%llx",
-                 xdm->dump_type(d, buf),
-                 (LONGLONG)CONST_int_val(ir),
-                 (ULONGLONG)CONST_int_val(ir));
+        if (ir->is_sint()) {            
+            #if WORD_LENGTH_OF_HOST_MACHINE==32
+            CHAR const* intfmt = "\nintconst:%s %d|0x%x";
+            #elif WORD_LENGTH_OF_HOST_MACHINE==64
+            CHAR const* intfmt = "\nintconst:%s %lld|0x%llx";
+            #else
+            #error "Need to support";
+            #endif
+            note(intfmt, xdm->dump_type(d, buf), 
+                 CONST_int_val(ir), CONST_int_val(ir));
         } else if (ir->is_uint()) {
-            note("\nintconst:%s %llu|0x%llx",
-                 xdm->dump_type(d, buf),
-                 (ULONGLONG)CONST_int_val(ir),
-                 (ULONGLONG)CONST_int_val(ir));
+            #if WORD_LENGTH_OF_HOST_MACHINE==32
+            CHAR const* intfmt = "\nintconst:%s %u|0x%x";
+            #elif WORD_LENGTH_OF_HOST_MACHINE==64
+            CHAR const* intfmt = "\nintconst:%s %llu|0x%llx";
+            #else
+            #error "Need to support";
+            #endif
+            note(intfmt, xdm->dump_type(d, buf),
+                 CONST_int_val(ir), CONST_int_val(ir));
         } else if (ir->is_fp()) {
-            note("\nfpconst:%s %f",
-                 xdm->dump_type(d, buf),
-                 CONST_fp_val(ir));
+            note("\nfpconst:%s %f", xdm->dump_type(d, buf), CONST_fp_val(ir));
         } else if (ir->is_bool()) {
-            note("\nboolconst:%s %d",
-                 xdm->dump_type(d, buf),
-                 (UINT)CONST_int_val(ir));
+            note("\nboolconst:%s %d", xdm->dump_type(d, buf), CONST_int_val(ir));
         } else if (ir->is_str()) {
             UINT const tbuflen = 40;
             CHAR tbuf[tbuflen];
             tbuf[0] = 0;
             xstrcat(tbuf, tbuflen, "%s", SYM_name(CONST_str_val(ir)));
 
-            //Remove \n to show string in pretty format.
+            //Remove \n to show string in one line.
             for (UINT i = 0; i < tbuflen && tbuf[i] != 0; i++) {
                 if (tbuf[i] == '\n') { tbuf[i] = ' '; }
             }
@@ -742,30 +748,32 @@ void dump_ir(IR const* ir,
             }
         } else if (ir->is_mc()) {
             //Imm may be MC type.
-            note("\nintconst:%s %lld|0x%llx",
-                 xdm->dump_type(d, buf),
-                 (LONGLONG)CONST_int_val(ir),
-                 (ULONGLONG)CONST_int_val(ir));
+            #if WORD_LENGTH_OF_HOST_MACHINE==32
+            CHAR const* intfmt = "\nintconst:%s %u|0x%x";
+            #elif WORD_LENGTH_OF_HOST_MACHINE==64
+            CHAR const* intfmt = "\nintconst:%s %llu|0x%llx";
+            #else
+            #error "Need to support";
+            #endif
+            note(intfmt, xdm->dump_type(d, buf), 
+                 CONST_int_val(ir), CONST_int_val(ir));
         } else {
-            //Dump const even if it is illegal type, leave the assertion
-            //work to verify().
-            note("\nintconst:%s %lld|0x%llx",
-                 xdm->dump_type(d, buf),
-                 (LONGLONG)CONST_int_val(ir),
-                 (ULONGLONG)CONST_int_val(ir));
-            //ASSERT(0, ("unsupport immediate value DATA_TYPE:%d",
-            //        ir->get_dtype(tm)));
+            //Dump as HOST_INT type even if it is unrecognized,
+            //leave the sanity check to verify().
+            //Note the dump format may extend or truncate the real value.
+            note("\nintconst:%s %d|0x%x", xdm->dump_type(d, buf),
+                 CONST_int_val(ir),  CONST_int_val(ir));
         }
         PADDR(ir);
         fprintf(g_tfile, "%s", attr);
         break;
-    case IR_LOR: //logical or ||
+    case IR_LOR:  //logical or ||
     case IR_LAND: //logical and &&
-    case IR_BOR: //inclusive or |
+    case IR_BOR:  //inclusive or |
     case IR_BAND: //inclusive and &
-    case IR_XOR: //exclusive or
-    case IR_EQ: //==
-    case IR_NE: //!=
+    case IR_XOR:  //exclusive or
+    case IR_EQ:   //==
+    case IR_NE:   //!=
     case IR_LT:
     case IR_GT:
     case IR_GE:
@@ -1438,10 +1446,10 @@ bool IR::verify(Region const* ru) const
         ASSERT0(TY_vec_ety(d) != D_UNDEF);
 
         ASSERT(IS_SIMPLEX(TY_vec_ety(d)) || IS_PTR(TY_vec_ety(d)),
-                ("illegal vector elem type"));
+               ("illegal vector elem type"));
 
         ASSERT0(TY_vec_size(d) >= tm->get_dtype_bytesize(TY_vec_ety(d)) &&
-                 TY_vec_size(d) % tm->get_dtype_bytesize(TY_vec_ety(d)) == 0);
+                TY_vec_size(d) % tm->get_dtype_bytesize(TY_vec_ety(d)) == 0);
 
         UINT ofst = get_offset();
         if (ofst != 0) {

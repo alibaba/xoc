@@ -201,6 +201,9 @@ void interwarn(CHAR const* format, ...);
 //Print message to screen.
 void scr(CHAR const* format, ...);
 
+//Print message to console.
+void prt2C(CHAR const* format, ...);
+
 //Allocate memory from temporary memory pool.
 void * tlloc(LONG size);
 

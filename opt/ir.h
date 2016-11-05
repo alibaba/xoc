@@ -999,17 +999,23 @@ public:
 
 //Record string.
 #define CONST_str_val(ir)  (((CConst*)CK_IRT(ir, IR_CONST))->u1.str_value)
+
+//Record anonymous value.
+#define CONST_anony_val(ir)  (((CConst*)CK_IRT(ir, IR_CONST))->u1.anonymous_value)
 class CConst : public IR {
 public:
     union {
-        //record string const if ir is IR_CONST.
+        //record string const.
         SYM const* str_value;
 
-        //Record integer const with length at host machine.
+        //record integer value using a length of HOST_INT memory.
         HOST_INT int_const_value;
 
-        //Record float point value with length at host machine.
+        //record float point value.
         HOST_FP fp_const_value;
+
+        //record customized value.
+        void * anonymous_value;
     } u1;
 };
 

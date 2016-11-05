@@ -399,7 +399,7 @@ INT xctoi(CHAR const* cl)
 //e.g: cl = '1','2','3','4','5'
 //return 12345.
 //'is_oct': if true, nptr is octal digits.
-LONG xatol(CHAR const* nptr, bool is_oct)
+LONGLONG xatoll(CHAR const* nptr, bool is_oct)
 {
     if (nptr == NULL) return 0;
     while (*nptr == ' ' || *nptr == '\t') {
@@ -409,7 +409,7 @@ LONG xatol(CHAR const* nptr, bool is_oct)
     if (sign == '-' || sign == '+') {
         nptr++;
     }
-    LONG res = 0;
+    LONGLONG res = 0;
     if (nptr[0] == '0' && (nptr[1] == 'x' || nptr[1] == 'X')) { //hex
         nptr += 2;
         UCHAR c = *nptr;

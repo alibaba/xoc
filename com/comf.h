@@ -321,7 +321,7 @@ CHAR * xsprintf(IN OUT CHAR * buf,
 //e.g: cl = '1','2','3','4','5'
 //return 12345.
 //'is_oct': if true, nptr is octal digits.
-LONG xatol(CHAR const* nptr, bool is_oct);
+LONGLONG xatoll(CHAR const* nptr, bool is_oct);
 
 //Convert char value into binary.
 //e.g: char p = ' '; p is blank.

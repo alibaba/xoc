@@ -83,6 +83,21 @@ void scr(CHAR const* format, ...)
 }
 
 
+//Print message to console.
+void prt2C(CHAR const* format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  #ifdef FOR_ANDROID
+  __android_log_vprint(ANDROID_LOG_ERROR, LOG_TAG, format, args);
+  #else
+  vfprintf(stdout, format, args);
+  #endif
+  va_end(args);
+  fflush(stdout);
+}
+
+
 void finidump()
 {
     if (g_tfile != NULL) {

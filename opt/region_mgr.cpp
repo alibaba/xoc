@@ -186,8 +186,24 @@ bool RegionMgr::verifyPreDefinedInfo()
             sizeof(TMWORD) * HOST_BIT_PER_BYTE);
     ASSERT0(BIT_PER_BYTE == HOST_BIT_PER_BYTE);
 
+    //Host LONGLONG should not less than HOST_INT,
+    //otherwise the integer might be truncated wrongfully.
+    ASSERT0(sizeof(HOST_INT) <= sizeof(LONGLONG));
+    ASSERT0(sizeof(HOST_INT) == sizeof(HOST_UINT));
+
     ASSERT0(WORD_LENGTH_OF_HOST_MACHINE ==
             (sizeof(HOST_UINT) * HOST_BIT_PER_BYTE));
+
+    ASSERT0(sizeof(CHAR) == sizeof(UCHAR) &&
+            sizeof(SHORT) == sizeof(USHORT) &&
+            sizeof(INT) == sizeof(UINT) &&
+            sizeof(LONG) == sizeof(ULONG) &&
+            sizeof(LONGLONG) == sizeof(ULONGLONG));
+
+    ASSERT0(sizeof(CHAR) <= sizeof(SHORT) &&
+            sizeof(SHORT) <= sizeof(INT) &&
+            sizeof(INT) <= sizeof(LONG) &&
+            sizeof(LONG) <= sizeof(LONGLONG));
 
     ASSERT0(BYTE_PER_CHAR < BYTE_PER_SHORT &&
             BYTE_PER_SHORT < BYTE_PER_INT &&
