@@ -27,6 +27,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 @*/
 #include "ltype.h"
 #include "comf.h"
+#include "strbuf.h"
 #include "math.h"
 #include "smempool.h"
 #include "rational.h"
@@ -1242,11 +1243,11 @@ INTMat operator - (INTMat const& a, INTMat const& b)
 static CHAR const* g_sd_str = "%f";
 static void val_adjust(Matrix<Float> * pbasis)
 {
-    CHAR buf[256];
+    StrBuf buf(64);
     for (UINT i = 0; i < pbasis->get_row_size(); i++) {
         for (UINT j = 0; j < pbasis->get_col_size(); j++) {
-            sprintf(buf, g_sd_str, pbasis->get(i,j).f());
-            pbasis->set(i, j, atof(buf));
+            buf.sprint(g_sd_str, pbasis->get(i,j).f());
+            pbasis->set(i, j, atof(buf.buf));
         }
     }
 }

@@ -56,14 +56,16 @@ author: Su Zhenyu
     #pragma warning(disable: 4200)
 
     #include "malloc.h"
-    #define ALLOCA    _alloca //windows version
-    #define SNPRINTF _snprintf //windows version
+    #define ALLOCA    _alloca
+    #define SNPRINTF _snprintf
+    #define VSNPRINTF _vsnprintf 
     #define RESTRICT __restrict
-#else
+#else    
     //Default is linux version
     #include "unistd.h" //for unlink declaration
-    #define ALLOCA    alloca //linux version
-    #define SNPRINTF snprintf //linux version
+    #define ALLOCA    alloca 
+    #define SNPRINTF snprintf
+    #define VSNPRINTF vsnprintf
     #define RESTRICT __restrict__
 #endif
 
@@ -176,9 +178,7 @@ author: Su Zhenyu
 
 #define IN //input
 #define OUT //output
-#define TMP_BUF_LEN      256
 #define MAX_BUF_LEN      1024
-#define MAX_LOC_BUF_LEN  512
 
 //Misc Dumps/Dumpf of Vector<T>
 #define D_BOOL           1

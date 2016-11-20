@@ -270,11 +270,11 @@ public:
                 dm->get_bytesize(VAR_type(this));
     }
 
-    virtual CHAR * dumpVARDecl(CHAR*, UINT) const { return NULL; }
+    virtual CHAR const* dumpVARDecl(StrBuf &) const { return NULL; }
     virtual void dump(FILE * h, TypeMgr const* dm) const;
 
     //You must make sure this function will not change any field of VAR.
-    virtual CHAR * dump(CHAR * buf, TypeMgr const* dm) const;
+    virtual CHAR const* dump(StrBuf & buf, TypeMgr const* dm) const;
 };
 //END VAR
 

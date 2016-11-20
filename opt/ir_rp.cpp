@@ -440,7 +440,7 @@ void IR_RP::dump_mdlt()
     }
     mdbs.dump(m_md_sys);
 
-    CHAR buf[255];
+    StrBuf buf(32);
     fprintf(g_tfile, "\n==---- DUMP MD LIFE TIME ----==");
     SEGIter * iter;
     for (INT i = mdbs.get_first(&iter); i >= 0; i = mdbs.get_next(i, &iter)) {
@@ -460,8 +460,8 @@ void IR_RP::dump_mdlt()
         INT start = 0;
         for (INT u = livebbs->get_first(); u >= 0; u = livebbs->get_next(u)) {
             for (INT j = start; j < u; j++) {
-                sprintf(buf, "%d,", j);
-                for (UINT k = 0; k < strlen(buf); k++) {
+                buf.sprint("%d,", j);
+                for (UINT k = 0; k < buf.strlen(); k++) {
                     fprintf(g_tfile, " ");
                 }
             }

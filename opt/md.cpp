@@ -100,38 +100,32 @@ bool MD::is_overlap(MD const* m) const
 }
 
 
-//Caller should make sure 'buf' is large enough.
-CHAR * MD::dump(CHAR * buf, UINT bufl, TypeMgr * dm) const
+CHAR * MD::dump(StrBuf & buf, TypeMgr * dm) const
 {
-    UNUSED(bufl);
-    ASSERT0(buf);
-    CHAR * tb = buf;
-    sprintf(buf, "MD%d -- base:", MD_id(this));
-    buf += strlen(buf);
+    buf.strcat("MD%d -- base:", MD_id(this));
+
     ASSERT0(MD_base(this) != NULL);
     MD_base(this)->dump(buf, dm);
-    buf += strlen(buf);
+
     INT ofst = MD_ofst(this);
     if (MD_ty(this) == MD_EXACT) {
-        sprintf(buf, " -- ofst:%d -- size:%u", ofst, MD_size(this));
+        buf.strcat(" -- ofst:%d -- size:%u", ofst, MD_size(this));
     } else if (MD_ty(this) == MD_RANGE) {
-        sprintf(buf, " -- start:%d -- end:%u", ofst, ofst + MD_size(this));
-        strcat(buf, " -- range");
+        buf.strcat(" -- start:%d -- end:%u", ofst, ofst + MD_size(this));
+        buf.strcat(" -- range");
     } else {
-        sprintf(buf, " -- ofst:unbound");
+        buf.strcat(" -- ofst:unbound");
     }
-    ASSERT(strlen(tb) < bufl, ("dump buf overflow!"));
-    return tb;
+    return buf.buf;
 }
 
 
 void MD::dump(TypeMgr * dm) const
 {
-    if (g_tfile == NULL) return;
-    //CHAR buf[MAX_BUF_LEN];
-    CHAR buf[4096];
-    buf[0] = 0;
-    note("\n%s", dump(buf, 4096, dm));
+    if (g_tfile == NULL) { return; }
+
+    StrBuf buf(64);
+    note("\n%s", dump(buf, dm));
     fflush(g_tfile);
 }
 //END MD
@@ -452,7 +446,8 @@ void MDSetMgr::dump()
 //'md2mds': mapping from 'md' to an md-set it pointed to.
 void MD2MDSet::dump(Region * ru)
 {
-    CHAR buf[MAX_BUF_LEN];
+    StrBuf buf(64);
+
     if (g_tfile == NULL) { return; }
 
     fprintf(g_tfile, "\n*** Dump MD POINT-TO list ***");
@@ -467,8 +462,8 @@ void MD2MDSet::dump(Region * ru)
         MD const* md = ms->get_md(mdid);
         ASSERT0(md);
 
-        buf[0] = 0;
-        fprintf(g_tfile, "\n\t%s", md->dump(buf, MAX_BUF_LEN, ru->get_type_mgr()));
+        buf.clean();
+        fprintf(g_tfile, "\n\t%s", md->dump(buf, ru->get_type_mgr()));
 
         //Dumps MDSet related to 'md'.
 
@@ -479,9 +474,9 @@ void MD2MDSet::dump(Region * ru)
              j >= 0; j = pts->get_next(j, &iter_j)) {
             MD * mmd = ms->get_md(j);
             ASSERT0(mmd);
-            buf[0] = 0;
+            buf.clean();
             fprintf(g_tfile, "\t\t\t%s\n",
-                    mmd->dump(buf, MAX_BUF_LEN, ru->get_type_mgr()));
+                    mmd->dump(buf, ru->get_type_mgr()));
         }
     }
 
@@ -496,23 +491,21 @@ void MD2MDSet::dump(Region * ru)
 
         MDTab * mdtab = ms->get_md_tab(v);
 
-        buf[0] = 0;
-
+        buf.clean();
         fprintf(g_tfile, "\n\t%s", v->dump(buf, ru->get_type_mgr()));
 
-        if (mdtab && mdtab->get_elem_count() > 0) {
-            mdv.clean();
-            iter.clean();
-            mdtab->get_elems(mdv, iter);
+        if (mdtab == NULL || mdtab->get_elem_count() == 0) { continue; }
 
-            for (INT i = 0; i <= mdv.get_last_idx(); i++) {
-                MD const* md = mdv.get(i);
-                buf[0] = 0;
-                fprintf(g_tfile, "\n\t\t%s",
-                        md->dump(buf, MAX_BUF_LEN, ru->get_type_mgr()));
-            }
-        } //end if
-    } //end for
+        mdv.clean();
+        iter.clean();
+        mdtab->get_elems(mdv, iter);
+
+        for (INT i = 0; i <= mdv.get_last_idx(); i++) {
+            MD const* md = mdv.get(i);
+            buf.clean();
+            fprintf(g_tfile, "\n\t\t%s", md->dump(buf, ru->get_type_mgr()));
+        }
+    }
 
     fprintf(g_tfile, "\n");
     fflush(g_tfile);

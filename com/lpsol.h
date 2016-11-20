@@ -2242,7 +2242,7 @@ template <class Mat, class T>
 bool MIP<Mat, T>::dump_end_six(UINT status, T v, Mat & sol)
 {
     FILE * h = dump_open_file();
-    CHAR buf[32];
+    StrBuf buf(32);
     dump_prt_indent(h);
     fprintf(h, "END SIX,status=%d,v=%s,sol is {", status, v.format(buf));
     for (UINT i = 0; i < sol.get_col_size(); i++) {

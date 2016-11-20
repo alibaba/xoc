@@ -385,10 +385,9 @@ UINT TypeMgr::get_bytesize(Type const* type) const
 }
 
 
-CHAR * TypeMgr::dump_type(Type const* type, OUT CHAR * buf)
+CHAR const* TypeMgr::dump_type(Type const* type, OUT StrBuf & buf)
 {
-    ASSERT0(type);
-    CHAR * p = buf;
+    ASSERT0(type);    
     DATA_TYPE dt = TY_dtype(type);
     switch (dt) {
     case D_B:
@@ -407,15 +406,14 @@ CHAR * TypeMgr::dump_type(Type const* type, OUT CHAR * buf)
     case D_F80:
     case D_F128:
     case D_STR:
-        sprintf(buf, "%s", DTNAME(dt));
+        buf.strcat("%s", DTNAME(dt));
         break;
     case D_MC:
-        sprintf(buf, "%s(%d)", DTNAME(dt), get_bytesize(type));
+        buf.strcat("%s(%d)", DTNAME(dt), get_bytesize(type));
         break;
     case D_PTR:
-        sprintf(buf, "%s", DTNAME(dt));
-        buf += strlen(buf);
-        sprintf(buf, "(%d)", TY_ptr_base_size(type));
+        buf.strcat("%s", DTNAME(dt));        
+        buf.strcat("(%d)", TY_ptr_base_size(type));
         break;
     case D_VEC:
         {
@@ -423,15 +421,15 @@ CHAR * TypeMgr::dump_type(Type const* type, OUT CHAR * buf)
             ASSERT0(elem_byte_size != 0);
             ASSERT0(get_bytesize(type) % elem_byte_size == 0);
             UINT elemnum = get_bytesize(type) / elem_byte_size;
-            sprintf(buf, "vec(%d*%s)", elemnum, DTNAME(TY_vec_ety(type)));
+            buf.strcat("vec(%d*%s)", elemnum, DTNAME(TY_vec_ety(type)));
         }
         break;
     case D_VOID:
-        sprintf(buf, "%s", DTNAME(dt));
+        buf.strcat("%s", DTNAME(dt));
         break;
-    default: ASSERT(0, ("unsupport"));
+    default: UNREACH();
     }
-    return p;
+    return buf.buf;
 }
 
 
@@ -444,7 +442,7 @@ void TypeMgr::dump_type(UINT tyid)
 void TypeMgr::dump_type(Type const* type)
 {
     if (g_tfile == NULL) return;
-    CHAR buf[256];
+    StrBuf buf(64);
     fprintf(g_tfile, "%s", dump_type(type, buf));
     fflush(g_tfile);
 }
@@ -452,7 +450,7 @@ void TypeMgr::dump_type(Type const* type)
 
 void TypeMgr::dump_type_tab()
 {
-    CHAR buf[256];
+    StrBuf buf(64);
     if (g_tfile == NULL) return;
     fprintf(g_tfile, "\n==---- DUMP Type GLOBAL TABLE ----==\n");
     for (INT i = 1; i <= m_type_tab.get_last_idx(); i++) {

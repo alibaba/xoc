@@ -1802,9 +1802,9 @@ VAR * Region::genVARforPR(UINT prno, Type const* type)
     if (pr_var != NULL) { return pr_var; }
 
     //Create a new PR VAR.
-    CHAR name[64];
+    CHAR name[128];
     sprintf(name, "pr%d", prno);
-    ASSERT0(strlen(name) < 64);
+    ASSERT0(strlen(name) < 128);
     UINT flag = VAR_LOCAL;
     SET_FLAG(flag, VAR_IS_PR);
     pr_var = get_var_mgr()->registerVar(name, type, 0, flag);
@@ -2514,7 +2514,7 @@ void Region::dumpAllocatedIR()
 
     note("\n==---- DUMP IR allocated ----==");
 
-    CHAR buf[256]; //record data-type.
+    StrBuf buf(64); //record data-type.
     TypeMgr * dm = get_type_mgr();
 
     i = 1;
@@ -2528,6 +2528,7 @@ void Region::dumpAllocatedIR()
             if (d == NULL) {
                 note("\nid(%d): %s 0x%.8x", IR_id(ir), IRNAME(ir), ir);
             } else {
+                buf.clean();
                 note("\nid(%d): %s r:%s 0x%.8x",
                      IR_id(ir), IRNAME(ir), dm->dump_type(d, buf), ir);
             }
@@ -2855,17 +2856,16 @@ bool Region::verifyBBlist(BBList & bbl)
 //Dump all MD that related to VAR.
 void Region::dumpVarMD(VAR * v, UINT indent)
 {
-    CHAR buf[4096];
-    buf[0] = 0;
+    StrBuf buf(64);
     ConstMDIter iter;
     MDTab * mdtab = get_md_sys()->get_md_tab(v);
     if (mdtab != NULL) {
         MD const* x = mdtab->get_effect_md();
         if (x != NULL) {
             dumpIndent(g_tfile, indent);
-            buf[0] = 0;
-            x->dump(buf, 4096, get_type_mgr());
-            note("\n%s", buf);
+            buf.clean();
+            x->dump(buf, get_type_mgr());
+            note("\n%s", buf.buf);
         }
 
         OffsetTab * ofstab = mdtab->get_ofst_tab();
@@ -2875,9 +2875,9 @@ void Region::dumpVarMD(VAR * v, UINT indent)
             for (MD const* md = ofstab->get_first(iter, NULL);
                  md != NULL; md = ofstab->get_next(iter, NULL)) {
                 dumpIndent(g_tfile, indent);
-                buf[0] = 0;
-                md->dump(buf, 4096, get_type_mgr());
-                note("\n%s", buf);
+                buf.clean();
+                md->dump(buf, get_type_mgr());
+                note("\n%s", buf.buf);
             }
         }
     }
@@ -2890,14 +2890,13 @@ void Region::dumpVARInRegion()
 {
     if (g_tfile == NULL) { return; }
 
-    static CHAR buf[8192]; //Is it too large?
+    StrBuf buf(64);
 
     //Dump Region name.
     if (get_ru_var() != NULL) {
         note("\n==---- REGION(%d):%s:", REGION_id(this), get_ru_name());
-        buf[0] = 0;
-        get_ru_var()->dumpVARDecl(buf, 100);
-        fprintf(g_tfile, "%s ----==", buf);
+        get_ru_var()->dumpVARDecl(buf);
+        fprintf(g_tfile, "%s ----==", buf.buf);
     } else {
         note("\n==---- REGION(%d): ----==", REGION_id(this));
     }
@@ -2937,10 +2936,10 @@ void Region::dumpVARInRegion()
                     continue;
                 }
 
-                buf[0] = 0;
+                buf.clean();
                 v->dump(buf, get_type_mgr());
                 g_indent += 2;
-                note("\n%s", buf);
+                note("\n%s", buf.buf);
                 fprintf(g_tfile, " param%d", i);
                 fflush(g_tfile);
                 dumpVarMD(v, g_indent);
@@ -2956,9 +2955,9 @@ void Region::dumpVARInRegion()
         g_indent += 2;
         VarTabIter c;
         for (VAR * v = vt->get_first(c); v != NULL; v = vt->get_next(c)) {
-            buf[0] = 0;
+            buf.clean();
             v->dump(buf, get_type_mgr());
-            note("\n%s", buf);
+            note("\n%s", buf.buf);
             fflush(g_tfile);
             g_indent += 2;
             dumpVarMD(v, g_indent);
@@ -2966,6 +2965,7 @@ void Region::dumpVARInRegion()
         }
         g_indent -= 2;
     }
+    
     fflush(g_tfile);
 }
 
@@ -3197,12 +3197,10 @@ bool Region::partitionRegion()
     ASSERT0(start_pos != end_pos);
     //----------------
 
-    //-----------
     //Generate IR region.
-    CHAR b[64];
-    sprintf(b, "inner_ru");
     Type const* type = get_type_mgr()->getMCType(0);
-    VAR * ruv = get_var_mgr()->registerVar(b, type, 1, VAR_LOCAL|VAR_FAKE);
+    VAR * ruv = get_var_mgr()->registerVar("inner_ru", 
+        type, 1, VAR_LOCAL|VAR_FAKE);
     VAR_allocable(ruv) = false;
     addToVarTab(ruv);
 

@@ -1244,8 +1244,11 @@ static bool is_exist_mark(CHAR const* format)
 
 
 //Parse string that starts with '%'.
-static bool percent(CHAR * buf, UINT buflen, IN OUT UINT * bufpos,
-                    IN OUT CHAR const** format, va_list stack_start)
+static bool percent(CHAR * buf, 
+                    UINT buflen, 
+                    IN OUT UINT * bufpos,
+                    IN OUT CHAR const** format, 
+                    va_list stack_start)
 {
     //The info related to %, e.g:'%d', can not longer than 255.
     CHAR sbuf[255];
@@ -1476,10 +1479,7 @@ OVER: //Get some problems.
 //Format string and record in buf.
 //buf: output buffer that record string.
 //buflen: length of output buffer.
-CHAR * xsprintf(IN OUT CHAR * buf,
-                UINT buflen,
-                CHAR const* format,
-                ...)
+CHAR * xsprintf(IN OUT CHAR * buf, UINT buflen, CHAR const* format, ...)
 {
     UINT bufpos = 0;
     CHAR ch = *format;

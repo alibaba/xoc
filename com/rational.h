@@ -67,7 +67,7 @@ public:
     FRAC_TYPE& num() {return m_num;}
     FRAC_TYPE den() const {return m_den;}
     FRAC_TYPE& den() {return m_den;}
-    CHAR * format(CHAR * buf);
+    CHAR const* format(StrBuf & buf);
 };
 
 

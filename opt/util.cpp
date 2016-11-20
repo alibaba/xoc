@@ -33,6 +33,7 @@ author: Su Zhenyu
 @*/
 #include "ltype.h"
 #include "comf.h"
+#include "strbuf.h"
 #include "smempool.h"
 #include "sstl.h"
 
@@ -55,30 +56,11 @@ static CHAR g_indent_chars = ' ';
 
 void interwarn(CHAR const* format, ...)
 {
-    CHAR sbuf[ERR_BUF_LEN];
-    if (strlen(format) > ERR_BUF_LEN) {
-        ASSERT(0, ("internwarn message is too long to print"));
-    }
-    //CHAR * arg = (CHAR*)((CHAR*)(&format) + sizeof(CHAR*));
+    StrBuf buf(64);
     va_list arg;
     va_start(arg, format);
-    vsprintf(sbuf, format, arg);
-    printf("\n!!!XOC INTERNAL WARNING:%s\n\n", sbuf);
-    va_end(arg);
-}
-
-
-//Print message to screen.
-//NOTE: message should not exceed MAX_BUF_LEN.
-void scr(CHAR const* format, ...)
-{
-    UNUSED(format);
-    //CHAR * arg = (CHAR*)((CHAR*)(&format) + sizeof(CHAR*));
-    va_list arg;
-    va_start(arg, format);
-    CHAR buf[MAX_BUF_LEN];
-    vsprintf(buf, format, arg);
-    fprintf(stdout, "\n%s", buf);
+    buf.vsprint(format, arg);
+    prt2C("\n!!!XOC INTERNAL WARNING:%s\n\n", buf.buf);
     va_end(arg);
 }
 
@@ -86,15 +68,15 @@ void scr(CHAR const* format, ...)
 //Print message to console.
 void prt2C(CHAR const* format, ...)
 {
-  va_list args;
-  va_start(args, format);
-  #ifdef FOR_ANDROID
-  __android_log_vprint(ANDROID_LOG_ERROR, LOG_TAG, format, args);
-  #else
-  vfprintf(stdout, format, args);
-  #endif
-  va_end(args);
-  fflush(stdout);
+    va_list args;
+    va_start(args, format);
+    #ifdef FOR_ANDROID
+    __android_log_vprint(ANDROID_LOG_ERROR, LOG_TAG, format, args);
+    #else
+    vfprintf(stdout, format, args);
+    #endif
+    va_end(args);
+    fflush(stdout);
 }
 
 
@@ -122,7 +104,7 @@ void initdump(CHAR const* f, bool is_del)
     g_tfile = fopen(f, "a+");
     if (g_tfile == NULL) {
         fprintf(stdout,
-                "can not open dump file %s, errno:%d, errstring is %s",
+                "can not open dump file %s, errno:%d, errstring:\'%s\'",
                 f, errno, strerror(errno));
     }
 }
@@ -133,20 +115,14 @@ void note(CHAR const* format, ...)
 {
     if (g_tfile == NULL || format == NULL) { return; }
 
-    //CHAR buf[MAX_BUF_LEN];
-    UINT buflen = 4096;
-    CHAR * buf = (CHAR*)malloc(buflen);
-    CHAR * real_buf = buf;
-    //CHAR * arg = (CHAR*)((CHAR*)(&format) + sizeof(CHAR*));
+    StrBuf buf(64);
     va_list arg;
     va_start(arg, format);
-    vsnprintf(buf, buflen, format, arg);
-    buf[buflen-1] = 0;
-    size_t len = strlen(buf);
-    ASSERT0(len < buflen);
+    buf.vstrcat(format, arg);
+    
     size_t i = 0;
-    while (i < len) {
-        if (real_buf[i] == '\n') {
+    while (i < buf.strlen()) {
+        if (buf.buf[i] == '\n') {
             if (g_prt_carriage_return_for_dot) {
                 //Print terminate lines that are left justified in DOT file.
                 fprintf(g_tfile, "\\l");
@@ -163,15 +139,14 @@ void note(CHAR const* format, ...)
     ASSERT0(g_indent >= 0);
     dumpIndent(g_tfile, g_indent);
 
-    if (i == len) {
+    if (i == buf.strlen()) {
         fflush(g_tfile);
         goto FIN;
     }
 
-    fprintf(g_tfile, "%s", real_buf + i);
+    fprintf(g_tfile, "%s", buf.buf + i);
     fflush(g_tfile);
-FIN:
-    free(buf);
+FIN:    
     va_end(arg);
     return;
 }

@@ -61,23 +61,20 @@ VAR::VAR()
 
 void VAR::dump(FILE * h, TypeMgr const* dm) const
 {
-    CHAR buf[MAX_BUF_LEN];
-    buf[0] = 0;
-    if (h == NULL) {
-        h = g_tfile;
-    }
+    if (h == NULL) { h = g_tfile; }
     if (h == NULL) { return; }
     fprintf(h, "\n");
     dumpIndent(h, g_indent);
+
+    StrBuf buf(64);
     fprintf(h, "%s", dump(buf, dm));
     fflush(h);
 }
 
 
 //You must make sure this function will not change any field of VAR.
-CHAR * VAR::dump(CHAR * buf, TypeMgr const* dm) const
+CHAR const* VAR::dump(StrBuf & buf, TypeMgr const* dm) const
 {
-    CHAR * tb = buf;
     CHAR * name = SYM_name(VAR_name(this));
     CHAR tt[43];
     if (xstrlen(name) > 43) {
@@ -88,96 +85,90 @@ CHAR * VAR::dump(CHAR * buf, TypeMgr const* dm) const
         tt[42] = 0;
         name = tt;
     }
-    buf += sprintf(buf, "VAR%d(%s):", VAR_id(this), name);
+    buf.strcat("VAR%d(%s):", VAR_id(this), name);
     if (HAVE_FLAG(VAR_flag(this), VAR_GLOBAL)) {
-        strcat(buf, "global");
+        buf.strcat("global");
     } else if (HAVE_FLAG(VAR_flag(this), VAR_LOCAL)) {
-        strcat(buf, "local");
+        buf.strcat("local");
     } else {
         UNREACH();
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_STATIC)) {
-        strcat(buf, ",static");
+        buf.strcat(",static");
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_READONLY)) {
-        strcat(buf, ",const");
+        buf.strcat(",const");
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_VOLATILE)) {
-        strcat(buf, ",volatile");
+        buf.strcat(",volatile");
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_IS_RESTRICT)) {
-        strcat(buf, ",restrict");
+        buf.strcat(",restrict");
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_HAS_INIT_VAL)) {
-        strcat(buf, ",has_init_val");
+        buf.strcat(",has_init_val");
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_FUNC_DECL)) {
-        strcat(buf, ",func_decl");
+        buf.strcat(",func_decl");
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_FAKE)) {
-        strcat(buf, ",fake");
+        buf.strcat(",fake");
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_IS_LABEL)) {
-        strcat(buf, ",label");
+        buf.strcat(",label");
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_IS_FORMAL_PARAM)) {
-        strcat(buf, ",formal_param");
+        buf.strcat(",formal_param");
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_IS_SPILL)) {
-        strcat(buf, ",spill_loc");
+        buf.strcat(",spill_loc");
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_ADDR_TAKEN)) {
-        strcat(buf, ",addr_taken");
+        buf.strcat(",addr_taken");
     }
 
     if (is_string()) {
-        strcat(buf, ",str");
+        buf.strcat(",str");
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_IS_ARRAY)) {
-        strcat(buf, ",array");
+        buf.strcat(",array");
     }
 
     if (HAVE_FLAG(VAR_flag(this), VAR_IS_ALLOCABLE)) {
-        strcat(buf, ",allocable");
+        buf.strcat(",allocable");
     }
-
-    buf += strlen(buf);
 
     Type const* type = VAR_type(this);
     ASSERT0(type);
 
     if (is_pointer()) {
-        buf += strlen(buf);
-        sprintf(buf, ",pointer,pt_base_sz:%d", TY_ptr_base_size(type));
+        buf.strcat(",pointer,pt_base_sz:%d", TY_ptr_base_size(type));
     }
 
-    sprintf(buf, ",%s", dm->get_dtype_name(TY_dtype(type)));
+    buf.strcat(",%s", dm->get_dtype_name(TY_dtype(type)));
     if (TY_dtype(type) > D_F128) {
-        buf += strlen(buf);
-        sprintf(buf, ",mem_size:%d", getByteSize(dm));
+        buf.strcat(",mem_size:%d", getByteSize(dm));
     }
 
     if (VAR_align(this) != 0) {
-        buf += strlen(buf);
-        sprintf(buf, ",align:%d", VAR_align(this));
+        buf.strcat(",align:%d", VAR_align(this));
     }
 
-    strcat(buf, ",decl:'");
-    buf += strlen(buf);
-    dumpVARDecl(buf, 40);
-    strcat(buf, "'");
+    buf.strcat(",decl:'");
+    dumpVARDecl(buf);
+    buf.strcat("'");
 
     #ifdef _DEBUG_
     UINT tmpf = VAR_flag(this);
@@ -199,7 +190,7 @@ CHAR * VAR::dump(CHAR * buf, TypeMgr const* dm) const
     REMOVE_FLAG(tmpf, VAR_IS_ALLOCABLE);
     ASSERT0(tmpf == 0);
     #endif
-    return tb;
+    return buf.buf;
 }
 //END VAR
 
@@ -304,11 +295,11 @@ VAR * VarMgr::registerStringVar(CHAR const* var_name, SYM const* s, UINT align)
     }
 
     v = allocVAR();
-
-    CHAR buf[64];
+    
     if (var_name == NULL) {
-        sprintf(buf, ".rodata_%lu", (ULONG)m_str_count++);
-        VAR_name(v) = m_ru_mgr->addToSymbolTab(buf);
+        StrBuf buf(64);
+        buf.sprint(".rodata_%lu", (ULONG)m_str_count++);
+        VAR_name(v) = m_ru_mgr->addToSymbolTab(buf.buf);
     } else {
         VAR_name(v) = m_ru_mgr->addToSymbolTab(var_name);
     }
@@ -336,11 +327,12 @@ void VarMgr::dump(CHAR * name)
 
     fprintf(h, "\n\nVAR to Decl Mapping:");
 
-    CHAR buf[4096]; //WORKAROUND, should allocate buffer adaptive.
+    StrBuf buf(64);
     for (INT i = 0; i <= m_var_vec.get_last_idx(); i++) {
         VAR * v = m_var_vec.get(i);
         if (v == NULL) { continue; }
-        buf[0] = 0;
+
+        buf.clean();
         fprintf(h, "\n%s", v->dump(buf, m_tm));
         fflush(h);
     }

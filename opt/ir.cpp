@@ -504,10 +504,9 @@ void dump_ir(IR const* ir,
     dump_ai(p, ir);
 
     //Record type info and var decl.
-    static CHAR buf[MAX_BUF_LEN];
-    static CHAR buf2[MAX_BUF_LEN];
-    buf[0] = 0;
-    buf2[0] = 0;
+    StrBuf buf(64);
+    StrBuf buf2(64);
+
     if (g_dbx_mgr != NULL && dump_src_line) {        
         g_dbx_mgr->printSrcLine(ir);
     }
@@ -518,14 +517,13 @@ void dump_ir(IR const* ir,
     }
 
     TypeMgr * xdm = const_cast<TypeMgr*>(tm);
-    switch (IR_code(ir)) {
+    switch (ir->get_code()) {
     case IR_ST:
         {
             CHAR tt[40];
             tt[0] = 0;
             CHAR * name = xstrcat(tt, 40, "%s",
-                            SYM_name(ST_idinfo(ir)->get_name()));
-            buf[0] = 0;
+            SYM_name(ST_idinfo(ir)->get_name()));            
 
             //Dump operator and variable name.
             note("\nst:%s", xdm->dump_type(d, buf));
@@ -535,9 +533,9 @@ void dump_ir(IR const* ir,
             fprintf(g_tfile, " '%s'", name);
 
             //Dump declaration info if the frontend supplied.
-            buf[0] = 0;
-            if (ST_idinfo(ir)->dumpVARDecl(buf, 40) != NULL) {
-                fprintf(g_tfile, " decl:%s", buf);
+            buf.clean();
+            if (ST_idinfo(ir)->dumpVARDecl(buf) != NULL) {
+                fprintf(g_tfile, " decl:%s", buf.buf);
             }
 
             PADDR(ir);
@@ -585,7 +583,7 @@ void dump_ir(IR const* ir,
                 note("\nelem_num[");
                 for (IR const* sub = ARR_sub_list(ir); sub != NULL;) {
                     fprintf(g_tfile, "%d",
-                            ((CArray*)ir)->getElementNumOfDim(dim));
+                        ((CArray*)ir)->getElementNumOfDim(dim));
                     sub = sub->get_next();
                     if (sub != NULL) {
                         fprintf(g_tfile, ",");
@@ -643,8 +641,8 @@ void dump_ir(IR const* ir,
 
             //Dump variable info.
             CHAR * name = xstrcat(tt, 40, "%s",
-                                SYM_name(LD_idinfo(ir)->get_name()));
-            buf[0] = 0;
+                SYM_name(LD_idinfo(ir)->get_name()));
+            
             if (LD_ofst(ir) != 0) {
                 note("\nld:%s:offset(%d) '%s'",
                      xdm->dump_type(d, buf), LD_ofst(ir), name);
@@ -653,9 +651,9 @@ void dump_ir(IR const* ir,
             }
 
             //Dump declaration if frontend supplied.
-            buf[0] = 0;
-            if (LD_idinfo(ir)->dumpVARDecl(buf, 40) != NULL) {
-                fprintf(g_tfile, " decl:%s", buf);
+            buf.clean();
+            if (LD_idinfo(ir)->dumpVARDecl(buf) != NULL) {
+                fprintf(g_tfile, " decl:%s", buf.buf);
             }
 
             //Dump IR address.
@@ -686,7 +684,6 @@ void dump_ir(IR const* ir,
         break;
     case IR_ID:
         {
-            buf[0] = 0;
             CHAR tt[40];
             tt[0] = 0;
 
@@ -694,9 +691,10 @@ void dump_ir(IR const* ir,
             CHAR * name =
                 xstrcat(tt, 40, "%s", SYM_name(ID_info(ir)->get_name()));
             note("\nid:%s '%s'", xdm->dump_type(d, buf), name);
-            buf[0] = 0;
-            if (ID_info(ir)->dumpVARDecl(buf, 40) != NULL) {
-                fprintf(g_tfile, " decl:%s", buf);
+
+            buf.clean();
+            if (ID_info(ir)->dumpVARDecl(buf) != NULL) {
+                fprintf(g_tfile, " decl:%s", buf.buf);
             }
 
             //Dump IR address.
@@ -740,7 +738,6 @@ void dump_ir(IR const* ir,
                 if (tbuf[i] == '\n') { tbuf[i] = ' '; }
             }
 
-            buf[0] = 0;
             if (strlen(SYM_name(CONST_str_val(ir))) < tbuflen) {
                 note("\nstrconst:%s \\\"%s\\\"", xdm->dump_type(d, buf), tbuf);
             } else {
@@ -1030,7 +1027,6 @@ void dump_ir(IR const* ir,
             //Dump variable info.
             CHAR * name = xstrcat(tt, 40, "%s",
                                 SYM_name(LDA_idinfo(ir)->get_name()));
-            buf[0] = 0;
             if (LDA_ofst(ir) != 0) {
                 note("\nlda:%s:offset(%d) '%s'",
                      xdm->dump_type(d, buf), LDA_ofst(ir), name);
@@ -1039,9 +1035,9 @@ void dump_ir(IR const* ir,
             }
 
             //Dump declaration if frontend supplied.
-            buf[0] = 0;
-            if (LDA_idinfo(ir)->dumpVARDecl(buf, 40) != NULL) {
-                fprintf(g_tfile, " decl:%s", buf);
+            buf.clean();
+            if (LDA_idinfo(ir)->dumpVARDecl(buf) != NULL) {
+                fprintf(g_tfile, " decl:%s", buf.buf);
             }
 
             //Dump IR address.
@@ -1216,9 +1212,9 @@ void dump_ir(IR const* ir,
 
                 fprintf(g_tfile, "call '%s' ", name);
 
-                buf[0] = 0;
-                if (CALL_idinfo(ir)->dumpVARDecl(buf, 40) != NULL) {
-                    fprintf(g_tfile, "decl:%s", buf);
+                buf.clean();
+                if (CALL_idinfo(ir)->dumpVARDecl(buf) != NULL) {
+                    fprintf(g_tfile, "decl:%s", buf.buf);
                 }
             } else {
                 fprintf(g_tfile, "icall ");
@@ -1318,9 +1314,10 @@ void dump_ir(IR const* ir,
     default:
         ASSERT(0, ("unknown IR type:%s", IRNAME(ir)));
         return ;
-    } //end switch
+    }
+    
     fflush(g_tfile);
-} //end dump_ir
+}
 
 
 void setParentPointerForIRList(IR * ir_list)

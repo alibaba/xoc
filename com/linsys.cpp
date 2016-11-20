@@ -27,6 +27,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 @*/
 #include "ltype.h"
 #include "comf.h"
+#include "strbuf.h"
 #include "smempool.h"
 #include "rational.h"
 #include "flty.h"

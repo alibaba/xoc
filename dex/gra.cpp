@@ -1103,21 +1103,21 @@ void GltMgr::dumpg()
         }
     }
 
-    CHAR litbuf[32];
+    StrBuf litbuf(32);
     UINT num = 0; //number of allocated register.
     while (maxr != 0) {
         maxr /= 10;
         num++;
     }
-    sprintf(litbuf, "v%%-%dd", num);
+    litbuf.sprint("v%%-%dd", num);
 
-    CHAR litbuf2[32];
+    StrBuf litbuf2(32);
     UINT num2 = 0; //number of pr.
     while (maxprno != 0) {
         maxprno /= 10;
         num2++;
     }
-    sprintf(litbuf2, "pr%%-%dd", num2);
+    litbuf2.sprint("pr%%-%dd", num2);
 
     fprintf(g_tfile,
             "\n=== DUMP Global Life Time = maxreg:%d = paramnum:%d ===",
@@ -1142,14 +1142,14 @@ void GltMgr::dumpg()
     }
     fprintf(g_tfile, "\n");
 
-    CHAR buf[64];
+    StrBuf buf(32);
     for (INT i = prs.get_first(); i >= 0; i = prs.get_next(i)) {
         GLT * g = map_pr2glt(i);
         if (g == NULL) { continue; }
 
         //Print prno.
         fprintf(g_tfile, "\n");
-        fprintf(g_tfile, litbuf2, GLT_prno(g));
+        fprintf(g_tfile, litbuf2.buf, GLT_prno(g));
         fprintf(g_tfile, " ");
 
         //Print phy.
@@ -1162,7 +1162,7 @@ void GltMgr::dumpg()
                     h++;
                 }
             } else {
-                fprintf(g_tfile, litbuf, GLT_phy(g));
+                fprintf(g_tfile, litbuf.buf, GLT_phy(g));
             }
             fprintf(g_tfile, "]");
         }
@@ -1175,8 +1175,8 @@ void GltMgr::dumpg()
         for (INT u = livebbs->get_first(&sc);
              u >= 0; u = livebbs->get_next(u, &sc)) {
             for (INT j = start; j < u; j++) {
-                sprintf(buf, "%d,", j);
-                for (UINT k = 0; k < strlen(buf); k++) {
+                buf.sprint("%d,", j);
+                for (UINT k = 0; k < buf.strlen(); k++) {
                     fprintf(g_tfile, " ");
                 }
             }
@@ -1377,6 +1377,7 @@ void GIG::dump_vcg(CHAR const* name)
     if (name == NULL) {
         name = "graph_global_if.vcg";
     }
+    
     unlink(name);
     FILE * h = fopen(name, "a+");
     ASSERT(h, ("%s create failed!!!",name));
@@ -1415,16 +1416,17 @@ void GIG::dump_vcg(CHAR const* name)
               "node.bordercolor: blue\n"
               "edge.color: darkgreen\n");
 
-    CHAR buf[MAX_OR_SR_NAME_BUF_LEN];
+    StrBuf buf(128);
+    
     //Print node
     INT c;
     for (Vertex const* v = m_vertices.get_first(c);
-         v != NULL;  v = m_vertices.get_next(c)) {
+         v != NULL; v = m_vertices.get_next(c)) {
         GLT * glt = m_gltm->get_glt(VERTEX_id(v));
-        sprintf(buf, "GLT%d(pr%d):", VERTEX_id(v), GLT_prno(glt));
+        buf.sprint("GLT%d(pr%d):", VERTEX_id(v), GLT_prno(glt));
         fprintf(h, "\nnode: { title:\"%d\" label:\"%s\" "
                    "shape:circle fontname:\"courB\" color:gold}",
-                VERTEX_id(v), buf);
+                VERTEX_id(v), buf.buf);
     }
 
     //Print edge
@@ -1435,6 +1437,7 @@ void GIG::dump_vcg(CHAR const* name)
                 VERTEX_id(EDGE_to(e)),
                 m_is_direction ? "" : "arrowstyle:none" );
     }
+    
     fprintf(h, "\n}\n");
     fclose(h);
 }
@@ -1639,26 +1642,27 @@ void IG::dump_vcg(CHAR const* name)
               "node.bordercolor: blue\n"
               "edge.color: darkgreen\n");
 
-    CHAR buf[MAX_OR_SR_NAME_BUF_LEN];
+    StrBuf buf(128);
     ASSERT0(m_ltm);
+
     //Print node
     INT c;
     for (Vertex const* v = m_vertices.get_first(c);
          v != NULL;  v = m_vertices.get_next(c)) {
         LT * lt = m_ltm->get_lt(VERTEX_id(v));
-        sprintf(buf, "LT%d(pr%d):", VERTEX_id(v), LT_prno(lt));
+        buf.sprint("LT%d(pr%d):", VERTEX_id(v), LT_prno(lt));
         fprintf(h, "\nnode: { title:\"%d\" label:\"%s\" shape:circle fontname:\"courB\" color:gold}",
-                VERTEX_id(v), buf);
+                VERTEX_id(v), buf.buf);
     }
 
     //Print edge
     for (Edge const* e = m_edges.get_first(c);
          e != NULL;  e = m_edges.get_next(c)) {
         fprintf(h, "\nedge: { sourcename:\"%d\" targetname:\"%d\" %s}",
-                VERTEX_id(EDGE_from(e)),
-                VERTEX_id(EDGE_to(e)),
+                VERTEX_id(EDGE_from(e)), VERTEX_id(EDGE_to(e)),
                 m_is_direction ? "" : "arrowstyle:none" );
     }
+    
     fprintf(h, "\n}\n");
     fclose(h);
 }

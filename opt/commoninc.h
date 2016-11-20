@@ -44,6 +44,7 @@ author: Su Zhenyu
 
 //libxcom
 #include "comf.h"
+#include "strbuf.h"
 #include "smempool.h"
 #include "sstl.h"
 #include "matt.h"

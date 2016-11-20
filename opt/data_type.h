@@ -451,7 +451,7 @@ public:
     TypeContainer const* registerSimplex(Type const* ty);
     Type * registerType(Type const* dtd);
 
-    CHAR * dump_type(Type const* dtd, OUT CHAR * buf);
+    CHAR const* dump_type(Type const* dtd, OUT StrBuf & buf);
     void dump_type(Type const* dtd);
     void dump_type(UINT tyid);
     void dump_type_tab();

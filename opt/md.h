@@ -55,67 +55,65 @@ typedef enum _MD_TYPE {
 //The first id which is allocable.
 #define MD_FIRST_ALLOCABLE (MD_GLOBAL_MEM + 1)
 
+//Memory Descriptor.
+//MD is an appealing property to represent exact or inexact memory object.
+//By using MD, we can model miscellaneous memory accessing, and perform
+//memory analysis and optimizations.
+//
+//MD is used to represent different memory object with
+//same base. Attributes of MD may be Id, Base Variable, Size, Offset,
+//Effect, Exact, Range, Unbound.
+//¡ð    Id
+//    Unique id of abstract memory object.
+//
+//¡ð    Base Variable
+//    Since MD is the abstract version of VAR, it is closely related to
+//    individual variable. This variable may be the base of several MD.
+//
+//¡ð Type
+//    This attribute represent abstract memory object type.
+//    * MD_UNBOUND
+//        The object is unbound if we have no knowledge about MD size or
+//        MD offset. The Def-Use relation to the object is inexact. The
+//        store to object is nonkilling definition.
+//
+//    * MD_EXACT
+//        The object is exact indicate the memory address and size is
+//        determinate when load or store to the object. The Def-Use
+//        relation to the object is exact. In general, the memory load
+//        or store will be exact if its data type is primitive.
+//        The store to object is killing definition.
+//
+//    * MD_RANGE
+//        The object is range if we both know the MD offset of base
+//        variable and MD size, but the precise address and byte size
+//        may be uncertain when load or store to the object. The Def-Use
+//        relation to the object is inexact. The store to object is
+//        nonkilling definition.
+//
+//¡ð Size
+//    This attribute represents byte size of the abstract memory object.
+//
+//¡ð Offset
+//    This attribute represents byte size offset to the base variable.
+//
+//¡ð Effect
+//    This attribute refers to variables which are definitely declared
+//    by user or compiler and existed in the concrete. In contrast to
+//    effect MD, ALL_MEM memory object is ineffect.
+//
+//¡ð    Exact
+//    This attribute represent abstract memory object with type is
+//    MD_EXACT. An exact MD is also effect.
+//
+//¡ð Range
+//    This attribute represent abstract memory object with type is
+//    MD_RANGE. An range MD is also effect, but is not exact.
+//
+//¡ð Unbound
+//        This attribute represent abstract memory object with type is
+//        MD_UNBOUND. An unbound MD may be effect, but is definitly inexact.
 
-/*
-Memory Descriptor.
-MD is an appealing property to represent exact or inexact memory object.
-By using MD, we can model miscellaneous memory accessing, and perform
-memory analysis and optimizations.
-
-MD is used to represent different memory object with
-same base. Attributes of MD may be Id, Base Variable, Size, Offset,
-Effect, Exact, Range, Unbound.
-¡ð    Id
-    Unique id of abstract memory object.
-
-¡ð    Base Variable
-    Since MD is the abstract version of VAR, it is closely related to
-    individual variable. This variable may be the base of several MD.
-
-¡ð Type
-    This attribute represent abstract memory object type.
-    * MD_UNBOUND
-        The object is unbound if we have no knowledge about MD size or
-        MD offset. The Def-Use relation to the object is inexact. The
-        store to object is nonkilling definition.
-
-    * MD_EXACT
-        The object is exact indicate the memory address and size is
-        determinate when load or store to the object. The Def-Use
-        relation to the object is exact. In general, the memory load
-        or store will be exact if its data type is primitive.
-        The store to object is killing definition.
-
-    * MD_RANGE
-        The object is range if we both know the MD offset of base
-        variable and MD size, but the precise address and byte size
-        may be uncertain when load or store to the object. The Def-Use
-        relation to the object is inexact. The store to object is
-        nonkilling definition.
-
-¡ð Size
-    This attribute represents byte size of the abstract memory object.
-
-¡ð Offset
-    This attribute represents byte size offset to the base variable.
-
-¡ð Effect
-    This attribute refers to variables which are definitely declared
-    by user or compiler and existed in the concrete. In contrast to
-    effect MD, ALL_MEM memory object is ineffect.
-
-¡ð    Exact
-    This attribute represent abstract memory object with type is
-    MD_EXACT. An exact MD is also effect.
-
-¡ð Range
-    This attribute represent abstract memory object with type is
-    MD_RANGE. An range MD is also effect, but is not exact.
-
-¡ð Unbound
-        This attribute represent abstract memory object with type is
-        MD_UNBOUND. An unbound MD may be effect, but is definitly inexact.
-*/
 //Unique id of memory object.
 #define MD_id(md)                ((md)->id)
 
@@ -229,7 +227,7 @@ public:
     }
 
     //Dump md into 'buf', 'bufl' indicate the byte length of the buffer.
-    CHAR * dump(IN OUT CHAR * buf, UINT bufl, TypeMgr * dm) const;
+    CHAR * dump(StrBuf & buf,  TypeMgr * dm) const;
 
     //Dump md to file.
     void dump(TypeMgr * dm) const;

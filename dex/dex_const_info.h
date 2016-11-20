@@ -74,12 +74,6 @@ author: Su Zhenyu
 //Setting for compiler build-environment. Byte length.
 #define HOST_BIT_PER_BYTE                8
 
-//Length of string buffer of OR and SR's name.
-#define MAX_OR_SR_NAME_BUF_LEN           1024
-
-//Length of string buffer of func-level/bb-level internal VAR name.
-#define MAX_VAR_NAME_BUF_LEN             64
-
 //Maximum memory space of stack variables.
 #define MAX_STACK_VAR_SPACE              16*1024*1024
 

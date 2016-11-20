@@ -2300,11 +2300,11 @@ MD const* IR_AA::allocHeapobj(IR * ir)
         return heap_obj;
     }
 
-    CHAR name[64];
+    CHAR name[128];
     sprintf(name, "heap_obj%d", m_ir2heapobj.get_elem_count());
-    ASSERT0(strlen(name) < 64);
+    ASSERT0(strlen(name) < 128);
     VAR * tv = m_ru->get_var_mgr()->registerVar(
-            name, m_tm->getMCType(0), 0, VAR_GLOBAL);
+        name, m_tm->getMCType(0), 0, VAR_GLOBAL);
 
     //Set the var to be unallocable, means do NOT add
     //var immediately as a memory-variable.
@@ -2857,7 +2857,7 @@ void IR_AA::dumpInOutPointToSetForBB()
 void IR_AA::dumpPtPairSet(PtPairSet & pps)
 {
     if (g_tfile == NULL) return;
-    CHAR buf[1000];
+    StrBuf buf(256);
     UINT k = 0;
     bool detail = true;
     for (INT i = pps.get_first(); i >= 0; i = pps.get_next((UINT)i), k++) {
@@ -2865,30 +2865,33 @@ void IR_AA::dumpPtPairSet(PtPairSet & pps)
         ASSERT0(pp);
         fprintf(g_tfile, "\nMD%u->MD%u,  ", PP_from(pp), PP_to(pp));
 
-        if (detail) {
-            MD const* from = m_md_sys->get_md(PP_from(pp));
-            ASSERT0(from);
+        if (!detail) { continue; }
 
-            fprintf(g_tfile, "%s", from->get_base()->dump(buf, m_tm));
-            if (from->is_exact()) {
-                fprintf(g_tfile, ":ofst(%u):size(%u)",
-                        MD_ofst(from), MD_size(from));
-            } else {
-                fprintf(g_tfile, ":ofst(--):size(%u)", MD_size(from));
-            }
+        MD const* from = m_md_sys->get_md(PP_from(pp));
+        ASSERT0(from);
 
-            fprintf(g_tfile, " ------> ");
+        fprintf(g_tfile, "%s", from->get_base()->dump(buf, m_tm));
+        if (from->is_exact()) {
+            fprintf(g_tfile, ":ofst(%u):size(%u)", 
+                MD_ofst(from), MD_size(from));
+        } else {
+            fprintf(g_tfile, ":ofst(--):size(%u)", MD_size(from));
+        }
 
-            MD const* to = m_md_sys->get_md(PP_to(pp));
-            fprintf(g_tfile, "%s", to->get_base()->dump(buf, m_tm));
-            if (to->is_exact()) {
-                fprintf(g_tfile, ":ofst(%u):size(%u)",
-                    MD_ofst(to), MD_size(to));
-            } else {
-                fprintf(g_tfile, ":ofst(--):size(%u)", MD_size(to));
-            }
+        fprintf(g_tfile, " ------> ");
+
+        MD const* to = m_md_sys->get_md(PP_to(pp));
+
+        buf.clean();
+        fprintf(g_tfile, "%s", to->get_base()->dump(buf, m_tm));
+
+        if (to->is_exact()) {
+            fprintf(g_tfile, ":ofst(%u):size(%u)", MD_ofst(to), MD_size(to));
+        } else {
+            fprintf(g_tfile, ":ofst(--):size(%u)", MD_size(to));
         }
     }
+
     fflush(g_tfile);
 }
 
@@ -3271,10 +3274,10 @@ void IR_AA::dumpMD2MDSet(IN MD2MDSet * mx, bool dump_ptg)
 //'md2mds': mapping from 'md' to an md-set it pointed to.
 void IR_AA::dumpMD2MDSet(MD const* md, IN MD2MDSet * mx)
 {
-    if (g_tfile == NULL) return;
-    CHAR buf[MAX_BUF_LEN];
-    buf[0] = 0;
-    fprintf(g_tfile, "\n\t  %s", md->dump(buf, MAX_BUF_LEN, m_tm));
+    if (g_tfile == NULL) { return; }
+
+    StrBuf buf(64);
+    fprintf(g_tfile, "\n\t  %s", md->dump(buf, m_tm));
 
     //Dump MDSet of 'md'.
     MDSet const* pts = getPointTo(MD_id(md), *mx);
@@ -3285,9 +3288,10 @@ void IR_AA::dumpMD2MDSet(MD const* md, IN MD2MDSet * mx)
         for (INT j = pts->get_first(&iter);
              j >= 0; j = pts->get_next((UINT)j, &iter)) {
             MD const* mmd = m_md_sys->get_md((UINT)j);
-            ASSERT0(mmd != NULL);
-            buf[0] = 0;
-            fprintf(g_tfile, "\t\t\t%s\n", mmd->dump(buf, MAX_BUF_LEN, m_tm));
+            ASSERT0(mmd);
+
+            buf.clean();
+            fprintf(g_tfile, "\t\t\t%s\n", mmd->dump(buf, m_tm));
         }
     } else {
         fprintf(g_tfile, "----");
@@ -3622,10 +3626,9 @@ void IR_AA::initGlobalAndParameterVarPtset(
         if (dmd == NULL) {
             CHAR name[64];
             SNPRINTF(name, 63, "DummyGlobalVarPointedByVar%x",
-                     (UINT)(size_t)param);
+                (UINT)(size_t)param);
             VAR * tv = m_ru->get_var_mgr()->registerVar(
-                                name, m_tm->getMCType(0),
-                                0, VAR_GLOBAL|VAR_ADDR_TAKEN);
+                name, m_tm->getMCType(0), 0, VAR_GLOBAL|VAR_ADDR_TAKEN);
 
             //Set the var to be unallocable, means do NOT add
             //var immediately as a memory-variable.
