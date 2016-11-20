@@ -233,6 +233,6 @@ UINT g_verify_level = VERIFY_LEVEL_2;
 //           mul (u32) id:13
 //               ld (i32 'i')
 //               intconst 24|0x18 (u32) id:14
-extern bool g_is_simplify_parameter = true;
+bool g_is_simplify_parameter = true;
 
 } //namespace xoc

@@ -53,10 +53,9 @@ void StrBuf::strcat(UINT l, CHAR const* format, va_list args)
         memcpy(buf, oldbuf, sl);
         free(oldbuf);
     }
-    UINT k = VSNPRINTF(buf + sl, l, format, args);
+    UINT k = VSNPRINTF(buf + sl, l + 1, format, args);
     ASSERT0(k == l);
     UNUSED(k);
-    buf[sl + l] = 0;
 }
 
 
@@ -64,16 +63,22 @@ void StrBuf::strcat(CHAR const* format, ...)
 {
     va_list args;
     va_start(args, format);
+    va_list org_args;
+    va_copy(org_args, args);
     UINT l = VSNPRINTF(NULL, 0, format, args);
-    strcat(l, format, args);
+    strcat(l, format, org_args);
     va_end(args);
+    va_end(org_args);
 }
 
 
 void StrBuf::vstrcat(CHAR const* format, va_list args)
 {
-    UINT l = VSNPRINTF(NULL, 0, format, args);
-    strcat(l, format, args);
+    va_list org_args;
+    va_copy(org_args, args);
+    UINT l = VSNPRINTF(NULL, 0, format, args);    
+    strcat(l, format, org_args);
+    va_end(org_args);
 }
 
 
@@ -82,9 +87,12 @@ void StrBuf::sprint(CHAR const* format, ...)
     clean();
     va_list args;
     va_start(args, format);
+    va_list org_args;
+    va_copy(org_args, args);
     UINT l = VSNPRINTF(NULL, 0, format, args);
-    strcat(l, format, args);
+    strcat(l, format, org_args);
     va_end(args);
+    va_end(org_args);
 }
 
 
@@ -101,10 +109,13 @@ void StrBuf::nstrcat(UINT size, CHAR const* format, ...)
 {
     va_list args;
     va_start(args, format);
+    va_list org_args;
+    va_copy(org_args, args);
     UINT l = VSNPRINTF(NULL, 0, format, args);
     if (l > size) { l = size; }
-    strcat(l, format, args);
+    strcat(l, format, org_args);
     va_end(args);
+    va_end(org_args);
 }
 
 }//namespace xcom

@@ -110,6 +110,10 @@ author: Su Zhenyu
     #define ULONGLONG  unsigned long long
 #endif
 
+#ifndef va_copy
+#define va_copy(d, s) ((d) = (s))
+#endif
+
 //Avoid using the predefined ASSERT.
 #undef ASSERT
 #undef ASSERTL

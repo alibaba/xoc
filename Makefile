@@ -7,6 +7,7 @@ COM_OBJS +=\
       com/rational.o \
       com/linsys.o \
       com/xmat.o \
+      com/strbuf.o \
       com/testbs.o \
       com/flty.o \
       com/bs.o
