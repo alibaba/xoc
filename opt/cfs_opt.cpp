@@ -36,25 +36,25 @@ author: Su Zhenyu
 
 namespace xoc {
 
-/* If the IF has a nested IF in the ELSE part with identical THEN stmt:
-    IF (A) {
-      S1;
-    } ELSE {
-      IF (B) {
-        S1;
-      } ELSE {
-        S2;
-      }
-    }
-
-transform it to:
-
-    IF (A || B) { S1; } ELSE { S2; }
-
-Note S1 can be the empty statement.
-Since this is done bottom up, multiple occurrences of the identical THEN
-stmts can be transformed. If tranformed, the new IF statement is returned;
-otherwise, the original IF. */
+//If the IF has a nested IF in the ELSE part with identical THEN stmt:
+//    IF (A) {
+//      S1;
+//    } ELSE {
+//      IF (B) {
+//        S1;
+//      } ELSE {
+//        S2;
+//      }
+//    }
+//
+//transform it to:
+//
+//    IF (A || B) { S1; } ELSE { S2; }
+//
+//Note S1 can be the empty statement.
+//Since this is done bottom up, multiple occurrences of the identical THEN
+//stmts can be transformed. If tranformed, the new IF statement is returned;
+//otherwise, the original IF.
 bool IR_CFS_OPT::transformIf4(IR ** head, IR * ir)
 {
     //TODO.
@@ -64,18 +64,18 @@ bool IR_CFS_OPT::transformIf4(IR ** head, IR * ir)
 }
 
 
-/*If the given IF has a nested IF in the THEN part with identical ELSE stmt:
-
-    IF (A) THEN { if (B) THEN S1; ELSE S2; } ELSE S2;
-
-transform it to:
-
-    IF (A && B) THEN S1; ELSE S2;
-
-S2 can be the empty statement.
-Since this is done bottom up, multiple occurrences of the identical ELSE
-stmts can be commonized.  If tranformed, the new IF statement is returned;
-otherwise, the original IF. */
+//If the given IF has a nested IF in the THEN part with identical ELSE stmt:
+//
+//  IF (A) THEN { if (B) THEN S1; ELSE S2; } ELSE S2;
+//
+//transform it to:
+//
+//  IF (A && B) THEN S1; ELSE S2;
+//
+//S2 can be the empty statement.
+//Since this is done bottom up, multiple occurrences of the identical ELSE
+//stmts can be commonized.  If tranformed, the new IF statement is returned;
+//otherwise, the original IF.
 bool IR_CFS_OPT::transformIf5(IR ** head, IR * ir)
 {
     //TODO.
@@ -85,26 +85,24 @@ bool IR_CFS_OPT::transformIf5(IR ** head, IR * ir)
 }
 
 
-
-/* Control flow struct optimizations.
-Transform follow struct to do-while loop
-
-    LABEL:
-    IR-List
-    IF DET
-       GOTO LABEL
-       ...(DEAD CODE)
-    ELSE
-       FALSE-PART
-    ENDIF
-
-is replace by
-
-    DO {
-        IR-List
-    } WHILE DET
-    FALSE-PART
-*/
+//Control flow struct optimizations.
+//Transform follow struct to do-while loop
+//
+//    LABEL:
+//    IR-List
+//    IF DET
+//       GOTO LABEL
+//       ...(DEAD CODE)
+//    ELSE
+//       FALSE-PART
+//    ENDIF
+//
+//is replace by
+//
+//    DO {
+//        IR-List
+//    } WHILE DET
+//    FALSE-PART
 bool IR_CFS_OPT::transformToDoWhile(IR ** head, IR * ir)
 {
     ASSERT(head != NULL && *head != NULL, ("invalid parameter"));
@@ -155,28 +153,28 @@ static inline bool is_non_branch_ir(IR * ir)
 }
 
 
-/* The followed forms
-    if (cond) {
-        t=1
-        a=1
-        goto L1;
-    }
-    f=1
-    goto L2;
-    L1:
-
-is replaced with
-
-    if (!cond) {
-        f=1
-        goto L2;
-    }
-    t=1
-    a=1
-    L1:
-
-'goto L1' is removed and free, and L1 is removed if it is not a target
-of some other instruction. */
+//The followed forms
+//   if (cond) {
+//       t=1
+//       a=1
+//       goto L1;
+//   }
+//   f=1
+//   goto L2;
+//   L1:
+//
+//is replaced with
+//
+//   if (!cond) {
+//       f=1
+//       goto L2;
+//   }
+//   t=1
+//   a=1
+//   L1:
+//
+//'goto L1' is removed and free, and L1 is removed if it is not a target
+//of some other instruction.
 bool IR_CFS_OPT::transformIf1(IR ** head, IR * ir)
 {
     ASSERT(head && *head, ("invalid parameter"));
@@ -265,19 +263,18 @@ bool IR_CFS_OPT::transformIf1(IR ** head, IR * ir)
 }
 
 
-/* The followed forms
-
-    if (cond) {
-
-    } else {
-        IR-list
-    }
-
-is replaced by
-
-    if (!cond) {
-        IR-list
-    } */
+//The followed forms
+//   if (cond) {
+//
+//   } else {
+//       IR-list
+//   }
+//
+//is replaced by
+//
+//   if (!cond) {
+//       IR-list
+//   }
 bool IR_CFS_OPT::transformIf2(IR ** head, IR * ir)
 {
     ASSERT(head && *head, ("invalid parameter"));
@@ -300,14 +297,14 @@ bool IR_CFS_OPT::transformIf2(IR ** head, IR * ir)
 }
 
 
-/* The followed forms
-    x is signed
-        IF(x > 0x7FFFFFFF) {a=1} ELSE {b=1}   =>  b=1
-        IF(x < 0x80000000) {a=1} ELSE {b=1}   =>  b=1
-
-    x is unsigned
-        IF(x > 0xFFFFFFFF){a=1} ELSE {b=1}   =>  b=1
-        IF(x < 0x0) {a=1} ELSE {b=1}         =>  b=1 */
+//The followed forms
+// x is signed
+//     IF(x > 0x7FFFFFFF) {a=1} ELSE {b=1}   =>  b=1
+//     IF(x < 0x80000000) {a=1} ELSE {b=1}   =>  b=1
+//
+// x is unsigned
+//     IF(x > 0xFFFFFFFF){a=1} ELSE {b=1}   =>  b=1
+//     IF(x < 0x0) {a=1} ELSE {b=1}         =>  b=1
 bool IR_CFS_OPT::transformIf3(IR ** head, IR * ir)
 {
     ASSERT(head && *head, ("invalid parameter"));
@@ -390,20 +387,20 @@ bool IR_CFS_OPT::transformIf3(IR ** head, IR * ir)
 }
 
 
-/* Hoist det of loop.
-e.g: while (a=10,b+=3,c<a) {
-        IR-List;
-     }
-
-be replaced by
-
-     a = 10;
-     b += 3;
-     while (c<a) {
-        IR-List;
-        a = 10;
-        b += 3;
-     } */
+//Hoist det of loop.
+//e.g: while (a=10,b+=3,c<a) {
+//        IR-List;
+//     }
+//
+//be replaced by
+//
+//     a = 10;
+//     b += 3;
+//     while (c<a) {
+//        IR-List;
+//        a = 10;
+//        b += 3;
+//     }
 bool IR_CFS_OPT::hoistLoop(IR ** head, IR * ir)
 {
     ASSERT0(ir->is_dowhile() || ir->is_whiledo() || ir->is_doloop());
@@ -437,12 +434,12 @@ bool IR_CFS_OPT::hoistLoop(IR ** head, IR * ir)
 }
 
 
-/* Canonicalize det of IF.
-e.g: if (a=10,b+=3,c<a) {...}
-be replaced by
-     a = 10;
-     b += 3;
-     if (c<a) {...} */
+//Canonicalize det of IF.
+//e.g: if (a=10,b+=3,c<a) {...}
+//be replaced by
+//     a = 10;
+//     b += 3;
+//     if (c<a) {...}
 bool IR_CFS_OPT::hoistIf(IR ** head, IR * ir)
 {
     ASSERT(ir->is_if(), ("need IF"));

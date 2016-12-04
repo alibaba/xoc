@@ -1494,13 +1494,13 @@ BitSet * BitSet::get_subset_in_range(UINT low, UINT high, OUT BitSet & subset)
             //'this': last_byte,
             //subset: last_byte,
             end = sb_last_byte - 1;
-            BYTE byte = 0;
+            BYTE byte2 = 0;
             if (end >= start) {
                 //Copy the content of 'this', except
                 //for the first and last byte.
                 ::memcpy(subset.m_ptr + start,
                         m_ptr + start, end - start + 1);
-                byte = m_ptr[sb_last_byte];
+                byte2 = m_ptr[sb_last_byte];
             } else {
                 //There are two cases:
                 //CASE1: Both subset's first and last byte are the same one.
@@ -1510,20 +1510,20 @@ BitSet * BitSet::get_subset_in_range(UINT low, UINT high, OUT BitSet & subset)
                 //    'this': first_byte, last_byte,
                 //    subset: first_byte, last_byte,
                 if (sb_first_byte == sb_last_byte) {
-                    byte = subset.m_ptr[sb_last_byte];
+                    byte2 = subset.m_ptr[sb_last_byte];
                 } else if (sb_first_byte + 1 == sb_last_byte) {
-                    byte = m_ptr[sb_last_byte];
+                    byte2 = m_ptr[sb_last_byte];
                 } else {
                     UNREACH();
                 }
             }
-            UINT ofst = MODBPB(high);
-            ofst = BITS_PER_BYTE - ofst - 1;
-            byte <<= ofst;
-            byte >>= ofst;
-            subset.m_ptr[sb_last_byte] = byte;
+            UINT ofst2 = MODBPB(high);
+            ofst2 = BITS_PER_BYTE - ofst2 - 1;
+            byte2 <<= ofst2;
+            byte2 >>= ofst2;
+            subset.m_ptr[sb_last_byte] = byte2;
         }
-    } //end else
+    }
     return &subset;
 }
 
@@ -1706,13 +1706,13 @@ UINT BitSetMgr::count_mem(FILE * h)
             BitSet const* bs = ct2->val();
             UINT c = bs->count_mem();
 
-            C<UINT> * ct;
+            C<UINT> * ct3;
             UINT n = lst.get_elem_count();
-            lst.get_head(&ct);
+            lst.get_head(&ct3);
             UINT i;
-            for (i = 0; i < n; i++, ct = lst.get_next(ct)) {
-                if (c >= ct->val()) {
-                    lst.insert_before(c, ct);
+            for (i = 0; i < n; i++, ct3 = lst.get_next(ct3)) {
+                if (c >= ct3->val()) {
+                    lst.insert_before(c, ct3);
                     break;
                 }
             }

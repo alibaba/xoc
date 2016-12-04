@@ -126,13 +126,13 @@ static bool isAllElementDerivedFromSameEffectVar(
     VAR * base = md->get_base();
     i = mds.get_next((UINT)i, &iter);
     for (; i >= 0; i = mds.get_next((UINT)i, &iter)) {
-        MD const* md = mdsys->get_md((UINT)i);
-        if (md->get_base() != base || !md->is_effect() || MD_is_may(md)) {
+        MD const* md2 = mdsys->get_md((UINT)i);
+        if (md2->get_base() != base || !md2->is_effect() || MD_is_may(md2)) {
             return false;
         }
 
-        if (md->is_unbound()) {
-            *mustref = md;
+        if (md2->is_unbound()) {
+            *mustref = md2;
         }
     }
 
@@ -1840,9 +1840,9 @@ void IR_AA::inferIstoreValue(IN IR * ir, IN AACtx * ic, IN MD2MDSet * mx)
         //e.g: Given p=&q and *p=(int*)0x1000;
         //=> q=0x1000, and q is pointer, so q may point to anywhere.
         //
-        //*p = q, if p->{x}, q->{a}, add {x}->{a}
-        //*p = q, if p->{x}, q->{¦µ}, add {x}->{¦µ}
-        //*p = q, if p->{¦µ}, q->{x}, add {all mem}->{x}
+        // *p = q, if p->{x}, q->{a}, add {x}->{a}
+        // *p = q, if p->{x}, q->{¦µ}, add {x}->{¦µ}
+        // *p = q, if p->{¦µ}, q->{x}, add {all mem}->{x}
         //
         //Update the POINT-TO of elems in p's point-to set.
         //Aware of whether if the result of IST is pointer.
@@ -2082,9 +2082,10 @@ void IR_AA::processStoreArray(IN IR * ir, IN MD2MDSet * mx)
             //regarding ir as referencing single and exact MD,
             //or else regard ir as referencing a set of MD.
             MD const* x;
-            SEGIter * iter;
+            SEGIter * iter2;
             if (mayaddr.get_elem_count() == 1 &&
-                !MD_is_may(x = m_md_sys->get_md((UINT)mayaddr.get_first(&iter)))) {
+                !MD_is_may(x = m_md_sys->get_md(
+                    (UINT)mayaddr.get_first(&iter2)))) {
                 set_must_addr(ir, x);
                 ir->cleanRefMDSet();
             } else {
@@ -2225,7 +2226,7 @@ void IR_AA::processRegionSideeffect(IN OUT MD2MDSet & mx)
 
         VAR const* v = t->get_base();
         if (v->is_pointer() ||
-            v->is_void() /* v may be pointer if its type is VOID */) {
+            v->is_void()) { //v may be pointer if its type is VOID
             setPointTo((UINT)j, mx, m_maypts);
 
             //Set the point-to set of 't' to be empty in order
@@ -2261,7 +2262,7 @@ void IR_AA::processCallSideeffect(IN OUT MD2MDSet & mx, MDSet const& by_addr_mds
         VAR const* v = t->get_base();
         if (VAR_is_global(v) &&
             (v->is_pointer() ||
-             v->is_void() /* v may be pointer if its type is VOID */)) {
+             v->is_void())) { //v may be pointer if its type is VOID
             setPointTo((UINT)j, mx, m_maypts);
 
             //Set the point-to set of 't' to be empty in order
@@ -2281,7 +2282,7 @@ void IR_AA::processCallSideeffect(IN OUT MD2MDSet & mx, MDSet const& by_addr_mds
         VAR const* v = t->get_base();
         if (VAR_is_addr_taken(v) &&
             (v->is_pointer() ||
-             v->is_void() /* v may be pointer if its type is VOID */)) {
+             v->is_void())) { //v may be pointer if its type is VOID
             setPointTo((UINT)j, mx, m_maypts);
 
             //Set the point-to set of 't' to be empty in order
@@ -3224,7 +3225,7 @@ void IR_AA::dumpMD2MDSetForRegion(bool dump_pt_graph)
         for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
             fprintf(g_tfile, "\n\n--- BB%u ---", BB_id(bb));
             dumpMD2MDSet(mapBBtoMD2MDSet(BB_id(bb)),
-                false/*each BB has its own graph.*/);
+                false); //each BB has its own graph.
         }
     } else {
         fprintf(g_tfile, "\n\n==---- DUMP ALL MD POINT-TO "

@@ -407,29 +407,28 @@ void IR_CFG::insertBBbetween(
     C<IRBB*> * pred_ct = NULL;
     for (IRBB * pred = preds.get_head(&pred_ct);
          pred != NULL; pred = preds.get_next(&pred_ct)) {
-        C<IRBB*> * tmp_ct = to_ct;
-        if (BB_is_fallthrough(pred) && bblst->get_prev(&tmp_ct) == pred) {
-            /* Given 'to' has a fallthrough in-edge. Insert a tmp BB
-            e.g:
-                from->bb1->bb2->to, all edges are fallthrough
-                from->to, jump-edge
-                bb1->to, jump-edge
-
-            Here we need to revise the fallthrough-edge 'bb2->to',
-            the result is from->bb1->bb2->tmp_tramp_bb, all
-            edges are fallthrough tmp_tramp_bb->to, jump-edge
-                from->to, jump-edge
-                bb1->to, jump-edge
-
-                bb2->tmp_tramp_bb, tmp_tramp_bb->to, both are jump-edge.
-                ir-list of tmp_tramp_bb is:
-                    goto L1:
-
-                ir-list of 'to' is:
-                    L1:
-                    ...
-                    ...
-            */
+        C<IRBB*> * tmp_ct2 = to_ct;
+        if (BB_is_fallthrough(pred) && bblst->get_prev(&tmp_ct2) == pred) {
+            //Given 'to' has a fallthrough in-edge. Insert a tmp BB
+            //e.g:
+            //    from->bb1->bb2->to, all edges are fallthrough
+            //    from->to, jump-edge
+            //    bb1->to, jump-edge
+            //
+            //Here we need to revise the fallthrough-edge 'bb2->to',
+            //the result is from->bb1->bb2->tmp_tramp_bb, all
+            //edges are fallthrough tmp_tramp_bb->to, jump-edge
+            //    from->to, jump-edge
+            //    bb1->to, jump-edge
+            //
+            //    bb2->tmp_tramp_bb, tmp_tramp_bb->to, both are jump-edge.
+            //    ir-list of tmp_tramp_bb is:
+            //        goto L1:
+            //
+            //    ir-list of 'to' is:
+            //        L1:
+            //        ...
+            //        ...
             IRBB * tmp_tramp_bb = m_ru->allocBB();
             LabelInfo * li = m_ru->genIlabel();
             IR * goto_ir = m_ru->buildGoto(li);
@@ -439,14 +438,12 @@ void IR_CFG::insertBBbetween(
             add_bb(tmp_tramp_bb);
             bblst->insert_after(tmp_tramp_bb, pred);
 
-            insertVertexBetween(BB_id(pred),
-                                  BB_id(to),
-                                  BB_id(tmp_tramp_bb));
+            insertVertexBetween(BB_id(pred), BB_id(to), BB_id(tmp_tramp_bb));
 
             //Fall through edge has been broken, insert 'newbb' before 'to'.
             break;
         }
-    } //end for
+    }
 
     //Revise the target LABEL of last XR in 'from'.
     IR * last_xr_of_from = get_last_xr(from);
@@ -496,25 +493,24 @@ void IR_CFG::resetMapBetweenLabelAndBB(IRBB * bb)
 
 
 
-/* Remove trampoline BB.
-e.g: bb1->bb2->bb3
-    stmt of bb2 is just 'goto bb3', and bb3 is the NEXT BB of bb2 in BB-List.
-    Then bb2 is tramp BB.
-Return true if at least one tramp BB removed.
-
-ALGO:
-    for each pred of BB
-        if (pred is fallthrough && prev of BB == pred)
-            remove edge pred->BB.
-            add edge pred->BB's next.
-            continue;
-        end if
-        duplicate LabelInfo from BB to BB's next.
-        revise LabelInfo of pred to new target BB.
-        remove edge pred->BB.
-        add edge pred->BB's next.
-    end for
-*/
+//Remove trampoline BB.
+//e.g: bb1->bb2->bb3
+//    stmt of bb2 is just 'goto bb3', and bb3 is the NEXT BB of bb2 in BB-List.
+//    Then bb2 is tramp BB.
+//Return true if at least one tramp BB removed.
+//
+//ALGO:
+//    for each pred of BB
+//        if (pred is fallthrough && prev of BB == pred)
+//            remove edge pred->BB.
+//            add edge pred->BB's next.
+//            continue;
+//        end if
+//        duplicate LabelInfo from BB to BB's next.
+//        revise LabelInfo of pred to new target BB.
+//        remove edge pred->BB.
+//        add edge pred->BB's next.
+//    end for
 bool IR_CFG::removeTrampolinBB()
 {
     bool removed = false;
@@ -532,16 +528,16 @@ bool IR_CFG::removeTrampolinBB()
             continue;
         }
 
-        /* CASE: Given pred1->bb, fallthrough edge,
-            and pred2->bb, jumping edge.
-            bb:
-                goto L1
-
-            next of bb:
-                L1:
-                ...
-                ...
-        Remove bb and revise CFG. */
+        //CASE: Given pred1->bb, fallthrough edge,
+        //  and pred2->bb, jumping edge.
+        //  bb:
+        //      goto L1
+        //
+        //  next of bb:
+        //      L1:
+        //      ...
+        //      ...
+        //Remove bb and revise CFG.
         get_succs(succs, bb);
         C<IRBB*> * tmp_bb_ct = ct;
         IRBB * next = m_bb_list->get_next(&tmp_bb_ct);
@@ -575,19 +571,19 @@ bool IR_CFG::removeTrampolinBB()
                 continue;
             }
 
-            /* CASE:
-                pred:
-                    goto L2:
-                ...
-                ...
-                bb: L2
-                    goto L1
-
-                next of bb:
-                    L1:
-                    ...
-                    ...
-            Remove bb and revise CFG. */
+            //CASE:
+            // pred:
+            //     goto L2:
+            // ...
+            // ...
+            // bb: L2
+            //     goto L1
+            //
+            // next of bb:
+            //     L1:
+            //     ...
+            //     ...
+            //Remove bb and revise CFG.
 
             //Revise branch target LabelInfo of xr in 'pred'.
             IR * last_xr_of_pred = get_last_xr(pred);
@@ -659,22 +655,21 @@ bool IR_CFG::removeTrampolinEdge()
 
                 IR * last_xr_of_pred = get_last_xr(pred);
                 if (!pred->is_bb_down_boundary(last_xr_of_pred)) {
-                    /* CASE: pred->bb, pred is fallthrough-BB.
-                        pred is:
-                            a=b+1
-                        ...
-                        bb is:
-                            L1:
-                            goto L2
-                    =>
-                        pred is:
-                            a=b+1
-                            goto L2
-                        ...
-                        bb is:
-                            L1:
-                            goto L2
-                    */
+                    // CASE: pred->bb, pred is fallthrough-BB.
+                    //  pred is:
+                    //      a=b+1
+                    //  ...
+                    //  bb is:
+                    //      L1:
+                    //      goto L2
+                    //=>
+                    //  pred is:
+                    //      a=b+1
+                    //      goto L2
+                    //  ...
+                    //  bb is:
+                    //      L1:
+                    //      goto L2
                     BB_irlist(pred).append_tail(m_ru->dupIRTree(last_xr));
                     BB_is_fallthrough(pred) = false;
                     removeEdge(pred, bb);
@@ -686,21 +681,20 @@ bool IR_CFG::removeTrampolinEdge()
                 } //end if
 
                 if (last_xr_of_pred->is_goto()) {
-                    /* CASE: pred->bb,
-                        pred is:
-                            goto L1
-                        ...
-                        bb is:
-                            L1:
-                            goto L2
-                    =>
-                        pred to be:
-                            goto L2
-                        ...
-                        bb is:
-                            L1:
-                            goto L2
-                    */
+                    //CASE: pred->bb,
+                    //    pred is:
+                    //        goto L1
+                    //    ...
+                    //    bb is:
+                    //        L1:
+                    //        goto L2
+                    //=>
+                    //    pred to be:
+                    //        goto L2
+                    //    ...
+                    //    bb is:
+                    //        L1:
+                    //        goto L2
                     ASSERT0(last_xr_of_pred->get_label() &&
                             findBBbyLabel(last_xr_of_pred->get_label()) == bb);
 
@@ -713,29 +707,28 @@ bool IR_CFG::removeTrampolinEdge()
                 } //end if
 
                 if (last_xr_of_pred->is_cond_br()) {
-                    /* CASE: pred->f, pred->bb, and pred->f is fall through edge.
-                        pred is:
-                            truebr/falsebr L1
-
-                        f is:
-                            ...
-                            ...
-
-                        bb is:
-                            L1:
-                            goto L2
-                    =>
-                        pred is:
-                            truebr/falsebr L2
-
-                        f is:
-                            ...
-                            ...
-
-                        bb is:
-                            L1:
-                            goto L2
-                    */
+                    // CASE: pred->f, pred->bb, and pred->f is fall through edge.
+                    //  pred is:
+                    //      truebr/falsebr L1
+                    //
+                    //  f is:
+                    //      ...
+                    //      ...
+                    //
+                    //  bb is:
+                    //      L1:
+                    //      goto L2
+                    //=>
+                    //  pred is:
+                    //      truebr/falsebr L2
+                    //
+                    //  f is:
+                    //      ...
+                    //      ...
+                    //
+                    //  bb is:
+                    //      L1:
+                    //      goto L2
                     C<IRBB*> * prev_of_bb = ct;
                     if (m_bb_list->get_prev(&prev_of_bb) == pred) {
                         //Can not remove jumping-edge if 'bb' is
@@ -1010,12 +1003,12 @@ void IR_CFG::dump_node(FILE * h, bool detail)
                 fprintf(h, " rpo:%d ", VERTEX_rpo(v));
             }
 
-            IRBB * bb = get_bb(id);
-            ASSERT0(bb != NULL);
-            dumpBBLabel(bb->getLabelList(), h);
+            IRBB * bb2 = get_bb(id);
+            ASSERT0(bb2 != NULL);
+            dumpBBLabel(bb2->getLabelList(), h);
             fprintf(h, "\n");
-            for (IR * ir = BB_first_ir(bb);
-                 ir != NULL; ir = BB_next_ir(bb)) {
+            for (IR * ir = BB_first_ir(bb2);
+                 ir != NULL; ir = BB_next_ir(bb2)) {
                 //fprintf(h, "%s\n", dump_ir_buf(ir, buf));
 
                 //TODO: implement dump_ir_buf();

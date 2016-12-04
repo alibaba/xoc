@@ -483,9 +483,9 @@ void IR_EXPR_TAB::encode_bb(IRBB * bb)
                 }
 
                 for (IR * sub = ARR_sub_list(ir); sub != NULL; sub = sub->get_next()) {
-                    ExpRep * ie = encode_expr(sub);
-                    if (ie != NULL) {
-                        set_map_ir2ir_expr(sub, ie);
+                    ExpRep * ie2 = encode_expr(sub);
+                    if (ie2 != NULL) {
+                        set_map_ir2ir_expr(sub, ie2);
                     }
                 }
 

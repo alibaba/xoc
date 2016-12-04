@@ -103,8 +103,8 @@ public:
         for (m_bb_list->get_head(&ct);
              ct != m_bb_list->end(); ct = m_bb_list->get_next(ct)) {
             IRBB const* bb = ct->val();
-            C<IR*> * ct;
-            IR * x = BB_irlist(const_cast<IRBB*>(bb)).get_tail(&ct);
+            C<IR*> * ct2;
+            IR * x = BB_irlist(const_cast<IRBB*>(bb)).get_tail(&ct2);
             if (x != NULL && x->is_may_throw() && x->get_ai() != NULL) {
                 EHLabelAttachInfo const* ehlab =
                     (EHLabelAttachInfo const*)x->get_ai()->get(AI_EH_LABEL);

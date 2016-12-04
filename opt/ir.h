@@ -1519,11 +1519,11 @@ public:
 //Base of array can be LDA, or other computational expression.
 //This operation do not perform any array bound diagnositc.
 //
-//* If array base is LDA, it denotes that the array's base is variable with
+//If array base is LDA, it denotes that the array's base is variable with
 //array type,
 //    e.g: char p[N]; (&p)[i] = ...
 //
-//* If array base is computational expression, it denotes that the array's
+//If array base is computational expression, it denotes that the array's
 //base is pointer, and the pointer point to an array.
 //    e.g: char * p; (p+1)[i] = ...
 //
@@ -1620,11 +1620,11 @@ public:
 //Base of array can be LDA, or other computational expression.
 //This operation do not perform any array bound diagnositc.
 //
-//* If array base is IR_LDA, it denotes that the array's base is variable with
+//If array base is IR_LDA, it denotes that the array's base is variable with
 //array type,
 //    e.g: char p[N]; (&p)[i] = ...
 //
-//* If array base is computational expression, it denotes that the array's
+//If array base is computational expression, it denotes that the array's
 //base is pointer, and the pointer point to an array.
 //    e.g: char * p; (p+1)[i] = ...
 //
@@ -1775,20 +1775,20 @@ public:
 public:
     IR const* get_opnd_list() const { return PHI_opnd_list(this); }
 
-    inline void removeOpnd(IR * opnd)
+    inline void removeOpnd(IR * ir)
     {
-        ASSERT0(xcom::in_list(PHI_opnd_list(this), opnd));
-        xcom::remove(&PHI_opnd_list(this), opnd);
+        ASSERT0(xcom::in_list(PHI_opnd_list(this), ir));
+        xcom::remove(&PHI_opnd_list(this), ir);
     }
 
     //Add opnd to the tail of operand list.
     //The opnd must correspond to the last predecessor
     //of BB that current phi located in.
-    inline void addOpnd(IR * opnd)
+    inline void addOpnd(IR * ir)
     {
-        ASSERT0(!xcom::in_list(PHI_opnd_list(this), opnd));
-        xcom::add_next(&PHI_opnd_list(this), opnd);
-        IR_parent(opnd) = this;
+        ASSERT0(!xcom::in_list(PHI_opnd_list(this), ir));
+        xcom::add_next(&PHI_opnd_list(this), ir);
+        IR_parent(ir) = this;
     }
 };
 
@@ -2606,12 +2606,12 @@ inline IR const* iterRhsInitC(IR const* ir, OUT ConstIRIter & ii)
 }
 
 
-/* Iterative access the expression.
-This funtion initialize the iterator.
-'ir': the root ir of the tree, it must be expression.
-'ii': iterator.
-Readonly function.
-Use iterRhsNextC to iter next IR. */
+//Iterative access the expression.
+//This funtion initialize the iterator.
+//'ir': the root ir of the tree, it must be expression.
+//'ii': iterator.
+//Readonly function.
+//Use iterRhsNextC to iter next IR.
 inline IR const* iterExpInitC(IR const* ir, OUT ConstIRIter & ii)
 {
     if (ir == NULL) { return NULL; }

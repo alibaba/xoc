@@ -110,10 +110,11 @@ void IPA::createCallDummyuse(Region * ru)
         BBList * bbl = ru->get_bb_list();
         if (bbl == NULL) { return; }
         for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
-            for (IR * ir = BB_first_ir(bb); ir != NULL; ir = BB_next_ir(bb)) {
-                if (!ir->is_call()) { continue; }
+            for (IR * ir2 = BB_first_ir(bb); 
+                 ir2 != NULL; ir2 = BB_next_ir(bb)) {
+                if (!ir2->is_call()) { continue; }
                 //TODO: handle icall.
-                createCallDummyuse(ir, ru);
+                createCallDummyuse(ir2, ru);
             }
         }
         return;

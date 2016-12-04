@@ -59,8 +59,7 @@ public:
     virtual void doPrepareWorkBeforePrint() {}
 
     virtual void printSrcLine(IR const*);
-    virtual void printSrcLine(Dbx const&)
-    { /* Taget Dependent Code */ }
+    virtual void printSrcLine(Dbx const&) {} //Taget Dependent Code
 };
 
 

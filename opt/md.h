@@ -344,7 +344,7 @@ class MDSet : public DefSBitSetCore {
 public:
     MDSet() {}
     COPY_CONSTRUCTOR(MDSet);
-    ~MDSet() { /* should call clean() before destruction.*/ }
+    ~MDSet() {} //should call clean() before destruction.
 
     void bunion(MDSet const& pt, DefMiscBitSetMgr & mbsmgr);
     void bunion(MD const* md, DefMiscBitSetMgr & mbsmgr);

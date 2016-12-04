@@ -46,10 +46,10 @@ class RegionMgr;
 //to be changed dynamically, so the size is related with the corresponding
 //IR's type that referred the VAR.
 
-//************************************************
+///////////////////////////////////////////////////////
 //NOTE: Do *NOT* forget modify the bit-field in VAR if
 //you remove/add flag here.
-//************************************************
+///////////////////////////////////////////////////////
 
 #define VAR_UNDEF                0x0
 #define VAR_GLOBAL               0x1    //can be seen by all functions.
@@ -74,10 +74,10 @@ class RegionMgr;
 #define VAR_IS_RESTRICT          0x4000 //var is restrict.
 #define VAR_IS_ALLOCABLE         0x8000 //var is allocable on memory.
 
-//************************************************
+///////////////////////////////////////////////////////
 //NOTE: Do *NOT* forget modify the bit-field in VAR if
 //you remove/add flag here.
-//************************************************
+///////////////////////////////////////////////////////
 
 //Variable unique id.
 #define VAR_id(v)                ((v)->id)

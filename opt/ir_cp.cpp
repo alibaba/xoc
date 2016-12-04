@@ -352,7 +352,7 @@ bool IR_CP::doProp(IN IRBB * bb, Vector<IR*> & usevec)
             //Record use_stmt in another vector to facilitate this function
             //if it is not in use-list any more after copy-propagation.
             DUIter di = NULL;
-            for    (INT u = useset->get_first(&di);
+            for (INT u = useset->get_first(&di);
                  u >= 0; u = useset->get_next(u, &di)) {
                 IR * use = m_ru->get_ir(u);
                 usevec.set(num_of_use, use);
@@ -442,8 +442,7 @@ bool IR_CP::doProp(IN IRBB * bb, Vector<IR*> & usevec)
 
             if (use_stmt != NULL && use_stmt != old_use_stmt) {
                 //use_stmt has been removed and new stmt generated.
-                ASSERT(old_use_stmt->is_undef(),
-                       ("the old one should be freed"));
+                ASSERT(old_use_stmt->is_undef(), ("the old one should be freed"));
 
                 C<IR*> * irct = NULL;
                 BB_irlist(use_bb).find(old_use_stmt, &irct);
@@ -473,10 +472,10 @@ bool IR_CP::perform(OptCtx & oc)
     if (m_prop_kind == CP_PROP_CONST) {
 
         m_ru->checkValidAndRecompute(&oc, PASS_DOM, PASS_DU_REF,
-                                    PASS_DU_CHAIN, PASS_UNDEF);
+            PASS_DU_CHAIN, PASS_UNDEF);
     } else {
         m_ru->checkValidAndRecompute(&oc, PASS_DOM, PASS_DU_REF,
-                                    PASS_LIVE_EXPR, PASS_DU_CHAIN, PASS_UNDEF);
+            PASS_LIVE_EXPR, PASS_DU_CHAIN, PASS_UNDEF);
     }
 
     if (!OC_is_du_chain_valid(oc)) {

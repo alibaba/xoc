@@ -222,19 +222,19 @@ void PRDF::computeLocal(IRBB * bb, List<IR const*> & lst)
 }
 
 
-/* Note this function does not consider PHI effect.
-e.g:
-BB1:             BB2:
-st $pr4 = 0      st $pr3 = 1
-     \               /
-      \             /
-      BB3:
-      phi $pr5 = $pr4, $pr4
-      ...
-
-In actually , $pr4 only lived out from BB1, and $pr3 only lived out
-from BB2. For present, $pr4 both live out from BB1 and BB2, and $pr3
-is similar. */
+//Note this function does not consider PHI effect.
+//e.g:
+//BB1:             BB2:
+//st $pr4 = 0      st $pr3 = 1
+//     \               /
+//      \             /
+//      BB3:
+//      phi $pr5 = $pr4, $pr4
+//      ...
+//
+//In actually , $pr4 only lived out from BB1, and $pr3 only lived out
+//from BB2. For present, $pr4 both live out from BB1 and BB2, and $pr3
+//is similar.
 #ifdef STATISTIC_PRDF
 static UINT g_max_times = 0;
 #endif
@@ -261,9 +261,10 @@ void PRDF::computeGlobal()
     DefSBitSetCore news;
     do {
         change = false;
-        C<IRBB*> * ct;
-        for (vlst->get_tail(&ct); ct != vlst->end(); ct = vlst->get_prev(ct)) {
-            IRBB * bb = ct->val();
+        C<IRBB*> * ct2;
+        for (vlst->get_tail(&ct2); 
+             ct2 != vlst->end(); ct2 = vlst->get_prev(ct2)) {
+            IRBB * bb = ct2->val();
             ASSERT0(bb);
             UINT bbid = BB_id(bb);
 

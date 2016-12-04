@@ -622,7 +622,7 @@ INT SIX<Mat, T>::findPivotBV(UINT pivot_nv, IN OUT PVParam<Mat> & pp)
     //And relative basic variable of that equality could be what we found.
     if (all_unbound) {
         eqidx = -1; //Find again! good luck!
-        bool first = true;
+        bool first2 = true;
         for (i = 0; i < eqc.get_row_size(); i++) {
             if (ppt.is_handle(pivot_nv, eq2bvmap.get(i))) {
                 //Pivoting pair had already examed.
@@ -641,10 +641,10 @@ INT SIX<Mat, T>::findPivotBV(UINT pivot_nv, IN OUT PVParam<Mat> & pp)
             }
 
             T v = eqc.get(i, rhs_idx) / den;
-            if (first) {
+            if (first2) {
                 minbval = v;
                 eqidx = i;
-                first = false;
+                first2 = false;
             } else if (minbval > v) {
                 minbval = v;
                 eqidx = i;

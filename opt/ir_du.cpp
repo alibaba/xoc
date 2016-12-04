@@ -1017,7 +1017,7 @@ void IR_DU_MGR::dumpMemUsageForMDRef()
 
     fprintf(g_tfile, "\nMayUs: overlapped and may used MDSet");
     BBList * bbs = m_ru->get_bb_list();
-    UINT count = 0;
+    size_t count = 0;
     CHAR const* str = NULL;
     g_indent = 0;
     for (IRBB * bb = bbs->get_head(); bb != NULL; bb = bbs->get_next()) {
@@ -1048,9 +1048,8 @@ void IR_DU_MGR::dumpMemUsageForMDRef()
 
                         SEGIter * iter;
                         fprintf(g_tfile, "MayDs(%lu%s, %d elems, last %d), ",
-                                         (ULONG)n, str,
-                                         mds->get_elem_count(),
-                                         mds->get_last(&iter));
+                            (ULONG)n, str, mds->get_elem_count(),
+                            mds->get_last(&iter));
                         count += n;
                     }
                 } else {
@@ -1084,7 +1083,7 @@ void IR_DU_MGR::dumpMemUsageForMDRef()
     if (count < 1024) { str = "B"; }
     else if (count < 1024 * 1024) { count /= 1024; str = "KB"; }
     else  { count /= 1024*1024; str = "MB"; }
-    fprintf(g_tfile, "\nTotal %d%s", count, str);
+    fprintf(g_tfile, "\nTotal %u%s", (UINT)count, str);
     fflush(g_tfile);
 }
 
@@ -1098,7 +1097,7 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
         m_ru->get_ru_name());
 
     BBList * bbs = m_ru->get_bb_list();
-    UINT count = 0;
+    size_t count = 0;
     CHAR const* str = NULL;
     for (IRBB * bb = bbs->get_head(); bb != NULL; bb = bbs->get_next()) {
         fprintf(g_tfile, "\n--- BB%d ---", BB_id(bb));
@@ -1241,7 +1240,7 @@ void IR_DU_MGR::dumpMemUsageForEachSet()
     if (count < 1024) { str = "B"; }
     else if (count < 1024 * 1024) { count /= 1024; str = "KB"; }
     else  { count /= 1024*1024; str = "MB"; }
-    fprintf(g_tfile, "\nTotal %d%s", count, str);
+    fprintf(g_tfile, "\nTotal %u%s", (UINT)count, str);
     fflush(g_tfile);
 }
 
@@ -2558,9 +2557,9 @@ void IR_DU_MGR::collectMayUse(IR const* ir, MDSet & may_use, bool computePR)
                 }
             }
         } else if (ir->is_region()) {
-            MDSet const* x = REGION_ru(ir)->get_may_use();
-            if (x != NULL) {
-                may_use.bunion(*x, *m_misc_bs_mgr);
+            MDSet const* x2 = REGION_ru(ir)->get_may_use();
+            if (x2 != NULL) {
+                may_use.bunion(*x2, *m_misc_bs_mgr);
             }
         }
     }
@@ -4552,7 +4551,7 @@ bool IR_DU_MGR::verifyMDDUChainForIR(IR const* ir)
     ASSERT0(ir->is_stmt());
 
     if (ir->get_ssainfo() == NULL ||
-        ir->is_calls_stmt() /* Need to check memory DU for call */) {
+        ir->is_calls_stmt()) { //Need to check memory DU for call
         //ir is in MD DU form.
         DUSet const* useset = ir->readDUSet();
 
@@ -4880,7 +4879,7 @@ size_t IR_DU_MGR::count_mem_local_data(
         MDSet mds_arr_for_may[],
         UINT elemnum)
 {
-    UINT count = 0;
+    size_t count = 0;
     if (expr_univers != NULL) {
         count += expr_univers->count_mem();
     }
@@ -5053,8 +5052,8 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
 
         if (mustexactdef_mds != NULL) {
             ASSERT0(mds_arr_for_must);
-            for (UINT i = 0; i < bbl->get_elem_count(); i++) {
-                mds_arr_for_must[i].clean(bsmgr);
+            for (UINT i2 = 0; i2 < bbl->get_elem_count(); i2++) {
+                mds_arr_for_must[i2].clean(bsmgr);
             }
             delete [] mds_arr_for_must;
             delete mustexactdef_mds;
@@ -5063,8 +5062,8 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
 
         if (maydef_mds != NULL) {
             ASSERT0(mds_arr_for_may);
-            for (UINT i = 0; i < bbl->get_elem_count(); i++) {
-                mds_arr_for_may[i].clean(bsmgr);
+            for (UINT i2 = 0; i2 < bbl->get_elem_count(); i2++) {
+                mds_arr_for_may[i2].clean(bsmgr);
             }
             delete [] mds_arr_for_may;
             delete maydef_mds;
@@ -5081,9 +5080,9 @@ bool IR_DU_MGR::perform(IN OUT OptCtx & oc, UINT flag)
 
 #if 0
     size_t cnt += count_mem_local_data(
-                    expr_univers, maydef_mds, mustexactdef_mds,
-                    mayuse_mds, mds_arr_for_must, mds_arr_for_may,
-                    bbl->get_elem_count());
+       expr_univers, maydef_mds, mustexactdef_mds,
+       mayuse_mds, mds_arr_for_must, mds_arr_for_may,
+       bbl->get_elem_count());
 #endif
 
 #if 0

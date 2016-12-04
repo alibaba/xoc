@@ -135,18 +135,18 @@ public:
 };
 
 
-/* Ud chains describe all of the might uses of the prior DEFINITION of md.
-Du chains describe all effective USEs of once definition of md.
-e.g:
-        d1:a=   d2:a=   d3:a=
-              \       |         /
-                  b = a
-              /            \
-             d4: =b         d5: =b
-        Ud chains:  a use def d1,d2,d3 stmt
-        Du chains:  b's value will be used by d4,d5 stmt
-If ir is stmt, this class indicate the USE expressions set.
-If ir is expression, this class indicate the DEF stmt set. */
+//Ud chains describe all of the might uses of the prior DEFINITION of md.
+//Du chains describe all effective USEs of once definition of md.
+//e.g:
+//        d1:a=   d2:a=   d3:a=
+//              \       |         /
+//                  b = a
+//              /            \
+//             d4: =b         d5: =b
+//        Ud chains:  a use def d1,d2,d3 stmt
+//        Du chains:  b's value will be used by d4,d5 stmt
+//If ir is stmt, this class indicate the USE expressions set.
+//If ir is expression, this class indicate the DEF stmt set.
 
 class DefDBitSetCoreHashAllocator {
     DefMiscBitSetMgr * m_sbs_mgr;
@@ -278,43 +278,43 @@ protected:
 
     OptCtx * m_oc;
 
-    /* Available reach-def computes the definitions
-    which must be the last definition of result variable,
-    but it may not reachable meanwhile.
-    e.g:
-        BB1:
-        a=1  //S1
-        *p=3
-        a=4  //S2
-        goto BB3
-
-        BB2:
-        a=2 //S3
-        goto BB3
-
-        BB3:
-        f(a)
-
-        Here we do not known where p pointed to.
-        The available-reach-def of BB3 is {S1, S3}
-
-    Compare to available reach-def, reach-def computes the definition
-    which may-live at each BB.
-    e.g:
-        BB1:
-        a=1  //S1
-        *p=3
-        goto BB3
-
-        BB2:
-        a=2 //S2
-        goto BB3
-
-        BB3:
-        f(a)
-
-        Here we do not known where p pointed to.
-        The reach-def of BB3 is {S1, S2} */
+    //Available reach-def computes the definitions
+    //which must be the last definition of result variable,
+    //but it may not reachable meanwhile.
+    //e.g:
+    //    BB1:
+    //    a=1  //S1
+    //    *p=3
+    //    a=4  //S2
+    //    goto BB3
+    //
+    //    BB2:
+    //    a=2 //S3
+    //    goto BB3
+    //
+    //    BB3:
+    //    f(a)
+    //
+    //    Here we do not known where p pointed to.
+    //    The available-reach-def of BB3 is {S1, S3}
+    //
+    //Compare to available reach-def, reach-def computes the definition
+    //which may-live at each BB.
+    //e.g:
+    //    BB1:
+    //    a=1  //S1
+    //    *p=3
+    //    goto BB3
+    //
+    //    BB2:
+    //    a=2 //S2
+    //    goto BB3
+    //
+    //    BB3:
+    //    f(a)
+    //
+    //    Here we do not known where p pointed to.
+    //    The reach-def of BB3 is {S1, S2}
     Vector<DefDBitSetCore*> m_bb_avail_in_reach_def; //avail reach-in def of STMT
     Vector<DefDBitSetCore*> m_bb_avail_out_reach_def; //avail reach-out def of STMT
     Vector<DefDBitSetCore*> m_bb_in_reach_def; //reach-in def of STMT

@@ -147,9 +147,9 @@ bool IR_DCE::check_stmt(IR const* ir)
                 SEGIter * iter;
                 for (INT i = mds->get_first(&iter);
                      i != -1; i = mds->get_next(i, &iter)) {
-                    MD * md = m_md_sys->get_md(i);
-                    ASSERT0(md != NULL);
-                    if (is_effect_read(md->get_base())) {
+                    MD * md2 = m_md_sys->get_md(i);
+                    ASSERT0(md2 != NULL);
+                    if (is_effect_read(md2->get_base())) {
                         return true;
                     }
                 }
@@ -180,16 +180,14 @@ void IR_DCE::mark_effect_ir(IN OUT EFFECT_STMT & is_stmt_effect,
              ir != NULL; ir = BB_next_ir(bb)) {
             switch (IR_code(ir)) {
             case IR_RETURN:
-                /* Do NOT set exit-bb to be effect.
-                That will generate redundant control-flow dependence.
-
-                CASE:
-                    IF (...)
-                        ...
-                    ENDIF
-                    RETURN //EXIT BB
-
-                IF clause stmt is redundant code. */
+                //Do NOT set exit-bb to be effect.
+                //That will generate redundant control-flow dependence.
+                //CASE:
+                //    IF (...)
+                //        ...
+                //    ENDIF
+                //    RETURN //EXIT BB
+                //IF clause stmt is redundant code.
                 is_bb_effect.bunion(BB_id(bb));
                 is_stmt_effect.bunion(IR_id(ir));
                 work_list.append_tail(ir);
@@ -330,11 +328,11 @@ bool IR_DCE::preserve_cd(IN OUT BitSet & is_bb_effect,
             }
         }
 
-        /* CASE: test_pre1()
-            GOTO 0xa4f634 id:23
-                CLABEL (name:L1) 0xa4f5e4 id:22 branch-target
-            in BB3
-            BB3 is ineffective, but GOTO can not be removed! */
+        //CASE: test_pre1()
+        //    GOTO 0xa4f634 id:23
+        //        CLABEL (name:L1) 0xa4f5e4 id:22 branch-target
+        //    in BB3
+        //    BB3 is ineffective, but GOTO can not be removed!
         if (BB_irlist(bb).get_elem_count() == 0) { continue; }
 
         IR * ir = BB_last_ir(bb); //last IR of BB.

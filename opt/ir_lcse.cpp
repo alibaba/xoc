@@ -253,20 +253,22 @@ bool IR_LCSE::processBranch(
 }
 
 
-/* Return new IR_PR if 'ie' has been regarded as cse candidate expression.
-e.g:
-        call(a+b, a+b);
-    =>
-        p1 = a+b;
-        call(p1, p1);
-    return p1 as new expression.
-
-'ie': cse candidate expression indicator.
-'stmt': the stmt contains 'exp'. */
-IR * IR_LCSE::processExp(IN IRBB * bb, IN ExpRep * ie,
-                         IN IR * stmt, IN OUT BitSet & avail_ir_expr,
-                         IN OUT Vector<IR*> & map_expr2avail_pos,
-                         IN OUT Vector<IR*> & map_expr2avail_pr)
+//Return new IR_PR if 'ie' has been regarded as cse candidate expression.
+//e.g:
+//        call(a+b, a+b);
+//    =>
+//        p1 = a+b;
+//        call(p1, p1);
+//    return p1 as new expression.
+//'ie': cse candidate expression indicator.
+//'stmt': the stmt contains 'exp'.
+IR * IR_LCSE::processExp(
+        IN IRBB * bb, 
+        IN ExpRep * ie,
+        IN IR * stmt, 
+        IN OUT BitSet & avail_ir_expr,
+        IN OUT Vector<IR*> & map_expr2avail_pos,
+        IN OUT Vector<IR*> & map_expr2avail_pr)
 {
     ASSERT0(ie);
     avail_ir_expr.bunion(EXPR_id(ie));
@@ -276,18 +278,16 @@ IR * IR_LCSE::processExp(IN IRBB * bb, IN ExpRep * ie,
     if (ir_pos != NULL) {
         IR * cse_val_pr = map_expr2avail_pr.get(EXPR_id(ie));
         if (cse_val_pr == NULL) {
-            /*
-            e.g:
-            before:
-                =a||b
-                ...
-                falsebr(a||b)
-            after:
-                t=a||b
-                =t
-                ...
-                =a||b
-            */
+            //e.g:
+            //before:
+            //    =a||b
+            //    ...
+            //    falsebr(a||b)
+            //after:
+            //    t=a||b
+            //    =t
+            //    ...
+            //    =a||b
             cse_val_pr = hoist_cse(bb, ir_pos, ie);
             ASSERT0(cse_val_pr != NULL);
             map_expr2avail_pr.set(EXPR_id(ie), cse_val_pr);
@@ -311,18 +311,17 @@ bool IR_LCSE::canBeCandidate(IR * ir)
     }
     ASSERT0(ir->is_exp());
     if (ir->is_ild()) {
-        /* Avoid perform the opposite behavior to Copy-Propagation.
-        e.g:
-            ST(P1, ILD(P2))
-            ST(P3, ILD(P2))
-            after LCSE, we get:
-            ST(P1, ILD(P2))
-            ST(P3, P1)
-            But CP will progagate P1 because ILD is the copy-prop candidate. */
+        //Avoid perform the opposite behavior to Copy-Propagation.
+        //e.g:
+        //    ST(P1, ILD(P2))
+        //    ST(P3, ILD(P2))
+        //    after LCSE, we get:
+        //    ST(P1, ILD(P2))
+        //    ST(P3, P1)
+        //    But CP will progagate P1 because ILD is the copy-prop candidate.
         return false;
     }
-    return ir->is_binary_op() || ir->is_bnot() ||
-           ir->is_lnot() || ir->is_neg();
+    return ir->is_binary_op() || ir->is_bnot() || ir->is_lnot() || ir->is_neg();
 }
 
 
@@ -345,17 +344,15 @@ bool IR_LCSE::processRhsOfStore(
         if (ir_pos != NULL) {
             IR * pr = map_expr2avail_pr.get(EXPR_id(ie));
             if (pr == NULL) {
-                /*
-                e.g: before:
-                    =a+b
-                    ...
-                        =a+b
-                after:
-                    t=a+b
-                    =t
-                    ...
-                    =a+b
-                */
+                //e.g: before:
+                //    =a+b
+                //    ...
+                //        =a+b
+                //after:
+                //    t=a+b
+                //    =t
+                //    ...
+                //    =a+b
                 pr = hoist_cse(bb, ir_pos, ie);
                 ASSERT0(pr != NULL);
                 map_expr2avail_pr.set(EXPR_id(ie), pr);
@@ -378,15 +375,15 @@ bool IR_LCSE::processRhsOfStore(
             if (ir_pos != NULL) {
                 IR * pr = map_expr2avail_pr.get(EXPR_id(ie));
                 if (pr == NULL) {
-                    /* e.g: before:
-                        =a+b
-                        ...
-                            =a+b
-                    after:
-                        t=a+b
-                        =t
-                        ...
-                        =a+b */
+                    //e.g: before:
+                    //    =a+b
+                    //    ...
+                    //        =a+b
+                    //after:
+                    //    t=a+b
+                    //    =t
+                    //    ...
+                    //    =a+b
                     pr = hoist_cse(bb, ir_pos, ie);
                     ASSERT0(pr != NULL);
                     map_expr2avail_pr.set(EXPR_id(ie), pr);
@@ -412,10 +409,8 @@ bool IR_LCSE::processParamList(IN IRBB * bb, IN IR * ir,
     bool change = false;
     bool lchange = true;
     while (lchange) {
-        /*
-        Iterative analyse cse, e.g:
-            CALL(ADD(x,y), SUB(a,b), ADD(x,y), SUB(a,b))
-        */
+        //Iterative analyse cse, e.g:
+        //    CALL(ADD(x,y), SUB(a,b), ADD(x,y), SUB(a,b))
         IR * p = CALL_param_list(ir);
         lchange = false;
         while (p != NULL) {

@@ -992,16 +992,15 @@ bool IR_RP::scanResult(
 }
 
 
-/* Scan BB and find promotable memory reference.
-If this function find unpromotable access that with ambiguous
-memory reference, all relative promotable accesses which in list
-will not be scalarized.
-e.g: a[0] = ...
-    a[i] = ...
-    a[0] is promotable, but a[i] is not, then a[0] can not be promoted.
-
-If there exist memory accessing that we do not know where it access,
-whole loop is unpromotable. */
+//Scan BB and find promotable memory reference.
+//If this function find unpromotable access that with ambiguous
+//memory reference, all relative promotable accesses which in list
+//will not be scalarized.
+//e.g: a[0] = ...
+//    a[i] = ...
+//    a[0] is promotable, but a[i] is not, then a[0] can not be promoted.
+//If there exist memory accessing that we do not know where it access,
+//whole loop is unpromotable.
 bool IR_RP::scanBB(
         IN IRBB * bb,
         LI<IRBB> const* li,
@@ -1144,11 +1143,11 @@ void IR_RP::handleRestore2Mem(
 
                 //Build Store Array operation.
                 stmt = m_ru->buildStoreArray(
-                                    base, sublist, IR_dt(delegate),
-                                    ARR_elemtype(delegate),
-                                    ((CArray*)delegate)->getDimNum(),
-                                    ARR_elem_num_buf(delegate),
-                                    pr);
+                    base, sublist, IR_dt(delegate),
+                    ARR_elemtype(delegate),
+                    ((CArray*)delegate)->getDimNum(),
+                    ARR_elem_num_buf(delegate),
+                    pr);
 
                 //Copy MD reference for store array operation.
                 stmt->copyRef(delegate, m_ru);
@@ -1159,8 +1158,8 @@ void IR_RP::handleRestore2Mem(
                 IR * lhs = m_ru->dupIRTree(IST_base(delegate));
                 m_du->copyIRTreeDU(lhs, IST_base(delegate), true);
 
-                stmt = m_ru->buildIstore(lhs, pr,
-                                        IST_ofst(delegate), IR_dt(delegate));
+                stmt = m_ru->buildIstore(lhs, pr, 
+                    IST_ofst(delegate), IR_dt(delegate));
             }
             break;
         case IR_ST:
@@ -1174,8 +1173,7 @@ void IR_RP::handleRestore2Mem(
             {
                 IR * base = m_ru->dupIRTree(ILD_base(delegate));
                 stmt = m_ru->buildIstore(base, pr,
-                                        ILD_ofst(delegate),
-                                        IR_dt(delegate));
+                    ILD_ofst(delegate), IR_dt(delegate));
                 m_du->copyIRTreeDU(base, ILD_base(delegate), true);
             }
             break;
@@ -1198,8 +1196,7 @@ void IR_RP::handleRestore2Mem(
 
         stmt->copyRef(delegate, m_ru);
 
-        SList<IR*> * irlst =
-            delegate2has_outside_uses_ir_list.get(delegate);
+        SList<IR*> * irlst = delegate2has_outside_uses_ir_list.get(delegate);
         ASSERT0(irlst);
 
         for (SC<IR*> * sc = irlst->get_head();
@@ -1270,7 +1267,7 @@ bool IR_RP::promoteExactAccess(
         }
 
         createDelegateInfo(delegate, delegate2pr,
-                            delegate2has_outside_uses_ir_list);
+            delegate2has_outside_uses_ir_list);
         md = exact_access.get_next(mi, &delegate);
         ASSERT0(!((md == NULL) ^ (delegate == NULL)));
     }
@@ -1283,13 +1280,13 @@ bool IR_RP::promoteExactAccess(
         ASSERT0(md && md->is_exact());
 
         //Get the unique delegate.
-        IR * delegate = exact_access.get(md);
-        if (delegate == NULL) {
+        IR * delegate2 = exact_access.get(md);
+        if (delegate2 == NULL) {
             continue;
         }
 
-        computeOuterDefUse(ref, delegate, delegate2def,
-                           delegate2use, sbs_mgr, li);
+        computeOuterDefUse(ref, delegate2, delegate2def,
+            delegate2use, sbs_mgr, li);
     }
 
     mi.clean();
@@ -1318,15 +1315,15 @@ bool IR_RP::promoteExactAccess(
         ASSERT0(md && md->is_exact());
 
         //Get the unique delegate.
-        IR * delegate = exact_access.get(md);
-        if (delegate == NULL) { continue; }
+        IR * delegate2 = exact_access.get(md);
+        if (delegate2 == NULL) { continue; }
 
-        IR * delegate_pr = delegate2pr.get(delegate);
+        IR * delegate_pr = delegate2pr.get(delegate2);
         ASSERT0(delegate_pr);
 
-        handleAccessInBody(ref, delegate, delegate_pr,
-                        delegate2has_outside_uses_ir_list,
-                        restore2mem, fixup_list, delegate2stpr, li, ii);
+        handleAccessInBody(ref, delegate2, delegate_pr,
+            delegate2has_outside_uses_ir_list, restore2mem, 
+            fixup_list, delegate2stpr, li, ii);
 
         //Each memory reference in the tree has been promoted.
         promoted.add(ref, ii);
@@ -1356,9 +1353,9 @@ bool IR_RP::promoteExactAccess(
         MD const* md = ref->getRefMD();
         ASSERT0(md);
 
-        IR * delegate = exact_access.get(md);
-        if (delegate == NULL) {
-            //If delegate does not exist, the reference still in its place.
+        IR * delegate2 = exact_access.get(md);
+        if (delegate2 == NULL) {
+            //If delegate2 does not exist, the reference still in its place.
             continue;
         }
 
@@ -1623,8 +1620,8 @@ void IR_RP::handleAccessInBody(
 
             if (has_use) {
                 restore2mem.append_and_retrieve(delegate);
-                SList<IR*> * irlst =
-                    delegate2has_outside_uses_ir_list.get(delegate);
+                SList<IR*> * irlst = delegate2has_outside_uses_ir_list.
+                    get(delegate);
                 ASSERT0(irlst);
                 irlst->append_head(stpr);
             }
@@ -1706,11 +1703,11 @@ void IR_RP::handlePrelog(
     } else if (delegate->is_starray()) {
         //Load array value into PR.
         rhs = m_ru->buildArray(m_ru->dupIRTree(ARR_base(delegate)),
-                            m_ru->dupIRTree(ARR_sub_list(delegate)),
-                            IR_dt(delegate),
-                            ARR_elemtype(delegate),
-                            ((CArray*)delegate)->getDimNum(),
-                            ARR_elem_num_buf(delegate));
+            m_ru->dupIRTree(ARR_sub_list(delegate)),
+            IR_dt(delegate),
+            ARR_elemtype(delegate),
+            ((CArray*)delegate)->getDimNum(),
+            ARR_elem_num_buf(delegate));
 
         m_du->copyIRTreeDU(ARR_base(rhs), ARR_base(delegate), true);
 
@@ -1720,7 +1717,7 @@ void IR_RP::handlePrelog(
     } else if (delegate->is_ist()) {
         //Load indirect value into PR.
         rhs = m_ru->buildIload(m_ru->dupIRTree(IST_base(delegate)),
-                                IST_ofst(delegate), IR_dt(delegate));
+            IST_ofst(delegate), IR_dt(delegate));
         m_du->copyIRTreeDU(ILD_base(rhs), IST_base(delegate), true);
 
         stpr = m_ru->buildStorePR(PR_no(pr), IR_dt(pr), rhs);

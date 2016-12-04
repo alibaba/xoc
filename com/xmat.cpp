@@ -519,11 +519,10 @@ bool RMat::inv(RMat & e)
 }
 
 
-/* Reduction to a common denominator.
-Return the common denominator.
-
-'row': Row to reduce
-'col': The starting column to reduce. */
+//Reduction to a common denominator.
+//Return the common denominator.
+//'row': Row to reduce
+//'col': The starting column to reduce.
 UINT RMat::comden(UINT row, UINT col)
 {
     ASSERT(m_is_init, ("not yet initialize."));
@@ -558,19 +557,17 @@ UINT RMat::comden(UINT row, UINT col)
 }
 
 
-/* Substituting variable 'v' with expression 'exp'.
-
-'exp': system of equations
-'v': varible id, the column number.
-'is_eq': set to true indicate that each rows of matrix represents
-    an equations, or the false value only represent a right-hand of
-    a linear function,
-    e.g: if 'is_eq' is false, matrix is a vector, [1, 7, -2, -10], that
-    represents the right-hand of
-        f(x) = x1 + 7x2 - 2x3 - 10,
-    and if 'is_eq' is true, matrix repesented an equation,
-        x1 + 7x2 - 2x3  = -10
-*/
+//Substituting variable 'v' with expression 'exp'.
+//'exp': system of equations
+//'v': varible id, the column number.
+//'is_eq': set to true indicate that each rows of matrix represents
+//    an equations, or the false value only represent a right-hand of
+//    a linear function,
+//    e.g: if 'is_eq' is false, matrix is a vector, [1, 7, -2, -10], that
+//    represents the right-hand of
+//        f(x) = x1 + 7x2 - 2x3 - 10,
+//    and if 'is_eq' is true, matrix repesented an equation,
+//        x1 + 7x2 - 2x3  = -10
 void RMat::substit(RMat const& exp, UINT v, bool is_eq, INT rhs_idx)
 {
     ASSERT(m_is_init && exp.m_is_init,
@@ -681,24 +678,21 @@ RMat operator - (RMat const& a, RMat const& b)
 }
 
 
-/* Dark Shadow elimination, inequlities form as: Ax <= c,
-and region of x(unknowns) for which gap between upper
-and lower bounds of x is guaranteed to be greater than
-or equals 1.
-e.g: L <= x <= U , to ( L + 1) <= U.
-
-'c': constant vector. */
+//Dark Shadow elimination, inequlities form as: Ax <= c,
+//and region of x(unknowns) for which gap between upper
+//and lower bounds of x is guaranteed to be greater than
+//or equals 1.
+//e.g: L <= x <= U , to ( L + 1) <= U.
+//'c': constant vector.
 void RMat::ds(RMat const&)
 {
     ASSERT(m_is_init, ("not yet initialize."));
 }
 
 
-/* Converting rational element to integer for row vector.
-
-'row': number of row to integral
-
-NOTICE: This function uses row convention. */
+//Converting rational element to integer for row vector.
+//'row': number of row to integral
+//NOTICE: This function uses row convention.
 void RMat::intlize(INT row)
 {
     ASSERT(m_is_init, ("not yet initialize."));
@@ -832,10 +826,9 @@ bool INTMat::inv(OUT INTMat & e)
     e.reinit(m_row_size, m_col_size);
     for (UINT i = 0; i < m_row_size; i++) {
         for (UINT j = 0; j < m_col_size; j++) {
-            Rational v = tmp.get(i, j);
-            ASSERT(v.den() == 1,
-                    ("Should converts INTMat to RMat firstly"));
-            e.set(i, j, v.num());
+            Rational v2 = tmp.get(i, j);
+            ASSERT(v2.den() == 1, ("Should converts INTMat to RMat firstly"));
+            e.set(i, j, v2.num());
         }
     }
     return is_nonsingular;
@@ -895,27 +888,27 @@ void INTMat::_verify_hnf(INTMat & h)
 }
 
 
-/* Hermite Normal Form decomposition.
-Given a m*n matrix A, there exists an n*n unimodular matrix U and
-an m*n lowtriangular matrix H such that:
-    A = H*inv(U)
-Hermite Normal Form:
-    One possible set of conditions (corresponding to the col
-    convention and making H lower triangular) is given by
-            1. h(ij)=0 for j>i,
-            2. h(ii)>0 for all i, and
-            3. h(ij)<=0 and |h(ij)|<|h(ii)| for j<i
+//Hermite Normal Form decomposition.
+//Given a m*n matrix A, there exists an n*n unimodular matrix U and
+//an m*n lowtriangular matrix H such that:
+//    A = H*inv(U)
+//Hermite Normal Form:
+//  One possible set of conditions (corresponding to the col
+//  convention and making H lower triangular) is given by
+//    1. h(ij)=0 for j>i,
+//    2. h(ii)>0 for all i, and
+//    3. h(ij)<=0 and |h(ij)|<|h(ii)| for j<i
+//
+//Return true if succ.
+//
+//h: hermite matrix, it is a lower triangular matrix, row convention.
+//u: unimodular matrix, so 'this' and h and u satisfied:
+//    h = 'this' * u and
+//    'this' = h * inv(u)
 
-Return true if succ.
-
-h: hermite matrix, it is a lower triangular matrix, row convention.
-u: unimodular matrix, so 'this' and h and u satisfied:
-    h = 'this' * u and
-    'this' = h * inv(u)
-
-NOTICE:
-    1. 'this' uses row convention.
-    2. 'this' may be singular. */
+//NOTICE:
+//  1. 'this' uses row convention.
+//  2. 'this' may be singular.
 void INTMat::hnf(OUT INTMat & h, OUT INTMat & u)
 {
     ASSERT(m_is_init, ("not yet initialize."));
@@ -950,13 +943,12 @@ void INTMat::hnf(OUT INTMat & h, OUT INTMat & u)
             u = u * neg;
         }
 
-        /* 3. Before performing the following operation, the
-        diagonal element must be positive!
-
-        Make elements below diagonal in row from 0 to i-1 are non-negative.
-        e.g: If aij is neative, and if abs(aij) <= abs(aii),
-        set aij = aij + aii or else set aij = aij + (d+1)*aii,
-        where d is abs(aij/aii). */
+        //3. Before performing the following operation, the
+        //diagonal element must be positive!
+        //Make elements below diagonal in row from 0 to i-1 are non-negative.
+        //e.g: If aij is neative, and if abs(aij) <= abs(aii),
+        //set aij = aij + aii or else set aij = aij + (d+1)*aii,
+        //where d is abs(aij/aii).
         for (j = 0; j < i; j++) {
             if (h.get(i, j) < 0) {
                 INT v;
@@ -970,21 +962,21 @@ void INTMat::hnf(OUT INTMat & h, OUT INTMat & u)
                 elim.set(i, j, v);
                 h = h * elim;
                 u = u * elim;
-            } //end if
-        } //end for
+            }
+        }
 
-        /* 4. Reduce below diagonal elements which their value larger
-        than diagonal element in row.
-        Make sure 'elim' is triangular matrix to ensure |det(elim)|=1
-
-        e.g: If a(i,j) > a(i,i)
-                    d  = a(i,j)/a(i,i)
-                    a(i,j) = a(i,j) + (-d)*a(i,i)
-        Generate 'elim' such as, at row convention.
-                [1 0 0]
-                [0 1 0]
-                [-d 0 1]
-            to reduce element a(i,j) less than a(i,i). */
+        //4. Reduce below diagonal elements which their value larger
+        //than diagonal element in row.
+        //Make sure 'elim' is triangular matrix to ensure |det(elim)|=1
+        //
+        //e.g: If a(i,j) > a(i,i)
+        //        d  = a(i,j)/a(i,i)
+        //        a(i,j) = a(i,j) + (-d)*a(i,i)
+        //Generate 'elim' such as, at row convention.
+        //     [1 0 0]
+        //     [0 1 0]
+        //     [-d 0 1]
+        // to reduce element a(i,j) less than a(i,i).
         for (j = 0; j < i; j++) {
             if (h.get(i, j) >= h.get(i, i)) {
                 INT d = h.get(i, j) / h.get(i, i); //Get
@@ -1132,10 +1124,10 @@ void INTMat::cvexhull(OUT INTMat & hull)
         //If vector TOP(1)->idx is not turn left corresponding to
         //TOP(1)->TOP(0), pop the element TOP(0) from stack.
         for (;;) {
-            INT p0_idx = s.get_top_nth(1);
+            INT p0_idx2 = s.get_top_nth(1);
             INT p1_idx = s.get_top_nth(0);
-            p0_x = get(p0_idx - 1, 0);
-            p0_y = get(p0_idx - 1, 1);
+            p0_x = get(p0_idx2 - 1, 0);
+            p0_y = get(p0_idx2 - 1, 1);
 
             INT p1_x = get(p1_idx - 1, 0) - p0_x;
             INT p1_y = get(p1_idx - 1, 1) - p0_y;

@@ -365,6 +365,7 @@ public:
 
     IR * constructIRlist(bool clean_ir_list);
     void constructIRBBlist();
+    HOST_INT calcLSRIntVal(Type const* type, HOST_INT v0, HOST_INT v1);
     HOST_INT calcIntVal(IR_TYPE ty, HOST_INT v0, HOST_INT v1);
     double calcFloatVal(IR_TYPE ty, double v0, double v1);
     size_t count_mem();

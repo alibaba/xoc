@@ -308,12 +308,12 @@ INT smpoolDeleteViaPoolIndex(MEMPOOLIDX mpt_idx)
     if (g_is_pool_hashed && g_is_pool_init) {
         mp = g_mem_pool_hash_tab->find((OBJTY)(size_t)mpt_idx);
         if (mp == NULL) {
-            /* Sometimes, mem pool is manipulated by user, but
-            is not due to destructer.
-            Therefore, the same mem pool idx will be free
-            serval times. The message may confuse users.
-            fprintf(stdout, "No such mempool, removing failed."); */
-              return ST_NO_SUCH_MEMPOOL_FIND;
+            //Sometimes, mem pool is manipulated by user, but
+            //is not due to destructer.
+            //Therefore, the same mem pool idx will be free
+            //serval times. The message may confuse users.
+            //fprintf(stdout, "No such mempool, removing failed.");
+            return ST_NO_SUCH_MEMPOOL_FIND;
         }
         //Remove pool from pool table.
         g_mem_pool_hash_tab->removed(mp);
@@ -358,18 +358,18 @@ void * smpoolMallocConstSize(size_t elem_size, IN SMemPool * handler)
     ASSERT(handler, ("need mempool handler"));
     ASSERT(MEMPOOL_type(handler) == MEM_CONST_SIZE, ("Need const size pool"));
     ASSERT(MEMPOOL_pool_size(handler) >= elem_size &&
-            (MEMPOOL_pool_size(handler) % elem_size) == 0,
-            ("Pool size must be multiples of element size."));
+           (MEMPOOL_pool_size(handler) % elem_size) == 0,
+           ("Pool size must be multiples of element size."));
 
     //Search free block in the pool.
     ASSERT(MEMPOOL_pool_size(handler) >= MEMPOOL_start_pos(handler),
-            ("exception occurs during mempool function"));
+           ("exception occurs during mempool function"));
     ASSERT(MEMPOOL_pool_size(handler) > 0,
-            ("exception occurs during mempool function"));
+           ("exception occurs during mempool function"));
     size_t s = MEMPOOL_pool_size(handler) - MEMPOOL_start_pos(handler);
     if (elem_size <= s) {
         void * addr = (size_t*)(((BYTE*)MEMPOOL_pool_ptr(handler)) +
-                             MEMPOOL_start_pos(handler));
+            MEMPOOL_start_pos(handler));
         MEMPOOL_start_pos(handler) += elem_size;
         ASSERT(MEMPOOL_pool_size(handler) >= MEMPOOL_start_pos(handler),
                 ("\nexception occurs in handling of pool growing\n"));
@@ -383,13 +383,13 @@ void * smpoolMallocConstSize(size_t elem_size, IN SMemPool * handler)
                 ("exception occurs during mempool function"));
         ASSERT(MEMPOOL_pool_size(rest) > 0,
                 ("exception occurs during mempool function"));
-        size_t s = MEMPOOL_pool_size(rest) - MEMPOOL_start_pos(rest);
-        if (elem_size <= s) {
+        size_t s2 = MEMPOOL_pool_size(rest) - MEMPOOL_start_pos(rest);
+        if (elem_size <= s2) {
             void * addr = (size_t*)(((BYTE*)MEMPOOL_pool_ptr(rest)) +
-                                 MEMPOOL_start_pos(rest));
+                MEMPOOL_start_pos(rest));
             MEMPOOL_start_pos(rest) += elem_size;
             ASSERT(MEMPOOL_pool_size(rest) >= MEMPOOL_start_pos(rest),
-                    ("\nexception occurs in handling of pool growing\n"));
+                   ("\nexception occurs in handling of pool growing\n"));
             return addr;
         }
     }
@@ -406,7 +406,7 @@ void * smpoolMallocConstSize(size_t elem_size, IN SMemPool * handler)
         MEMPOOL_prev(rest) = newpool;
     }
     void * addr = (size_t*)(((CHAR*)MEMPOOL_pool_ptr(newpool)) +
-                    MEMPOOL_start_pos(newpool));
+        MEMPOOL_start_pos(newpool));
     MEMPOOL_start_pos(newpool) += elem_size;
     ASSERT(MEMPOOL_pool_size(newpool) >= MEMPOOL_start_pos(newpool),
             ("\nexception occurs in handling of pool growing\n"));

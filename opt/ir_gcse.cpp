@@ -50,18 +50,18 @@ List<IR_TYPE> g_elim_irt;
 //START IR_GCSE
 //
 
-/* Replace use cse with PR related to gen.
-e.g: ...=a+b <--generate CSE
-     ...
-     ...=a+b <--use CSE
-This function do replacement via gvn info.
-
-'use': the referrence of cse.
-'use_stmt': the stmt contains use.
-'gen': the referrence of cse.
-
-NOTE: 'use' should be freed.
-    'use' must be rhs of 'use_stmt'. */
+//Replace use cse with PR related to gen.
+//e.g: ...=a+b <--generate CSE
+//     ...
+//     ...=a+b <--use CSE
+//This function do replacement via gvn info.
+//
+//'use': the referrence of cse.
+//'use_stmt': the stmt contains use.
+//'gen': the referrence of cse.
+//
+//NOTE: 'use' should be freed.
+//      'use' must be rhs of 'use_stmt'.
 void IR_GCSE::elimCseAtStore(IR * use, IR * use_stmt, IR * gen)
 {
     ASSERT0(use_stmt->is_st() || use_stmt->is_stpr() || use_stmt->is_ist());
@@ -158,18 +158,18 @@ void IR_GCSE::elimCseAtBranch(IR * use, IR * use_stmt, IN IR * gen)
 }
 
 
-/* Replace use_cse with PR related to gen_cse.
-This function do replacement via gvn info.
-
-e.g: ...=a+b <--generate CSE
-     ...
-     ...call, a+b, a+b <--two use CSE.
-
-'use': the referrence expression of cse.
-'use_stmt': the stmt which 'use' is belong to.
-'gen': the first occurrence of CSE.
-
-NOTE: 'use' should be freed. */
+//Replace use_cse with PR related to gen_cse.
+//This function do replacement via gvn info.
+//
+//e.g: ...=a+b <--generate CSE
+//     ...
+//     ...call, a+b, a+b <--two use CSE.
+//
+//'use': the referrence expression of cse.
+//'use_stmt': the stmt which 'use' is belong to.
+//'gen': the first occurrence of CSE.
+//
+//NOTE: 'use' should be freed.
 void IR_GCSE::elimCseAtCall(IR * use, IR * use_stmt, IR * gen)
 {
     #ifdef DEBUG_GCSE
@@ -210,29 +210,29 @@ void IR_GCSE::elimCseAtCall(IR * use, IR * use_stmt, IR * gen)
 }
 
 
-/* Replace use_cse with PR related to gen_cse.
-e.g: ...=a+b <--generate CSE
-     ...
-     ...return, a+b, a+b <--two use CSE.
-
-'use': the referrence expression of cse.
-'use_stmt': the stmt which 'use' is belong to.
-'gen': the first occurrence of CSE.
-
-NOTE: 'use' should be freed. */
+//Replace use_cse with PR related to gen_cse.
+//e.g: ...=a+b <--generate CSE
+//     ...
+//     ...return, a+b, a+b <--two use CSE.
+//
+//'use': the referrence expression of cse.
+//'use_stmt': the stmt which 'use' is belong to.
+//'gen': the first occurrence of CSE.
+//
+//NOTE: 'use' should be freed.
 void IR_GCSE::elimCseAtReturn(IR * use, IR * use_stmt, IR * gen)
 {
     return elimCseAtCall(use, use_stmt, gen);
 }
 
 
-/* Process the expression in CSE generation.
-This function do replacement via gvn info.
-
-e.g: ...=a+b <--generate CSE
-     ...
-     ...=a+b <--use CSE
-'gen': generated cse. */
+//Process the expression in CSE generation.
+//This function do replacement via gvn info.
+//
+//e.g: ...=a+b <--generate CSE
+//     ...
+//     ...=a+b <--use CSE
+//'gen': generated cse.
 void IR_GCSE::prcessCseGen(IN IR * gen, IR * gen_stmt, bool & change)
 {
     ASSERT0(gen->is_exp() && gen_stmt->is_stmt());
@@ -326,10 +326,10 @@ bool IR_GCSE::isCseCandidate(IR * ir)
 
 bool IR_GCSE::elim(IR * use, IR * use_stmt, IR * gen, IR * gen_stmt)
 {
-    /* exp is CSE.
-    e.g: ...=a+b <--generate CSE
-         ...
-         ...=a+b <--use CSE */
+    //exp is CSE.
+    //e.g: ...=a+b <--generate CSE
+    //     ...
+    //     ...=a+b <--use CSE
     bool change = false;
     prcessCseGen(gen, gen_stmt, change);
     switch (IR_code(use_stmt)) {
@@ -645,9 +645,9 @@ bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
                     for (livexp.get_head(&ct2), next = ct2;
                          ct2 != NULL; ct2 = next) {
                         livexp.get_next(&next);
-                        IR * x = ct2->val();
+                        IR * x2 = ct2->val();
                         tmp.clean(m_misc_bs_mgr);
-                        m_du->collectMayUseRecursive(x,
+                        m_du->collectMayUseRecursive(x2,
                             tmp, true, m_misc_bs_mgr);
                         if (maydef->is_intersect(tmp)) {
                             livexp.remove(ct2);
@@ -661,9 +661,9 @@ bool IR_GCSE::doProp(IRBB * bb, List<IR*> & livexp)
                     for (livexp.get_head(&ct2), next = ct2;
                          ct2 != NULL; ct2 = next) {
                         livexp.get_next(&next);
-                        IR * x = ct2->val();
+                        IR * x2 = ct2->val();
                         tmp.clean(m_misc_bs_mgr);
-                        m_du->collectMayUseRecursive(x,
+                        m_du->collectMayUseRecursive(x2,
                             tmp, true, m_misc_bs_mgr);
                         if (tmp.is_overlap(mustdef)) {
                             livexp.remove(ct2);
@@ -761,13 +761,11 @@ bool IR_GCSE::perform(OptCtx & oc)
         #ifdef DEBUG_GCSE
         FILE * h = fopen("gcse.effect.log", "a+");
         fprintf(h, "\n\"%s\",", m_ru->get_ru_name());
-        /*
-        fprintf(h, " elim_num:%d, ", g_num_of_elim);
-        for (UINT i = (UINT)g_elim_irt.get_head();
-             i != 0; i = (UINT)g_elim_irt.get_next()) {
-            fprintf(h, "%s,", IRTNAME(i));
-        }
-        */
+        //fprintf(h, " elim_num:%d, ", g_num_of_elim);
+        //for (UINT i = (UINT)g_elim_irt.get_head();
+        //     i != 0; i = (UINT)g_elim_irt.get_next()) {
+        //    fprintf(h, "%s,", IRTNAME(i));
+        //}
         fclose(h);
         #endif
         //no new expr generated, only new pr.

@@ -152,9 +152,9 @@ SSAGraph::SSAGraph(Region * ru, IR_SSA_MGR * ssamgr)
 
             //May be input parameters.
             SSAUseIter vit = NULL;
-            for (INT i = SSA_uses(v).get_first(&vit);
-                  vit != NULL; i = SSA_uses(v).get_next(i, &vit)) {
-                IR * use = m_ru->get_ir(i);
+            for (INT i2 = SSA_uses(v).get_first(&vit);
+                  vit != NULL; i2 = SSA_uses(v).get_next(i2, &vit)) {
+                IR * use = m_ru->get_ir(i2);
                 ASSERT0(use->is_pr());
                 addEdge(vdef, IR_id(use->get_stmt()));
             }
@@ -162,9 +162,9 @@ SSAGraph::SSAGraph(Region * ru, IR_SSA_MGR * ssamgr)
             ASSERT0(def->is_stmt());
             addVertex(IR_id(def));
             SSAUseIter vit = NULL;
-            for (INT i = SSA_uses(v).get_first(&vit);
-                 vit != NULL; i = SSA_uses(v).get_next(i, &vit)) {
-                IR * use = m_ru->get_ir(i);
+            for (INT i2 = SSA_uses(v).get_first(&vit);
+                 vit != NULL; i2 = SSA_uses(v).get_next(i2, &vit)) {
+                IR * use = m_ru->get_ir(i2);
                 ASSERT0(use->is_pr());
                 addEdge(IR_id(def), IR_id(use->get_stmt()));
             }
@@ -257,8 +257,8 @@ void SSAGraph::dump(CHAR const* name, bool detail)
             fprintf(h, "\nnode: { title:\"%d\" shape:box fontname:\"courB\" "
                         "color:gold label:\"", IR_id(def));
             for (IR * r = res; r != NULL; r = r->get_next()) {
-                VP * vp = (VP*)r->get_ssainfo();
-                fprintf(h, "P%uV%u ", VP_prno(vp), VP_ver(vp));
+                VP * vp2 = (VP*)r->get_ssainfo();
+                fprintf(h, "P%uV%u ", VP_prno(vp2), VP_ver(vp2));
             }
             fprintf(h, " <-- ");
         } else {
@@ -384,9 +384,9 @@ void IR_SSA_MGR::dump_all_vp(bool have_renamed)
 
         SSAUseIter vit = NULL;
         INT nexti = 0;
-        for (INT i = SSA_uses(v).get_first(&vit); vit != NULL; i = nexti) {
-            nexti = SSA_uses(v).get_next(i, &vit);
-            IR * use = m_ru->get_ir(i);
+        for (INT i2 = SSA_uses(v).get_first(&vit); vit != NULL; i2 = nexti) {
+            nexti = SSA_uses(v).get_next(i2, &vit);
+            IR * use = m_ru->get_ir(i2);
             ASSERT0(use->is_pr());
 
             fprintf(g_tfile, "(pr%d,id%d)", use->get_prno(), IR_id(use));
@@ -1255,9 +1255,9 @@ bool IR_SSA_MGR::verifyVP()
 
         SSAUseIter vit = NULL;
         UINT opndprno = 0;
-        for (INT i = SSA_uses(v).get_first(&vit);
-             vit != NULL; i = SSA_uses(v).get_next(i, &vit)) {
-            IR * use = m_ru->get_ir(i);
+        for (INT i2 = SSA_uses(v).get_first(&vit);
+             vit != NULL; i2 = SSA_uses(v).get_next(i2, &vit)) {
+            IR * use = m_ru->get_ir(i2);
 
             ASSERT0(use->is_pr() || use->is_const());
 
@@ -1715,12 +1715,11 @@ void IR_SSA_MGR::stripStmtVersion(IR * stmt, BitSet & visited)
 }
 
 
-/* Do striping for all VP recorded.
-
-We do not try to strip version for all VP, because the information of VP
-during striping will not be maintained and the relationship between
-VP_prno and the concrete occurrence PR may be invalid and
-that making the process assert. */
+//Do striping for all VP recorded.
+//We do not try to strip version for all VP, because the information of VP
+//during striping will not be maintained and the relationship between
+//VP_prno and the concrete occurrence PR may be invalid and
+//that making the process assert.
 void IR_SSA_MGR::stripVersionForAllVP()
 {
     for (INT i = 1; i <= m_vp_vec.get_last_idx(); i++) {
@@ -1744,9 +1743,9 @@ void IR_SSA_MGR::constructMDDUChainForPR()
         ASSERT0(def->is_stmt());
 
         SSAUseIter vit = NULL;
-        for (INT i = SSA_uses(v).get_first(&vit);
-             vit != NULL; i = SSA_uses(v).get_next(i, &vit)) {
-            IR * use = m_ru->get_ir(i);
+        for (INT i2 = SSA_uses(v).get_first(&vit);
+             vit != NULL; i2 = SSA_uses(v).get_next(i2, &vit)) {
+            IR * use = m_ru->get_ir(i2);
             ASSERT0(use->is_pr());
             ASSERT0(def->is_exact_def(use->getRefMD()));
             m_ru->get_du_mgr()->buildDUChain(def, use);

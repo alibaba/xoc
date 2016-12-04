@@ -75,17 +75,17 @@ void VAR::dump(FILE * h, TypeMgr const* dm) const
 //You must make sure this function will not change any field of VAR.
 CHAR const* VAR::dump(StrBuf & buf, TypeMgr const* dm) const
 {
-    CHAR * name = SYM_name(VAR_name(this));
+    CHAR * lname = SYM_name(VAR_name(this));
     CHAR tt[43];
-    if (xstrlen(name) > 43) {
-        memcpy(tt, name, 43);
+    if (xstrlen(lname) > 43) {
+        memcpy(tt, lname, 43);
         tt[39] = '.';
         tt[40] = '.';
         tt[41] = '.';
         tt[42] = 0;
-        name = tt;
+        lname = tt;
     }
-    buf.strcat("VAR%d(%s):", VAR_id(this), name);
+    buf.strcat("VAR%d(%s):", VAR_id(this), lname);
     if (HAVE_FLAG(VAR_flag(this), VAR_GLOBAL)) {
         buf.strcat("global");
     } else if (HAVE_FLAG(VAR_flag(this), VAR_LOCAL)) {
@@ -150,15 +150,15 @@ CHAR const* VAR::dump(StrBuf & buf, TypeMgr const* dm) const
         buf.strcat(",allocable");
     }
 
-    Type const* type = VAR_type(this);
-    ASSERT0(type);
+    Type const* ltype = VAR_type(this);
+    ASSERT0(ltype);
 
     if (is_pointer()) {
-        buf.strcat(",pointer,pt_base_sz:%d", TY_ptr_base_size(type));
+        buf.strcat(",pointer,pt_base_sz:%d", TY_ptr_base_size(ltype));
     }
 
-    buf.strcat(",%s", dm->get_dtype_name(TY_dtype(type)));
-    if (TY_dtype(type) > D_F128) {
+    buf.strcat(",%s", dm->get_dtype_name(TY_dtype(ltype)));
+    if (TY_dtype(ltype) > D_F128) {
         buf.strcat(",mem_size:%d", getByteSize(dm));
     }
 

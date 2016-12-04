@@ -103,7 +103,7 @@ void CfsMgr::dump_indent(UINT indent)
 
 void CfsMgr::dump_abs_tree(AbsNode * an)
 {
-    fprintf(g_tfile, "\n##############\nDUMP AbsNode Tree\n##############\n");
+    fprintf(g_tfile, "\n==---- DUMP AbsNode Tree ----==\n");
     dump_abs_tree(an, 0);
 }
 
@@ -181,8 +181,7 @@ AbsNode * CfsMgr::constructAbsLoop(
     ASSERT0(CFS_INFO_loop_body(ci)->is_contain(*LI_bb_set(li)));
     BitSet loc_visited;
     ABS_NODE_loop_body(node) = constructAbsTree(body_start, node,
-                                                  LI_bb_set(li),
-                                                  cur_graph, loc_visited);
+        LI_bb_set(li), cur_graph, loc_visited);
     visited.bunion(loc_visited);
     visited.bunion(BB_id(entry));
     return node;
@@ -191,10 +190,10 @@ AbsNode * CfsMgr::constructAbsLoop(
 
 //'cur_region' covered 'entry'.
 AbsNode * CfsMgr::constructAbsIf(
-                        IN IRBB * entry,
-                        IN AbsNode * parent,
-                        IN Graph & cur_graph,
-                        IN OUT BitSet & visited)
+        IN IRBB * entry,
+        IN AbsNode * parent,
+        IN Graph & cur_graph,
+        IN OUT BitSet & visited)
 {
     AbsNode * node = new_abs_node(ABS_IF);
     set_map_bb2abs(entry, node);
@@ -208,10 +207,12 @@ AbsNode * CfsMgr::constructAbsIf(
     ASSERT0(ci != NULL && CFS_INFO_head(ci) == entry);
 
     BitSet loc_visited;
-    ABS_NODE_true_body(node) = constructAbsTree(true_body, node, CFS_INFO_true_body(ci), cur_graph, loc_visited);
+    ABS_NODE_true_body(node) = constructAbsTree(true_body, node, 
+        CFS_INFO_true_body(ci), cur_graph, loc_visited);
     visited.bunion(loc_visited);
     loc_visited.clean();
-    ABS_NODE_false_body(node) = constructAbsTree(false_body, node, CFS_INFO_false_body(ci), cur_graph, loc_visited);
+    ABS_NODE_false_body(node) = constructAbsTree(false_body, node, 
+        CFS_INFO_false_body(ci), cur_graph, loc_visited);
     visited.bunion(loc_visited);
     visited.bunion(BB_id(entry));
     return node;
@@ -272,14 +273,13 @@ AbsNode * CfsMgr::constructAbsTree(
                 last_xr->is_cond_br()) {
                 ASSERT0(map_ir2cfsinfo(last_xr) != NULL);
 
-                /* There might not exist ipdom.
-                e.g:
-                    if (x) //BB1
-                        return 1;
-                    return 2;
-
-                    BB1 does not have a ipdom.
-                */
+                //There might not exist ipdom.
+                //e.g:
+                //  if (x) //BB1
+                //      return 1;
+                //  return 2;
+                //
+                //  BB1 does not have a ipdom.
                 UINT ipdom = ((DGraph*)cfg)->get_ipdom(BB_id(bb));
                 UNUSED(ipdom);
                 ASSERT(ipdom > 0, ("bb does not have ipdom"));

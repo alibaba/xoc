@@ -271,16 +271,16 @@ void IR_IVR::findBIV(
             MDSet const* maydef = m_du->get_may_def(ir);
             if (maydef == NULL) { continue; }
 
-            for (INT i = tmp.get_first(); i != -1; i = tmp.get_next(i)) {
-                MD const* md = m_md_sys->get_md(i);
+            for (INT i2 = tmp.get_first(); i2 != -1; i2 = tmp.get_next(i2)) {
+                MD const* md = m_md_sys->get_md(i2);
                 ASSERT0(!m_is_only_handle_exact_md || md->is_exact());
                 if (maydef->is_contain(md)) {
-                    map_md2defcount.set(i, 0);
+                    map_md2defcount.set(i2, 0);
 
                     //For performance, we do not remove the TN of TMap.
                     //Just the mapped value to be NULL.
-                    map_md2defir.setAlways(i, NULL);
-                    tmp.diff(i);
+                    map_md2defir.setAlways(i2, NULL);
+                    tmp.diff(i2);
                 }
             }
         } //end for each IR.

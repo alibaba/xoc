@@ -826,41 +826,41 @@ IR * Region::buildIstore(IR * base, IR * rhs, Type const* type)
 }
 
 
-/* Build IR_ARRAY operation.
-'base': base of array operation, it is either LDA or pointer.
-'sublist': subscript expression list.
-'type': result type of array operator.
-    Note that type may NOT be equal to elem_tyid, accroding to
-    ARR_ofst(). If ARR_ofst() is not zero, that means array
-    elem is MC, or VECTOR, and type should be type of member
-    to MC/VECTOR.
-    e.g: struct S{ int a,b,c,d;}
-        struct S pa[100];
-        If youe do access pa[1].c
-        type should be int rather than struct S.
-        and elem_tyid should be struct S.
-
-'elem_tyid': record element-data-type.
-    e.g:vector<int,8> g[100];
-        elem_size is sizeof(vector<int,8>) = 32
-        elem_type is vector.
-    e.g1: struct S{ int a,b,c,d;}
-        struct S * pa[100];
-        elem_size is sizeof(struct S *)
-        elem_type is PTR.
-    e.g2:
-        struct S pa[100];
-        elem_size is sizeof(struct S)
-        elem_type is struct S
-
-'dims': indicate the array dimension.
-'elem_num': point to an integer array that indicate
-    the number of element for each dimension. The length of the integer
-    array should be equal to 'dims'.
-    e.g: int g[12][24];
-        elem_num points to an array with 2 value, [12, 24].
-        the 1th dimension has 12 elements, and the 2th dimension has 24
-        elements, which element type is D_I32. */
+//Build IR_ARRAY operation.
+//'base': base of array operation, it is either LDA or pointer.
+//'sublist': subscript expression list.
+//'type': result type of array operator.
+//    Note that type may NOT be equal to elem_tyid, accroding to
+//    ARR_ofst(). If ARR_ofst() is not zero, that means array
+//    elem is MC, or VECTOR, and type should be type of member
+//    to MC/VECTOR.
+//    e.g: struct S{ int a,b,c,d;}
+//        struct S pa[100];
+//        If youe do access pa[1].c
+//        type should be int rather than struct S.
+//        and elem_tyid should be struct S.
+//
+//'elem_tyid': record element-data-type.
+//    e.g:vector<int,8> g[100];
+//        elem_size is sizeof(vector<int,8>) = 32
+//        elem_type is vector.
+//    e.g1: struct S{ int a,b,c,d;}
+//        struct S * pa[100];
+//        elem_size is sizeof(struct S *)
+//        elem_type is PTR.
+//    e.g2:
+//        struct S pa[100];
+//        elem_size is sizeof(struct S)
+//        elem_type is struct S
+//
+//'dims': indicate the array dimension.
+//'elem_num': point to an integer array that indicate
+//    the number of element for each dimension. The length of the integer
+//    array should be equal to 'dims'.
+//    e.g: int g[12][24];
+//        elem_num points to an array with 2 value, [12, 24].
+//        the 1th dimension has 12 elements, and the 2th dimension has 24
+//        elements, which element type is D_I32.
 IR * Region::buildArray(
         IR * base,
         IR * sublist,
@@ -895,43 +895,43 @@ IR * Region::buildArray(
 }
 
 
-/* Build IR_STARRAY operation.
-'base': base of array operation, it is either LDA or pointer.
-'sublist': subscript expression list.
-'type': result type of array operator.
-    Note that type may NOT be equal to elem_tyid, accroding to
-    ARR_ofst(). If ARR_ofst() is not zero, that means array
-    elem is MC, or VECTOR, and type should be type of member
-    to MC/VECTOR.
-    e.g: struct S{ int a,b,c,d;}
-        struct S pa[100];
-        If youe do access pa[1].c
-        type should be int rather than struct S.
-        and elem_tyid should be struct S.
-
-'elem_tyid': record element-data-type.
-    e.g:vector<int,8> g[100];
-        elem_size is sizeof(vector<int,8>) = 32
-        elem_type is vector.
-    e.g1: struct S{ int a,b,c,d;}
-        struct S * pa[100];
-        elem_size is sizeof(struct S *)
-        elem_type is PTR.
-    e.g2:
-        struct S pa[100];
-        elem_size is sizeof(struct S)
-        elem_type is struct S
-
-'dims': indicate the array dimension.
-'elem_num': point to an integer array that indicate
-    the number of element for in dimension.
-    The length of the integer array should be equal to 'dims'.
-    e.g: int g[12][24];
-        elem_num points to an array with 2 value, [12, 24].
-        the 1th dimension has 12 elements, and the 2th dimension has 24
-        elements, which element type is D_I32.
-    Note the parameter may be NULL.
-'rhs: value expected to store. */
+//Build IR_STARRAY operation.
+//'base': base of array operation, it is either LDA or pointer.
+//'sublist': subscript expression list.
+//'type': result type of array operator.
+//    Note that type may NOT be equal to elem_tyid, accroding to
+//    ARR_ofst(). If ARR_ofst() is not zero, that means array
+//    elem is MC, or VECTOR, and type should be type of member
+//    to MC/VECTOR.
+//    e.g: struct S{ int a,b,c,d;}
+//        struct S pa[100];
+//        If youe do access pa[1].c
+//        type should be int rather than struct S.
+//        and elem_tyid should be struct S.
+//
+//'elem_tyid': record element-data-type.
+//    e.g:vector<int,8> g[100];
+//        elem_size is sizeof(vector<int,8>) = 32
+//        elem_type is vector.
+//    e.g1: struct S{ int a,b,c,d;}
+//        struct S * pa[100];
+//        elem_size is sizeof(struct S *)
+//        elem_type is PTR.
+//    e.g2:
+//        struct S pa[100];
+//        elem_size is sizeof(struct S)
+//        elem_type is struct S
+//
+//'dims': indicate the array dimension.
+//'elem_num': point to an integer array that indicate
+//    the number of element for in dimension.
+//    The length of the integer array should be equal to 'dims'.
+//    e.g: int g[12][24];
+//        elem_num points to an array with 2 value, [12, 24].
+//        the 1th dimension has 12 elements, and the 2th dimension has 24
+//        elements, which element type is D_I32.
+//    Note the parameter may be NULL.
+//'rhs: value expected to store.
 IR * Region::buildStoreArray(
         IR * base,
         IR * sublist,
@@ -1219,7 +1219,47 @@ IR * Region::buildImmInt(HOST_INT v, Type const* type)
     ASSERT0(type);
     ASSERT0(type->is_int() || type->is_mc());
     IR * imm = allocIR(IR_CONST);
-    CONST_int_val(imm) = v;
+    if (type->is_int()) {
+        //Make sure value is sign-extended.
+        switch (TY_dtype(type)) {        
+        case D_I8:
+        case D_U8:
+            {
+                UINT8 uv = (UINT8)v;
+                INT8 sv = (INT8)uv;
+                CONST_int_val(imm) = (HOST_INT)sv;
+            }
+            break;
+        case D_I16:
+        case D_U16:
+            {
+                UINT16 uv = (UINT16)v;
+                INT16 sv = (INT16)uv;
+                CONST_int_val(imm) = (HOST_INT)sv;
+            }
+            break;
+        case D_I32:
+        case D_U32:
+            {
+                UINT32 uv = (UINT32)v;
+                INT32 sv = (INT32)uv;
+                CONST_int_val(imm) = (HOST_INT)sv;
+            }
+            break;
+        case D_I64:
+        case D_U64:
+            {
+                UINT64 uv = (UINT64)v;
+                INT64 sv = (INT64)uv;
+                CONST_int_val(imm) = (HOST_INT)sv;
+            }
+            break;            
+        default: ASSERT(0, ("TODO"));
+        }
+    } else {
+        CONST_int_val(imm) = v;
+    }
+        
     IR_dt(imm) = type;
     return imm;
 }
@@ -1525,34 +1565,34 @@ C<IRBB*> * Region::splitIRlistIntoBB(IR * irs, BBList * bbl, C<IRBB*> * ctbb)
 }
 
 
-/* Find the boundary IR generated in BB to update bb-list incremently.
-e.g: Given BB1 has one stmt:
-    BB1:
-    a = b||c
-after some simplification, we get:
-    truebr(b != 0), L1
-    truebr(c != 0), L1
-    pr = 0
-    goto L2
-    L1:
-    pr = 1
-    L2:
-    a = pr
-
-where IR list should be splitted into :
-    BB1:
-    truebr(b != 0), L1
-    BB2:
-    truebr(c != 0), L1
-    BB3:
-    pr = 0
-    goto L2
-    BB4:
-    L1:
-    pr = 1
-    BB5:
-    L2:
-    a = pr */
+//Find the boundary IR generated in BB to update bb-list incremently.
+//e.g: Given BB1 has one stmt:
+//    BB1:
+//    a = b||c
+//after some simplification, we get:
+//    truebr(b != 0), L1
+//    truebr(c != 0), L1
+//    pr = 0
+//    goto L2
+//    L1:
+//    pr = 1
+//    L2:
+//    a = pr
+//
+//where IR list should be splitted into :
+//    BB1:
+//    truebr(b != 0), L1
+//    BB2:
+//    truebr(c != 0), L1
+//    BB3:
+//    pr = 0
+//    goto L2
+//    BB4:
+//    L1:
+//    pr = 1
+//    BB5:
+//    L2:
+//    a = pr
 bool Region::reconstructBBlist(OptCtx & oc)
 {
     START_TIMER("Reconstruct IRBB list");
@@ -1747,24 +1787,24 @@ void Region::constructIRBBlist()
 }
 
 
-/* Do general check for safe optimizing.
-    CASE 1:
-        Do NOT optimize the code if meet the VIOLATE variable!
-        e.g1:
-            volatile int x, y;
-            int a[SIZE];
-            void f(void)
-            {
-              for (int i = 0; i < SIZE; i++)
-                a[i] = x + y;
-            }
-
-            Some compilers will hoist the expression (x + y)
-            out of the loop as shown below, which is an
-            incorrect optimization.
-        e.g2:
-            ## Incorrect Definiation! x,y are NOT const.
-            const violate int x,y; */
+//Do general check for safe optimizing.
+// CASE 1:
+//     Do NOT optimize the code if meet the VIOLATE variable!
+//     e.g1:
+//         volatile int x, y;
+//         int a[SIZE];
+//         void f(void)
+//         {
+//           for (int i = 0; i < SIZE; i++)
+//             a[i] = x + y;
+//         }
+//
+//         Some compilers will hoist the expression (x + y)
+//         out of the loop as shown below, which is an
+//         incorrect optimization.
+//     e.g2:
+//         ## Incorrect Definiation! x,y are NOT const.
+//         const violate int x,y;
 bool Region::isSafeToOptimize(IR const* ir)
 {
     if (ir->is_volatile()) {
@@ -1904,6 +1944,7 @@ void Region::freeIRTree(IR * ir)
 {
     if (ir == NULL) { return; }
 
+    ASSERT(!ir->is_undef(), ("ir has been freed"));
     ASSERT(ir->is_single(), ("chain list should be cut off"));
     for (INT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
         IR * kid = ir->get_kid(i);
@@ -2776,8 +2817,7 @@ bool Region::verifyMDRef()
                 case IR_SWITCH:
                 case IR_RETURN:
                 case IR_REGION:
-                    ASSERT0(t->getRefMD() == NULL &&
-                            t->getRefMDSet() == NULL);
+                    ASSERT0(t->getRefMD() == NULL && t->getRefMDSet() == NULL);
                     break;
                 default: ASSERT(0, ("unsupport ir type"));
                 }

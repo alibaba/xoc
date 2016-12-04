@@ -112,9 +112,9 @@ bool IR_LICM::scanOpnd(
                 if (defset == NULL) { continue; }
 
                 DUIter di = NULL;
-                for (INT i = defset->get_first(&di);
-                     i >= 0; i = defset->get_next(i, &di)) {
-                    IR const* d = m_ru->get_ir(i);
+                for (INT i2 = defset->get_first(&di);
+                     i2 >= 0; i2 = defset->get_next(i2, &di)) {
+                    IR const* d = m_ru->get_ir(i2);
                     ASSERT0(d->get_bb() && d->is_stmt());
                     if (!invariant_stmt.find(const_cast<IR*>(d)) &&
                         li->is_inside_loop(BB_id(d->get_bb()))) {
@@ -252,8 +252,8 @@ bool IR_LICM::isUniqueDef(MD const* md)
 
     MD const* x = mdt->get_effect_md();
     if (x != NULL && x != md && x->is_overlap(md)) {
-        UINT * n = m_md2num.get(x);
-        if (*n > 1) { return false; }
+        UINT * n2 = m_md2num.get(x);
+        if (*n2 > 1) { return false; }
     }
 
     OffsetTab * ofstab = mdt->get_ofst_tab();
@@ -262,11 +262,11 @@ bool IR_LICM::isUniqueDef(MD const* md)
     if (ofstab->get_elem_count() == 0) { return true; }
 
     m_mditer.clean();
-    for (MD const* x = ofstab->get_first(m_mditer, NULL);
-         x != NULL; x = ofstab->get_next(m_mditer, NULL)) {
-        if (x != md && x->is_overlap(md)) {
-            UINT * n = m_md2num.get(x);
-            if (n != NULL && *n > 1) { return false; }
+    for (MD const* x2 = ofstab->get_first(m_mditer, NULL);
+         x2 != NULL; x2 = ofstab->get_next(m_mditer, NULL)) {
+        if (x2 != md && x2->is_overlap(md)) {
+            UINT * n2 = m_md2num.get(x2);
+            if (n2 != NULL && *n2 > 1) { return false; }
         }
     }
     return true;
@@ -348,11 +348,11 @@ void IR_LICM::updateMD2Num(IR * ir)
                 SEGIter * iter;
                 for (INT i = mds->get_first(&iter);
                      i >= 0; i = mds->get_next(i, &iter)) {
-                    MD * md = m_md_sys->get_md(i);
-                    UINT * n = m_md2num.get(md);
+                    MD * md2 = m_md_sys->get_md(i);
+                    UINT * n = m_md2num.get(md2);
                     if (n == NULL) {
                         n = (UINT*)xmalloc(sizeof(UINT));
-                        m_md2num.set(md, n);
+                        m_md2num.set(md2, n);
                     }
                     (*n)++;
                 }
@@ -682,23 +682,21 @@ bool IR_LICM::hoistCand(
 
                 //cand is store value and the result memory object is ID|PR.
 
-                /* Fix bug: If we hoist whole stmt out of loop,
-                we should make sure the stmt will be execute at least once
-                or never. TRUEBR should be generated and encapsulate
-                the hoisted stmt to ensure that.
-                    while (a > 0) {
-                        a = 10;
-                        foo();
-                    }
-                    =>
-                    if (a > 0)  {
-                        a = 10;
-                    }
-                    while (a > 0) {
-                        foo();
-                    }
-                */
-
+                //Fix bug: If we hoist whole stmt out of loop,
+                //we should make sure the stmt will be execute at least once
+                //or never. TRUEBR should be generated and encapsulate
+                //the hoisted stmt to ensure that.
+                //    while (a > 0) {
+                //        a = 10;
+                //        foo();
+                //    }
+                //    =>
+                //    if (a > 0)  {
+                //        a = 10;
+                //    }
+                //    while (a > 0) {
+                //        foo();
+                //    }
                 ASSERT0(stmt->get_bb());
                 BB_irlist(stmt->get_bb()).remove(stmt);
                 BB_irlist(prehead).append_tail_ex(stmt);

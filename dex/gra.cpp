@@ -222,17 +222,15 @@ void LT::clean()
     }
     return; //Do not clean other info.
 
-    /*
-    priority = 0.0;
+    //priority = 0.0;
     //usable = NULL;
-    phy = REG_UNDEF;
-    prefer_reg = REG_UNDEF;
-    reg_group_size = 1;
-    lt_group_pos = 0;
-    if (lt_group != NULL) {
-        lt_group->clean();
-    }
-    */
+    //phy = REG_UNDEF;
+    //prefer_reg = REG_UNDEF;
+    //reg_group_size = 1;
+    //lt_group_pos = 0;
+    //if (lt_group != NULL) {
+    //    lt_group->clean();
+    //}    
 }
 
 
@@ -251,9 +249,10 @@ bool LT::has_branch(LTMgr * ltm) const
     if (occ == NULL) { return false; }
     INT i = occ->get_last();
     if (i < 0) { return false; }
-    IR * occ = ltm->get_ir(i);
-    if (occ->is_cond_br() || occ->is_uncond_br() ||
-        occ->is_multicond_br()) {
+
+    IR * locc = ltm->get_ir(i);
+    if (locc->is_cond_br() || locc->is_uncond_br() ||
+        locc->is_multicond_br()) {
         return true;
     }
     return false;
@@ -724,9 +723,9 @@ void RSC::dump_glt_usable()
             }
 
             if (dump_bit) {
-                for (INT i = usable->get_first();
-                     i >= 0; i = usable->get_next(i)) {
-                    fprintf(g_tfile, "%d,", i);
+                for (INT i2 = usable->get_first();
+                     i2 >= 0; i2 = usable->get_next(i2)) {
+                    fprintf(g_tfile, "%d,", i2);
                 }
             } else {
                 fprintf(g_tfile, "%d~%d",
@@ -760,9 +759,9 @@ void RSC::dump_bb(UINT bbid)
                 continue;
             }
             if (dump_bit) {
-                for (INT i = usable->get_first();
-                     i >= 0; i = usable->get_next(i)) {
-                    fprintf(g_tfile, "%d,", i);
+                for (INT i2 = usable->get_first();
+                     i2 >= 0; i2 = usable->get_next(i2)) {
+                    fprintf(g_tfile, "%d,", i2);
                 }
             } else {
                 fprintf(g_tfile, "%d~%d", usable->get_first(), usable->get_last());
@@ -1453,13 +1452,16 @@ bool GIG::is_interf_with_neighbour(GLT * g, DefSBitSet & nis, UINT phy)
     SEGIter * cur = NULL;
     for (INT ltid = nis.get_first(&cur);
          ltid >= 0; ltid = nis.get_next(ltid, &cur)) {
-        GLT * g = m_gltm->get_glt(ltid);
-        ASSERT0(g);
-        if (!g->has_allocated()) { continue; }
-        if (GLT_phy(g) == phy) { return true; }
-        if (GLT_rg_sz(g) > 1) {
-            ASSERT0(GLT_rg_sz(g) == RG_PAIR_SZ);
-            if ((UINT)GLT_phy(g) + 1 == phy) { return true; }
+        GLT * g2 = m_gltm->get_glt(ltid);
+        ASSERT0(g2);
+
+        if (!g2->has_allocated()) { continue; }
+
+        if (GLT_phy(g2) == phy) { return true; }
+
+        if (GLT_rg_sz(g2) > 1) {
+            ASSERT0(GLT_rg_sz(g2) == RG_PAIR_SZ);
+            if ((UINT)GLT_phy(g2) + 1 == phy) { return true; }
         }
     }
     return false;
@@ -1688,22 +1690,22 @@ LTMgr::LTMgr(IRBB * bb, PRDF * prdf, GltMgr * gltm, SMemPool * pool)
 }
 
 
-/* Generate spill instruction at 'pos',
-pos may be the liveout/livein pos.
-
-Spilling for Def.
-    e.g:
-        sr1 = ...
-
-    after spilling:
-
-    sr1 = ...
-    [spill_loc] = sr1
-
-NOTICE:
-    1. Each of spilling code generated are executed unconditionally.
-       Allow to spill unallocated 'lt'.
-    2. position in LT should be updated. */
+//Generate spill instruction at 'pos',
+//pos may be the liveout/livein pos.
+//
+//Spilling for Def.
+//    e.g:
+//        sr1 = ...
+//
+//    after spilling:
+//
+//    sr1 = ...
+//    [spill_loc] = sr1
+//
+//NOTICE:
+//    1. Each of spilling code generated are executed unconditionally.
+//       Allow to spill unallocated 'lt'.
+//    2. position in LT should be updated.
 IR * LTMgr::genSpill(LT * lt, INT pos)
 {
     IR * spill_loc = m_ru->buildPR(m_tm->getSimplexType(D_I32));
@@ -1735,17 +1737,17 @@ IR * LTMgr::genSpill(LT * lt, INT pos)
 }
 
 
-/* Generate spill instruction after 'marker' and swap pr.
-Return spill location.
-'stpr': indicate the result register to be spilled.
-    It is also stmt marker to indicate where the spill instruction insert.
-'prno': prno that to be spilled.
-'spill_loc': spill location.
-
-e.g: pr1 = pr2 + 3
-    =>
-     [spill_loc] = pr2 + 3
-     pr1 = [spill_loc] */
+//Generate spill instruction after 'marker' and swap pr.
+//Return spill location.
+//'stpr': indicate the result register to be spilled.
+//    It is also stmt marker to indicate where the spill instruction insert.
+//'prno': prno that to be spilled.
+//'spill_loc': spill location.
+//
+//e.g: pr1 = pr2 + 3
+//    =>
+//     [spill_loc] = pr2 + 3
+//     pr1 = [spill_loc]
 IR * LTMgr::genSpillSwap(IR * stmt, UINT prno, Type const* prty, IR * spill_loc)
 {
     ASSERT0(stmt && (stmt->is_stpr() || stmt->is_calls_stmt()) && prty);
@@ -1768,15 +1770,15 @@ IR * LTMgr::genSpillSwap(IR * stmt, UINT prno, Type const* prty, IR * spill_loc)
 }
 
 
-/* Generate spill instruction after 'marker'.
-Return spill location.
-'orgpr': register to be spilled.
-'spill_loc': spill location.
-
-e.g: pr1 = pr2 + 3
-    =>
-     pr1 = pr2 + 3
-     [spill_loc] = pr1 */
+//Generate spill instruction after 'marker'.
+//Return spill location.
+//'orgpr': register to be spilled.
+//'spill_loc': spill location.
+//
+//e.g: pr1 = pr2 + 3
+//    =>
+//     pr1 = pr2 + 3
+//     [spill_loc] = pr1
 IR * LTMgr::genSpill(UINT prno, Type const* type, IR * marker, IR * spill_loc)
 {
     ASSERT0(prno > 0 && type && marker && marker->is_stmt());
@@ -1791,21 +1793,21 @@ IR * LTMgr::genSpill(UINT prno, Type const* type, IR * marker, IR * spill_loc)
 }
 
 
-/* Generate reload instruction at 'pos',
-pos may be the liveout/livein pos.
-
-Reloading for Use.
-    e.g:
-        ... = sr1
-    after reloading:
-        sr2 = [spill_loc]
-        ... = sr2
-Return the new sr generated.
-
-'ors': if it is NOT NULL, return the ORs generated.
-
-NOTICE:
-    Each reloads are executed unconditionally. */
+//Generate reload instruction at 'pos',
+//pos may be the liveout/livein pos.
+//
+//Reloading for Use.
+//    e.g:
+//        ... = sr1
+//    after reloading:
+//        sr2 = [spill_loc]
+//        ... = sr2
+//Return the new sr generated.
+//
+//'ors': if it is NOT NULL, return the ORs generated.
+//
+//NOTICE:
+//    Each reloads are executed unconditionally.
 IR * LTMgr::genReload(LT * lt, INT pos, IR * spill_loc)
 {
     IR * ltpr = m_ru->buildPR(IR_dt(spill_loc));
@@ -1840,16 +1842,16 @@ IR * LTMgr::genReload(LT * lt, INT pos, IR * spill_loc)
 }
 
 
-/* Generate reload instruction before 'marker', from 'spill_loc' to 'newpr'.
-Reloading for Use.
-    e.g:
-        ... = sr1
-    after reloading:
-        sr1 = [spill_loc]
-        ... = sr1
-Return the result pr of reloading.
-NOTICE:
-    Each of reloading code generated are executed unconditionally. */
+//Generate reload instruction before 'marker', from 'spill_loc' to 'newpr'.
+//Reloading for Use.
+//  e.g:
+//      ... = sr1
+//  after reloading:
+//      sr1 = [spill_loc]
+//      ... = sr1
+//Return the result pr of reloading.
+//NOTICE:
+//  Each of reloading code generated are executed unconditionally.
 IR * LTMgr::genReload(IR * newpr, IR * marker, IR * spill_loc)
 {
     ASSERT0(newpr && newpr->is_pr() &&
@@ -1865,16 +1867,16 @@ IR * LTMgr::genReload(IR * newpr, IR * marker, IR * spill_loc)
 }
 
 
-/* Generate reload instruction before 'marker', and
-swap spill_loc and newpr.
-Return the result pr of reloading. This pr need a phy register.
-    e.g:
-        ... = sr1  //the stmt is marker.
-    after reloading:
-        [spill_loc] = sr1
-        ... = [spill_loc] //the stmt is marker.
-
-NOTE: Caller is responsible for keeping spill_loc's id unique. */
+//Generate reload instruction before 'marker', and
+//swap spill_loc and newpr.
+//Return the result pr of reloading. This pr need a phy register.
+//  e.g:
+//      ... = sr1  //the stmt is marker.
+//  after reloading:
+//      [spill_loc] = sr1
+//      ... = [spill_loc] //the stmt is marker.
+//
+//NOTE: Caller is responsible for keeping spill_loc's id unique.
 IR * LTMgr::genReloadSwap(IR * orgpr, IR * marker)
 {
     ASSERT0(marker && marker->is_stmt());
@@ -2486,14 +2488,12 @@ void LTMgr::build(
     ASSERT0(pos == get_first_pos());
     processLivein(*lived_lt, pos, consider_glt);
 
-    /*
     //Append the FIRST_POS to complete all remainder life times.
-    for (INT i = lived_lt.get_first(); i >= 0; i = lived_lt.get_next(i)) {
-         LT * lt = get_lt(i);
-        ASSERT0(lt);
-        LT_pos(lt)->bunion(pos);
-    }
-    */
+    //for (INT i = lived_lt.get_first(); i >= 0; i = lived_lt.get_next(i)) {
+    //     LT * lt = get_lt(i);
+    //    ASSERT0(lt);
+    //    LT_pos(lt)->bunion(pos);
+    //}
 
     #ifdef _DEBUG_
     //Life time verification.
@@ -2501,15 +2501,16 @@ void LTMgr::build(
         LT * lt = m_lt_vec.get(i);
         if (lt == NULL) { continue; }
         if (!LT_is_global(lt) && !lt->has_allocated()) {
-            /* For the sake of the weak implementation of Code Expansion Phase,
-            do not check the existence of the first def-point for local SR,
-            even if it does not have in some case. Because, Code Expansion
-            Phase might generate redundant SR reference.
-            While lt's SR has been assigned a physical register, the life
-            time should be able to represent that register.
+            //For the sake of the weak implementation of Code Expansion Phase,
+            //do not check the existence of the first def-point for local SR,
+            //even if it does not have in some case. Because, Code Expansion
+            //Phase might generate redundant SR reference.
+            //While lt's SR has been assigned a physical register, the life
+            //time should be able to represent that register.
+            //
+            //ASSERT(LT_pos(lt)->get_first() > get_first_pos(),
+            //       ("Local life time has not live in point"));
 
-            ASSERT(LT_pos(lt)->get_first() > get_first_pos(),
-                   ("Local life time has not live in point")); */
             ASSERT(LT_range(lt)->get_first() <
                    (INT)(m_max_lt_len - 1),
                    ("Local life time has not live in point"));
@@ -2559,20 +2560,20 @@ void LTMgr::revise_special_lt(List<LT*> * lts)
         if (lt == NULL) { continue; }
         if (!LT_is_global(lt) &&
             LT_range(lt)->get_first() == firstpos) {
-            /* Local PR has occurred at LT_FIRST_POS!
-            lt might be assigned register already. Apart from that,
-            there are followed reasons for the situation at present:
-            CASE 1: Local PR that only has USE point. That becasuse Code
-                Generation Phase might generate redundant PR reference code,
-                or the DEF of local PR is conditional execution. */
+            //Local PR has occurred at LT_FIRST_POS!
+            //lt might be assigned register already. Apart from that,
+            //there are followed reasons for the situation at present:
+            //CASE 1: Local PR that only has USE point. That becasuse Code
+            //    Generation Phase might generate redundant PR reference code,
+            //    or the DEF of local PR is conditional execution.
             revise_lt_case_1(lt);
-        } //end if
-    } //end for
+        }
+    }
 
-    /* Remove lt which live-through exit bb that neither have any
-    use/def occurrence nor live-in the exit bb.
-    So far, we only found this case in exit bb. Any else?
-    For the sake of that, we only check exit bb for speeding up compiling. */
+    //Remove lt which live-through exit bb that neither have any
+    //use/def occurrence nor live-in the exit bb.
+    //So far, we only found this case in exit bb. Any else?
+    //For the sake of that, we only check exit bb for speeding up compiling.
     if (BB_is_exit(m_bb) && lts != NULL) {
         for (LT * lt = lts->get_head(); lt != NULL; lt = lts->get_next()) {
             if (!is_livein(LT_prno(lt)) &&
@@ -2931,8 +2932,8 @@ void LTMgr::dump_allocated(FILE * h, BitSet & visited)
 
             //Dump ltg's prno, ltid, phy.
             fprintf(h, "<");
-            for (INT i = 0; i <= ltg->get_last_idx(); i++) {
-                LT * l = ltg->get(i);
+            for (INT i2 = 0; i2 <= ltg->get_last_idx(); i2++) {
+                LT * l = ltg->get(i2);
                 ASSERT0(l);
                 fprintf(h, "pr%d(lt%d)", LT_prno(l), LT_uid(l));
                 if (l->has_allocated()) {
@@ -3018,8 +3019,8 @@ void LTMgr::dump_allocated(FILE * h, BitSet & visited)
 
             //Dump ltg's prno, ltid, phy.
             fprintf(h, "<");
-            for (INT i = 0; i <= ltg->get_last_idx(); i++) {
-                LT * l = ltg->get(i);
+            for (INT i2 = 0; i2 <= ltg->get_last_idx(); i2++) {
+                LT * l = ltg->get(i2);
                 ASSERT0(l);
                 fprintf(h, "pr%d(lt%d)", LT_prno(l), LT_uid(l));
                 if (l->has_allocated()) {
@@ -3176,20 +3177,19 @@ BBRA::BBRA(IRBB * bb, RA * ra)
 }
 
 
-/* Compute priority list and sort life times with descending order of priorities.
-
-'lts': list of LT.
-'prios': list of LT, which elements are sorted in descending order of priority.
-
-We use some heuristics factors to evaluate the
-priorities of each of life times:
-    1. Life time in critical path will be put in higher priority.
-    2. Life time whose symbol register referenced in
-        high density will have higher priority.
-    3. Life time whose usable registers are fewer, the priority is higher.
-
-    TO BE ESTIMATED:
-        Longer life time has higher priority. */
+//Compute priority list and sort life times with descending order of priorities.
+//
+//'lts': list of LT.
+//'prios': list of LT, which elements are sorted in descending order of priority.
+//
+//We use some heuristics factors to evaluate the
+//priorities of each of life times:
+//  1. Life time in critical path will be put in higher priority.
+//  2. Life time whose symbol register referenced in
+//      high density will have higher priority.
+//  3. Life time whose usable registers are fewer, the priority is higher.
+//
+//TO BE ESTIMATED: Longer life time has higher priority.
 void BBRA::buildPrioList(List<LT*> const& lts, OUT List<LT*> & prios)
 {
     C<LT*> * ct;
@@ -3235,14 +3235,14 @@ float BBRA::computePrio(LT const* lt)
         prio *= (float)(LT_rg_sz(lt) * 2);
     }
 
-    /* occ in truebr/falsebr/switch/goto should has highest priority
-    e.g: br pr1,pr2
-    If there is not avaiable register for parameters, we
-    need to spill other LT. Here we can not spill live through
-    global lt, because a reload need to be inserted at the end
-    of BB. That violates the constrain of BB.
-    In order to avoid the rarely situation, lt with branch should get a
-    highest priority. */
+    //occ in truebr/falsebr/switch/goto should has highest priority
+    //e.g: br pr1,pr2
+    //If there is not avaiable register for parameters, we
+    //need to spill other LT. Here we can not spill live through
+    //global lt, because a reload need to be inserted at the end
+    //of BB. That violates the constrain of BB.
+    //In order to avoid the rarely situation, lt with branch should get a
+    //highest priority.
     if (lt->has_branch(m_ltm)) {
         prio *= 1000;
     }
@@ -3268,12 +3268,12 @@ void BBRA::allocPrioList(OUT List<LT*> & prios, List<UINT> & nis)
 }
 
 
-/* Return true if allocation was successful, otherwise return false.
-When register assigned to 'g', it must be deducted from
-the usable_register_set of all its neighbors.
-
-'unusable': for tmp use.
-'ig': interference graph. */
+//Return true if allocation was successful, otherwise return false.
+//When register assigned to 'g', it must be deducted from
+//the usable_register_set of all its neighbors.
+//
+//'unusable': for tmp use.
+//'ig': interference graph.
 bool BBRA::assignRegister(LT * l, List<UINT> & nis)
 {
     ASSERT0(!LT_is_global(l));
@@ -3336,19 +3336,17 @@ bool BBRA::assignRegister(LT * l, List<UINT> & nis)
         }
     }
 
-    /*
-    UINT reg = REG_UNDEF;
-    BitSet const* anti = m_ltm->get_anti_regs(l, false);
-    if (anti != NULL) {
-        //Allocate register that 'g' anticipated.
-        for (INT r = anti->get_first(); r >= 0; r = anti->get_next(r)) {
-            if (usable->is_contain(r)) {
-                LT_phy(l) = r;
-                return true;
-            }
-        }
-    }
-    */
+    //UINT reg = REG_UNDEF;
+    //BitSet const* anti = m_ltm->get_anti_regs(l, false);
+    //if (anti != NULL) {
+    //    //Allocate register that 'g' anticipated.
+    //    for (INT r = anti->get_first(); r >= 0; r = anti->get_next(r)) {
+    //        if (usable->is_contain(r)) {
+    //            LT_phy(l) = r;
+    //            return true;
+    //        }
+    //    }
+    //}
 
     //Fine, you can allocate any register for it except the unusables.
     //Preferred the minmum.
@@ -3484,18 +3482,18 @@ bool BBRA::isSatisfiedConstrain(LT * lt, LT * cand)
 }
 
 
-/* Determining which one should be spilled.
-    Computing spill cost:
-    The quotient is bigger, the spill cost is less,
-    is also the one we expect to spill.
-    <cost = number of uncolored neighbors of 'ni' / 'ni's priority>
-
-Return the spilling candidate life time selected.
-And 'has_hole' will be set to TRUE, if we could find a
-lifetime hole which contained several
-shorter lifetimes in it. */
+//Determining which one should be spilled.
+//  Computing spill cost:
+//  The quotient is bigger, the spill cost is less,
+//  is also the one we expect to spill.
+//  <cost = number of uncolored neighbors of 'ni' / 'ni's priority>
+//
+//Return the spilling candidate life time selected.
+//And 'has_hole' will be set to TRUE, if we could find a
+//lifetime hole which contained several
+//shorter lifetimes in it.
 LT * BBRA::computeSplitCand(LT * lt, bool & has_hole, List<LT*> * tmp,
-                           List<LT*> * tmp2)
+                            List<LT*> * tmp2)
 {
     ASSERT0(tmp && tmp2);
     LT * best = NULL, * better = NULL;
@@ -3689,19 +3687,19 @@ bool BBRA::find_hole(
 }
 
 
-/* Given two position within lifetime 'lt', tring to choose the most
-appropriate split point and inserting the spill/reload code at them.
-'is_pos1_spill': if true indicate that a spilling is needed at pos1,
-    otherwise to insert a reload.
-'is_pos2_spill': if true indicate that a spilling is needed at pos2,
-    otherwise to insert a reload.
-'lt': split candidate, may be global and local lifetime.
-
-e.g: Given pos1, pos2, both of them are USE.
-    We need to find the DEF to insert the spill code. And choosing
-    the best USE between 'pos1' and 'pos2' to insert reload code.
-    While both positions are useless, we do not insert any code in
-    those positions, and set 'pos1' and 'pos2' to -1. */
+//Given two position within lifetime 'lt', tring to choose the most
+//appropriate split point and inserting the spill/reload code at them.
+//'is_pos1_spill': if true indicate that a spilling is needed at pos1,
+//    otherwise to insert a reload.
+//'is_pos2_spill': if true indicate that a spilling is needed at pos2,
+//    otherwise to insert a reload.
+//'lt': split candidate, may be global and local lifetime.
+//
+//e.g: Given pos1, pos2, both of them are USE.
+//    We need to find the DEF to insert the spill code. And choosing
+//    the best USE between 'pos1' and 'pos2' to insert reload code.
+//    While both positions are useless, we do not insert any code in
+//    those positions, and set 'pos1' and 'pos2' to -1.
 void BBRA::selectReasonableSplitPos(
         OUT INT & pos1,
         OUT INT & pos2,
@@ -3731,27 +3729,27 @@ void BBRA::selectReasonableSplitPos(
             break;
         } else {
             if (!occ->is_contain(p1)) {
-                /* CASE: image.c:copy_rdopt_data:BB1
-                     live in and out gsr: GSR277
-                     first pos:0
-                     last pos:83
-                     LT(33): 0,,...,28,29,30...83
-                There is a invalid region in between 0~28,and in actually,
-                position 28 has not any PI corresponding to!
-                Since GSR238(a7) also allocate the same register as
-                GSR277 and it has a def at position 28.
-                LTMgr handled the situation conservatively.
-
-                But I thought this is a GRA bug:
-                    See BB5 for more details:
-                        SR284, SR282, SR283 <- cmp GSR1294(a6) (0)
-                        GSR277(a7)[A1] <- SR283[P1] SR278
-                        GSR277(a7)[A1] <- SR282[P1] SR280
-                        br L22
-
-                GSR277 was cond-defined and should be considered as an USE,
-                but data-flow solver cannot distingwish that because of
-                the cond-def. */
+                //CASE: image.c:copy_rdopt_data:BB1
+                //   live in and out gsr: GSR277
+                //   first pos:0
+                //   last pos:83
+                //   LT(33): 0,,...,28,29,30...83
+                //There is a invalid region in between 0~28,and in actually,
+                //position 28 has not any PI corresponding to!
+                //Since GSR238(a7) also allocate the same register as
+                //GSR277 and it has a def at position 28.
+                //LTMgr handled the situation conservatively.
+                //
+                //But I thought this is a GRA bug:
+                //  See BB5 for more details:
+                //      SR284, SR282, SR283 <- cmp GSR1294(a6) (0)
+                //      GSR277(a7)[A1] <- SR283[P1] SR278
+                //      GSR277(a7)[A1] <- SR282[P1] SR280
+                //      br L22
+                //
+                //GSR277 was cond-defined and should be considered as an USE,
+                //but data-flow solver cannot distingwish that because of
+                //the cond-def.
                 p1--;
                 pos1 = p1;
                 continue;
@@ -3780,30 +3778,29 @@ void BBRA::selectReasonableSplitPos(
                 IR * ir = m_ltm->get_ir(p2);
                 ASSERT0(ir);
                 if (ir->is_select()) {
-                    /* CASE: 20020402-3.c:blockvector_for_pc_sect():BB10
-                        gsr275(a3) lived in and lived out.
-                        first pos:0
-                        last pos:12, cond def
-
-                        sr268[A1] :- lw_m sr97(p0)[P1] gsr263(a4)[A1] (0x0)
-                        sr266(d10)[D2] :- lw_m sr97(p0)[P1] sr268[A1] (0x8)
-                        sr267(d2)[D1] :- lw_m sr97(p0)[P1] sr268[A1] (0xc)
-                        ...
-                        gsr275(a3)[A1] gsr271(p7)[P1] gsr272(p6)[P1] :- sgtu_m sr270(p1)[P1] ...
-
-                    The spliting candidate is GSR275.
-                    Although the operator at postition p2 is a DEF,
-                    but it was a conditional DEF! So we regard position p2 as
-                    an USE in order to insert a reloading before the cond DEF and
-                    add a spilling followed the FIRST position to supply the spill
-                    temp memory location.
-                    result code can be:
-                        FIRST position
-                        sw_m gsr275(a3)[A1], gra_spill_temp
-                        ...
-                        gsr275(a3)[A1] = lw_m gra_spill_temp
-                        gsr275(a3)[A1] gsr271(p7)[P1] gsr272(p6)[P1] :- sgtu_m sr270(p1)[P1] ...
-                    */
+                    //CASE: 20020402-3.c:blockvector_for_pc_sect():BB10
+                    // gsr275(a3) lived in and lived out.
+                    // first pos:0
+                    // last pos:12, cond def
+                    //
+                    // sr268[A1] :- lw_m sr97(p0)[P1] gsr263(a4)[A1] (0x0)
+                    // sr266(d10)[D2] :- lw_m sr97(p0)[P1] sr268[A1] (0x8)
+                    // sr267(d2)[D1] :- lw_m sr97(p0)[P1] sr268[A1] (0xc)
+                    // ...
+                    // gsr275(a3)[A1] gsr271(p7)[P1] gsr272(p6)[P1] :- sgtu_m sr270(p1)[P1] ...
+                    //
+                    //The spliting candidate is GSR275.
+                    //Although the operator at postition p2 is a DEF,
+                    //but it was a conditional DEF! So we regard position p2 as
+                    //an USE in order to insert a reloading before the cond DEF and
+                    //add a spilling followed the FIRST position to supply the spill
+                    //temp memory location.
+                    //result code can be:
+                    //    FIRST position
+                    //    sw_m gsr275(a3)[A1], gra_spill_temp
+                    //    ...
+                    //    gsr275(a3)[A1] = lw_m gra_spill_temp
+                    //    gsr275(a3)[A1] gsr271(p7)[P1] gsr272(p6)[P1] :- sgtu_m sr270(p1)[P1] ...
                     is_p2_def = false;
                 } else {
                     is_p2_def = true;
@@ -4007,60 +4004,56 @@ bool BBRA::split(LT * lt)
         }
     }
 
-
     //realloc(lt);
-    /*
-    bool has_hole = false;
-    LifeTime * cand =
-        computeBestSpillCand(lt, ig, mgr, true, &has_hole);
-
-    INT hole_startpos, hole_endpos;
-    bool split_hole = false;
-    if (has_hole && cand != lt) {
-        split_hole =
-            getResideinHole(&hole_startpos, &hole_endpos, cand, lt, mgr);
-    }
-
-    if (split_hole) {
-        bool is_start_spill, is_end_spill;
-        selectReasonableSplitPos(&hole_startpos,
-                                    &hole_endpos,
-                                    &is_start_spill,
-                                    &is_end_spill,
-                                    cand, mgr);
-        splitLTAt(hole_startpos,
-                    hole_endpos,
-                    is_start_spill,
-                    is_end_spill,
-                    cand, mgr);
-    } else if (lt == cand) {
-        splitOneLT(lt, prio_list,
-                    uncolored_list, mgr,
-                    ig, spill_location, action);
-    } else if (!canBeSpilled(lt, mgr)) {
-        splitOneLT(cand, prio_list,
-                    uncolored_list, mgr,
-                    ig, spill_location, action);
-    } else {
-        splitTwoLT(lt, cand, prio_list,
-                    uncolored_list, mgr, ig,
-                    spill_location, action);
-    }
-
-    show_phase("---Split,before ReAllocate_LifeTime");
-    reallocateLifeTime(prio_list, uncolored_list,
-                        mgr, ddg, layerddg, ig, cri);
-    for (LifeTime * tmplt = uncolored_list.get_head();
-         tmplt != NULL; tmplt = uncolored_list.get_next()) {
-        if (HAVE_FLAG(m_cur_phase, PHASE_FINIAL_FIXUP_DONE)) {
-            //Should not change regfile again.
-            action.set_action(tmplt, ACTION_SPLIT);
-        } else {
-            action.set_action(tmplt, ACTION_BFS_REASSIGN_REGFILE);
-        }
-    }
-    show_phase("---Split finished");
-    */
+    //bool has_hole = false;
+    //LifeTime * cand = computeBestSpillCand(lt, ig, mgr, true, &has_hole);
+    //
+    //INT hole_startpos, hole_endpos;
+    //bool split_hole = false;
+    //if (has_hole && cand != lt) {
+    //    split_hole = getResideinHole(&hole_startpos, 
+    //        &hole_endpos, cand, lt, mgr);
+    //}
+    //
+    //if (split_hole) {
+    //    bool is_start_spill, is_end_spill;
+    //    selectReasonableSplitPos(&hole_startpos,
+    //                             &hole_endpos,
+    //                             &is_start_spill,
+    //                             &is_end_spill,
+    //                             cand, mgr);
+    //    splitLTAt(hole_startpos,
+    //              hole_endpos,
+    //              is_start_spill,
+    //              is_end_spill,
+    //              cand, mgr);
+    //} else if (lt == cand) {
+    //    splitOneLT(lt, prio_list,
+    //                uncolored_list, mgr,
+    //                ig, spill_location, action);
+    //} else if (!canBeSpilled(lt, mgr)) {
+    //    splitOneLT(cand, prio_list,
+    //                uncolored_list, mgr,
+    //                ig, spill_location, action);
+    //} else {
+    //    splitTwoLT(lt, cand, prio_list,
+    //                uncolored_list, mgr, ig,
+    //                spill_location, action);
+    //}
+    //
+    //show_phase("---Split,before ReAllocate_LifeTime");
+    //reallocateLifeTime(prio_list, uncolored_list,
+    //                    mgr, ddg, layerddg, ig, cri);
+    //for (LifeTime * tmplt = uncolored_list.get_head();
+    //     tmplt != NULL; tmplt = uncolored_list.get_next()) {
+    //    if (HAVE_FLAG(m_cur_phase, PHASE_FINIAL_FIXUP_DONE)) {
+    //        //Should not change regfile again.
+    //        action.set_action(tmplt, ACTION_SPLIT);
+    //    } else {
+    //        action.set_action(tmplt, ACTION_BFS_REASSIGN_REGFILE);
+    //    }
+    //}
+    //show_phase("---Split finished");
     return true;
 }
 
@@ -4290,17 +4283,15 @@ float RA::computePrio(GLT * g)
 }
 
 
-/* Compute priority list and sort life times with descending order of priorities.
-We use some heuristics factors to evaluate the
-priorities of each of life times:
-    1. Life time in critical path will be put in higher priority.
-    2. Life time whose symbol register referenced in
-        high density will have higher priority.
-    3. Life time whose usable registers are fewer, the priority is higher.
-
-    TO BE ESTIMATED:
-        Longer life time has higher priority.
-*/
+//Compute priority list and sort life times with descending order of priorities.
+//We use some heuristics factors to evaluate the
+//priorities of each of life times:
+//  1. Life time in critical path will be put in higher priority.
+//  2. Life time whose symbol register referenced in
+//      high density will have higher priority.
+//  3. Life time whose usable registers are fewer, the priority is higher.
+//
+//TO BE ESTIMATED: Longer life time has higher priority.
 void RA::buildPrioList(OUT List<GLT*> & prios)
 {
     Vector<GLT*> * gltv = m_gltm.get_gltvec();
@@ -4356,9 +4347,9 @@ void RA::diffLocalNeighbourUsed(GLT * g, List<UINT> & nis, BitSet * unusable)
             if (LT_is_global(ni) || !ni->has_allocated()) { continue; }
             if (LT_rg(ni) != NULL) {
                 ASSERT0(LT_rg(ni)->get(0) == LT_phy(ni));
-                for (UINT i = 0; i < LT_rg(ni)->rnum; i++) {
-                    ASSERT0(LT_rg(ni)->get(i) != REG_UNDEF);
-                    unusable->bunion(LT_rg(ni)->get(i));
+                for (UINT i2 = 0; i2 < LT_rg(ni)->rnum; i2++) {
+                    ASSERT0(LT_rg(ni)->get(i2) != REG_UNDEF);
+                    unusable->bunion(LT_rg(ni)->get(i2));
                 }
             } else {
                 unusable->bunion(LT_phy(ni));
@@ -4394,9 +4385,9 @@ bool RA::assignRegister(GLT * g, List<UINT> & nis, List<UINT> & nis2)
         if (!ni->has_allocated()) { continue; }
         if (GLT_rg(ni) != NULL) {
             ASSERT0(GLT_rg(ni)->get(0) == GLT_phy(ni));
-            for (UINT i = 0; i < GLT_rg(ni)->rnum; i++) {
-                ASSERT0(GLT_rg(ni)->get(i) != REG_UNDEF);
-                unusable->bunion(GLT_rg(ni)->get(i));
+            for (UINT i2 = 0; i2 < GLT_rg(ni)->rnum; i2++) {
+                ASSERT0(GLT_rg(ni)->get(i2) != REG_UNDEF);
+                unusable->bunion(GLT_rg(ni)->get(i2));
             }
         } else {
             unusable->bunion(GLT_phy(ni));
@@ -4449,30 +4440,26 @@ bool RA::assignRegister(GLT * g, List<UINT> & nis, List<UINT> & nis2)
             }
         }
 
-        /*
         //Only aware of those usable registers more fewer than current.
         //This rule will incur the lt to be allocated some higher phy.
         //e.g: Lt will be assigned v256 or more higher.
-        if (ni_usable != NULL &&
-            ni_usable->get_elem_count() < usable->get_elem_count()) {
-            unusable->bunion(*ni_usable);
-        }
-        */
+        //if (ni_usable != NULL &&
+        //    ni_usable->get_elem_count() < usable->get_elem_count()) {
+        //    unusable->bunion(*ni_usable);
+        //}
     }
 
-    /*
-    UINT reg = REG_UNDEF;
-    BitSet * anti = m_gltm.get_anti_regs(g, false);
-    if (anti != NULL) {
-        //Allocate register that 'g' anticipated.
-        for (INT r = anti->get_first(); r >= 0; r = anti->get_next(r)) {
-            if (usable->is_contain(r)) {
-                GLT_phy(g) = r;
-                return true;
-            }
-        }
-    }
-    */
+    //UINT reg = REG_UNDEF;
+    //BitSet * anti = m_gltm.get_anti_regs(g, false);
+    //if (anti != NULL) {
+    //    //Allocate register that 'g' anticipated.
+    //    for (INT r = anti->get_first(); r >= 0; r = anti->get_next(r)) {
+    //        if (usable->is_contain(r)) {
+    //            GLT_phy(g) = r;
+    //            return true;
+    //        }
+    //    }
+    //}
 
     bool succ = false;
     INT m = usable->get_last();
@@ -5046,12 +5033,10 @@ UINT RA::computeSatisfiedNumRegister(
             }
         }
 
-        /*
-        if (is_cross_liveout_phy(rangestart, LT_rg_sz(l), liveout_phy)) {
-            //The generated move will override the liveout phy.
-            return 0;
-        }
-        */
+        //if (is_cross_liveout_phy(rangestart, LT_rg_sz(l), liveout_phy)) {
+        //    //The generated move will override the liveout phy.
+        //    return 0;
+        //}
 
         ASSERT0(!is_cross_liveout_phy(rangestart, LT_rg_sz(l), liveout_phy));
         nsat += LT_rg_sz(l);
@@ -5113,12 +5098,10 @@ UINT RA::computeNumRegister(
                      LT_rg_sz(l), liveout_phy));
         }
 
-        /*
-        if (is_cross_liveout_phy(rangestart, LT_rg_sz(l), liveout_phy)) {
-            //The generated move will override the liveout phy.
-            return 0;
-        }
-        */
+        //if (is_cross_liveout_phy(rangestart, LT_rg_sz(l), liveout_phy)) {
+        //    //The generated move will override the liveout phy.
+        //    return 0;
+        //}
 
         nsat += LT_rg_sz(l);
         rangestart += LT_rg_sz(l);
@@ -5164,9 +5147,9 @@ INT RA::tryReuseAppeared(
         if (rangestart < 0) {
             //Try range start from the fraction bewteen the phy
             //which has been used.
-            for (INT i = frac_start + 1; i < 1023; i++) {
-                if (!occupied.is_contain(i) && !assigned.is_contain(i)) {
-                    frac_start = i;
+            for (INT i2 = frac_start + 1; i2 < 1023; i2++) {
+                if (!occupied.is_contain(i2) && !assigned.is_contain(i2)) {
+                    frac_start = i2;
                     break;
                 }
             }
@@ -5331,12 +5314,11 @@ void RA::remedyLTG(
         if (need_move ||
             (LT_is_global(l) && m_ig.is_interf_with_neighbour(
                                 get_glt(LT_prno(l)), nis, rangestart))) {
-            /* Only insert a move, leave l to local/global allocator.
-               call pr1
-            =>
-               x = pr1
-               call x
-            */
+            //Only insert a move, leave l to local/global allocator.
+            //   call pr1
+            //=>
+            //   x = pr1
+            //   call x
             IR * x = insertMoveBefore(ir, param);
             LT_ltg(l) = NULL; //l is not ltg member any more.
 
@@ -5351,12 +5333,11 @@ void RA::remedyLTG(
             }
             updateLTMaxReg(l);
         } else {
-            /* Only insert a move, leave l to local/global allocator.
-               call pr1
-            =>
-               x = pr1
-               call x
-            */
+            //Only insert a move, leave l to local/global allocator.
+            //   call pr1
+            //=>
+            //   x = pr1
+            //   call x
             IR * x = insertMoveBefore(ir, param);
             LT_ltg(l) = NULL; //l is not ltg member any more.
 
@@ -5434,13 +5415,11 @@ void RA::assignLTG(LTG * ltg, IR * ir)
         ASSERT0(l);
         ig->get_neighbor_set(nis, LT_uid(l));
 
-        /*
-        if (LT_is_global(l)) {
-            GLT * g = m_gltm.map_pr2glt(LT_prno(l));
-            ASSERT0(g);
-            m_ig.get_neighbor_set(gnis, GLT_id(g));
-        }
-        */
+        //if (LT_is_global(l)) {
+        //    GLT * g = m_gltm.map_pr2glt(LT_prno(l));
+        //    ASSERT0(g);
+        //    m_ig.get_neighbor_set(gnis, GLT_id(g));
+        //}
 
         if (l->has_allocated()) {
             ASSERT0(LT_range(l));
@@ -5502,21 +5481,19 @@ void RA::assignLTG(LTG * ltg, IR * ir)
         }
     }
 
-    /*
-    for (INT gltid = gnis.get_first(&cur);
-         gltid >= 0; gltid = gnis.get_next(gltid, &cur)) {
-        GLT * g = m_gltm.get_glt(gltid);
-        ASSERT0(g);
-        if (!g->has_allocated()) { continue; }
-
-        occupied.bunion(GLT_phy(g));
-        if (GLT_rg_sz(g) != 1) {
-            ASSERT0(GLT_rg_sz(g) == RG_PAIR_SZ);
-            occupied.bunion(GLT_phy(g) + 1);
-        }
-
-    }
-    */
+    //for (INT gltid = gnis.get_first(&cur);
+    //     gltid >= 0; gltid = gnis.get_next(gltid, &cur)) {
+    //    GLT * g = m_gltm.get_glt(gltid);
+    //    ASSERT0(g);
+    //    if (!g->has_allocated()) { continue; }
+    //
+    //    occupied.bunion(GLT_phy(g));
+    //    if (GLT_rg_sz(g) != 1) {
+    //        ASSERT0(GLT_rg_sz(g) == RG_PAIR_SZ);
+    //        occupied.bunion(GLT_phy(g) + 1);
+    //    }
+    //
+    //}
 
     //Compute the phy occupied by global neighbours.
     for (INT i = 0; i <= ltg->get_last_idx(); i++) {
@@ -5546,14 +5523,14 @@ void RA::assignLTG(LTG * ltg, IR * ir)
             SEGIter * cur2 = NULL;
             for (INT ltid = nis.get_first(&cur2);
                  ltid >= 0; ltid = nis.get_next(ltid, &cur2)) {
-                LT * l = nltm->get_lt(ltid);
-                ASSERT0(l);
-                if (!l->has_allocated()) { continue; }
+                LT * l2 = nltm->get_lt(ltid);
+                ASSERT0(l2);
+                if (!l2->has_allocated()) { continue; }
 
-                occupied.bunion(LT_phy(l));
-                if (LT_rg_sz(l) != 1) {
-                    ASSERT0(LT_rg_sz(l) == RG_PAIR_SZ);
-                    occupied.bunion(LT_phy(l) + 1);
+                occupied.bunion(LT_phy(l2));
+                if (LT_rg_sz(l2) != 1) {
+                    ASSERT0(LT_rg_sz(l2) == RG_PAIR_SZ);
+                    occupied.bunion(LT_phy(l2) + 1);
                 }
             }
         }

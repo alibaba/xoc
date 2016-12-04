@@ -1235,10 +1235,11 @@ void dump_ir(IR const* ir,
                 UINT i = 0;
 
                 //Dump parameter list.
-                for (IR * p = CALL_param_list(ir); p != NULL; p = p->get_next()) {
+                for (IR * p2 = CALL_param_list(ir); 
+                     p2 != NULL; p2 = p2->get_next()) {
                     sprintf(tmpbuf, " param%d", i);
                     g_indent += dn;
-                    dump_ir(p, tm, tmpbuf, dump_kid,
+                    dump_ir(p2, tm, tmpbuf, dump_kid,
                             dump_src_line, dump_addr, dump_inner_region);
                     g_indent -= dn;
                     i++;
@@ -1246,10 +1247,11 @@ void dump_ir(IR const* ir,
 
                 //Dump dummy use.
                 i = 0;
-                for (IR * p = CALL_dummyuse(ir); p != NULL; p = p->get_next()) {
+                for (IR * p2 = CALL_dummyuse(ir); 
+                     p2 != NULL; p2 = p2->get_next()) {
                     sprintf(tmpbuf, " dummy%d", i);
                     g_indent += dn;
-                    dump_ir(p, tm, tmpbuf, dump_kid,
+                    dump_ir(p2, tm, tmpbuf, dump_kid,
                             dump_src_line, dump_addr, dump_inner_region);
                     g_indent -= dn;
                     i++;
@@ -2622,9 +2624,9 @@ void IR::removePROutFromUseset(DefMiscBitSetMgr & sbs_mgr, Region * ru)
     if (useset == NULL) { return; }
 
     DUIter di = NULL;
-    INT next = -1;
-    for (INT i = useset->get_first(&di); i >= 0; i = next) {
-        next = useset->get_next(i, &di);
+    INT lnext = -1;
+    for (INT i = useset->get_first(&di); i >= 0; i = lnext) {
+        lnext = useset->get_next(i, &di);
         IR const* exp = ru->get_ir(i);
         ASSERT0(exp->is_exp());
         if (!exp->is_read_pr()) { continue; }

@@ -964,7 +964,7 @@ bool xstrcmp(CHAR const* p1, CHAR const* p2, INT n)
 CHAR * upper(CHAR * n)
 {
     if (n == NULL) { return NULL; }
-    LONG l = strlen(n);
+    LONG l = (LONG)strlen(n);
     l--;
     while (l >= 0) {
         if (n[l] >= 'a' && n[l] <= 'z')
@@ -978,7 +978,7 @@ CHAR * upper(CHAR * n)
 CHAR * lower(CHAR * n)
 {
     if (n == NULL) { return NULL; }
-    LONG l = strlen(n);
+    LONG l = (LONG)strlen(n);
     l--;
     while (l >= 0) {
         if (n[l] >= 'A' && n[l] <= 'Z')

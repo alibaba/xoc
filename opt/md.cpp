@@ -107,11 +107,11 @@ CHAR * MD::dump(StrBuf & buf, TypeMgr * dm) const
     ASSERT0(MD_base(this) != NULL);
     MD_base(this)->dump(buf, dm);
 
-    INT ofst = MD_ofst(this);
+    INT lofst = MD_ofst(this);
     if (MD_ty(this) == MD_EXACT) {
-        buf.strcat(" -- ofst:%d -- size:%u", ofst, MD_size(this));
+        buf.strcat(" -- ofst:%d -- size:%u", lofst, MD_size(this));
     } else if (MD_ty(this) == MD_RANGE) {
-        buf.strcat(" -- start:%d -- end:%u", ofst, ofst + MD_size(this));
+        buf.strcat(" -- start:%d -- end:%u", lofst, lofst + MD_size(this));
         buf.strcat(" -- range");
     } else {
         buf.strcat(" -- ofst:unbound");
@@ -288,7 +288,6 @@ void MDSet::dump(MDSystem * ms, bool detail) const
         }
     }
     if (detail) {
-        SEGIter * iter;
         for (INT i = get_first(&iter); i != -1; i = get_next(i, &iter)) {
             MD const* md = ms->get_md(i);
             ASSERT0(md);
@@ -364,7 +363,7 @@ UINT MDSetMgr::count_mem()
          sc != m_md_set_list.end(); sc = m_md_set_list.get_next(sc)) {
         MDSet const* mds = sc->val();
         ASSERT0(mds);
-        count += mds->count_mem();
+        count += (UINT)mds->count_mem();
     }
     return count;
 }
@@ -380,7 +379,7 @@ void MDSetMgr::dump()
          sc != m_md_set_list.end(); sc = m_md_set_list.get_next(sc)) {
         MDSet const* mds = sc->val();
         ASSERT0(mds);
-        count += mds->count_mem();
+        count += (UINT)mds->count_mem();
     }
 
     //Dump mem usage into file.
@@ -500,8 +499,8 @@ void MD2MDSet::dump(Region * ru)
         iter.clean();
         mdtab->get_elems(mdv, iter);
 
-        for (INT i = 0; i <= mdv.get_last_idx(); i++) {
-            MD const* md = mdv.get(i);
+        for (INT i2 = 0; i2 <= mdv.get_last_idx(); i2++) {
+            MD const* md = mdv.get(i2);
             buf.clean();
             fprintf(g_tfile, "\n\t\t%s", md->dump(buf, ru->get_type_mgr()));
         }

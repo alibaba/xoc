@@ -100,9 +100,9 @@ public:
 #define RP_SAME_OBJ             3
 #define RP_DIFFERENT_OBJ        4
 
-/* Perform Register Promotion.
-Register Promotion combines multiple memory load of the
-same memory location into one PR. */
+//Perform Register Promotion.
+//Register Promotion combines multiple memory load of the
+//same memory location into one PR. */
 class IR_RP : public Pass {
 protected:
     Vector<MDSet*> m_livein_mds_vec;
@@ -219,9 +219,9 @@ protected:
         SEGIter * iter;
         for (INT i = mds->get_first(&iter);
              i >= 0; i = mds->get_next(i, &iter)) {
-            MD const* md = m_md_sys->get_md(i);
-            ASSERT0(md);
-            if (md->is_global()) { return true; }
+            MD const* md2 = m_md_sys->get_md(i);
+            ASSERT0(md2);
+            if (md2->is_global()) { return true; }
         }
         return false;
     }

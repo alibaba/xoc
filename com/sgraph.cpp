@@ -643,13 +643,13 @@ Edge * Graph::get_edge(Vertex const* from, Vertex const* to) const
     }
 
     if (!m_is_direction) {
-        EdgeC * el = VERTEX_out_list(to);
-        while (el != NULL) {
-            Edge * e = EC_edge(el);
+        EdgeC * el2 = VERTEX_out_list(to);
+        while (el2 != NULL) {
+            Edge * e = EC_edge(el2);
             if (EDGE_from(e) == to && EDGE_to(e) == from) {
                 return e;
             }
-            el = EC_next(el);
+            el2 = EC_next(el2);
         }
     }
     return NULL;
@@ -1110,10 +1110,10 @@ bool DGraph::computeDom(List<Vertex const*> const* vlst, BitSet const* uni)
     while (change && count < 10) {
         count++;
         change = false;
-        C<Vertex const*> * ct;
-        for (pvlst->get_head(&ct);
-             ct != pvlst->end(); ct = pvlst->get_next(ct)) {
-            Vertex const* v = ct->val();
+        C<Vertex const*> * ct2;
+        for (pvlst->get_head(&ct2);
+             ct2 != pvlst->end(); ct2 = pvlst->get_next(ct2)) {
+            Vertex const* v = ct2->val();
             ASSERT0(v);
             UINT vid = VERTEX_id(v);
             if (is_graph_entry(v)) {
@@ -1192,10 +1192,10 @@ bool DGraph::computeDom3(List<Vertex const*> const* vlst, BitSet const* uni)
     while (change && count < 10) {
         count++;
         change = false;
-        C<Vertex const*> * ct;
-        for (pvlst->get_head(&ct);
-             ct != pvlst->end(); ct = pvlst->get_next(ct)) {
-            Vertex const* v = ct->val();
+        C<Vertex const*> * ct2;
+        for (pvlst->get_head(&ct2);
+             ct2 != pvlst->end(); ct2 = pvlst->get_next(ct2)) {
+            Vertex const* v = ct2->val();
             ASSERT0(v);
             UINT vid = VERTEX_id(v);
             if (is_graph_entry(v)) {
@@ -1306,9 +1306,10 @@ bool DGraph::computePdom(List<Vertex const*> const* vlst, BitSet const* uni)
     while (change && count < 10) {
         count++;
         change = false;
-        C<Vertex const*> * ct;
-        for (vlst->get_head(&ct); ct != vlst->end(); ct = vlst->get_next(ct)) {
-            Vertex const* v = ct->val();
+        C<Vertex const*> * ct2;
+        for (vlst->get_head(&ct2); 
+             ct2 != vlst->end(); ct2 = vlst->get_next(ct2)) {
+            Vertex const* v = ct2->val();
             ASSERT0(v);
             UINT vid = VERTEX_id(v);
             if (is_graph_exit(v)) {
