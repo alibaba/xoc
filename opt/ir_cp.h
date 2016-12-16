@@ -37,6 +37,7 @@ author: Su Zhenyu
 namespace xoc {
 
 //Record Context info during Copy Propagation.
+<<<<<<< HEAD
 #define CPC_change(c)			(c).change
 #define CPC_need_recomp_aa(c)	(c).need_recompute_alias_info
 class CPCtx {
@@ -56,10 +57,32 @@ public:
 		change |= c.change;
 		need_recompute_alias_info |= c.need_recompute_alias_info;
 	}
+=======
+#define CPC_change(c)            (c).change
+#define CPC_need_recomp_aa(c)    (c).need_recompute_alias_info
+class CPCtx {
+public:
+    bool change;
+    bool need_recompute_alias_info;
+
+    CPCtx()
+    {
+        change = false;
+        need_recompute_alias_info = false;
+    }
+
+    //Perform bit or operation.
+    void bor(CPCtx & c)
+    {
+        change |= c.change;
+        need_recompute_alias_info |= c.need_recompute_alias_info;
+    }
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 
 //Propagate the constant operation, include const, lda, and cvt for const.
+<<<<<<< HEAD
 #define CP_PROP_CONST				1
 
 //Propagate the simplex operation, include const, pr, lda, and cvt for simplex.
@@ -68,10 +91,21 @@ public:
 //Propagate unary and simplex operations, include const, pr, lda, cvt for simplex, ld,
 //id, neg, bnot, lnot, ild.
 #define CP_PROP_UNARY_AND_SIMPLEX	3
+=======
+#define CP_PROP_CONST                1
+
+//Propagate the simplex operation, include const, pr, lda, and cvt for simplex.
+#define CP_PROP_SIMPLEX                2
+
+//Propagate unary and simplex operations, include const, pr, lda, cvt for simplex, ld,
+//id, neg, bnot, lnot, ild.
+#define CP_PROP_UNARY_AND_SIMPLEX    3
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 //Perform Copy Propagation
 class IR_CP : public Pass {
 protected:
+<<<<<<< HEAD
 	Region * m_ru;
 	MDSystem * m_md_sys;
 	IR_DU_MGR * m_du;
@@ -155,6 +189,94 @@ public:
 	void set_prop_kind(UINT kind) { m_prop_kind = kind; }
 
 	virtual bool perform(OptCTX & oc);
+=======
+    Region * m_ru;
+    MDSystem * m_md_sys;
+    IR_DU_MGR * m_du;
+    IR_CFG * m_cfg;
+    MDSetMgr * m_md_set_mgr;
+    TypeMgr * m_tm;
+    UINT m_prop_kind;
+
+    inline bool checkTypeConsistency(
+            IR const* ir,
+            IR const* cand_expr) const;
+    bool doProp(IN IRBB * bb, Vector<IR*> & usevec);
+    void doFinalRefine();
+
+    bool is_simp_cvt(IR const* ir) const;
+    bool is_const_cvt(IR const* ir) const;
+    bool is_available(IR const* def_ir, IR const* occ, IR * use_ir);
+    inline bool is_copy(IR * ir) const;
+
+    bool performDomTree(IN Vertex * v, IN Graph & domtree);
+
+    void replaceExp(
+            IR * exp,
+            IR const* cand_expr,
+            IN OUT CPCtx & ctx,
+            bool exp_use_ssadu);
+    void replaceExpViaSSADu(
+            IR * exp,
+            IR const* cand_expr,
+            IN OUT CPCtx & ctx);
+public:
+    IR_CP(Region * ru)
+    {
+        ASSERT0(ru != NULL);
+        m_ru = ru;
+        m_md_sys = ru->get_md_sys();
+        m_du = ru->get_du_mgr();
+        m_cfg = ru->get_cfg();
+        m_md_set_mgr = ru->get_mds_mgr();
+        m_tm = ru->get_type_mgr();
+        ASSERT0(m_cfg && m_du && m_md_sys && m_tm && m_md_set_mgr);
+        m_prop_kind = CP_PROP_UNARY_AND_SIMPLEX;
+    }
+    virtual ~IR_CP() {}
+
+    //Check if ir is appropriate for propagation.
+    virtual bool canBeCandidate(IR const* ir) const
+    {
+        switch (m_prop_kind) {
+        case CP_PROP_CONST:
+            return ir->is_lda() || ir->is_const_exp();
+        case CP_PROP_SIMPLEX:
+            switch (IR_code(ir)) {
+            case IR_LDA:
+            case IR_ID:
+            case IR_CONST:
+            case IR_PR:
+                return true;
+            default: return is_simp_cvt(ir);
+            }
+        case CP_PROP_UNARY_AND_SIMPLEX:
+            switch (IR_code(ir)) {
+            case IR_LD:
+            case IR_LDA:
+            case IR_ID:
+            case IR_CONST:
+            case IR_PR:
+            case IR_NEG:
+            case IR_BNOT:
+            case IR_LNOT:
+            case IR_ILD:
+                return true;
+            default: return is_simp_cvt(ir);
+            }
+        default:;
+        }
+        UNREACH();
+        return false;
+    }
+
+    virtual CHAR const* get_pass_name() const { return "Copy Propagation"; }
+    virtual PASS_TYPE get_pass_type() const { return PASS_CP; }
+
+    void set_prop_kind(UINT kind) { m_prop_kind = kind; }
+
+    virtual bool perform(OptCtx & oc);
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 } //namespace xoc

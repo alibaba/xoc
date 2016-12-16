@@ -43,6 +43,7 @@ class IRBB;
 //
 //NOTE: Overload funtion when inserting or remving new IR.
 class BBIRList : public EList<IR*, IR2Holder> {
+<<<<<<< HEAD
 	IRBB * m_bb;
 public:
 	BBIRList() { m_bb = NULL; }
@@ -152,6 +153,96 @@ public:
 	}
 
 	inline void set_bb(IRBB * bb) { m_bb = bb; }
+=======
+    IRBB * m_bb;
+public:
+    BBIRList() { m_bb = NULL; }
+    COPY_CONSTRUCTOR(BBIRList);
+
+    inline C<IR*> * append_head(IR * ir)
+    {
+        if (ir == NULL) { return NULL; }
+        ASSERT0(m_bb != NULL);
+        ir->set_bb(m_bb);
+        return EList<IR*, IR2Holder>::append_head(ir);
+    }
+
+    inline C<IR*> * append_tail(IR * ir)
+    {
+        if (ir == NULL) { return NULL; }
+        ASSERT0(m_bb != NULL);
+        ir->set_bb(m_bb);
+        return EList<IR*, IR2Holder>::append_tail(ir);
+    }
+
+    //Insert ir prior to cond_br, uncond_br, call, return.
+    C<IR*> * append_tail_ex(IR * ir);
+
+    //Count up memory size of BBIRList
+    size_t count_mem() const
+    {
+        return (size_t)sizeof(m_bb) +
+               ((EList<IR*, IR2Holder>*)this)->count_mem();
+    }
+
+    //Insert 'ir' before 'marker'.
+    inline C<IR*> * insert_before(IN IR * ir, IN IR * marker)
+    {
+        if (ir == NULL) { return NULL; }
+        ASSERT0(marker != NULL);
+        ASSERT0(m_bb != NULL);
+        ir->set_bb(m_bb);
+        return EList<IR*, IR2Holder>::insert_before(ir, marker);
+    }
+
+    //Insert 'ir' before 'marker'. marker will be modified.
+    inline C<IR*> * insert_before(IN IR * ir, IN C<IR*> * marker)
+    {
+        if (ir == NULL) { return NULL; }
+        ASSERT0(marker != NULL);
+        ASSERT0(m_bb != NULL);
+        ir->set_bb(m_bb);
+        return EList<IR*, IR2Holder>::insert_before(ir, marker);
+    }
+
+    //Insert 'ir' after 'marker'.
+    inline C<IR*> * insert_after(IR * ir, IR * marker)
+    {
+        if (ir == NULL) { return NULL; }
+        ASSERT0(marker != NULL);
+        ASSERT0(m_bb != NULL);
+        ir->set_bb(m_bb);
+        return EList<IR*, IR2Holder>::insert_after(ir, marker);
+    }
+
+    //Insert 'ir' after 'marker'.
+    inline C<IR*> * insert_after(IR * ir, IN C<IR*> * marker)
+    {
+        if (ir == NULL) { return NULL; }
+        ASSERT0(marker != NULL);
+        ASSERT0(m_bb != NULL);
+        ir->set_bb(m_bb);
+        return EList<IR*, IR2Holder>::insert_after(ir, marker);
+    }
+
+    //Remove ir that hold by 'holder'.
+    inline IR * remove(IN C<IR*> * holder)
+    {
+        if (holder == NULL) return NULL;
+        holder->val()->set_bb(NULL);
+        return EList<IR*, IR2Holder>::remove(holder);
+    }
+
+    //Remove ir.
+    inline IR * remove(IN IR * ir)
+    {
+        if (ir == NULL) return NULL;
+        ir->set_bb(NULL);
+        return EList<IR*, IR2Holder>::remove(ir);
+    }
+
+    void set_bb(IRBB * bb) { m_bb = bb; }
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 //END BBIRList
 
@@ -159,6 +250,7 @@ public:
 //
 //START IRBB
 //
+<<<<<<< HEAD
 #define MAX_BB_KIDS_NUM 	2
 
 #define BB_rpo(b)				((b)->rpo)
@@ -398,6 +490,329 @@ public:
 	void removeSuccessorPhiOpnd(CFG<IRBB, IR> * cfg);
 
 	void verify();
+=======
+#define MAX_BB_KIDS_NUM     2
+
+#define BB_rpo(b)               ((b)->rpo)
+#define BB_id(b)                ((b)->id)
+#define BB_irlist(b)            ((b)->ir_list)
+#define BB_first_ir(b)          ((b)->ir_list.get_head())
+#define BB_next_ir(b)           ((b)->ir_list.get_next())
+#define BB_prev_ir(b)           ((b)->ir_list.get_prev())
+#define BB_last_ir(b)           ((b)->ir_list.get_tail())
+#define BB_is_entry(b)          ((b)->u1.s1.is_entry)
+#define BB_is_exit(b)           ((b)->u1.s1.is_exit)
+#define BB_is_fallthrough(b)    ((b)->u1.s1.is_fallthrough)
+#define BB_is_target(b)         ((b)->u1.s1.is_target)
+#define BB_is_catch_start(b)    ((b)->u1.s1.is_catch_start)
+#define BB_is_try_start(b)      ((b)->u1.s1.is_try_start)
+#define BB_is_try_end(b)        ((b)->u1.s1.is_try_end)
+#define BB_is_unreach(b)        ((b)->u1.s1.is_unreachable)
+class IRBB {
+public:
+    UINT id; //BB's id
+    INT rpo; //reverse post order
+    BBIRList ir_list; //IR list
+    List<LabelInfo const*> lab_list; //Record labels attached on BB
+    union {
+        struct {
+            BYTE is_entry:1; //bb is entry of the region.
+            BYTE is_exit:1; //bb is exit of the region.
+            BYTE is_fallthrough:1; //bb has a fall through successor.
+            BYTE is_target:1; //bb is branch target.
+            BYTE is_catch_start:1; //bb is entry of catch block.
+            BYTE is_unreachable:1; //bb is unreachable.
+            BYTE is_try_start:1; //bb is entry of try block.
+            BYTE is_try_end:1; //bb is exit of try block.
+        } s1;
+        BYTE u1b1;
+    } u1;
+
+public:
+    IRBB()
+    {
+        ir_list.set_bb(this);
+        id = 0;
+        u1.u1b1 = 0;
+        rpo = -1;
+    }
+    COPY_CONSTRUCTOR(IRBB);
+    ~IRBB()
+    {
+        //If BB destructed in ~IRBBMgr(), then it is
+        //dispensable to free them. Or the ir_list must be clean before
+        //the deletion of BB.
+        //for (IR * ir = ir_list.get_head(); ir != NULL; ir = ir_list.get_next()) {
+        //    m_ru->freeIRTree(ir);
+        //}
+    }
+
+    inline void addLabel(LabelInfo const* li)
+    {
+        ASSERT0(li != NULL);
+        if (!getLabelList().find(li)) {
+            if (LABEL_INFO_is_catch_start(li)) {
+                BB_is_catch_start(this) = true;
+            }
+
+            if (LABEL_INFO_is_try_start(li)) {
+                BB_is_try_start(this) = true;
+            }
+
+            if (LABEL_INFO_is_try_end(li)) {
+                BB_is_try_end(this) = true;
+            }
+
+            if (LABEL_INFO_is_unreachable(li)) {
+                BB_is_unreach(this) = true;
+
+            }
+            getLabelList().append_tail(li);
+        }
+    }
+
+    size_t count_mem() const;
+
+    //Clean attached label.
+    void cleanLabelInfoList() { getLabelList().clean(); }
+
+    void dump(Region * ru, bool dump_inner_region);
+    void dupSuccessorPhiOpnd(CFG<IRBB, IR> * cfg, Region * ru, UINT opnd_pos);
+
+    List<LabelInfo const*> & getLabelList() { return lab_list; }
+    List<LabelInfo const*> const& getLabelListConst() const { return lab_list; }
+    UINT getNumOfIR() const { return BB_irlist(this).get_elem_count(); }
+    UINT getNumOfPred(CFG<IRBB, IR> * cfg) const
+    {
+        ASSERT0(cfg);
+        Vertex const* vex = cfg->get_vertex(BB_id(this));
+        ASSERT0(vex);
+        UINT n = 0;
+        for (EdgeC const* in = VERTEX_in_list(vex);
+             in != NULL; in = EC_next(in), n++);
+        return n;
+    }
+
+    UINT getNumOfSucc(CFG<IRBB, IR> * cfg) const
+    {
+        ASSERT0(cfg);
+        Vertex const* vex = cfg->get_vertex(BB_id(this));
+        ASSERT0(vex);
+        UINT n = 0;
+        for (EdgeC const* out = VERTEX_out_list(vex);
+             out != NULL; out = EC_next(out), n++);
+        return n;
+    }
+
+    //For some aggressive optimized purposes, call node is not looked as
+    //boundary of basic block.
+    //So we must bottom-up go through whole bb to find call.
+    inline bool is_bb_has_call() const
+    {
+        BBIRList * irlst = const_cast<BBIRList*>(&BB_irlist(this));
+        for (IR * ir = irlst->get_tail();
+             ir != NULL; ir = irlst->get_prev()) {
+            if (ir->is_calls_stmt()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    inline bool is_bb_has_return() const
+    {
+        BBIRList * irlst = const_cast<BBIRList*>(&BB_irlist(this));
+        for (IR * ir = irlst->get_tail();
+             ir != NULL; ir = irlst->get_prev()) {
+            if (ir->is_return()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    //Return true if BB is an entry BB of TRY block.
+    inline bool is_try_start() const
+    {
+        bool r = BB_is_try_start(this);
+     #ifdef _DEBUG_
+        bool find = false;
+        IRBB * pthis = const_cast<IRBB*>(this);
+        for (LabelInfo const* li = pthis->getLabelList().get_head();
+             li != NULL; li = pthis->getLabelList().get_next()) {
+            if (LABEL_INFO_is_try_start(li)) {
+                find = true;
+                break;
+            }
+        }
+        ASSERT0(r == find);
+     #endif
+        return r;
+    }
+
+    //Return true if BB is an exit BB of TRY block.
+    inline bool is_try_end() const
+    {
+        bool r = BB_is_try_end(this);
+ #ifdef _DEBUG_
+        bool find = false;
+        IRBB * pthis = const_cast<IRBB*>(this);
+        for (LabelInfo const* li = pthis->getLabelList().get_head();
+             li != NULL; li = pthis->getLabelList().get_next()) {
+            if (LABEL_INFO_is_try_end(li)) {
+                find = true;
+                break;
+            }
+        }
+        ASSERT0(r == find);
+ #endif
+        return r;
+    }
+
+    //Return true if BB is entry of CATCH block.
+    inline bool is_exp_handling() const
+    {
+        bool r = BB_is_catch_start(this);
+        #ifdef _DEBUG_
+        bool find = false;
+        IRBB * pthis = const_cast<IRBB*>(this);
+        for (LabelInfo const* li = pthis->getLabelList().get_head();
+             li != NULL; li = pthis->getLabelList().get_next()) {
+            if (LABEL_INFO_is_catch_start(li)) {
+                find = true;
+                break;
+            }
+        }
+        ASSERT0(r == find);
+        #endif
+        return r;
+    }
+
+    //Return true if BB is unreachable.
+    inline bool is_unreachable() const
+    {
+        bool r = BB_is_unreach(this);
+        #ifdef _DEBUG_
+        bool find = false;
+        IRBB * pthis = const_cast<IRBB*>(this);
+        for (LabelInfo const* li = pthis->getLabelList().get_head();
+             li != NULL; li = pthis->getLabelList().get_next()) {
+            if (LABEL_INFO_is_unreachable(li)) {
+                find = true;
+                break;
+            }
+        }
+        ASSERT0(r == find);
+        #endif
+        return r;
+    }
+
+    //Could ir be looked as a boundary stmt of basic block?
+    inline bool is_bb_boundary(IR * ir)
+    { return (is_bb_up_boundary(ir) || is_bb_down_boundary(ir)); }
+
+    //Could ir be looked as a first stmt in basic block?
+    inline bool is_bb_up_boundary(IR const* ir) const
+    {
+        ASSERT(ir->isStmtInBB() || ir->is_lab(), ("illegal stmt in bb"));
+        return ir->is_lab();
+    }
+    bool is_bb_down_boundary(IR * ir);
+
+    //Is bb containing such label carried by 'lir'.
+    inline bool is_bb_has_label(LabelInfo const* lab)
+    {
+        for (LabelInfo const* li = getLabelList().get_head();
+             li != NULL; li = getLabelList().get_next()) {
+            if (isSameLabel(li, lab)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    inline bool is_attach_dedicated_lab()
+    {
+        for (LabelInfo const* li = getLabelList().get_head();
+             li != NULL; li = getLabelList().get_next()) {
+            if (LABEL_INFO_is_catch_start(li) ||
+                LABEL_INFO_is_try_start(li) ||
+                LABEL_INFO_is_try_end(li) ||
+                LABEL_INFO_is_pragma(li)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    //Return true if ir1 dominate ir2 in current bb.
+    //Function will modify the IR container of bb.
+    //'is_strict': true if ir1 should not equal to ir2.
+    inline bool is_dom(IR const* ir1, IR const* ir2, bool is_strict) const
+    {
+        ASSERT0(ir1->is_stmt() && ir2->is_stmt() &&
+                 ir1->get_bb() == this && ir2->get_bb() == this);
+        if (is_strict && ir1 == ir2) {
+            return false;
+        }
+
+        C<IR*> * ctir;
+        for (BB_irlist(this).get_head(&ctir);
+             ctir != BB_irlist(this).end();
+             ctir = BB_irlist(this).get_next(ctir)) {
+            IR * ir = ctir->val();
+            if (ir == ir1) {
+                return true;
+            }
+            if (ir == ir2) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    bool mayThrowException() const
+    {
+        C<IR*> * ct;
+        IR * x = BB_irlist(const_cast<IRBB*>(this)).get_tail(&ct);
+        if (x != NULL && IR_may_throw(x)) {
+            return true;
+        }
+        return false;
+    }
+
+    //Add all Labels attached on src BB to current BB.
+    inline void mergeLabeInfoList(IRBB * src)
+    {
+        for (LabelInfo const* li = src->getLabelList().get_head();
+             li != NULL; li = src->getLabelList().get_next()) {
+            if (lab_list.find(li)) { continue; }
+            lab_list.append_head(li);
+
+            //Update current BB status accroding to the Label.
+            if (LABEL_INFO_is_catch_start(li)) {
+                BB_is_catch_start(this) = true;
+            }
+
+            if (LABEL_INFO_is_unreachable(li)) {
+                BB_is_unreach(this) = true;
+            }
+        }
+    }
+
+    //Return true if one of bb's successor has a phi.
+    bool successorHasPhi(CFG<IRBB, IR> * cfg);
+
+    //Before removing bb or change bb successor,
+    //you need remove the related PHI operand if BB successor has PHI stmt.
+    void removeSuccessorPhiOpnd(CFG<IRBB, IR> * cfg);
+
+    //Before removing bb or change bb successor,
+    //you need remove the related PHI operand if BB successor has PHI stmt.
+    void removeSuccessorDesignatePhiOpnd(CFG<IRBB, IR> * cfg, IRBB * succ);
+
+    void verify();
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 //END IRBB
 
@@ -408,6 +823,7 @@ public:
 //
 class IRBBMgr {
 protected:
+<<<<<<< HEAD
 	BBList m_bbs_list;
 	UINT m_bb_count; //counter of IRBB.
 
@@ -439,11 +855,52 @@ public:
 		}
 		return count;
 	}
+=======
+    BBList m_bbs_list;
+    UINT m_bb_count; //counter of IRBB.
+
+public:
+    IRBBMgr() { m_bb_count = 1; }
+    COPY_CONSTRUCTOR(IRBBMgr);
+    ~IRBBMgr()
+    {
+        for (IRBB * bb = m_bbs_list.get_head();
+             bb != NULL; bb = m_bbs_list.get_next()) {
+            delete bb;
+        }
+    }
+
+    inline IRBB * allocBB()
+    {
+        IRBB * bb = new IRBB();
+        BB_id(bb) = m_bb_count++;
+        m_bbs_list.append_tail(bb);
+        return bb;
+    }
+
+    size_t count_mem()
+    {
+        size_t count = 0;
+        for (IRBB * bb = m_bbs_list.get_head();
+             bb != NULL; bb = m_bbs_list.get_next()) {
+            count += bb->count_mem();
+        }
+        return count;
+    }
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 //END IRBBMgr
 
 //Exported Functions
+<<<<<<< HEAD
 extern void dumpBBList(BBList * bbl, Region * ru, CHAR const* name = NULL);
+=======
+void dumpBBLabel(List<LabelInfo const*> & lablist, FILE * h);
+void dumpBBList(BBList * bbl,
+                Region * ru,
+                CHAR const* name = NULL,
+                bool dump_inner_region = true);
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 } //namespace xoc
 #endif

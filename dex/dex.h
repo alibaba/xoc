@@ -35,58 +35,63 @@ author: Su Zhenyu
 #define _DEX_H_
 
 #ifdef _ENABLE_LOG_
+<<<<<<< HEAD
 #define LOG ALOGE
+=======
+#define LOG ALOGI
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 #else
 #define LOG
 #endif
 
 typedef enum _INVOKE_KIND {
-	INVOKE_UNDEF = 0,
-	INVOKE_VIRTUAL,
-	INVOKE_SUPER,
-	INVOKE_DIRECT,
-	INVOKE_STATIC,
-	INVOKE_INTERFACE,
-	INVOKE_VIRTUAL_RANGE,
-	INVOKE_SUPER_RANGE,
-	INVOKE_DIRECT_RANGE,
-	INVOKE_STATIC_RANGE,
-	INVOKE_INTERFACE_RANGE,
+    INVOKE_UNDEF = 0,
+    INVOKE_VIRTUAL,
+    INVOKE_SUPER,
+    INVOKE_DIRECT,
+    INVOKE_STATIC,
+    INVOKE_INTERFACE,
+    INVOKE_VIRTUAL_RANGE,
+    INVOKE_SUPER_RANGE,
+    INVOKE_DIRECT_RANGE,
+    INVOKE_STATIC_RANGE,
+    INVOKE_INTERFACE_RANGE,
 } INVOKE_KIND;
 
 typedef enum _BLTIN_TYPE {
-	BLTIN_UNDEF = 0,
-	BLTIN_INVOKE,
-	BLTIN_NEW,
-	BLTIN_NEW_ARRAY,
-	BLTIN_MOVE_EXP,
-	BLTIN_MOVE_RES,
-	BLTIN_THROW,
-	BLTIN_CHECK_CAST,
-	BLTIN_FILLED_NEW_ARRAY,
-	BLTIN_FILL_ARRAY_DATA,
-	BLTIN_CONST_CLASS,
-	BLTIN_ARRAY_LENGTH,
-	BLTIN_MONITOR_ENTER,
-	BLTIN_MONITOR_EXIT,
-	BLTIN_INSTANCE_OF,
-	BLTIN_CMP_BIAS
+    BLTIN_UNDEF = 0,
+    BLTIN_NEW,
+    BLTIN_NEW_ARRAY,
+    BLTIN_MOVE_EXP,
+    BLTIN_MOVE_RES,
+    BLTIN_THROW,
+    BLTIN_CHECK_CAST,
+    BLTIN_FILLED_NEW_ARRAY,
+    BLTIN_FILL_ARRAY_DATA,
+    BLTIN_CONST_CLASS,
+    BLTIN_ARRAY_LENGTH,
+    BLTIN_MONITOR_ENTER,
+    BLTIN_MONITOR_EXIT,
+    BLTIN_INSTANCE_OF,
+    BLTIN_CMP_BIAS,
+    BLTIN_LAST,
 } BLTIN_TYPE;
 
 
-#define BLTIN_type(t)			(g_builtin_info[(t)].ty)
-#define BLTIN_name(t)			(g_builtin_info[(t)].name)
-class BLTIN_INFO {
+#define BLTIN_type(t)            (g_builtin_info[(t)].ty)
+#define BLTIN_name(t)            (g_builtin_info[(t)].name)
+class BuiltInInfo {
 public:
-	BLTIN_TYPE ty;
-	CHAR const* name;
+    BLTIN_TYPE ty;
+    CHAR const* name;
 };
 
 
 extern UINT g_builtin_num;
-extern BLTIN_INFO g_builtin_info[];
+extern BuiltInInfo g_builtin_info[];
 
 
+<<<<<<< HEAD
 class VAR2UINT : public TMap<VAR const*, UINT> {
 public:
 	VAR2UINT() {}
@@ -217,12 +222,183 @@ public:
 		}
 	}
 	virtual ~STR2INTRI() {}
+=======
+class Var2UINT : public TMap<VAR const*, UINT> {
+public:
+    Var2UINT() {}
+    virtual ~Var2UINT() {}
+
+    UINT get_mapped(VAR const* v) const
+    {
+        bool find;
+        UINT i = TMap<VAR const*, UINT>::get(v, &find);
+        ASSERT0(find);
+        return i;
+    }
+};
+
+
+class UINT2Var : public TMap<UINT, VAR*> {
+public:
+    UINT2Var() {}
+    virtual ~UINT2Var() {}
+
+    VAR * get_mapped(UINT u)
+    {
+        ASSERT0(u != 0);
+        bool find;
+        VAR * v = TMap<UINT, VAR*>::get(u, &find);
+        ASSERT0(find);
+        return v;
+    }
+};
+
+
+class Prno2Vreg : public HMap<UINT, UINT, HashFuncBase2<UINT> > {
+public:
+    INT maxreg; //record the max vreg used.
+    UINT paramnum; //record the number of parameter.
+
+    Prno2Vreg(UINT sz = 0) : HMap<UINT, UINT, HashFuncBase2<UINT> >(sz)
+    {
+        maxreg = -1;
+        paramnum = 0;
+    }
+    virtual ~Prno2Vreg() {}
+
+    UINT get(UINT prno)
+    {
+        bool find = false;
+        UINT x = HMap<UINT, UINT, HashFuncBase2<UINT> >::get(prno, &find);
+        ASSERT0(find);
+        return x;
+    }
+
+    UINT get_mapped_vreg(UINT prno)
+    {
+        UINT mapped = 0;
+        bool f = HMap<UINT, UINT, HashFuncBase2<UINT> >::find(prno, &mapped);
+        UNUSED(f);
+        ASSERT(f, ("prno should be mapped with vreg in dex2ir"));
+        //return HMap<UINT, UINT, HashFuncBase2<UINT> >::get(prno);
+        return mapped;
+    }
+
+    UINT get(UINT prno, bool * find)
+    { return HMap<UINT, UINT, HashFuncBase2<UINT> >::get(prno, find); }
+
+    void set(UINT prno, UINT v)
+    {
+        ASSERT0(prno > 0);
+        HMap<UINT, UINT, HashFuncBase2<UINT> >::set(prno, v);
+    }
+
+    void copy(Prno2Vreg & src)
+    {
+        INT cur;
+        for (UINT prno = src.get_first(cur); cur >= 0; prno = src.get_next(cur)) {
+            UINT v = src.get(prno);
+            set(prno, v);
+        }
+        maxreg = src.maxreg;
+        paramnum = src.paramnum;
+    }
+
+    void dump()
+    {
+        if (g_tfile == NULL) { return; }
+        fprintf(g_tfile, "\n==---- DUMP Prno2Vreg ----==");
+        g_indent = 4;
+
+        if (maxreg < 0) {
+            fprintf(g_tfile, "\n==------ PR to Vreg is unordered ------==");
+            INT cur;
+            for (UINT prno = get_first(cur); cur >= 0; prno = get_next(cur)) {
+                UINT v = get(prno);
+                fprintf(g_tfile, "\nPR%d->v%d", prno, v);
+            }
+        } else {
+            INT cur;
+            for (INT i = 0; i <= maxreg; i++) {
+                bool find = false;
+                for (UINT prno = get_first(cur); cur >= 0; prno = get_next(cur)) {
+                    UINT v = get(prno);
+                    if (v == (UINT)i) {
+                        fprintf(g_tfile, "\nPR%d -> v%d", prno, v);
+                        find = true;
+                        break;
+                    }
+                }
+
+                if (!find) {
+                    fprintf(g_tfile, "\n-- -> v%d", i);
+                }
+            }
+        }
+        fflush(g_tfile);
+    }
+};
+
+
+class Vreg2PR : public Vector<IR*> {
+public:
+    void dump()
+    {
+        if (g_tfile == NULL) { return; }
+
+        fprintf(g_tfile, "\n==---- DUMP Prno2Vreg ----==");
+
+        for (INT i = 0; i <= get_last_idx(); i++) {
+            IR * pr = get(i);
+            if (pr == NULL) {
+                fprintf(g_tfile, "\nv%d -> --", i);
+            }
+            fprintf(g_tfile, "\nv%d -> PR%u", i, pr->get_prno());
+        }
+        fflush(g_tfile);
+    }
+};
+
+
+class Str2BuiltinType : public HMap<CHAR const*, BLTIN_TYPE, HashFuncString> {
+public:
+    Str2BuiltinType(UINT sz = 13) : HMap<CHAR const*, BLTIN_TYPE, HashFuncString>(sz)
+    {
+        for (UINT i = BLTIN_UNDEF + 1; i < g_builtin_num; i++) {
+            set(BLTIN_name((BLTIN_TYPE)i), (BLTIN_TYPE)i);
+        }
+    }
+    virtual ~Str2BuiltinType() {}
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 
 //Map from typeIdx of type-table to positionIdx in file-class-def-table.
 class FieldTypeIdx2PosIdx : public TMap<UINT, UINT> {
+<<<<<<< HEAD
 public:
+=======
+public:
+};
+
+
+class DexDbx : public BaseAttachInfo {
+public:
+    DexDbx(AI_TYPE t = AI_DBX) : BaseAttachInfo(t) {}
+    UINT linenum;
+    CHAR const* filename;
+};
+
+
+class OffsetVec : public Vector<UINT, 16> {
+public:
+};
+
+
+class DbxVec : public Vector<DexDbx*> {
+public:
+    DbxVec(UINT size) : Vector<DexDbx*>(size) {}
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 
@@ -253,6 +429,7 @@ inline bool is_swide32(LONGLONG value)
 //Record type to facilitate type comparation.
 class TypeIndexRep {
 public:
+<<<<<<< HEAD
 	Type const* i8;
 	Type const* u8;
 	Type const* i16;
@@ -281,4 +458,43 @@ public:
 
 //Perform Dex register allocation.
 extern bool g_do_dex_ra;
+=======
+    Type const* i8;
+    Type const* u8;
+    Type const* i16;
+    Type const* u16;
+    Type const* i32;
+    Type const* u32;
+    Type const* i64;
+    Type const* u64;
+    Type const* f32;
+    Type const* f64;
+    Type const* b;
+    Type const* ptr;
+    Type const* array;
+    Type const* obj_lda_base_type;
+    Type const* uint16x4;
+    Type const* int16x4;
+    Type const* uint32x4;
+    Type const* int32x4;
+    Type const* uint64x2;
+    Type const* int64x2;
+
+public:
+    TypeIndexRep() { memset(this, 0, sizeof(TypeIndexRep)); }
+};
+
+//Perform Dex register allocation.
+extern bool g_do_dex_ra;
+
+//Set true to collect debug info.
+extern bool g_collect_debuginfo;
+extern bool g_dump_ir2dex;
+extern bool g_dump_dex2ir;
+extern bool g_dump_classdefs;
+extern bool g_dump_lirs;
+extern bool g_is_pretty_print_method_name;
+extern bool g_dump_dex_file_path;
+extern bool g_record_region_for_classs;
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 #endif

@@ -38,6 +38,7 @@ namespace xoc {
 
 class IR_CFS_OPT : public Pass {
 protected:
+<<<<<<< HEAD
 	Region * m_ru;
 	TypeMgr * m_dm;
 	bool transformToDoWhile(IR ** head, IR * ir);
@@ -51,9 +52,25 @@ protected:
 public:
 	IR_CFS_OPT(Region * ru) { m_ru = ru; m_dm = ru->get_dm(); }
 	~IR_CFS_OPT() {}
+=======
+    Region * m_ru;
+    TypeMgr * m_tm;
+    bool transformToDoWhile(IR ** head, IR * ir);
+    bool transformIf1(IR ** head, IR * ir);
+    bool transformIf2(IR ** head, IR * ir);
+    bool transformIf3(IR ** head, IR * ir);
+    bool transformIf4(IR ** head, IR * ir);
+    bool transformIf5(IR ** head, IR * ir);
+    bool hoistLoop(IR ** head, IR * ir);
+    bool hoistIf(IR ** head, IR * ir);
+public:
+    IR_CFS_OPT(Region * ru) { m_ru = ru; m_tm = ru->get_type_mgr(); }
+    ~IR_CFS_OPT() {}
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
-	void dump();
+    void dump();
 
+<<<<<<< HEAD
 	virtual CHAR const* get_pass_name() const { return "IR_CFS_OPT"; }
 
 	bool perform_cfs_optimization(IN OUT IR ** ir_list, IN SimpCTX const& sc);
@@ -63,6 +80,17 @@ public:
 		return false;
 	}
 	virtual bool perform(IN SimpCTX const& simp);
+=======
+    virtual CHAR const* get_pass_name() const { return "IR_CFS_OPT"; }
+
+    bool perform_cfs_optimization(IN OUT IR ** ir_list, SimpCtx const& sc);
+    virtual bool perform(OptCtx &)
+    {
+        UNREACH();
+        return false;
+    }
+    virtual bool perform(SimpCtx const& simp);
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 } //namespace xoc

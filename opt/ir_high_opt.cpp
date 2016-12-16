@@ -36,6 +36,7 @@ author: Su Zhenyu
 
 namespace xoc {
 
+<<<<<<< HEAD
 /* Perform high-level optimizaitions.
 Basis step to do:
 	1. Build control flow graph.
@@ -157,6 +158,155 @@ bool Region::HighProcess(OptCTX & oc)
 	//delete poly;
 	*/
 	return true;
+=======
+void Region::HighProcessImpl(OptCtx & oc)
+{
+    if (g_do_cfg) {
+        ASSERT0(g_cst_bb_list);
+        checkValidAndRecompute(&oc, PASS_CFG, PASS_UNDEF);
+        //Remove empty bb when cfg rebuilted because
+        //rebuilding cfg may generate redundant empty bb.
+        //It disturbs the computation of entry and exit.
+        get_cfg()->removeEmptyBB(oc);
+
+        //Compute exit bb while cfg rebuilt.
+        get_cfg()->computeExitList();
+        ASSERT0(get_cfg()->verify());
+
+        get_cfg()->performMiscOpt(oc);
+    }
+
+    if (g_do_ssa) {
+        ASSERT0(get_pass_mgr());
+        IR_SSA_MGR * ssamgr =
+            (IR_SSA_MGR*)get_pass_mgr()->registerPass(PASS_SSA_MGR);
+        ASSERT0(ssamgr);
+        if (!ssamgr->is_ssa_constructed()) {
+            ssamgr->construction(oc);
+        }
+    }
+
+    if (g_do_aa) {
+        ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc));
+        checkValidAndRecompute(&oc, PASS_AA, PASS_UNDEF);
+    }
+
+    if (g_do_md_du_ana) {
+        ASSERT0(g_cst_bb_list && OC_is_cfg_valid(oc) && OC_is_aa_valid(oc));
+        ASSERT0(get_pass_mgr());
+        IR_DU_MGR * dumgr =
+            (IR_DU_MGR*)get_pass_mgr()->registerPass(PASS_DU_MGR);
+        ASSERT0(dumgr);
+        UINT f = SOL_REACH_DEF|SOL_REF;
+        if (g_compute_available_exp) {
+            f |= SOL_AVAIL_EXPR;
+        }
+
+        if (g_compute_region_imported_defuse_md) {
+            f |= SOL_RU_REF;
+        }
+
+        if (g_compute_du_chain) {
+            f |= SOL_REACH_DEF;
+        }
+
+        if (dumgr->perform(oc, f) && OC_is_ref_valid(oc)) {
+            if (g_compute_du_chain) {
+                dumgr->computeMDDUChain(oc);
+            }
+        }
+    }
+
+    if (g_do_expr_tab) {
+        ASSERT0(g_cst_bb_list);
+        checkValidAndRecompute(&oc, PASS_EXPR_TAB, PASS_UNDEF);
+    }
+
+    if (g_do_cdg) {
+        ASSERT0(g_cst_bb_list);
+        checkValidAndRecompute(&oc, PASS_CDG, PASS_UNDEF);
+    }
+
+    if (g_opt_level == OPT_LEVEL0) {
+        return;
+    }
+
+    //Regenerate high level IR, and do high level optimizations.
+    //Now, I get one thing: We cannot or not very easy
+    //construct High Level Control IR,
+    //(IF,DO_LOOP,...) via analysing CFG.
+    //    e.g:
+    //
+    //        if (i > j) { //BB1
+    //            ...
+    //        } else {
+    //            return 2; //S1
+    //        }
+    //    BB1 does not have a ipdom, so we can not find the indispensible 3 parts:
+    //        True body, False body, and the Sibling node.
+    //
+    //Solution: We can scan IF stmt first, in order to mark
+    //start stmt and end stmt of IF.
+    //
+    ////AbsNode * an =
+    //    REGION_analysis_instrument(this)->m_cfs_mgr->construct_abstract_cfs();
+    ////Polyhedra optimization.
+    ////IR_POLY * poly = newPoly();
+    ////if (poly->construct_poly(an)) {
+    ////    poly->perform_poly_trans();
+    ////}
+    ////delete poly;
+}
+
+
+//Perform high-level optimizaitions.
+//Basis step to do:
+//    1. Build control flow graph.
+//    2. Compute POINT-TO info.
+//    3. Compute DEF-USE info.
+//    4. Compute Lived Expression info.
+//
+//Optimizations to be performed:
+//    1. Auto Parallel
+//    2. Loop interchange
+//    3. Loop reverese(may be a little helpful)
+//    4. Loop tiling
+//    5. Loop fusion
+//    6. Loop unrolling
+bool Region::HighProcess(OptCtx & oc)
+{
+    g_indent = 0;
+    note("\n\n==== Region:%s HIGHEST LEVEL FARMAT ====\n\n", get_ru_name());
+
+    SimpCtx simp;
+    if (g_do_cfs_opt) {
+        IR_CFS_OPT co(this);
+        co.perform(simp);
+        ASSERT0(verify_irs(get_ir_list(), NULL, this));
+    }
+
+    if (g_build_cfs) {
+        ASSERT0(get_pass_mgr());
+        SIMP_is_record_cfs(&simp) = true;
+        CfsMgr * cfsmgr = (CfsMgr*)get_pass_mgr()->registerPass(PASS_CFS_MGR);
+        ASSERT0(cfsmgr);
+        SIMP_cfs_mgr(&simp) = cfsmgr;
+    }
+
+    simp.setSimpCFS();
+    set_ir_list(simplifyStmtList(get_ir_list(), &simp));
+    ASSERT0(verify_simp(get_ir_list(), simp));
+    ASSERT0(verify_irs(get_ir_list(), NULL, this));
+
+    if (g_cst_bb_list) {
+        constructIRBBlist();
+        ASSERT0(verifyIRandBB(get_bb_list(), this));
+        set_ir_list(NULL); //All IRs have been moved to each IRBB.
+    }
+
+    HighProcessImpl(oc);
+    return true;
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 } //namespace xoc

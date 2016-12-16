@@ -39,17 +39,18 @@ namespace xoc {
 //This file represent loop structure and relate algorithms.
 
 //CFG Loop Info.
-#define LI_id(li)					((li)->id)
-#define LI_next(li)					((li)->next)
-#define LI_prev(li)					((li)->prev)
-#define LI_has_early_exit(li)		((li)->has_early_exit)
-#define LI_has_call(li)				((li)->has_call)
-#define LI_inner_list(li)			((li)->inner_list)
-#define LI_outer(li)				((li)->outer)
-#define LI_bb_set(li)				((li)->bb_set)
-#define LI_loop_head(li)			((li)->loop_head)
+#define LI_id(li)                   ((li)->id)
+#define LI_next(li)                 ((li)->next)
+#define LI_prev(li)                 ((li)->prev)
+#define LI_has_early_exit(li)       ((li)->has_early_exit)
+#define LI_has_call(li)             ((li)->has_call)
+#define LI_inner_list(li)           ((li)->inner_list)
+#define LI_outer(li)                ((li)->outer)
+#define LI_bb_set(li)               ((li)->bb_set)
+#define LI_loop_head(li)            ((li)->loop_head)
 template <class BB> class LI {
 public:
+<<<<<<< HEAD
 	UINT id;
 	LI * next;
 	LI * prev;
@@ -60,14 +61,33 @@ public:
 	BB * loop_head; //loop head node, the only one header
 				   //indicates a natural loop.
 	BitSet * bb_set; //loop body elements
+=======
+    UINT id;
+    LI * next;
+    LI * prev;
+    LI * inner_list; //inner loop list
+    LI * outer; //outer loop
+    UCHAR has_early_exit:1;
+    UCHAR has_call:1;
+    BB * loop_head; //loop head node, the only one header
+                    //indicates a natural loop.
+    BitSet * bb_set; //loop body elements
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
-	bool is_loop_reduction()
-	{ return !has_early_exit; }
+    bool is_loop_reduction()
+    { return !has_early_exit; }
 
+<<<<<<< HEAD
 	//Return true if bb is belong to current loop.
 	//'bbid': id of BB.
 	bool is_inside_loop(UINT bbid) const
 	{ return LI_bb_set(this)->is_contain(bbid); }
+=======
+    //Return true if bb is belong to current loop.
+    //'bbid': id of BB.
+    bool is_inside_loop(UINT bbid) const
+    { return LI_bb_set(this)->is_contain(bbid); }
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 
@@ -76,12 +96,21 @@ class Region;
 class IR_CFG;
 
 IRBB * findAndInsertPreheader(
+<<<<<<< HEAD
 			LI<IRBB> const* li, Region * ru,
 			OUT bool & insert_bb, bool force);
 IRBB * findSingleBackedgeStartBB(LI<IRBB> const* li, IR_CFG * cfg);
 bool findTwoSuccessorBBOfLoopHeader(
 			LI<IRBB> const* li, IR_CFG * cfg,
 			UINT * succ1, UINT * succ2);
+=======
+            LI<IRBB> const* li, Region * ru,
+            OUT bool & insert_bb, bool force);
+IRBB * findSingleBackedgeStartBB(LI<IRBB> const* li, IR_CFG * cfg);
+bool findTwoSuccessorBBOfLoopHeader(
+            LI<IRBB> const* li, IR_CFG * cfg,
+            UINT * succ1, UINT * succ2);
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 } //namespace xoc
 #endif

@@ -39,7 +39,20 @@ extern "C" {
 #endif
 
 //Export Functions.
+<<<<<<< HEAD
 bool compileFunc(D2Dpool * pool, LIRCode * fu, DexFile * df, DexMethod const* dm);
+=======
+bool compileFunc(
+        RegionMgr * rumgr,
+        D2Dpool * pool,
+        LIRCode * fu,
+        DexFile * df,
+        DexMethod const* dm,
+        DexCode const* dexcode,
+        DexClassDef const* dexclassdef,
+        OffsetVec const& offsetvec,
+        List<DexRegion const*> * rulist);
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 #ifdef __cplusplus
 }

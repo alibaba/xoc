@@ -40,6 +40,7 @@ namespace xoc {
 //
 void CDG::dump()
 {
+<<<<<<< HEAD
 	dump_vcg("graph_cd_tree.vcg");
 	if (g_tfile == NULL) return;
 	fprintf(g_tfile, "\n==---- DUMP Control Dependence ----==");
@@ -60,11 +61,34 @@ void CDG::dump()
 	}
 	fprintf(g_tfile, "\n");
 	fflush(g_tfile);
+=======
+    dump_vcg("graph_cd_tree.vcg");
+    if (g_tfile == NULL) return;
+    fprintf(g_tfile, "\n==---- DUMP Control Dependence ----==");
+    INT c;
+    for (Vertex * v = get_first_vertex(c);
+         v != NULL; v = get_next_vertex(c)) {
+        EdgeC * in = VERTEX_in_list(v);
+        if (in == NULL) {
+            fprintf(g_tfile, "\nBB%d has NO ctrl BB", VERTEX_id(v));
+            continue;
+        }
+        fprintf(g_tfile, "\nBB%d ctrl BB is: ", VERTEX_id(v));
+        while (in != NULL) {
+            Vertex * pred = EDGE_from(EC_edge(in));
+            fprintf(g_tfile, "%d,", VERTEX_id(pred));
+            in = EC_next(in);
+        }
+    }
+    fprintf(g_tfile, "\n");
+    fflush(g_tfile);
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 void CDG::get_cd_preds(UINT id, OUT List<Vertex*> & lst)
 {
+<<<<<<< HEAD
 	Vertex * v = get_vertex(id);
 	ASSERT0(v != NULL);
 	EdgeC * in = VERTEX_in_list(v);
@@ -73,12 +97,23 @@ void CDG::get_cd_preds(UINT id, OUT List<Vertex*> & lst)
 		lst.append_tail(pred);
 		in = EC_next(in);
 	}
+=======
+    Vertex * v = get_vertex(id);
+    ASSERT0(v != NULL);
+    EdgeC * in = VERTEX_in_list(v);
+    while (in != NULL) {
+        Vertex * pred = EDGE_from(EC_edge(in));
+        lst.append_tail(pred);
+        in = EC_next(in);
+    }
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Return true if b is control dependent on a.
 bool CDG::is_cd(UINT a, UINT b)
 {
+<<<<<<< HEAD
 	ASSERT0(get_vertex(b));
 	Vertex * v = get_vertex(a);
 	ASSERT0(v != NULL);
@@ -90,11 +125,25 @@ bool CDG::is_cd(UINT a, UINT b)
 		out = EC_next(out);
 	}
 	return false;
+=======
+    ASSERT0(get_vertex(b));
+    Vertex * v = get_vertex(a);
+    ASSERT0(v != NULL);
+    EdgeC * out = VERTEX_out_list(v);
+    while (out != NULL) {
+        if (VERTEX_id(EDGE_to(EC_edge(out))) == b) {
+            return true;
+        }
+        out = EC_next(out);
+    }
+    return false;
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 bool CDG::is_only_cd_self(UINT id)
 {
+<<<<<<< HEAD
 	Vertex * v = get_vertex(id);
 	ASSERT0(v != NULL);
 	EdgeC * out = VERTEX_out_list(v);
@@ -104,11 +153,23 @@ bool CDG::is_only_cd_self(UINT id)
 		out = EC_next(out);
 	}
 	return true;
+=======
+    Vertex * v = get_vertex(id);
+    ASSERT0(v != NULL);
+    EdgeC * out = VERTEX_out_list(v);
+    while (out != NULL) {
+        Vertex * succ = EDGE_to(EC_edge(out));
+        if (succ != v) return false;
+        out = EC_next(out);
+    }
+    return true;
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 void CDG::get_cd_succs(UINT id, OUT List<Vertex*> & lst)
 {
+<<<<<<< HEAD
 	Vertex * v = get_vertex(id);
 	ASSERT0(v != NULL);
 	EdgeC * out = VERTEX_out_list(v);
@@ -121,12 +182,27 @@ void CDG::get_cd_succs(UINT id, OUT List<Vertex*> & lst)
 
 
 void CDG::rebuild(IN OUT OptCTX & oc, DGraph & cfg)
-{
-	erase();
-	build(oc, cfg);
+=======
+    Vertex * v = get_vertex(id);
+    ASSERT0(v != NULL);
+    EdgeC * out = VERTEX_out_list(v);
+    while (out != NULL) {
+        Vertex * succ = EDGE_to(EC_edge(out));
+        lst.append_tail(succ);
+        out = EC_next(out);
+    }
 }
 
 
+void CDG::rebuild(IN OUT OptCtx & oc, DGraph & cfg)
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
+{
+    erase();
+    build(oc, cfg);
+}
+
+
+<<<<<<< HEAD
 void CDG::build(IN OUT OptCTX & oc, DGraph & cfg)
 {
 	if (cfg.get_vertex_num() == 0) { return; }
@@ -191,6 +267,73 @@ void CDG::build(IN OUT OptCTX & oc, DGraph & cfg)
 
 	OC_is_cdg_valid(oc) = true;
 	END_TIMER();
+=======
+void CDG::build(IN OUT OptCtx & oc, DGraph & cfg)
+{
+    if (cfg.get_vertex_num() == 0) { return; }
+
+    START_TIMER("CDG");
+    ASSERT0(OC_is_cfg_valid(oc));
+    m_ru->checkValidAndRecompute(&oc, PASS_PDOM, PASS_UNDEF);
+
+    Graph pdom_tree;
+    cfg.get_pdom_tree(pdom_tree);
+    if (pdom_tree.get_vertex_num() == 0) { return; }
+
+    Vector<UINT> top_order;
+    pdom_tree.sortInToplogOrder(top_order, false);
+    //dumpIntVector(top_order);
+
+    BitSetMgr bs_mgr;
+    Vector<BitSet*> cd_set;
+    for (INT j = 0; j <= top_order.get_last_idx(); j++) {
+        UINT ii = top_order.get(j);
+        Vertex * v = cfg.get_vertex(ii);
+        ASSERT0(v != NULL);
+        addVertex(VERTEX_id(v));
+        BitSet * cd_of_v = cd_set.get(VERTEX_id(v));
+        if (cd_of_v == NULL) {
+            cd_of_v = bs_mgr.create();
+            cd_set.set(VERTEX_id(v), cd_of_v);
+        }
+
+        EdgeC * in = VERTEX_in_list(v);
+        while (in != NULL) {
+            Vertex * pred = EDGE_from(EC_edge(in));
+            if (VERTEX_id(v) != ((DGraph&)cfg).get_ipdom(VERTEX_id(pred))) {
+                cd_of_v->bunion(VERTEX_id(pred));
+                //if (pred != v)
+                {
+                    addEdge(VERTEX_id(pred), VERTEX_id(v));
+                }
+            }
+            in = EC_next(in);
+        }
+        INT c;
+        for (Vertex * z = cfg.get_first_vertex(c);
+             z != NULL; z = cfg.get_next_vertex(c)) {
+            if (((DGraph&)cfg).get_ipdom(VERTEX_id(z)) == VERTEX_id(v)) {
+                BitSet * cd = cd_set.get(VERTEX_id(z));
+                if (cd == NULL) {
+                    cd = bs_mgr.create();
+                    cd_set.set(VERTEX_id(z), cd);
+                }
+                for (INT i = cd->get_first(); i != -1; i = cd->get_next(i)) {
+                    if (VERTEX_id(v) != ((DGraph&)cfg).get_ipdom(i)) {
+                        cd_of_v->bunion(i);
+                        //if (i != (INT)VERTEX_id(v))
+                        {
+                            addEdge(i, VERTEX_id(v));
+                        }
+                    }
+                }
+            }
+        }
+    } //end for
+
+    OC_is_cdg_valid(oc) = true;
+    END_TIMER();
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 //END CDG
 

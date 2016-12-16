@@ -36,6 +36,7 @@ author: Su Zhenyu
 
 namespace xoc {
 
+<<<<<<< HEAD
 //Refine operation context variable.
 //Set the following option true or false to enable or disable the refinement.
 #define RC_refine_div_const(r)		((r).u1.s1.refine_div_const)
@@ -96,6 +97,72 @@ public:
 		RC_stmt_removed(*this) = false;
 		RC_hoist_to_lnot(*this) = true;
 	}
+=======
+//Refining context variable.
+//Set the following option true or false to enable or disable the refinement.
+#define RC_refine_div_const(r)       ((r).u1.s1.refine_div_const)
+#define RC_refine_mul_const(r)       ((r).u1.s1.refine_mul_const)
+#define RC_do_fold_const(r)          ((r).u1.s1.do_fold_const)
+#define RC_hoist_to_lnot(r)          ((r).u1.s1.hoist_to_lnot)
+#define RC_insert_cvt(r)             ((r).u1.s1.insertCvt)
+#define RC_refine_stmt(r)            ((r).u1.s1.refine_stmt)
+#define RC_stmt_removed(r)           ((r).u1.s1.stmt_has_been_removed)
+class RefineCtx {
+public:
+    union {
+        struct {
+            //Pass info topdown. e.g: int a; a/2 => a>>1
+            UINT refine_div_const:1;
+
+            //Pass info topdown. e.g: int a; a*2 => a<<1
+            UINT refine_mul_const:1;
+
+            //Pass info topdown. True to do refinement to stmt.
+            UINT refine_stmt:1;
+
+            //Pass info topdown. e.g: int a; a=2+3 => a=5
+            UINT do_fold_const:1;
+
+            //Pass info topdown.
+            //If the flag is true, the process will insert IR_CVT
+            //if kid's type size is smaller then parent's type size.
+            //e.g: parent:I32 = kid:I8 will be
+            //     parent:I32 = cvt:I32 (kid:I8)
+            UINT insertCvt:1;
+
+            //Pass info topdown. True to transform comparison stmt to lnot
+            //e.g: transform $pr1!=0?0:1 to lnot($pr1),
+            //where lnot indicates logical-not.
+            UINT hoist_to_lnot:1;
+
+            //Collect information bottom up to inform caller function
+            //that current stmt has been removed from the BB.
+            //This flag may prevent the illegal removal when refinement
+            //back from IR expression process.
+            UINT stmt_has_been_removed:1;
+        } s1;
+
+        UINT i1;
+    } u1;
+
+public:
+    RefineCtx()
+    {
+        RC_refine_div_const(*this) = true;
+        RC_refine_mul_const(*this) = true;
+        RC_refine_stmt(*this) = true;
+        RC_do_fold_const(*this) = true;
+
+        if (g_do_refine_auto_insert_cvt) {
+            RC_insert_cvt(*this) = true;
+        } else {
+            RC_insert_cvt(*this) = false;
+        }
+
+        RC_stmt_removed(*this) = false;
+        RC_hoist_to_lnot(*this) = true;
+    }
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 } //namespace xoc

@@ -46,9 +46,15 @@ namespace xcom {
 //Build matrix to describe edge-weight.
 void AGraph::buildAdjacentMatrix(Matrix<UINT> & adj_mat)
 {
+<<<<<<< HEAD
 	UNUSED(adj_mat);
 	ASSERT(0, ("Target Dependent Code"));
 	//Like: adj_mat.set(i, j, Edge-WEIGHT);
+=======
+    UNUSED(adj_mat);
+    ASSERT(0, ("Target Dependent Code"));
+    //Like: adj_mat.set(i, j, Edge-WEIGHT);
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -57,6 +63,7 @@ See <Shortest_Path-Dijkstra.txt>
 'infinite': the value indiates infinity. */
 void AGraph::ShortestPath(UINT infinite)
 {
+<<<<<<< HEAD
 	ASSERT(m_ec_pool != NULL, ("not yet initialized."));
 	Matrix<UINT> adj_mat;
 	buildAdjacentMatrix(adj_mat);
@@ -96,6 +103,47 @@ void AGraph::ShortestPath(UINT infinite)
 			min = infinite;
 		}
 	}
+=======
+    ASSERT(m_ec_pool != NULL, ("not yet initialized."));
+    Matrix<UINT> adj_mat;
+    buildAdjacentMatrix(adj_mat);
+    UINT row = adj_mat.get_row_size();
+    UINT col = adj_mat.get_col_size();
+    UINT i,j,k,min,v1,v2;
+    if (m_spath_mat != NULL) { delete m_spath_mat; }
+    m_spath_mat = new Matrix<UINT>(row, col);
+    m_spath_mat->set_all(infinite);
+
+    //Init path matrix
+    for (i = 0; i < row; i++) {
+        for (j = 0; j < col; j++) {
+            v1 = adj_mat.get(i,j);
+            if (v1 != infinite) {
+                m_spath_mat->set(i, j, i);
+            }
+        }
+    }
+    for (i = 0; i < row; i++) {
+        min = infinite;
+        for (j = 0; j < col; j++) {
+            for (k = 0; k < row; k++) {
+                v1 = adj_mat.get(k, j);
+                v2 = adj_mat.get(i, k);
+                if ((v1 != infinite) && (v2 != infinite)) {
+                    if (min > (v1 + v2)) {
+                        min = v1 + v2;
+                        m_spath_mat->set(i, j, k);
+                    }
+                }
+            }
+            ASSERT(min <= infinite, ("exception occur in ShortestPath"));
+            if (min != infinite) {
+                adj_mat.set(i, j, min);
+            }
+            min = infinite;
+        }
+    }
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 } //namespace xcom
