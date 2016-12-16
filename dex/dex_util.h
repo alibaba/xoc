@@ -34,6 +34,7 @@ author: Su Zhenyu
 #ifndef _DEX_UTIL_H_
 #define _DEX_UTIL_H_
 
+<<<<<<< HEAD
 class Dex2IR;
 
 //
@@ -142,29 +143,139 @@ public:
 	IR * ir;
 	LIR * lir;
 };
+=======
+//Dex File Structure:
+//    header!
+//    string id!
+//    type id!
+//    proto id!
+//    field id!
+//    method id!
+//    class def id!
+//
+//    annotation set ref list
+//    annotation set item list !
+//
+//    code item !
+//
+//    annotations directory item!
+//    type list info!
+//    string data item list !
+//    debug info!
+//    annotation item list !
+//    encodearray item list !
+//
+//    class Data item !
+//    map list!
+
+#define OBJ_MC_SIZE       16
+#define ARRAY_MC_SIZE     32
+#define NUM_OF_PART       3
+#define CLASSPATH_PART    0
+#define TYPE_PART         1
+#define FUNCNAME_PART     2
+
+class DexRegionMgr;
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 //Export Functions.
 void dump_lir(LIR * lir, DexFile * df, INT pos);
 void dump_lir2(LIR * lir, DexFile * df, INT pos);
 void dump_all_lir(LIRCode * fu, DexFile * df, DexMethod const* dm);
 void dump_all_class_and_field(DexFile * df);
-inline bool is_wide(LIR * lir)
+
+//Generate unique name by assembling Class Name, Function Parameter Type,
+//and Function Name.
+//1th part: class path
+//2th part: type string, include (parameters string list) return-value-type
+//3th part: function name.
+CHAR * assemblyUniqueName(
+        OUT CHAR buf[],
+        CHAR const* class_name,
+        CHAR const* func_type,
+        CHAR const* func_name);
+
+//Extract the function parameter and return value name
+//from function type string.
+void extractFunctionTypeFromFunctionTypeString(
+        CHAR const* functype,
+        OUT CHAR * param_type,
+        OUT CHAR * return_type);
+
+//Extract the function parameter and return value name
+//from entirely name format, and return the function name.
+//Note outputbuf should big enough to hold the string.
+void extractFunctionTypeFromRegionName(
+        CHAR const* runame,
+        OUT CHAR * classpath,
+        OUT CHAR * functionname,
+        OUT CHAR * param_type,
+        OUT CHAR * return_type);
+
+//Seperate param_type_string into a set of individual type string.
+//Return the number of individual type strings.
+//If params is NULL, this function only compute the number of type string.
+//Note the outputbuf recorded in params should big enough to
+//hold each type string.
+UINT extractSeparateParamterType(
+        CHAR const* param_type_string,
+        OUT List<CHAR*> * params,
+        UINT len = 0);
+
+//Print human readable type info according to type_string.
+//Note this function check the length of buffer needed.
+UINT printType2Buffer(CHAR const* type_string, OUT CHAR * buf);
+
+//Return the VAR related to given builtin.
+inline VAR * getBuiltinVar(BLTIN_TYPE blt, DexRegionMgr const* rumgr)
 {
-	return LIR_dt(lir) == LIR_JDT_wide ||
-			LIR_dt(lir) == LIR_JDT_double ||
-			LIR_dt(lir) == LIR_JDT_long;
+    ASSERT0(rumgr);
+    bool find = false;
+    VAR * v = rumgr->getBuiltin2VarC().get((UINT)blt, &find);
+    ASSERT0(find);
+    return v;
 }
 
-CHAR const* get_class_name(DexFile * df, DexMethod const* dm);
-CHAR const* get_class_name(DexFile * df, UINT cls_type_idx);
-CHAR const* get_class_name(DexFile * df, DexClassDef const* class_info);
-CHAR const* get_func_name(DexFile * df, DexMethod const* dm);
-CHAR const* get_field_name(DexFile * df, UINT field_id);
-CHAR const* get_field_name(DexFile * df, DexField * finfo);
-CHAR const* get_field_type_name(DexFile * df, UINT field_id);
-CHAR const* get_field_type_name(DexFile * df, DexField * finfo);
-CHAR const* get_field_class_name(DexFile * df, UINT field_id);
-CHAR const* get_field_class_name(DexFile * df, DexField * finfo);
-CHAR const* get_dt_name(LIR * ir);
-#endif
+inline BLTIN_TYPE getBuiltinType(IR const* ir, DexRegionMgr const* rumgr)
+{
+    ASSERT0(ir && ir->is_call() && rumgr);
+    BLTIN_TYPE bt = (BLTIN_TYPE)rumgr->getVar2BuiltinC().
+                                get_mapped(CALL_idinfo(ir));
+    ASSERT0(bt > BLTIN_UNDEF && BLTIN_LAST);
+    return bt;
+}
 
+CHAR const* getClassSourceFilePath(
+        DexFile const* df,
+        DexClassDef const* class_info);
+
+CHAR const* get_class_name(DexFile const* df, DexMethod const* dm);
+CHAR const* get_class_name(DexFile const* df, UINT cls_type_idx);
+CHAR const* get_class_name(DexFile const* df, DexClassDef const* class_info);
+CHAR const* get_func_name(DexFile const* df, DexMethod const* dm);
+CHAR const* get_func_type(DexFile const* df, DexMethod const* dm);
+CHAR const* get_func_type(DexFile const* df, DexMethodId const* dmid);
+CHAR const* get_field_name(DexFile const* df, UINT field_id);
+CHAR const* get_field_name(DexFile const* df, DexField * finfo);
+CHAR const* get_field_type_name(DexFile const* df, UINT field_id);
+CHAR const* get_field_type_name(DexFile const* df, DexField * finfo);
+CHAR const* get_field_class_name(DexFile const* df, UINT field_id);
+CHAR const* get_field_class_name(DexFile const* df, DexField * finfo);
+CHAR const* get_dt_name(LIR * ir);
+
+bool is_builtin(IR const* ir, BLTIN_TYPE bt, DexRegionMgr const* rumgr);
+
+inline bool is_builtin(IR const* ir)
+{
+    //The first charactor of builtin function is #.
+    ASSERT0(ir && ir->is_call());
+    return ((CCall*)ir)->get_callee_name()[0] == '#';
+}
+
+inline bool is_wide(LIR * lir)
+{
+    return LIR_dt(lir) == LIR_JDT_wide ||
+           LIR_dt(lir) == LIR_JDT_double ||
+           LIR_dt(lir) == LIR_JDT_long;
+}
+#endif

@@ -7,6 +7,10 @@ COM_OBJS +=\
       com/rational.o \
       com/linsys.o \
       com/xmat.o \
+<<<<<<< HEAD
+=======
+      com/strbuf.o \
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
       com/testbs.o \
       com/flty.o \
       com/bs.o
@@ -42,6 +46,7 @@ OPT_OBJS +=\
       opt/data_type.o \
       opt/option.o\
       opt/region.o\
+      opt/region_mgr.o\
       opt/util.o\
       opt/var.o\
       opt/md.o\
@@ -82,4 +87,8 @@ clean:
 	@find -name "*.vcg" | xargs rm -f
 	@find -name "*.cxx" | xargs rm -f
 	@find -name "*.asm" | xargs rm -f
+	@find -name "*.swp" | xargs rm -f
+	@find -name "*.swo" | xargs rm -f
+	@find -name "*.LOGLOG" | xargs rm -f
+	@find -name "LOGLOG" | xargs rm -f
 

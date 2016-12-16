@@ -36,15 +36,21 @@ author: Su Zhenyu
 
 namespace xoc {
 
+<<<<<<< HEAD
 #define INLINFO_need_el(i)		((i)->need_el)
 #define INLINFO_has_ret(i)		((i)->has_ret)
+=======
+#define INLINFO_need_el(i)        ((i)->need_el)
+#define INLINFO_has_ret(i)        ((i)->has_ret)
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 class InlineInfo {
 public:
-	BYTE need_el:1;
-	BYTE has_ret:1;
+    BYTE need_el:1;
+    BYTE has_ret:1;
 };
 
 
+<<<<<<< HEAD
 class Inliner {
 protected:
 	RegionMgr * m_ru_mgr;
@@ -101,6 +107,72 @@ public:
 			IR * new_irs,
 			InlineInfo * ii);
 	virtual bool perform(OptCTX & oc);
+=======
+class Inliner : public Pass {
+protected:
+    RegionMgr * m_rumgr;
+    SMemPool * m_pool;
+    CallGraph * m_call_graph;
+    Region * m_program;
+    TMap<Region*, InlineInfo*> m_ru2inl;
+
+    void checkRegion(IN Region * ru,
+                     OUT bool & need_el,
+                     OUT bool & has_ret) const;
+
+    void * xmalloc(UINT size)
+    {
+        void * p = smpoolMalloc(size, m_pool);
+        ASSERT0(p);
+        memset(p, 0, size);
+        return p;
+    }
+
+    InlineInfo * mapRegion2InlineInfo(Region * ru, bool alloc)
+    {
+        InlineInfo * ii = m_ru2inl.get(ru);
+        if (ii == NULL && alloc) {
+            ii = (InlineInfo*)xmalloc(sizeof(InlineInfo));
+            m_ru2inl.set(ru, ii);
+        }
+        return ii;
+    }
+
+    IR * replaceReturnImpl(
+            Region * caller,
+            IR * caller_call,
+            IR * new_irs,
+            LabelInfo * el);
+public:
+    Inliner(Region * program)
+    {
+        ASSERT0(program && program->is_program());
+        m_rumgr = program->get_region_mgr();
+        ASSERT0(m_rumgr);
+        m_program = program;
+        m_call_graph = m_rumgr->get_call_graph();
+        ASSERT0(m_call_graph);
+        m_pool = smpoolCreate(16, MEM_COMM);
+    }
+    virtual ~Inliner() { smpoolDelete(m_pool); }
+
+    bool can_be_cand(Region * ru);
+
+    bool do_inline_c(Region * caller, Region * callee);
+    void do_inline(Region * cand);
+
+    inline bool is_call_site(IR * call, Region * ru);
+
+    virtual PASS_TYPE get_pass_type() const { return PASS_INLINER; }
+    virtual CHAR const* get_pass_name() const { return "Inliner"; }
+
+    IR * replaceReturn(
+            Region * caller,
+            IR * caller_call,
+            IR * new_irs,
+            InlineInfo * ii);
+    virtual bool perform(OptCtx & oc);
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 } //namespace xoc

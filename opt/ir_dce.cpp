@@ -42,6 +42,7 @@ namespace xoc {
 //
 //START IR_DCE
 //
+<<<<<<< HEAD
 void IR_DCE::dump(IN EFFECT_STMT const& is_stmt_effect,
 				  IN BitSet const& is_bb_effect,
 				  IN Vector<Vector<IR*>*> & all_ir)
@@ -90,12 +91,63 @@ void IR_DCE::dump(IN EFFECT_STMT const& is_stmt_effect,
 		}
 	}
 	fflush(g_tfile);
+=======
+void IR_DCE::dump(EFFECT_STMT const& is_stmt_effect,
+                  BitSet const& is_bb_effect,
+                  IN Vector<Vector<IR*>*> & all_ir)
+{
+    if (g_tfile == NULL) return;
+    fprintf(g_tfile, "\n==---- DUMP IR_DCE ----==\n");
+    BBList * bbl = m_ru->get_bb_list();
+    for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
+        fprintf(g_tfile, "\n------- BB%d", BB_id(bb));
+        if (!is_bb_effect.is_contain(BB_id(bb))) {
+            fprintf(g_tfile, "\t\tineffect BB!");
+        }
+        Vector<IR*> * ir_vec = all_ir.get(BB_id(bb));
+        if (ir_vec == NULL) {
+            continue;
+        }
+        for (INT j = 0; j <= ir_vec->get_last_idx(); j++) {
+            IR * ir = ir_vec->get(j);
+            ASSERT0(ir != NULL);
+            fprintf(g_tfile, "\n");
+            dump_ir(ir, m_tm);
+            if (!is_stmt_effect.is_contain(IR_id(ir))) {
+                fprintf(g_tfile, "\t\tremove!");
+            }
+        }
+    }
+
+    fprintf(g_tfile, "\n\n============= REMOVED IR ==================\n");
+    for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
+        fprintf(g_tfile, "\n------- BB%d", BB_id(bb));
+        if (!is_bb_effect.is_contain(BB_id(bb))) {
+            fprintf(g_tfile, "\t\tineffect BB!");
+        }
+        Vector<IR*> * ir_vec = all_ir.get(BB_id(bb));
+        if (ir_vec == NULL) {
+            continue;
+        }
+        for (INT j = 0; j <= ir_vec->get_last_idx(); j++) {
+            IR * ir = ir_vec->get(j);
+            ASSERT0(ir != NULL);
+            if (!is_stmt_effect.is_contain(IR_id(ir))) {
+                fprintf(g_tfile, "\n");
+                dump_ir(ir, m_tm);
+                fprintf(g_tfile, "\t\tremove!");
+            }
+        }
+    }
+    fflush(g_tfile);
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
-//Return true if ir is effect.
+//Return true if ir can be optimized.
 bool IR_DCE::check_stmt(IR const* ir)
 {
+<<<<<<< HEAD
 	if (IR_may_throw(ir) || IR_has_sideeffect(ir)) { return true; }
 
 	if (!m_is_use_md_du && ir->isMemoryRefNotOperatePR()) {
@@ -155,18 +207,87 @@ bool IR_DCE::check_stmt(IR const* ir)
 		}
 	}
 	return false;
+=======
+    if (IR_may_throw(ir) || IR_has_sideeffect(ir) || IR_no_move(ir)) {
+        return true;
+    }
+
+    if (!m_is_use_md_du && ir->isMemoryRefNotOperatePR()) {
+        return true;
+    }
+
+    MD const* mustdef = ir->getRefMD();
+    if (mustdef != NULL) {
+        if (is_effect_write(mustdef->get_base())) {
+            return true;
+        }
+    } else {
+        MDSet const* maydefs = ir->getRefMDSet();
+        if (maydefs != NULL) {
+            SEGIter * iter;
+            for (INT i = maydefs->get_first(&iter);
+                 i >= 0; i = maydefs->get_next(i, &iter)) {
+                MD * md = m_md_sys->get_md(i);
+                ASSERT0(md);
+                if (is_effect_write(md->get_base())) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    m_citer.clean();
+    for (IR const* x = iterRhsInitC(ir, m_citer);
+         x != NULL; x = iterRhsNextC(m_citer)) {
+        if (!m_is_use_md_du && x->isMemoryRefNotOperatePR()) {
+            return true;
+        }
+
+        if (!x->is_memory_ref()) { continue; }
+
+        //Check if using volatile variable.
+        //e.g: volatile int g = 0;
+        //    while(g); # The stmt has effect.
+        MD const* md = x->getRefMD();
+        if (md != NULL) {
+            if (is_effect_read(md->get_base())) {
+                return true;
+            }
+        } else {
+            MDSet const* mds = x->getRefMDSet();
+            if (mds != NULL) {
+                SEGIter * iter;
+                for (INT i = mds->get_first(&iter);
+                     i != -1; i = mds->get_next(i, &iter)) {
+                    MD * md2 = m_md_sys->get_md(i);
+                    ASSERT0(md2 != NULL);
+                    if (is_effect_read(md2->get_base())) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Return true if ir is effect.
 bool IR_DCE::check_call(IR const* ir)
 {
+<<<<<<< HEAD
 	ASSERT0(ir->is_calls_stmt());
 	return !ir->is_readonly_call() || IR_has_sideeffect(ir);
+=======
+    ASSERT0(ir->is_calls_stmt());
+    return !ir->is_readonly_call() || IR_has_sideeffect(ir) || IR_no_move(ir);
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 void IR_DCE::mark_effect_ir(IN OUT EFFECT_STMT & is_stmt_effect,
+<<<<<<< HEAD
 							IN OUT BitSet & is_bb_effect,
 							IN OUT List<IR const*> & work_list)
 {
@@ -265,10 +386,110 @@ bool IR_DCE::find_effect_kid(IN IRBB * bb, IN IR * ir,
 		ASSERT0(0);
 	}
 	return false;
+=======
+                            IN OUT BitSet & is_bb_effect,
+                            IN OUT List<IR const*> & work_list)
+{
+    List<IRBB*> * bbl = m_ru->get_bb_list();
+    C<IRBB*> * ct;
+    for (IRBB * bb = bbl->get_head(&ct);
+         bb != NULL; bb = bbl->get_next(&ct)) {
+        for (IR const* ir = BB_first_ir(bb);
+             ir != NULL; ir = BB_next_ir(bb)) {
+            switch (IR_code(ir)) {
+            case IR_RETURN:
+                //Do NOT set exit-bb to be effect.
+                //That will generate redundant control-flow dependence.
+                //CASE:
+                //    IF (...)
+                //        ...
+                //    ENDIF
+                //    RETURN //EXIT BB
+                //IF clause stmt is redundant code.
+                is_bb_effect.bunion(BB_id(bb));
+                is_stmt_effect.bunion(IR_id(ir));
+                work_list.append_tail(ir);
+                break;
+            case IR_CALL:
+            case IR_ICALL:
+                if (check_call(ir)) {
+                    is_stmt_effect.bunion(IR_id(ir));
+                    is_bb_effect.bunion(BB_id(bb));
+                    work_list.append_tail(ir);
+                }
+                break;
+            case IR_TRUEBR:
+            case IR_FALSEBR:
+            case IR_GOTO:
+            case IR_IGOTO:
+                if (!m_is_elim_cfs) {
+                    is_stmt_effect.bunion(IR_id(ir));
+                    is_bb_effect.bunion(BB_id(bb));
+                    work_list.append_tail(ir);
+                }
+                break;
+            default:
+                {
+                    if (check_stmt(ir)) {
+                        is_stmt_effect.bunion(IR_id(ir));
+                        is_bb_effect.bunion(BB_id(bb));
+                        work_list.append_tail(ir);
+                    }
+                }
+            } //end switch IR_code
+        } //end for each IR
+    } //end for each IRBB
+}
+
+
+bool IR_DCE::find_effect_kid(IN IRBB * bb,
+                             IN IR * ir,
+                             IN EFFECT_STMT & is_stmt_effect)
+{
+    ASSERT0(m_cfg && m_cdg);
+    ASSERT0(ir->get_bb() == bb);
+    if (ir->is_cond_br() || ir->is_multicond_br()) {
+        EdgeC const* ec = VERTEX_out_list(m_cdg->get_vertex(BB_id(bb)));
+        while (ec != NULL) {
+            IRBB * succ = m_cfg->get_bb(VERTEX_id(EDGE_to(EC_edge(ec))));
+            ASSERT0(succ != NULL);
+            for (IR * r = BB_irlist(succ).get_head();
+                 r != NULL; r = BB_irlist(succ).get_next()) {
+                if (is_stmt_effect.is_contain(IR_id(r))) {
+                    return true;
+                }
+            }
+            ec = EC_next(ec);
+        }
+    } else if (ir->is_uncond_br()) {
+        EdgeC const* ecp = VERTEX_in_list(m_cdg->get_vertex(BB_id(bb)));
+        while (ecp != NULL) {
+            INT cd_pred = VERTEX_id(EDGE_from(EC_edge(ecp)));
+            EdgeC const* ecs = VERTEX_out_list(m_cdg->get_vertex(cd_pred));
+            while (ecs != NULL) {
+                INT cd_succ = VERTEX_id(EDGE_to(EC_edge(ecs)));
+                IRBB * succ = m_cfg->get_bb(cd_succ);
+                ASSERT(succ, ("BB%d does not on CFG", cd_succ));
+                for (IR * r = BB_irlist(succ).get_head();
+                     r != NULL; r = BB_irlist(succ).get_next()) {
+                    if (is_stmt_effect.is_contain(IR_id(r))) {
+                        return true;
+                    }
+                }
+                ecs = EC_next(ecs);
+            }
+            ecp = EC_next(ecp);
+        }
+    } else {
+        UNREACH();
+    }
+    return false;
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 bool IR_DCE::preserve_cd(IN OUT BitSet & is_bb_effect,
+<<<<<<< HEAD
 						 IN OUT EFFECT_STMT & is_stmt_effect,
 						 IN OUT List<IR const*> & act_ir_lst)
 {
@@ -348,12 +569,93 @@ bool IR_DCE::preserve_cd(IN OUT BitSet & is_bb_effect,
 		}
 	} //for each BB
 	return change;
+=======
+                         IN OUT EFFECT_STMT & is_stmt_effect,
+                         IN OUT List<IR const*> & act_ir_lst)
+{
+    ASSERT0(m_cfg && m_cdg);
+    bool change = false;
+    List<IRBB*> lst_2;
+    BBList * bbl = m_ru->get_bb_list();
+    C<IRBB*> * ct;
+    for (bbl->get_head(&ct); ct != bbl->end(); ct = bbl->get_next(ct)) {
+        IRBB * bb = ct->val();
+        ASSERT0(bb);
+        if (is_bb_effect.is_contain(BB_id(bb))) {
+            UINT bbid = BB_id(bb);
+            //Set control dep bb to be effective.
+            ASSERT0(m_cdg->get_vertex(bbid));
+            for (EdgeC const* ec = VERTEX_in_list(m_cdg->get_vertex(bbid));
+                 ec != NULL; ec = EC_next(ec)) {
+                INT cd_pred = VERTEX_id(EDGE_from(EC_edge(ec)));
+                if (!is_bb_effect.is_contain(cd_pred)) {
+                    is_bb_effect.bunion(cd_pred);
+                    change = true;
+                }
+            }
+
+            ASSERT0(m_cfg->get_vertex(bbid));
+            EdgeC const* ec = VERTEX_in_list(m_cfg->get_vertex(bbid));
+            if (cnt_list(ec) >= 2) {
+                ASSERT0(BB_rpo(bb) >= 0);
+                UINT bbto = BB_rpo(bb);
+                while (ec != NULL) {
+                    IRBB * pred =
+                        m_cfg->get_bb(VERTEX_id(EDGE_from(EC_edge(ec))));
+                    ASSERT0(pred);
+
+                    if (BB_rpo(pred) > (INT)bbto &&
+                        !is_bb_effect.is_contain(BB_id(pred))) {
+                        is_bb_effect.bunion(BB_id(pred));
+                        change = true;
+                    }
+                    ec = EC_next(ec);
+                }
+            }
+
+            if (BB_irlist(bb).get_elem_count() == 0) { continue; }
+
+            IR * ir = BB_last_ir(bb); //last IR of BB.
+            ASSERT0(ir != NULL);
+            if ((ir->is_cond_br() || ir->is_multicond_br()) &&
+                !is_stmt_effect.is_contain(IR_id(ir))) {
+                //switch might have multiple succ-BB.
+                if (find_effect_kid(bb, ir, is_stmt_effect)) {
+                    is_stmt_effect.bunion(IR_id(ir));
+                    act_ir_lst.append_tail(ir);
+                    change = true;
+                }
+            }
+        }
+
+        //CASE: test_pre1()
+        //    GOTO 0xa4f634 id:23
+        //        CLABEL (name:L1) 0xa4f5e4 id:22 branch-target
+        //    in BB3
+        //    BB3 is ineffective, but GOTO can not be removed!
+        if (BB_irlist(bb).get_elem_count() == 0) { continue; }
+
+        IR * ir = BB_last_ir(bb); //last IR of BB.
+        ASSERT0(ir);
+
+        if (ir->is_uncond_br() && !is_stmt_effect.is_contain(IR_id(ir))) {
+            if (find_effect_kid(bb, ir, is_stmt_effect)) {
+                is_stmt_effect.bunion(IR_id(ir));
+                is_bb_effect.bunion(BB_id(bb));
+                act_ir_lst.append_tail(ir);
+                change = true;
+            }
+        }
+    } //for each BB
+    return change;
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Iterative record effect IRs, according to DU chain,
 //and preserving the control flow dependence.
 void IR_DCE::iter_collect(IN OUT EFFECT_STMT & is_stmt_effect,
+<<<<<<< HEAD
 						  IN OUT BitSet & is_bb_effect,
 						  IN OUT List<IR const*> & work_list)
 {
@@ -417,6 +719,71 @@ void IR_DCE::iter_collect(IN OUT EFFECT_STMT & is_stmt_effect,
 		pwlst1 = pwlst2;
 		pwlst2 = tmp;
 	} //end while
+=======
+                          IN OUT BitSet & is_bb_effect,
+                          IN OUT List<IR const*> & work_list)
+{
+    List<IR const*> work_list2;
+    List<IR const*> * pwlst1 = &work_list;
+    List<IR const*> * pwlst2 = &work_list2;
+    bool change = true;
+    List<IRBB*> succs;
+    while (change) {
+        change = false;
+        for (IR const* ir = pwlst1->get_head();
+             ir != NULL; ir = pwlst1->get_next()) {
+            m_citer.clean();
+            for (IR const* x = iterRhsInitC(ir, m_citer);
+                 x != NULL; x = iterRhsNextC(m_citer)) {
+                if (!x->is_memory_opnd()) { continue; }
+
+                if (x->is_read_pr() && PR_ssainfo(x) != NULL) {
+                    IR const* d = PR_ssainfo(x)->get_def();
+                    if (d != NULL) {
+                        ASSERT0(d->is_stmt());
+                        ASSERT0(d->is_write_pr() || d->isCallHasRetVal());
+
+                        if (!is_stmt_effect.is_contain(IR_id(d))) {
+                            change = true;
+                            pwlst2->append_tail(d);
+                            is_stmt_effect.bunion(IR_id(d));
+                            ASSERT0(d->get_bb() != NULL);
+                            is_bb_effect.bunion(BB_id(d->get_bb()));
+                        }
+                    }
+                } else {
+                    DUSet const* defset = x->readDUSet();
+                    if (defset == NULL) { continue; }
+
+                    DUIter di = NULL;
+                    for (INT i = defset->get_first(&di);
+                         i >= 0; i = defset->get_next(i, &di)) {
+                        IR const* d = m_ru->get_ir(i);
+                        ASSERT0(d->is_stmt());
+                        if (!is_stmt_effect.is_contain(IR_id(d))) {
+                            change = true;
+                            pwlst2->append_tail(d);
+                            is_stmt_effect.bunion(IR_id(d));
+                            ASSERT0(d->get_bb() != NULL);
+                            is_bb_effect.bunion(BB_id(d->get_bb()));
+                        }
+                    }
+                }
+            }
+        }
+
+        //dump_irs((IRList&)*pwlst2);
+        if (m_is_elim_cfs) {
+            change |= preserve_cd(is_bb_effect, is_stmt_effect, *pwlst2);
+        }
+
+        //dump_irs((IRList&)*pwlst2);
+        pwlst1->clean();
+        List<IR const*> * tmp = pwlst1;
+        pwlst1 = pwlst2;
+        pwlst2 = tmp;
+    } //end while
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -424,6 +791,7 @@ void IR_DCE::iter_collect(IN OUT EFFECT_STMT & is_stmt_effect,
 //It will be illegal if empty BB has non-taken branch.
 void IR_DCE::fix_control_flow(List<IRBB*> & bblst, List<C<IRBB*>*> & ctlst)
 {
+<<<<<<< HEAD
 	BBList * bbl = m_ru->get_bb_list();
 	C<IRBB*> * ct = ctlst.get_head();
 
@@ -505,11 +873,95 @@ void IR_DCE::fix_control_flow(List<IRBB*> & bblst, List<C<IRBB*>*> & ctlst)
 			vout = EC_next(vout);
 		}
 	}
+=======
+    BBList * bbl = m_ru->get_bb_list();
+    C<IRBB*> * ct = ctlst.get_head();
+
+    C<IRBB*> * bbct;
+    for (bblst.get_head(&bbct); bbct != bblst.end();
+         bbct = bblst.get_next(bbct), ct = ctlst.get_next()) {
+        IRBB * bb = bbct->val();
+        ASSERT0(ct && bb);
+        if (BB_irlist(bb).get_elem_count() != 0) { continue; }
+
+        EdgeC * vout = VERTEX_out_list(m_cfg->get_vertex(BB_id(bb)));
+        if (vout == NULL || cnt_list(vout) <= 1) { continue; }
+
+        C<IRBB*> * next_ct = ct;
+        bbl->get_next(&next_ct);
+        IRBB * next_bb = NULL;
+        if (next_ct != NULL) {
+            next_bb = next_ct->val();
+        }
+
+        while (vout != NULL) {
+            Edge * e = EC_edge(vout);
+            if (EDGE_info(e) != NULL && CFGEI_is_eh((CFGEdgeInfo*)EDGE_info(e))) {
+                vout = EC_next(vout);
+                continue;
+            }
+
+            Vertex * s = EDGE_to(e);
+            if (VERTEX_id(s) == BB_id(bb) ||
+                (next_bb != NULL && VERTEX_id(s) == BB_id(next_bb))) {
+                vout = EC_next(vout);
+                continue;
+            }
+
+            if (!m_cdg->is_cd(BB_id(bb), VERTEX_id(s))) {
+                //See dce.c:lexrun(), bb5 control bb6, but not control bb8.
+                //if bb5 is empty, insert goto to bb8.
+                IRBB * tgt = m_cfg->get_bb(VERTEX_id(s));
+                ASSERT0(tgt);
+
+                //Find a normal label as target.
+                LabelInfo const* li;
+                for (li = tgt->getLabelList().get_head();
+                     li != NULL; li = tgt->getLabelList().get_next()) {
+                    if (LABEL_INFO_is_catch_start(li) ||
+                        LABEL_INFO_is_try_start(li) ||
+                        LABEL_INFO_is_try_end(li) ||
+                        LABEL_INFO_is_pragma(li)) {
+                        continue;
+                    }
+                    break;
+                }
+                ASSERT0(li);
+
+                IR * g = m_ru->buildGoto(li);
+                BB_irlist(bb).append_tail(g);
+                bool change = true;
+                Vertex * bbv = m_cfg->get_vertex(BB_id(bb));
+                while (change) {
+                    EdgeC * ec = VERTEX_out_list(bbv);
+                    change = false;
+                    while (ec != NULL) {
+                        if (EC_edge(ec) != e) {
+                            //May be remove multi edges.
+                            ((Graph*)m_cfg)->removeEdgeBetween(
+                                            EDGE_from(EC_edge(ec)),
+                                            EDGE_to(EC_edge(ec)));
+                            change = true;
+                            break;
+                        }
+                        ec = EC_next(ec);
+                    }
+                }
+                break;
+            } else {
+                ASSERT0(BB_irlist(m_cfg->get_bb(VERTEX_id(s))).
+                         get_elem_count() == 0);
+            }
+            vout = EC_next(vout);
+        }
+    }
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 void IR_DCE::record_all_ir(IN OUT Vector<Vector<IR*>*> & all_ir)
 {
+<<<<<<< HEAD
 	UNUSED(all_ir);
 	#ifdef _DEBUG_
 	BBList * bbl = m_ru->get_bb_list();
@@ -524,6 +976,22 @@ void IR_DCE::record_all_ir(IN OUT Vector<Vector<IR*>*> & all_ir)
 		}
 	}
 	#endif
+=======
+    UNUSED(all_ir);
+    #ifdef _DEBUG_
+    BBList * bbl = m_ru->get_bb_list();
+    for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
+        if (BB_irlist(bb).get_elem_count() == 0) { continue; }
+        Vector<IR*> * ir_vec = new Vector<IR*>();
+        all_ir.set(BB_id(bb), ir_vec);
+        UINT j = 0;
+        for (IR * ir = BB_first_ir(bb); ir != NULL; ir = BB_next_ir(bb)) {
+            ir_vec->set(j, ir);
+            j++;
+        }
+    }
+    #endif
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -531,6 +999,7 @@ void IR_DCE::record_all_ir(IN OUT Vector<Vector<IR*>*> & all_ir)
 //It is illegal if empty BB has non-taken branch.
 void IR_DCE::revise_successor(IRBB * bb, C<IRBB*> * bbct, BBList * bbl)
 {
+<<<<<<< HEAD
 	ASSERT0(bb && bbct);
 	EdgeC * ec = VERTEX_out_list(m_cfg->get_vertex(BB_id(bb)));
 	if (ec == NULL) { return; }
@@ -564,10 +1033,46 @@ void IR_DCE::revise_successor(IRBB * bb, C<IRBB*> * bbct, BBList * bbl)
 	if (next_bb != NULL) {
 		m_cfg->addEdge(BB_id(bb), BB_id(next_bb));
 	}
+=======
+    ASSERT0(bb && bbct);
+    EdgeC * ec = VERTEX_out_list(m_cfg->get_vertex(BB_id(bb)));
+    if (ec == NULL) { return; }
+
+    C<IRBB*> * next_ct = bbct;
+    bbl->get_next(&next_ct);
+    IRBB * next_bb = NULL;
+    if (next_ct != NULL) {
+        next_bb = next_ct->val();
+    }
+
+    while (ec != NULL) {
+        Edge * e = EC_edge(ec);
+        if (EDGE_info(e) != NULL && CFGEI_is_eh((CFGEdgeInfo*)EDGE_info(e))) {
+            ec = EC_next(ec);
+            continue;
+        }
+
+        IRBB * succ_bb = m_cfg->get_bb(VERTEX_id(EDGE_to(e)));
+        ASSERT0(succ_bb);
+
+        if (succ_bb != next_bb) {
+            bb->removeSuccessorPhiOpnd(m_cfg);
+        }
+
+        EdgeC * next_ec = EC_next(ec);
+        ((Graph*)m_cfg)->removeEdge(e);
+        ec = next_ec;
+    }
+
+    if (next_bb != NULL) {
+        m_cfg->addEdge(BB_id(bb), BB_id(next_bb));
+    }
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //An aggressive algo will be used if cdg is avaliable.
+<<<<<<< HEAD
 bool IR_DCE::perform(OptCTX & oc)
 {
 	START_TIMER_AFTER();
@@ -679,6 +1184,120 @@ bool IR_DCE::perform(OptCTX & oc)
 
 	END_TIMER_AFTER(get_pass_name());
 	return change;
+=======
+bool IR_DCE::perform(OptCtx & oc)
+{
+    START_TIMER_AFTER();
+    if (m_is_elim_cfs) {
+        m_ru->checkValidAndRecompute(&oc, PASS_DU_REF, PASS_CDG,PASS_PDOM,
+                                     PASS_DU_CHAIN, PASS_CDG, PASS_UNDEF);
+        m_cdg = (CDG*)m_ru->get_pass_mgr()->registerPass(PASS_CDG);
+    } else {
+        m_ru->checkValidAndRecompute(&oc, PASS_DU_REF, PASS_PDOM,
+                                     PASS_DU_CHAIN, PASS_UNDEF);
+        m_cdg = NULL;
+    }
+
+    if (!OC_is_du_chain_valid(oc)) {
+        END_TIMER_AFTER(get_pass_name());
+        return false;
+    }
+
+    //#define _DEBUG_DCE_
+    #ifdef _DEBUG_DCE_
+    Vector<Vector<IR*>*> all_ir;
+    if (g_tfile != NULL) {
+        record_all_ir(all_ir);
+    }
+    #endif
+
+    //Mark effect IRs.
+    EFFECT_STMT is_stmt_effect;
+    List<IR const*> work_list;
+    BitSet is_bb_effect;
+
+    //Mark effect IRs.
+    mark_effect_ir(is_stmt_effect, is_bb_effect, work_list);
+
+    #ifdef _DEBUG_DCE_
+    dump(is_stmt_effect, is_bb_effect, all_ir);
+    #endif
+
+    iter_collect(is_stmt_effect, is_bb_effect, work_list);
+
+    bool change = false;
+    BBList * bbl = m_ru->get_bb_list();
+    C<IRBB*> * ctbb;
+    List<IRBB*> bblst;
+    List<C<IRBB*>*> ctlst;
+    for (IRBB * bb = bbl->get_head(&ctbb);
+         bb != NULL; bb = bbl->get_next(&ctbb)) {
+        C<IR*> * ctir, * next;
+        bool tobecheck = false;
+        for (BB_irlist(bb).get_head(&ctir), next = ctir;
+             ctir != NULL; ctir = next) {
+            IR * stmt = ctir->val();
+            BB_irlist(bb).get_next(&next);
+            if (!is_stmt_effect.is_contain(IR_id(stmt))) {
+                //Revise SSA info if PR is in SSA form.
+                stmt->removeSSAUse();
+
+                //Revise DU chains.
+                //TODO: If ssa form is available, it doesn't need to maintain
+                //DU chain of PR in DU manager counterpart.
+                m_du->removeIROutFromDUMgr(stmt);
+
+                if (stmt->is_cond_br() || stmt->is_uncond_br() ||
+                    stmt->is_multicond_br()) {
+                    revise_successor(bb, ctbb, bbl);
+                }
+
+                BB_irlist(bb).remove(ctir);
+
+                m_ru->freeIRTree(stmt);
+
+                change = true;
+
+                tobecheck = true;
+            }
+        }
+
+        if (tobecheck) {
+            bblst.append_tail(bb);
+            ctlst.append_tail(ctbb);
+        }
+    }
+
+    //fix_control_flow(bblst, ctlst);
+
+    #ifdef _DEBUG_DCE_
+    if (g_tfile != NULL) {
+        dump(is_stmt_effect, is_bb_effect, all_ir);
+        for (INT i = 0; i <= all_ir.get_last_idx(); i++) {
+            Vector<IR*> * ir_vec = all_ir.get(i);
+            if (ir_vec != NULL) {
+                delete ir_vec;
+            }
+        }
+    }
+    #endif
+
+    if (change) {
+        m_cfg->performMiscOpt(oc);
+
+        //AA, DU chain and du reference are maintained.
+        ASSERT0(m_ru->verifyMDRef() && m_du->verifyMDDUChain());
+        OC_is_expr_tab_valid(oc) = false;
+        OC_is_live_expr_valid(oc) = false;
+        OC_is_reach_def_valid(oc) = false;
+        OC_is_avail_reach_def_valid(oc) = false;
+
+        ASSERT0(verifySSAInfo(m_ru));
+    }
+
+    END_TIMER_AFTER(get_pass_name());
+    return change;
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 //END IR_DCE
 

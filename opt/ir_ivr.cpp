@@ -40,6 +40,7 @@ namespace xoc {
 //START IR_IVR
 //
 bool IR_IVR::computeInitVal(IR const* ir, IV * iv)
+<<<<<<< HEAD
 {
 	if (IR_type(ir) != IR_ST && IR_type(ir) != IR_IST) {
 		return false;
@@ -221,6 +222,309 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
 		}
 		ivlst->append_head(x);
 	}
+=======
+{
+    if (!ir->is_st() && !ir->is_ist()) {
+        return false;
+    }
+
+    IV_initv_stmt(iv) = ir;
+
+    IR const* v = ST_rhs(ir); //v is the initial value.
+    if (v->is_cvt()) {
+        //You should have performed refineIR to optimize cvt.
+        v = ((CCvt*)v)->get_leaf_exp();
+    }
+
+    IV_initv_data_type(iv) = v->get_type();
+
+    if (v->is_const() && v->is_int()) {
+        if (IV_initv_i(iv) == NULL) {
+            IV_initv_i(iv) = (LONGLONG*)xmalloc(sizeof(LONGLONG));
+        }
+        *IV_initv_i(iv) = CONST_int_val(v);
+        IV_initv_type(iv) = IV_INIT_VAL_IS_CONST;
+        return true;
+    }
+
+    MD const* md = v->get_exact_ref();
+    if (md != NULL) {
+        IV_initv_md(iv) = md;
+        IV_initv_type(iv) = IV_INIT_VAL_IS_VAR;
+        return true;
+    }
+
+    IV_initv_i(iv) = NULL;
+    return false;
+}
+
+
+//Find initialze value of IV, if found return true,
+//otherwise return false.
+bool IR_IVR::findInitVal(IV * iv)
+{
+    DUSet const* defs = IV_iv_occ(iv)->readDUSet();
+    ASSERT0(defs);
+    ASSERT0(IV_iv_occ(iv)->is_exp());
+    ASSERT0(IV_iv_def(iv)->is_stmt());
+    IR const* domdef = m_du->findDomDef(IV_iv_occ(iv),
+                                        IV_iv_def(iv),
+                                        defs, true);
+    if (domdef == NULL) { return false; }
+
+    MD const* emd = NULL;
+    if (m_is_only_handle_exact_md) {
+        emd = domdef->get_exact_ref();
+    } else {
+        emd = domdef->get_effect_ref();
+    }
+
+    if (emd == NULL || emd != IV_iv(iv)) {
+        return false;
+    }
+
+    LI<IRBB> const* li = IV_li(iv);
+    ASSERT0(li);
+    IRBB * dbb = domdef->get_bb();
+    if (dbb == LI_loop_head(li) || !li->is_inside_loop(BB_id(dbb))) {
+        return computeInitVal(domdef, iv);
+    }
+    return false;
+}
+
+
+IR * IR_IVR::findMatchedOcc(MD const* biv, IR * start)
+{
+    ASSERT0(start->is_exp());
+    IRIter ii;
+    for (IR * x = iterInit(start, ii); x != NULL; x = iterNext(ii)) {
+        MD const* xmd = x->getRefMD();
+        if (xmd != NULL && xmd == biv) {
+            //Note there may be multiple occurrences matched biv.
+            //We just return the first if meet.
+            return x;
+        }
+    }
+    return NULL;
+}
+
+
+bool IR_IVR::matchIVUpdate(
+        MD const* biv,
+        IR const* def,
+        IR ** occ,
+        IR ** delta,
+        bool & is_increment)
+{
+    ASSERT0(def->is_st());
+    IR * rhs = ST_rhs(def);
+    if (rhs->is_add()) {
+        is_increment = true;
+    } else if (rhs->is_sub()) {
+        is_increment = false;
+    } else {
+        //Not monotonic operation.
+        return false;
+    }
+
+    //Make sure self modify stmt is monotonic.
+    IR * op0 = BIN_opnd0(rhs);
+    if (m_is_strictly_match_pattern) {
+        //Strictly match the pattern: i = i + 1.
+        MD const* occmd = op0->getRefMD();
+        if (occmd == NULL || occmd != biv) {
+            return false;
+        }
+    } else {
+        op0 = findMatchedOcc(biv, op0);
+        if (op0 == NULL) { return false; }
+    }
+
+    IR * op1 = BIN_opnd1(rhs);
+    if (op1->is_int()) {
+        ;
+    } else if (g_is_support_dynamic_type && op1->is_const()) {
+        //TODO: support dynamic const type as the addend of ADD/SUB.
+        return false;
+    } else {
+        return false;
+    }
+
+    if (m_is_only_handle_exact_md) {
+        MD const* op0md = op0->get_exact_ref();
+        if (op0md == NULL || op0md != biv) {
+            return false;
+        }
+    }
+
+    ASSERT0(op0 && op1);
+    *occ = op0;
+    *delta = op1;
+    return true;
+}
+
+
+void IR_IVR::recordIV(
+        MD * biv,
+        LI<IRBB> const* li,
+        IR * def,
+        IR * occ,
+        IR * delta,
+        bool is_increment)
+{
+    ASSERT0(biv && li && def && occ && delta && delta->is_const());
+    IV * x = allocIV();
+    IV_iv(x) = biv;
+    IV_li(x) = li;
+    IV_iv_occ(x) = occ;
+    IV_iv_def(x) = def;
+    IV_step(x) = CONST_int_val(delta);
+    IV_is_inc(x) = is_increment;
+    findInitVal(x);
+
+    //same occ may correspond to multiple LI.
+    //e.g: c4.c
+    //  while () {
+    //    while () {
+    //      ...
+    //      i++;
+    //    }
+    //  }
+    m_ir2iv.set(occ, x);
+    m_ir2iv.set(def, x);
+
+    SList<IV*> * ivlst = m_li2bivlst.get(LI_id(li));
+    if (ivlst == NULL) {
+        ivlst = (SList<IV*>*)xmalloc(sizeof(SList<IV*>));
+        ivlst->init();
+        ivlst->set_pool(m_sc_pool);
+        m_li2bivlst.set(LI_id(li), ivlst);
+    }
+    ivlst->append_head(x);
+}
+
+
+//Find Basic IV.
+//'map_md2defcount': record the number of definitions to MD.
+//'map_md2defir': map MD to define stmt.
+void IR_IVR::findBIV(
+        LI<IRBB> const* li,
+        BitSet & tmp,
+        Vector<UINT> & map_md2defcount,
+        UINT2IR & map_md2defir)
+{
+    IRBB * head = LI_loop_head(li);
+    UINT headi = BB_id(head);
+    tmp.clean(); //tmp is used to record exact/effect MD which be modified.
+    map_md2defir.clean();
+    map_md2defcount.clean();
+    for (INT i = LI_bb_set(li)->get_first();
+         i != -1; i = LI_bb_set(li)->get_next(i)) {
+        //if ((UINT)i == headi) { continue; }
+        IRBB * bb = m_cfg->get_bb(i);
+        ASSERT0(bb && m_cfg->get_vertex(BB_id(bb)));
+        for (IR * ir = BB_first_ir(bb); ir != NULL; ir = BB_next_ir(bb)) {
+            if (!ir->is_st() && !ir->is_ist() && !ir->is_calls_stmt()) {
+                continue;
+            }
+
+            MD const* emd = m_du->get_must_def(ir);
+            if (emd != NULL) {
+                //Only handle Must-Def stmt.
+                if (!m_is_only_handle_exact_md ||
+                    (m_is_only_handle_exact_md && emd->is_exact())) {
+                    UINT emdid = MD_id(emd);
+                    tmp.bunion(emdid);
+                    UINT c = map_md2defcount.get(emdid) + 1;
+                    map_md2defcount.set(emdid, c);
+                    if (c == 1) {
+                        ASSERT0(map_md2defir.get(emdid) == NULL);
+                        map_md2defir.setAlways(emdid, ir);
+                        map_md2defcount.set(emdid, 1);
+                    } else {
+                        //For performance, we do not remove the TN of TMap.
+                        //Just the mapped value to be NULL.
+                        map_md2defir.setAlways(emdid, NULL);
+                        tmp.diff(emdid);
+                    }
+                }
+            }
+
+            //The stmt may-kill other definitions for same MD.
+            MDSet const* maydef = m_du->get_may_def(ir);
+            if (maydef == NULL) { continue; }
+
+            for (INT i2 = tmp.get_first(); i2 != -1; i2 = tmp.get_next(i2)) {
+                MD const* md = m_md_sys->get_md(i2);
+                ASSERT0(!m_is_only_handle_exact_md || md->is_exact());
+                if (maydef->is_contain(md)) {
+                    map_md2defcount.set(i2, 0);
+
+                    //For performance, we do not remove the TN of TMap.
+                    //Just the mapped value to be NULL.
+                    map_md2defir.setAlways(i2, NULL);
+                    tmp.diff(i2);
+                }
+            }
+        } //end for each IR.
+    } //for each IRBB.
+
+    //Find BIV.
+
+    //First, find the stmt that is single def-stmt of exact/effect MD.
+    bool find = false;
+    List<MD*> sdlst; //single def md lst.
+    for (INT i = tmp.get_first(); i != -1; i = tmp.get_next(i)) {
+        if (map_md2defcount.get(i) != 1) { continue; }
+        IR * def = map_md2defir.get(i);
+        ASSERT0(def);
+
+        //def stmt is reach-in of loop head.
+        if (m_du->getInReachDef(headi, NULL)->is_contain(IR_id(def))) {
+            //MD i is biv.
+            sdlst.append_head(m_md_sys->get_md(i));
+            find = true;
+        }
+    }
+    if (!find) { return; }
+
+    //Find induction operation from the stmt list.
+    for (MD * biv = sdlst.get_head(); biv != NULL; biv = sdlst.get_next()) {
+        IR * def = map_md2defir.get(MD_id(biv));
+        ASSERT0(def);
+        if (!def->is_st() && !def->is_stpr() && !def->is_ist()) {
+            continue;
+        }
+
+        //Find the self modify stmt: i = i + ...
+        DUSet const* useset = def->readDUSet();
+        if (useset == NULL) { continue; }
+        bool selfmod = false;
+        DUIter di = NULL;
+        for (INT i = useset->get_first(&di);
+             i >= 0; i = useset->get_next(i, &di)) {
+            IR const* use = m_ru->get_ir(i);
+            ASSERT0(use->is_exp());
+
+            IR const* use_stmt = use->get_stmt();
+            ASSERT0(use_stmt && use_stmt->is_stmt());
+
+            if (use_stmt == def) {
+                selfmod = true;
+                break;
+            }
+        }
+
+        if (!selfmod) { continue; }
+
+        IR * occ = NULL;
+        IR * delta = NULL;
+        bool is_increment = false;
+        if (!matchIVUpdate(biv, def, &occ, &delta, is_increment)) { continue; }
+
+        recordIV(biv, li, def, occ, delta, is_increment);
+    }
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -228,6 +532,7 @@ void IR_IVR::findBIV(LI<IRBB> const* li, BitSet & tmp,
 //'defs': def set of 'ir'.
 bool IR_IVR::is_loop_invariant(LI<IRBB> const* li, IR const* ir)
 {
+<<<<<<< HEAD
 	ASSERT0(ir->is_exp());
 	DUSet const* defs = ir->get_duset_c();
 	if (defs == NULL) { return true; }
@@ -240,6 +545,20 @@ bool IR_IVR::is_loop_invariant(LI<IRBB> const* li, IR const* ir)
 		}
 	}
 	return true;
+=======
+    ASSERT0(ir->is_exp());
+    DUSet const* defs = ir->readDUSet();
+    if (defs == NULL) { return true; }
+    DUIter di = NULL;
+    for (INT i = defs->get_first(&di); i >= 0; i = defs->get_next(i, &di)) {
+        IR const* d = m_ru->get_ir(i);
+        ASSERT0(d->is_stmt() && d->get_bb());
+        if (li->is_inside_loop(BB_id(d->get_bb()))) {
+            return false;
+        }
+    }
+    return true;
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -247,6 +566,7 @@ bool IR_IVR::is_loop_invariant(LI<IRBB> const* li, IR const* ir)
 //'defs': def list of 'ir'.
 bool IR_IVR::scanExp(IR const* ir, LI<IRBB> const* li, BitSet const& ivmds)
 {
+<<<<<<< HEAD
 	ASSERT0(ir->is_exp());
 	switch (IR_type(ir)) {
 	case IR_CONST:
@@ -361,11 +681,126 @@ void IR_IVR::findDIV(IN LI<IRBB> const* li, IN SList<IV*> const& bivlst,
 			}
 		}
 	}
+=======
+    ASSERT0(ir->is_exp());
+    switch (ir->get_code()) {
+    case IR_CONST:
+    case IR_LDA:
+        return true;
+    case IR_LD:
+    case IR_ILD:
+    case IR_ARRAY:
+    case IR_PR:
+        {
+            MD const* irmd = ir->get_exact_ref();
+            if (irmd == NULL) { return false; }
+            if (ivmds.is_contain(MD_id(irmd))) {
+                return true;
+            }
+            if (is_loop_invariant(li, ir)) {
+                return true;
+            }
+            return false;
+        }
+    case IR_ADD:
+    case IR_SUB:
+    case IR_MUL:
+    case IR_DIV:
+    case IR_REM:
+    case IR_MOD:
+    case IR_ASR:
+    case IR_LSR:
+    case IR_LSL:
+        if (!scanExp(BIN_opnd0(ir), li, ivmds)) { return false; }
+        if (!scanExp(BIN_opnd1(ir), li, ivmds)) { return false; }
+        return true;
+    case IR_CVT:
+        return scanExp(CVT_exp(ir), li, ivmds);
+    default:;
+    }
+    return false;
+}
+
+
+//Try to add IV expresion into div list if 'e' do not exist in the list.
+void IR_IVR::addDIVList(LI<IRBB> const* li, IR const* e)
+{
+    SList<IR const*> * divlst = m_li2divlst.get(LI_id(li));
+    if (divlst == NULL) {
+        divlst = (SList<IR const*>*)xmalloc(sizeof(SList<IR const*>));
+        divlst->init();
+        divlst->set_pool(m_sc_pool);
+        m_li2divlst.set(LI_id(li), divlst);
+    }
+
+    bool find = false;
+    for (SC<IR const*> * sc = divlst->get_head();
+         sc != divlst->end(); sc = divlst->get_next(sc)) {
+        IR const* ive = sc->val();
+        ASSERT0(ive);
+        if (ive->isIREqual(e, true)) {
+            find = true;
+            break;
+        }
+    }
+    if (find) { return; }
+    divlst->append_head(e);
+}
+
+
+void IR_IVR::findDIV(LI<IRBB> const* li, SList<IV*> const& bivlst, BitSet & tmp)
+{
+    if (bivlst.get_elem_count() == 0) { return; }
+
+    tmp.clean();
+    for (SC<IV*> * sc = bivlst.get_head();
+         sc != bivlst.end(); sc = bivlst.get_next(sc)) {
+        IV * iv = sc->val();
+        ASSERT0(iv);
+        tmp.bunion(MD_id(IV_iv(iv)));
+    }
+
+    for (INT i = LI_bb_set(li)->get_first();
+         i != -1; i = LI_bb_set(li)->get_next(i)) {
+        IRBB * bb = m_cfg->get_bb(i);
+        ASSERT0(bb && m_cfg->get_vertex(BB_id(bb)));
+        for (IR * ir = BB_first_ir(bb); ir != NULL; ir = BB_next_ir(bb)) {
+            switch (ir->get_code()) {
+            case IR_ST:
+            case IR_STPR:
+            case IR_IST:
+                {
+                    IR * rhs = ir->get_rhs();
+                    if (scanExp(rhs, li, tmp)) {
+                        addDIVList(li, rhs);
+                    }
+                }
+                break;
+            case IR_CALL:
+            case IR_ICALL:
+                for (IR * p = CALL_param_list(ir); p != NULL; p = p->get_next()) {
+                    if (scanExp(p, li, tmp)) {
+                        addDIVList(li, p);
+                    }
+                }
+                break;
+            case IR_TRUEBR:
+            case IR_FALSEBR:
+                if (scanExp(BR_det(ir), li, tmp)) {
+                    addDIVList(li, BR_det(ir));
+                }
+                break;
+            default:;
+            }
+        }
+    }
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 void IR_IVR::_dump(LI<IRBB> * li, UINT indent)
 {
+<<<<<<< HEAD
 	while (li != NULL) {
 		fprintf(g_tfile, "\n");
 		for (UINT i = 0; i < indent; i++) { fprintf(g_tfile, " "); }
@@ -423,21 +858,108 @@ void IR_IVR::_dump(LI<IRBB> * li, UINT indent)
 		li = LI_next(li);
 		fflush(g_tfile);
 	}
+=======
+    while (li != NULL) {
+        fprintf(g_tfile, "\n");
+        for (UINT i = 0; i < indent; i++) { fprintf(g_tfile, " "); }
+        fprintf(g_tfile, "LI%d:BB%d", LI_id(li), BB_id(LI_loop_head(li)));
+        fprintf(g_tfile, ",BODY:");
+        for (INT i = LI_bb_set(li)->get_first();
+             i != -1; i = LI_bb_set(li)->get_next(i)) {
+            fprintf(g_tfile, "%d,", i);
+        }
+
+        SList<IV*> * bivlst = m_li2bivlst.get(LI_id(li));
+        if (bivlst != NULL) {
+            for (SC<IV*> * sc = bivlst->get_head();
+                 sc != bivlst->end(); sc = bivlst->get_next(sc)) {
+                IV * iv = sc->val();
+                ASSERT0(iv);
+                fprintf(g_tfile, "\n");
+                for (UINT i = 0; i < indent; i++) { fprintf(g_tfile, " "); }
+                fprintf(g_tfile, "BIV(md%d", MD_id(IV_iv(iv)));
+
+                if (IV_is_inc(iv)) {
+                    fprintf(g_tfile, ",step=%lld", (LONGLONG)IV_step(iv));
+                } else {
+                    fprintf(g_tfile, ",step=-%lld", (LONGLONG)IV_step(iv));
+                }
+
+                if (iv->has_init_val()) {
+                    if (iv->isInitConst()) {
+                        fprintf(g_tfile, ",init=%lld",
+                                (LONGLONG)*IV_initv_i(iv));
+                    } else {
+                        fprintf(g_tfile, ",init=md%d",
+                                (INT)MD_id(IV_initv_md(iv)));
+                    }
+                }
+                fprintf(g_tfile, ")");
+
+                //Dump IV's def-stmt.
+                fprintf(g_tfile, "\n");
+                for (UINT i = 0; i < indent; i++) { fprintf(g_tfile, " "); }
+                fprintf(g_tfile, "Def-Stmt:");
+                ASSERT0(IV_iv_def(iv));
+                g_indent = indent + 2;
+                dump_ir(IV_iv_def(iv), m_tm, NULL, true, false, false);
+
+                //Dump IV's occ-exp.
+                fprintf(g_tfile, "\n");
+                for (UINT i = 0; i < indent; i++) { fprintf(g_tfile, " "); }
+                fprintf(g_tfile, "Occ-Exp:");
+                ASSERT0(IV_iv_occ(iv));
+                g_indent = indent + 2;
+                dump_ir(IV_iv_occ(iv), m_tm, NULL, true, false, false);
+
+                //Dump IV's init-stmt.
+                if (iv->getInitValStmt() != NULL) {
+                    fprintf(g_tfile, "\n");
+                    for (UINT i = 0; i < indent; i++) { fprintf(g_tfile, " "); }
+                    fprintf(g_tfile, "Init-Stmt:");
+                    g_indent = indent + 2;
+                    dump_ir(iv->getInitValStmt(), m_tm, NULL, true, false, false);
+                }
+            }
+        } else { fprintf(g_tfile, "(NO BIV)"); }
+
+        SList<IR const*> * divlst = m_li2divlst.get(LI_id(li));
+        if (divlst != NULL) {
+            if (divlst->get_elem_count() > 0) {
+                fprintf(g_tfile, "\n");
+                for (UINT i = 0; i < indent; i++) { fprintf(g_tfile, " "); }
+                fprintf(g_tfile, "DIV:");
+            }
+            for (SC<IR const*> * sc = divlst->get_head();
+                 sc != divlst->end(); sc = divlst->get_next(sc)) {
+                IR const* iv = sc->val();
+                ASSERT0(iv);
+                g_indent = indent + 2;
+                dump_ir(iv, m_tm, NULL, true, false, false);
+            }
+        } else { fprintf(g_tfile, "(NO DIV)"); }
+
+        _dump(LI_inner_list(li), indent + 2);
+        li = LI_next(li);
+        fflush(g_tfile);
+    }
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Dump IVR info for loop.
 void IR_IVR::dump()
 {
-	if (g_tfile == NULL) { return; }
-	fprintf(g_tfile, "\n==---- DUMP IVR -- ru:'%s' ----==", m_ru->get_ru_name());
-	_dump(m_cfg->get_loop_info(), 0);
-	fflush(g_tfile);
+    if (g_tfile == NULL) { return; }
+    fprintf(g_tfile, "\n==---- DUMP IVR -- ru:'%s' ----==", m_ru->get_ru_name());
+    _dump(m_cfg->get_loop_info(), 0);
+    fflush(g_tfile);
 }
 
 
 void IR_IVR::clean()
 {
+<<<<<<< HEAD
 	for (INT i = 0; i <= m_li2bivlst.get_last_idx(); i++) {
 		SList<IV*> * ivlst = m_li2bivlst.get(i);
 		if (ivlst == NULL) { continue; }
@@ -493,6 +1015,71 @@ bool IR_IVR::perform(OptCTX & oc)
 	//dump();
 	END_TIMER_AFTER(get_pass_name());
 	return false;
+=======
+    for (INT i = 0; i <= m_li2bivlst.get_last_idx(); i++) {
+        SList<IV*> * ivlst = m_li2bivlst.get(i);
+        if (ivlst == NULL) { continue; }
+        ivlst->clean();
+    }
+    for (INT i = 0; i <= m_li2divlst.get_last_idx(); i++) {
+        SList<IR const*> * ivlst = m_li2divlst.get(i);
+        if (ivlst == NULL) { continue; }
+        ivlst->clean();
+    }
+    m_ir2iv.clean();
+}
+
+
+bool IR_IVR::perform(OptCtx & oc)
+{
+    START_TIMER_AFTER();
+    UINT n = m_ru->get_bb_list()->get_elem_count();
+    if (n == 0) { return false; }
+    ASSERT0(m_cfg && m_du && m_md_sys && m_tm);
+
+    m_ru->checkValidAndRecompute(&oc, PASS_REACH_DEF, PASS_DU_REF,
+                                 PASS_DOM, PASS_LOOP_INFO, PASS_DU_CHAIN,
+                                 PASS_RPO, PASS_UNDEF);
+
+    if (!OC_is_du_chain_valid(oc)) {
+        END_TIMER_AFTER(get_pass_name());
+        return false;
+    }
+
+    m_du = (IR_DU_MGR*)m_ru->get_pass_mgr()->queryPass(PASS_DU_MGR);
+
+    LI<IRBB> const* li = m_cfg->get_loop_info();
+    clean();
+    if (li == NULL) { return false; }
+
+    BitSet tmp;
+    Vector<UINT> map_md2defcount;
+    UINT2IR map_md2defir;
+
+    List<LI<IRBB> const*> worklst;
+    while (li != NULL) {
+        worklst.append_tail(li);
+        li = LI_next(li);
+    }
+
+    while (worklst.get_elem_count() > 0) {
+        LI<IRBB> const* x = worklst.remove_head();
+        findBIV(x, tmp, map_md2defcount, map_md2defir);
+        SList<IV*> const* bivlst = m_li2bivlst.get(LI_id(x));
+        if (bivlst != NULL && bivlst->get_elem_count() > 0) {
+            findDIV(x, *bivlst, tmp);
+        }
+        x = LI_inner_list(x);
+        while (x != NULL) {
+            worklst.append_tail(x);
+            x = LI_next(x);
+        }
+    }
+
+    //dump();
+    END_TIMER_AFTER(get_pass_name());
+    return false;
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 //END IR_IVR
 

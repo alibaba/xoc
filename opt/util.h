@@ -34,29 +34,107 @@ author: Su Zhenyu
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
-#define MAX_BUF_LEN 1024
-#define ST_ERR  1
-#define ST_SUCC 0
-#define ST_EOF 2
+namespace xoc {
+
+//Singler timer, show const string before timer start.
+//e.g:
+//    START_TIMER("My Pass");
+//    Run mypass();
+//    END_TIMER();
+#define START_TIMER(s)              \
+    LONG _start_time_count_ = 0;    \
+    if (g_show_comp_time) {         \
+        _start_time_count_ = getclockstart(); \
+        prt2C("\n==-- %s Time:", (s));    \
+    }
+
+#define END_TIMER()                 \
+    if (g_show_comp_time) {         \
+        prt2C("%fsec", getclockend(_start_time_count_)); \
+    }
 
 
-//Conveninent to those classes which has a member named id.
-template <class T> class ID_CK {
-public:
-	UINT compute_key(T t) const { return t->id; }
-};
+//Single timer, show const string after timer finish.
+//e.g:
+//    START_TIMER_AFTER();
+//    Run mypass();
+//    END_TIMER_AFTER("My Pass");
+#define START_TIMER_AFTER()         \
+    LONG _start_time_count_ = 0;    \
+    if (g_show_comp_time) {         \
+        _start_time_count_ = getclockstart(); \
+    }
+
+#define END_TIMER_AFTER(s)          \
+    if (g_show_comp_time) {         \
+        prt2C("\n==-- %s Time:%fsec", \
+              (s), getclockend(_start_time_count_)); \
+    }
 
 
-//Exported Variables
-extern INT g_indent; //Only for dump.
-extern FILE * g_tfile;
+//Single timer, show format string before timer finish.
+//e.g:
+//    START_TIMER(("My Pass Name%s", get_pass_name()));
+//    Run mypass();
+//    END_TIMER_FMT();
+#define START_TIMER_FMT(s)          \
+    LONG _start_time_count_ = 0;    \
+    if (g_show_comp_time) {         \
+        _start_time_count_ = getclockstart(); \
+        prt2C("\n==-- ");          \
+        prt2C s;                   \
+        prt2C(" Time:");           \
+    }
+
+#define END_TIMER_FMT()            \
+    if (g_show_comp_time) { prt2C("%fsec", getclockend(_start_time_count_)); }
+
+
+//Single timer, show format string after timer finish.
+//e.g:
+//    START_TIMER_AFTER();
+//    Run mypass();
+//    END_TIMER_FMT_AFTER(("My Pass Name%s", get_pass_name()));
+#define START_TIMER_FMT_AFTER()     \
+    LONG _start_time_count_ = 0;    \
+    if (g_show_comp_time) {         \
+        _start_time_count_ = getclockstart();    \
+    }
+
+#define END_TIMER_FMT_AFTER(s)     \
+    if (g_show_comp_time) {        \
+        prt2C("\n==-- ");          \
+        prt2C s;                   \
+        prt2C(" Time:%fsec", getclockend(_start_time_count_)); \
+    }
+
+
+//Define multiple const string timers,
+//and show const string before timer start.
+//e.g:
+//    START_TIMERS("My Pass", local_timer);
+//    Run mypass();
+//    END_TIMERS(local_timer);
+#define START_TIMERS(s, _timer_timer_)  \
+    LONG _timer_timer_ = 0;             \
+    if (g_show_comp_time) {             \
+        _timer_timer_ = getclockstart();\
+        prt2C("\n==-- %s Time:", (s));  \
+    }
+
+#define END_TIMERS(_timer_timer_)       \
+    if (g_show_comp_time) {             \
+        prt2C("%fsec", getclockend(_timer_timer_)); \
+    }
 
 
 #define NIL_START  100000
 template <class T, class Ttgt>
-void dump_rbt(RBT<T, Ttgt> & rbt, CHAR const* name = NULL,
-			  UINT nil_count = NIL_START)
+void dump_rbt(RBT<T, Ttgt> & rbt,
+              CHAR const* name = NULL,
+              UINT nil_count = NIL_START)
 {
+<<<<<<< HEAD
 	typedef RBTNode<T, Ttgt> TN;
 	Vector<TN*> nilvec;
 	if (name == NULL) {
@@ -194,12 +272,180 @@ void dump_rbt(RBT<T, Ttgt> & rbt, CHAR const* name = NULL,
 }
 
 void dump_vec(Vector<UINT> & v);
+=======
+    typedef RBTNode<T, Ttgt> TN;
+    Vector<TN*> nilvec;
+    if (name == NULL) {
+        name = "graph_rbt.vcg";
+    }
+    unlink(name);
+    FILE * hvcg = fopen(name, "a+");
+    ASSERT(hvcg, ("%s create failed!!!", name));
+    fprintf(hvcg, "graph: {"
+              "title: \"Tree\"\n"
+              "shrink:  15\n"
+              "stretch: 27\n"
+              "layout_downfactor: 1\n"
+              "layout_upfactor: 1\n"
+              "layout_nearfactor: 1\n"
+              "layout_splinefactor: 70\n"
+              "spreadlevel: 1\n"
+              "treefactor: 0.500000\n"
+              "node_alignment: center\n"
+              "orientation: top_to_bottom\n"
+              "late_edge_labels: no\n"
+              "display_edge_labels: yes\n"
+              "dirty_edge_labels: no\n"
+              "finetuning: no\n"
+              "nearedges: no\n"
+              "splines: yes\n"
+              "ignoresingles: no\n"
+              "straight_phase: no\n"
+              "priority_phase: no\n"
+              "manhatten_edges: no\n"
+              "smanhatten_edges: no\n"
+              "port_sharing: no\n"
+              "crossingphase2: yes\n"
+              "crossingoptimization: yes\n"
+              "crossingweight: bary\n"
+              "arrow_mode: free\n"
+              "layoutalgorithm: tree\n"
+              "node.borderwidth: 3\n"
+              "node.color: lightcyan\n"
+              "node.textcolor: darkred\n"
+              "node.bordercolor: red\n"
+              "edge.color: darkgreen\n");
+
+    //Print node
+    List<TN*> lst;
+    TN const* root = rbt.get_root();
+    if (root != NULL) {
+        lst.append_tail(const_cast<TN*>(root));
+    }
+
+    UINT nilcc = 0;
+    while (lst.get_elem_count() != 0) {
+        TN * x = lst.remove_head();
+        T key = T(0);
+        bool is_nil = false;
+        for (INT i = 0; i <= nilvec.get_last_idx(); i++) {
+            TN * z = nilvec.get(i);
+            if (z == NULL) { continue; }
+            if (x == z) {
+                key = z->key;
+                is_nil = true;
+                break;
+            }
+        }
+        if (!is_nil) {
+            key = x->key;
+        }
+
+        if (x->color == RBRED) {
+            //red
+            fprintf(hvcg,
+                "\nnode: { title:\"%u\" label:\"%u\" shape:circle "
+                "color:red fontname:\"courB\" textcolor:white}",
+                key, key);
+        } else {
+            if (is_nil) {
+                ASSERT0(key >= NIL_START);
+                //nil
+                fprintf(hvcg,
+                    "\nnode: { title:\"%u\" label:\"%u\" shape:box "
+                    "color:black fontname:\"courB\" textcolor:black}",
+                    key, 0);
+            } else {
+                //black
+                fprintf(hvcg,
+                    "\nnode: { title:\"%u\" label:\"%u\" shape:circle "
+                    "color:black fontname:\"courB\" textcolor:white}",
+                    key, key);
+            }
+        }
+
+        if (x->rchild != NULL) {
+            lst.append_tail(x->rchild);
+            fprintf(hvcg,
+                    "\nedge: { sourcename:\"%u\" targetname:\"%u\" }",
+                    key, x->rchild->key);
+        } else if (!is_nil) {
+            TN * nil = new TN();
+            nil->key = nil_count++;
+            nil->color = RBBLACK;
+            nilvec.set(nilcc, nil);
+            nilcc++;
+            lst.append_tail(nil);
+
+            fprintf(hvcg,
+                    "\nedge: { sourcename:\"%u\" targetname:\"%u\" }",
+                    key, nil->key);
+        }
+
+        if (x->lchild != NULL) {
+            lst.append_tail(x->lchild);
+            fprintf(hvcg,
+                    "\nedge: { sourcename:\"%u\" targetname:\"%u\" }",
+                    key, x->lchild->key);
+        } else if (!is_nil) {
+            TN * nil = new TN();
+            nil->key = nil_count++;
+            nil->color = RBBLACK;
+            nilvec.set(nilcc, nil);
+            nilcc++;
+            lst.append_tail(nil);
+
+            fprintf(hvcg,
+                    "\nedge: { sourcename:\"%u\" targetname:\"%u\" }",
+                    key, nil->key);
+        }
+    }
+    for (INT i = 0; i <= nilvec.get_last_idx(); i++) {
+        TN * z = nilvec.get(i);
+        ASSERT0(z);
+        delete z;
+    }
+    fprintf(hvcg, "\n}\n");
+    fclose(hvcg);
+}
+
+//Exported Variables
+extern FILE * g_tfile; //Only for dump.
+extern INT g_indent; //Only for dump.
+extern bool g_prt_carriage_return_for_dot; //Only for dump.
+
+void dumpIndent(FILE * h, UINT indent);
+void dumpIntVector(Vector<UINT> & v);
+
+//Get temporary memory pool handler.
+SMemPool * get_tmp_pool();
+
+//Initialze dump file.
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 void initdump(CHAR const* f, bool is_del);
-void interwarn(CHAR const* format, ...);
+
+//Finalize dump file.
 void finidump();
+<<<<<<< HEAD
 void scr(CHAR const* format , ...) ;
+=======
+
+//Report internal warning.
+void interwarn(CHAR const* format, ...);
+
+//Print message to console.
+void prt2C(CHAR const* format, ...);
+
+//Allocate memory from temporary memory pool.
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 void * tlloc(LONG size);
+
+//Free whole temporary memory pool.
 void tfree();
+
+//Dump formatted string to g_tfile.
+//This function indents blank space indicated by g_indent.
 void note(CHAR const* format, ...);
-INT prt(CHAR const* format , ...);
+
+} //namespace xoc
 #endif

@@ -37,8 +37,13 @@ namespace xoc {
 
 bool IR_CFG::goto_opt(IRBB * bb)
 {
+<<<<<<< HEAD
 	UNUSED(bb);
 	return false;
+=======
+    UNUSED(bb);
+    return false;
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 } //namespace xoc

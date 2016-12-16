@@ -34,6 +34,7 @@ author: Su Zhenyu
 #ifndef __COMINC_H__
 #define __COMINC_H__
 
+<<<<<<< HEAD
 //Common included files
 #include "stdlib.h"
 #include "stdarg.h"
@@ -64,23 +65,30 @@ using namespace xcom;
 #include "loop.h"
 #include "cfg.h"
 #include "math.h"
+=======
+#include "commoninc.h"
+>>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 #include "data_type.h"
 #include "dbg.h"
+#include "loop.h"
+#include "cfg.h"
 
 //Middle level included files
 #include "var.h"
 #include "md.h"
+#include "pass.h"
 #include "ai.h"
 #include "du.h"
 #include "ir.h"
-#include "ir_opt.h"
+#include "ir_bb.h"
 #include "ir_refine.h"
 #include "ir_simp.h"
-#include "ir_bb.h"
 #include "pass_mgr.h"
 #include "ir_cfg.h"
 #include "ir_high_opt.h"
 #include "ir_middle_opt.h"
+#include "targ_info.h"
+#include "region_mgr.h"
 #include "region.h"
 #include "ir_du.h"
 #include "ir_aa.h"
