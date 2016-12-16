@@ -127,166 +127,6 @@ typedef enum _MD_TYPE {
 //or it is not available.
 #define MD_size(md)              ((md)->size)
 
-<<<<<<< HEAD
-//The memory object is a PR.
-#define MD_is_pr(md)			(VAR_is_pr(MD_base(md)))
-
-//Indicate MD can not be effect MD, namely, the MD must be
-//placed in MayDef or MayUse set.
-#define MD_is_may(md)			((md)->u2.s1.is_may_reference)
-
-class MD {
-public:
-	UINT id; //unique id.
-	UINT ofst; //byte offsets relative to 'base'
-	UINT size; //byte size of the memory block
-	VAR * base;
-	union {
-		struct {
-			BYTE type:2;
-			BYTE is_addr_taken:1;
-			BYTE is_may_reference:1;
-		} s1;
-		BYTE s1v;
-	} u2;
-
-	MD() { clean(); }
-	MD(MD const& md)
-	{
-		//Do not copy id.
-		MD_id(this) = 0;
-		copy(&md);
-	}
-
-	inline void copy(IN MD const* md)
-	{
-		ASSERT0(md && this != md);
-		MD_base(this) = MD_base(md);
-		MD_ofst(this) = MD_ofst(md);
-		MD_size(this) = MD_size(md);
-		u2.s1v = md->u2.s1v;
-	}
-
-	/* Return true if current md exactly cover 'm', such as:
-	current md: |-------|
-	m:            |----|
-	*/
-	bool is_cover(MD const* m) const;
-
-	/* Return true if current md intersect but may be not cover 'm', such as:
-	current md: |-------|
-	m:            |-------|
-	*/
-	bool is_overlap(MD const* m) const;
-
-	/* Return true if md represent real object that would be emitted to
-	target machine. Fake object is not effect object.
-	NOTE: Effect MD inexact represent the memory object which may or may
-	not occur at run time. If stmt modified effect but inexact MD,
-	it is non-killing definition. */
-	bool is_effect() const { return !VAR_is_fake(MD_base(this)); }
-
-	//Return true if md is exact object.
-	//Exact MD represent must and killing-DEF or USE.
-	bool is_exact() const { return MD_ty(this) == MD_EXACT; }
-
-	//Return true if md is unbound.
-	bool is_unbound() const { return MD_ty(this) == MD_UNBOUND; }
-
-	//Return true if md is global variable.
-	bool is_global() const { return VAR_is_global(MD_base(this)); }
-
-	//Return true if md is volatile memory.
-	bool is_volatile() const { return VAR_is_volatile(MD_base(this)); }
-
-	//If MD is range, MD_base + MD_ofst indicate the start address,
-	//MD_size indicate the range.
-	bool is_range() const { return MD_ty(this) == MD_RANGE; }
-
-	//Return true if md indicate PR.
-	bool is_pr() const { return MD_is_pr(this); }
-
-	//Return true if src is definitly equal to current md.
-	bool is_equ(MD const& src) const
-	{
-		ASSERT0(this != &src);
-		return *this == src;
-	}
-
-	inline bool operator == (MD const& src) const
-	{
-		ASSERT0(this != &src);
-		if (MD_base(this) != MD_base(&src)) { return false; }
-		if (is_unbound() && src.is_unbound()) { return true; }
-		return ofst == src.ofst && size == src.size && u2.s1v == src.u2.s1v;
-	}
-
-	//Dump md into 'buf', 'bufl' indicate the byte length of the buffer.
-	CHAR * dump(IN OUT CHAR * buf, UINT bufl, TypeMgr * dm) const;
-
-	//Dump md to file.
-	void dump(TypeMgr * dm) const;
-
-	inline void clean()
-	{
-		MD_id(this) = 0;
-		MD_ofst(this) = 0;
-		MD_size(this) = 0;
-		MD_base(this) = NULL;
-		u2.s1v = 0;
-	}
-};
-
-
-typedef TMapIter<MD*, MD*> MDIter;
-typedef TMapIter<MD const*, MD const*> ConstMDIter;
-
-class MDHashFunc {
-public:
-	UINT get_hash_value(MD * md, UINT bucket_size) const
-	{ return MD_ofst(md) % bucket_size; }
-
-	bool compare(MD * md1, MD * md2) const
-	{
-		ASSERT0(MD_base(md1) == MD_base(md2));
-		if (MD_ofst(md1) != MD_ofst(md2)) { return false; }
-		if (MD_size(md1) != MD_size(md2)) { return false; }
-		return true;
-	}
-};
-
-
-class ConstMDHashFunc {
-public:
-	UINT get_hash_value(MD const* md, UINT bucket_size) const
-	{ return MD_ofst(md) % bucket_size; }
-
-	bool compare(MD const* md1, MD const* md2) const
-	{
-		ASSERT0(MD_base(md1) == MD_base(md2));
-		if (MD_ofst(md1) != MD_ofst(md2)) { return false; }
-		if (MD_size(md1) != MD_size(md2)) { return false; }
-		return true;
-	}
-};
-
-
-class CompareOffset {
-public:
-	bool is_less(MD const* t1, MD const*  t2) const
-	{
-		ASSERT0(MD_base(t1) == MD_base(t2));
-		return (((ULONGLONG)MD_ofst(t1)) << 32 | ((ULONGLONG)MD_size(t1))) <
-			   (((ULONGLONG)MD_ofst(t2)) << 32 | ((ULONGLONG)MD_size(t2)));
-	}
-
-	bool is_equ(MD const* t1, MD const* t2) const
-	{
-		ASSERT0(MD_base(t1) == MD_base(t2));
-		return (((ULONGLONG)MD_ofst(t1)) << 32 | ((ULONGLONG)MD_size(t1))) ==
-			   (((ULONGLONG)MD_ofst(t2)) << 32 | ((ULONGLONG)MD_size(t2)));
-	}
-=======
 //Memory object type. If it is MD_EXACT, there will be exact use/def.
 //If it is MD_RANGE, there will be inexact use/def, but the accessing restricted
 //into a computable range. If it is MD_UNBOUND, there will be inexact use/def,
@@ -421,92 +261,24 @@ public:
         return (((ULONGLONG)MD_ofst(t1)) << 32 | ((ULONGLONG)MD_size(t1))) ==
                (((ULONGLONG)MD_ofst(t2)) << 32 | ((ULONGLONG)MD_size(t2)));
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 
 //MD hashed by MD_ofst.
 class OffsetTab : public TMap<MD const*, MD const*, CompareOffset> {
 public:
-<<<<<<< HEAD
-	//Return the entry.
-	MD const* find(MD const* md)
-	{ return TMap<MD const*, MD const*, CompareOffset>::get(md, NULL); }
-
-	void append(MD const* md)
-	{ TMap<MD const*, MD const*, CompareOffset>::set(md, md); }
-=======
     //Return the entry.
     MD const* find(MD const* md)
     { return TMap<MD const*, MD const*, CompareOffset>::get(md, NULL); }
 
     void append(MD const* md)
     { TMap<MD const*, MD const*, CompareOffset>::set(md, md); }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 
 //Each VAR corresponds to an unqiue MDTab.
 class MDTab {
 protected:
-<<<<<<< HEAD
-	OffsetTab m_ofst_tab;
-	MD const* m_invalid_ofst_md; //record MD with invalid ofst
-public:
-	MDTab() { m_invalid_ofst_md = NULL; }
-
-	void init(UINT hash_bucket_size);
-	void clean()
-	{
-		m_invalid_ofst_md = NULL;
-		m_ofst_tab.clean();
-	}
-
-	UINT count_mem() const
-	{ return m_ofst_tab.count_mem() + sizeof(m_invalid_ofst_md); }
-
-	MD const* find(MD const* md)
-	{
-		if (md->is_exact()) {
-			return m_ofst_tab.find(md);
-		}
-		return m_invalid_ofst_md;
-	}
-
-	void append(MD const* md)
-	{
-		if (md->is_exact()) {
-			m_ofst_tab.append(md);
-			return;
-		}
-		ASSERT0(m_invalid_ofst_md == NULL);
-		m_invalid_ofst_md = md;
-	}
-
-	UINT get_elem_count()
-	{
-		UINT elems = 0;
-		if (m_invalid_ofst_md != NULL) {
-			elems++;
-		}
-		elems += m_ofst_tab.get_elem_count();
-		return elems;
-	}
-
-	OffsetTab * get_ofst_tab() {  return &m_ofst_tab; }
-	MD const* get_effect_md() { return m_invalid_ofst_md; }
-	void get_elems(OUT Vector<MD const*> & mdv, ConstMDIter & iter)
-	{
-		UINT idx = 0;
-		if (m_invalid_ofst_md != NULL) {
-			mdv.set(idx++, m_invalid_ofst_md);
-		}
-		for (MD const* md = m_ofst_tab.get_first(iter, NULL);
-			 md != NULL; md = m_ofst_tab.get_next(iter, NULL)) {
-			mdv.set(idx++, md);
-		}
-	}
-=======
     OffsetTab m_ofst_tab;
     MD const* m_invalid_ofst_md; //record MD with invalid ofst
 public:
@@ -563,125 +335,10 @@ public:
             mdv.set(idx++, md);
         }
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 
 //Memory Descriptor Set.
-<<<<<<< HEAD
-class MDSet : public DefSBitSetCore {
-public:
-	MDSet() {}
-	COPY_CONSTRUCTOR(MDSet);
-	~MDSet() { /* should call clean() before destruction.*/ }
-
-	void bunion(MDSet const& pt, DefMiscBitSetMgr & mbsmgr);
-	void bunion(MD const* md, DefMiscBitSetMgr & mbsmgr);
-	void bunion(UINT mdid, DefMiscBitSetMgr & mbsmgr);
-	void bunion_pure(UINT mdid, DefMiscBitSetMgr & m)
-	{ DefSBitSetCore::bunion(mdid, m); }
-	void bunion_pure(MDSet const& mds, DefMiscBitSetMgr & m)
-	{ DefSBitSetCore::bunion(mds, m); }
-
-	bool is_contain_pure(UINT mdid) const
-	{ return DefSBitSetCore::is_contain(mdid); }
-
-	//Return true if set contain global variable.
-	bool is_contain_global() const
-	{
-		return DefSBitSetCore::is_contain(MD_GLOBAL_MEM) ||
-			   DefSBitSetCore::is_contain(MD_ALL_MEM);
-	}
-
-	//Return true if set contain all memory variable.
-	bool is_contain_all() const
-	{ return DefSBitSetCore::is_contain(MD_ALL_MEM); }
-
-	//Return true if set contain md.
-	inline bool is_contain(MD const* md) const
-	{
-		if (DefSBitSetCore::is_contain(MD_GLOBAL_MEM) && md->is_global()) {
-			return true;
-		}
-		if (DefSBitSetCore::is_contain(MD_ALL_MEM)) {
-			return true;
-		}
-		return DefSBitSetCore::is_contain(MD_id(md));
-	}
-
-	//Return true if md is overlap with the elements in set.
-	inline bool is_overlap(MD const* md) const
-	{
-		if (DefSBitSetCore::is_contain(MD_GLOBAL_MEM) && md->is_global()) {
-			return true;
-		}
-		if ((DefSBitSetCore::is_contain(MD_ALL_MEM)) ||
-			(MD_id(md) == MD_ALL_MEM && !DefSBitSetCore::is_empty())) {
-			return true;
-		}
-		return DefSBitSetCore::is_contain(MD_id(md));
-	}
-
-	//Return true if md is overlapped with element in current MDSet.
-	//Note this function will iterate elements in set which is costly.
-	//Use it carefully.
-	inline bool is_overlap_ex(MD const* md, MDSystem const* mdsys) const;
-
-	bool is_contain_inexact(MDSystem * ms) const;
-	bool is_contain_only_exact_and_str(MDSystem * ms) const;
-	bool is_exact_equal(MDSet const& mds, MDSystem * ms) const;
-
-	//Return true if set intersect with 'mds'.
-	inline bool is_intersect(MDSet const& mds) const
-	{
-		if (this == &mds) { return true; }
-		if (DefSBitSetCore::is_contain(MD_GLOBAL_MEM) &&
-			((DefSBitSetCore&)mds).is_contain(MD_GLOBAL_MEM)) {
-			return true;
-		}
-
-		if ((DefSBitSetCore::is_contain(MD_ALL_MEM) && !mds.is_empty()) ||
-			(((DefSBitSetCore&)mds).is_contain(MD_ALL_MEM) &&
-			 !DefSBitSetCore::is_empty())) {
-			return true;
-		}
-		return DefSBitSetCore::is_intersect(mds);
-	}
-
-	//Return true if all MD in set are PR.
-	inline bool is_pr_set(MDSystem const* mdsys) const;
-
-	void diff(MD const* md, DefMiscBitSetMgr & m)
-	{
-		ASSERT0(md);
-		DefSBitSetCore::diff(MD_id(md), m);
-	}
-
-	void diff(UINT id, DefMiscBitSetMgr & m) { DefSBitSetCore::diff(id, m); }
-
-	inline void diff(MDSet const& mds, DefMiscBitSetMgr & m)
-	{
-		ASSERT0(this != &mds);
-		ASSERT(!DefSBitSetCore::is_contain(MD_ALL_MEM), ("low performance"));
-		if (((DefSBitSetCore const&)mds).is_contain(MD_ALL_MEM)) {
-			clean(m);
-			return;
-		}
-		DefSBitSetCore::diff(mds, m);
-	}
-	void dump(MDSystem * ms, bool detail = false) const;
-
-	//Get unique MD that is effective, and offset must be valid.
-	inline MD * get_exact_md(MDSystem * ms) const
-	{
-		MD * md = get_effect_md(ms);
-		if (md != NULL && md->is_exact()) {
-			return md;
-		}
-		return NULL;
-	}
-	MD * get_effect_md(MDSystem * ms) const;
-=======
 //Note: one must call clean() to reclamition before deletion or destruction.
 class MDSet : public DefSBitSetCore {
 public:
@@ -795,52 +452,12 @@ public:
         return NULL;
     }
     MD * get_effect_md(MDSystem * ms) const;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 
 //MDSetMgr
 class MDSetMgr {
 protected:
-<<<<<<< HEAD
-	SMemPool * m_mds_pool;
-	SMemPool * m_sc_mds_pool;
-	SList<MDSet*> m_free_md_set;
-	SList<MDSet*> m_md_set_list;
-	Region * m_ru;
-	DefMiscBitSetMgr * m_misc_bs_mgr;
-public:
-	MDSetMgr(Region * ru, DefMiscBitSetMgr * mbsm);
-	COPY_CONSTRUCTOR(MDSetMgr);
-	~MDSetMgr() { destroy(); }
-
-	//Clean and give it back to md set manager.
-	//Do not destroy mds.
-	void free(MDSet * mds);
-
-	inline MDSet * get_free() { return m_free_md_set.remove_head(); }
-	UINT get_mdset_count() const { return m_md_set_list.get_elem_count(); }
-	UINT get_free_mdset_count() const { return m_free_md_set.get_elem_count(); }
-
-	//Create new MDSet.
-	MDSet * create()
-	{
-		MDSet * mds = get_free();
-		if (mds == NULL) {
-			mds = (MDSet*)smpoolMallocConstSize(sizeof(MDSet), m_mds_pool);
-			ASSERT0(mds);
-			memset(mds, 0, sizeof(MDSet));
-			m_md_set_list.append_head(mds);
-		}
-		return mds;
-	}
-
-	//Destroy MDSet manager.
-	void destroy();
-	void dump();
-
-	UINT count_mem();
-=======
     SMemPool * m_mds_pool;
     SMemPool * m_sc_mds_pool;
     SList<MDSet*> m_free_md_set;
@@ -878,56 +495,10 @@ public:
     void dump();
 
     UINT count_mem();
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 
 class MDId2MD : public Vector<MD*> {
-<<<<<<< HEAD
-	UINT m_count;
-public:
-	MDId2MD() { m_count = 0; }
-
-	void remove(UINT mdid)
-	{
-		ASSERT0(mdid != 0); //0 is illegal mdid.
-		ASSERT0(get(mdid) != NULL);
-		Vector<MD*>::set(mdid, NULL);
-		m_count--;
-	}
-
-	void set(UINT mdid, MD * md)
-	{
-		ASSERT(Vector<MD*>::get(mdid) == NULL, ("already mapped"));
-		Vector<MD*>::set(mdid, md);
-		m_count++;
-	}
-
-	UINT get_elem_count() const { return m_count; }
-	void dump() const;
-};
-
-
-class MD2Node2 {
-public:
-	MDSet * mds;
-	HMap<UINT, MD2Node2*, HashFuncBase2<UINT> > next;
-
-	MD2Node2(UINT hash_tab_size = 16) : next(hash_tab_size) { mds = NULL; }
-	~MD2Node2() {}
-
-	UINT count_mem() const { return next.count_mem() + sizeof(mds); }
-};
-
-
-class MD2Node {
-public:
-	MDSet * mds;
-	TMap<UINT, MD2Node*> next;
-
-	MD2Node() { mds = NULL; }
-	~MD2Node() {}
-=======
     UINT m_count;
 public:
     MDId2MD() { m_count = 0; }
@@ -969,32 +540,11 @@ public:
     MDSetHash(MDSetHashAllocator * allocator) :
         SBitSetCoreHash<MDSetHashAllocator>(allocator) {}
     virtual ~MDSetHash() {}
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     MDSet const* append(SBitSetCore<> const& set)
     { return (MDSet const*)SBitSetCoreHash<MDSetHashAllocator>::append(set); }
 };
 
-<<<<<<< HEAD
-#define _MD2NODE2_
-#define MD2NODE2_INIT_SZ	8 //The size must be power of 2.
-
-class MDSetHash {
-protected:
-	SMemPool * m_pool;
-	MDSetMgr * m_mds_mgr;
-	DefMiscBitSetMgr * m_mbs_mgr;
-
-	#ifdef _DEBUG_
-	UINT m_num_node; //record the number of MD2Node in the tree.
-	#endif
-
-	#ifdef _MD2NODE2_
-	typedef MD2Node2 MNTY;
-	#else
-	typedef MD2Node MNTY;
-	#endif
-=======
 
 //MD System.
 //Manage the memory allocation and free of MD, and
@@ -1125,446 +675,24 @@ bool MDSet::is_pr_set(MDSystem const* mdsys) const
     }
     return true;
 }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 
-<<<<<<< HEAD
-protected:
-	inline MNTY * newMD2Node()
-	{
-		#ifdef _MD2NODE2_
-		MD2Node2 * mn = new MD2Node2(MD2NODE2_INIT_SZ);
-		#else
-		MD2Node * mn =
-			(MD2Node*)smpoolMallocConstSize(sizeof(MD2Node), m_pool);
-		::memset(mn, 0, sizeof(MD2Node));
-		mn->init();
-		#endif
-
-		#ifdef _DEBUG_
-		m_num_node++;
-		#endif
-
-		return mn;
-	}
-
-	void dump_helper_a(MDSet * mds, UINT indent, UINT id)
-	{
-		fprintf(g_tfile, "\n");
-
-		UINT i = 0;
-		while (i < indent) { fprintf(g_tfile, " "); i++; }
-		fprintf(g_tfile, "%d", id);
-
-		if (mds != NULL) {
-			fprintf(g_tfile, " {");
-			SEGIter * iter;
-			for (INT j = mds->get_first(&iter); j >= 0;) {
-				fprintf(g_tfile, "%d", i);
-				j = mds->get_next((UINT)j, &iter);
-				if (j >= 0) {
-					fprintf(g_tfile, ",");
-				}
-			}
-			fprintf(g_tfile, "}");
-		}
-	}
-
-	void dump_helper(MD2Node * mn, UINT indent, MDSystem * mdsys)
-	{
-		MD2Node * nextmn = NULL;
-		TMapIter<UINT, MD2Node*> ti;
-		for (UINT id = mn->next.get_first(ti, &nextmn);
-			 id != 0; id = mn->next.get_next(ti, &nextmn)) {
-			dump_helper_a(nextmn->mds, indent, id);
-			ASSERT0(nextmn);
-			dump_helper(nextmn, indent + 2, mdsys);
-		}
-	}
-
-	void dump_helper(MD2Node2 * mn, UINT indent, MDSystem * mdsys)
-	{
-		INT pos;
-		for (MD2Node2 * nextmn = mn->next.get_first_elem(pos);
-			 nextmn != NULL; nextmn = mn->next.get_next_elem(pos)) {
-			dump_helper_a(nextmn->mds, indent, (UINT)pos);
-			dump_helper(nextmn, indent + 2, mdsys);
-		}
-	}
-=======
 typedef TMapIter<UINT, MDSet const*> MD2MDSetIter;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 //MD2MD_SET_MAP
 //Record MD->MDS relations.
 //Note MD may mapped to NULL, means the MD does not point to anything.
 class MD2MDSet : public TMap<UINT, MDSet const*> {
 public:
-<<<<<<< HEAD
-	MDSetHash(MDSetMgr * mds, DefMiscBitSetMgr * mbs)
-	{
-		ASSERT0(mds && mbs);
-		m_mds_mgr = mds;
-		m_mbs_mgr = mbs;
-		m_pool = smpoolCreate(sizeof(MD2Node) * 4, MEM_CONST_SIZE);
-
-		#ifdef _DEBUG_
-		m_num_node = 0;
-		#endif
-
-		#ifdef _MD2NODE2_
-		m_md2node = new MD2Node2(MD2NODE2_INIT_SZ);
-		#else
-		m_md2node = new MD2Node();
-		#endif
-	}
-
-	~MDSetHash()
-	{
-		destroyMN2Node();
-
-		#ifdef _MD2NODE2_
-		//m_md2node already deleted in destroyMN2Node().
-		#else
-		delete m_md2node;
-		#endif
-
-		smpoolDelete(m_pool);
-	}
-
-	inline void destroyMN2Node()
-	{
-		//Destroy the TMap structure, here you do
-		//NOT need invoke MDSet's destroy() because they were allocated from
-		//MDSetMgr and will be deleted by the destroy() of it.
-		List<MNTY*> wl;
-
-		#ifdef _MD2NODE2_
-		//Do nothing.
-		#else
-		TMapIter<UINT, MD2Node*> ti;
-		#endif
-
-		wl.append_tail(get_root());
-
-		while (wl.get_elem_count() != 0) {
-			MNTY * mn = wl.remove_head();
-			ASSERT0(mn);
-
-			MNTY * nextmn = NULL;
-
-			#ifdef _MD2NODE2_
-			INT pos = 0;
-			for (nextmn = mn->next.get_first_elem(pos);
-				 nextmn != NULL; nextmn = mn->next.get_next_elem(pos)) {
-				wl.append_tail(nextmn);
-			}
-			#else
-			ti.clean();
-			for (UINT id = mn->next.get_first(ti, &nextmn);
-				 id != 0; id = mn->next.get_next(ti, &nextmn)) {
-				ASSERT0(nextmn);
-				wl.append_tail(nextmn);
-			}
-			#endif
-
-			if (mn->mds != NULL) {
-				m_mds_mgr->free(mn->mds);
-			}
-
-			mn->next.destroy();
-
-			#ifdef _MD2NODE2_
-			delete mn;
-			#else
-			//Do nothing.
-			#endif
-		}
-	}
-
-	inline void checkAndGrow(MNTY * mn)
-	{
-		#ifdef _MD2NODE2_
-		//This class use HMap to hash MDSet.
-		//As the element is more and more appended,
-		//the collisions become more frequently.
-		//Extend HMap if the number of element is twice of the hash
-		//table size.
-		if (mn->next.get_elem_count() >	mn->next.get_bucket_size() * 2) {
-			mn->next.grow();
-		}
-		#else
-		//Do nothing.
-		#endif
-	}
-
-	MDSet const* append(MDSet const& mds)
-	{
-		SEGIter * iter;
-		INT id = mds.get_first(&iter);
-		if (id < 0) { return NULL; }
-
-		MNTY * mn = m_md2node->next.get((UINT)id);
-		if (mn == NULL) {
-			checkAndGrow(m_md2node);
-			mn = newMD2Node();
-			m_md2node->next.set((UINT)id, mn);
-		}
-
-		INT nextid = mds.get_next((UINT)id, &iter);
-		for (; nextid >= 0; id = nextid,
-			 nextid = mds.get_next((UINT)nextid, &iter)) {
-			MNTY * nextmn = mn->next.get((UINT)nextid);
-			if (nextmn == NULL) {
-				checkAndGrow(mn);
-				nextmn = newMD2Node();
-				mn->next.set((UINT)nextid, nextmn);
-			}
-			mn = nextmn;
-		}
-
-		ASSERT0(mn);
-		if (mn->mds == NULL) {
-			MDSet * s = m_mds_mgr->create();
-			ASSERT0(s);
-			s->copy(mds, *m_mbs_mgr);
-			mn->mds = s;
-		}
-		ASSERT0(mn->mds == &mds || mn->mds->is_equal(mds));
-		return mn->mds;
-	}
-
-	UINT count_mem() const
-	{
-		UINT count = smpoolGetPoolSize(m_pool);
-		count += get_root()->count_mem();
-		return count;
-	}
-
-	void dump(MDSystem * mdsys)
-	{
-		if (g_tfile == NULL) { return; }
-
-		fprintf(g_tfile, "\n==---- DUMP MDSetHash ----==");
-
-		#ifdef _DEBUG_
-		fprintf(g_tfile, " NumOfNode:%d ----==",
-				m_num_node + 1 /*The first node is m_md2node*/);
-		#endif
-
-		dump_helper(get_root(), 1, mdsys);
-
-		fflush(g_tfile);
-	}
-
-	MNTY * get_root() const  { return m_md2node; }
-
-	//Return the number of MDSet recorded in the hash.
-	UINT get_elem_count() const
-	{
-		UINT count = 0;
-
-		//Destroy the TMap structure, here you do
-		//NOT need invoke MDSet's destroy() because they were allocated from
-		//MDSetMgr and will be deleted by the destroy() of it.
-
-		List<MNTY const*> wl;
-
-		#ifdef _MD2NODE2_
-		//Do nothing.
-		#else
-		TMapIter<UINT, MD2Node*> ti;
-		#endif
-
-		wl.append_tail(get_root());
-		while (wl.get_elem_count() != 0) {
-			MNTY const* mn = wl.remove_head();
-			ASSERT0(mn);
-
-			MNTY * nextmn = NULL;
-			#ifdef _MD2NODE2_
-			INT pos = 0;
-			for (nextmn = mn->next.get_first_elem(pos);
-				 nextmn != NULL; nextmn = mn->next.get_next_elem(pos)) {
-				wl.append_tail(nextmn);
-			}
-			#else
-			ti.clean();
-			for (UINT id = mn->next.get_first(ti, &nextmn);
-				 id != 0; id = mn->next.get_next(ti, &nextmn)) {
-				ASSERT0(nextmn);
-				wl.append_tail(nextmn);
-			}
-			#endif
-
-			if (mn->mds != NULL) {
-				count++;
-			}
-		}
-		return count;
-	}
-
-	//Return true if MDSet pointer has been record in the hash.
-	bool find(MDSet const& mds)
-	{
-		SEGIter * iter;
-		INT id = mds.get_first(&iter);
-		if (id < 0) { return false; }
-
-		MNTY * mn = get_root()->next.get((UINT)id);
-		if (mn == NULL) { return false; }
-
-		INT nextid = mds.get_next((UINT)id, &iter);
-		for (; nextid >= 0; id = nextid,
-			 nextid = mds.get_next((UINT)nextid, &iter)) {
-			MNTY * nextmn = mn->next.get((UINT)nextid);
-			if (nextmn == NULL) { return false; }
-			mn = nextmn;
-		}
-
-		ASSERT0(mn);
-		if (mn->mds == NULL) {
-			return false;
-		}
-		return mn->mds == &mds;
-	}
-};
-=======
     ~MD2MDSet()
     {
         //Note all elements should be in MD_HASH.
         //ASSERT0(get_elem_count() == 0); //should call free first.
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     //Clean each MD->MDSet, but do not free MDSet.
     void clean() { TMap<UINT, MDSet const*>::clean(); }
 
-<<<<<<< HEAD
-/* MD System.
-Manage the memory allocation and free of MD, and
-the mapping between MD_id and MD.
-Manage the memory allocation and free of MDTab, and
-the mapping between VAR and MDTab.
-NOTE: each region manager has a single MDSystem. */
-class MDSystem {
-	SMemPool * m_pool;
-	SMemPool * m_sc_mdptr_pool;
-	SMemPool * m_sc_mdid_pool;
-	TypeMgr * m_dm;
-	VAR * m_all_mem;
-	VAR * m_global_mem;
-	MDId2MD m_id2md_map; //Map MD id to MD.
-	SList<MD*> m_free_md_list; //MD allocated in pool.
-	SList<UINT> m_free_mdid_list;
-	UINT m_md_count; //generate MD index, used by registerMD().
-	TMap<VAR const*, MDTab*, CompareConstVar> m_var2mdtab; //map VAR to MDTab.
-
-	inline MD * newMD()
-	{
-		MD * md = m_free_md_list.remove_head();
-		if (md == NULL) {
-			md = (MD*)smpoolMallocConstSize(sizeof(MD), m_pool);
-			md->clean();
-		}
-		return md;
-	}
-
-	//Allocated object should be recorded in list.
-	MDTab * newMDTab() { return new MDTab(); }
-	MD2Node * newMD2Node();
-	void initGlobalMemMD(VarMgr * vm);
-	void initAllMemMD(VarMgr * vm);
-public:
-	MDSystem(VarMgr * vm) { init(vm); }
-	COPY_CONSTRUCTOR(MDSystem);
-	~MDSystem() { destroy(); }
-
-	void init(VarMgr * vm);
-	void clean();
-	void computeOverlap(MD const* md,
-						MDSet & output,
-						ConstMDIter & tabiter,
-						DefMiscBitSetMgr & mbsmgr,
-						bool strictly);
-	void computeOverlap(IN OUT MDSet & mds,
-						Vector<MD const*> & tmpvec,
-						ConstMDIter & tabiter,
-						DefMiscBitSetMgr & mbsmgr,
-						bool strictly);
-	void computeOverlap(MDSet const& mds,
-						OUT MDSet & output,
-						ConstMDIter & tabiter,
-						DefMiscBitSetMgr & mbsmgr,
-						bool strictly);
-
-	//Dump all registered MDs.
-	void dumpAllMD();
-	void destroy();
-
-	TypeMgr * get_dm() const { return m_dm; }
-
-	//Get registered MD.
-	//NOTICE: DO NOT free the return value, because it is the registered one.
-	MD * get_md(UINT id)
-	{
-		ASSERT0(id != 0);
-		MD * md = m_id2md_map.get(id);
-		ASSERT0(md == NULL || MD_id(md) == id);
-		return md;
-	}
-
-	MD const* get_md_c(UINT id) const
-	{
-		ASSERT0(id != 0);
-		MD * md = m_id2md_map.get(id);
-		ASSERT0(md == NULL || MD_id(md) == id);
-		return md;
-	}
-
-	//Get MD TAB that described mds which under same base VAR.
-	MDTab * get_md_tab(VAR const* v)
-	{
-		ASSERT0(v);
-		return m_var2mdtab.get(v);
-	}
-
-	UINT get_num_of_md() const { return m_id2md_map.get_elem_count(); }
-	MDId2MD const* get_id2md_map() const { return &m_id2md_map; }
-
-	inline void freeMD(MD * md)
-	{
-		if (md == NULL) { return; }
-		m_id2md_map.remove(MD_id(md));
-		m_free_mdid_list.append_head(MD_id(md));
-		memset(md, 0, sizeof(MD));
-		m_free_md_list.append_head(md);
-	}
-
-	//Register MD accroding to specific m. And return the generated MD.
-	MD const* registerMD(MD const& m);
-
-	//Register an effectively unbound MD that base is 'var'.
-	MD const* registerUnboundMD(VAR * var, UINT size);
-
-	//Remove all MDs related to specific variable 'v'.
-	void removeMDforVAR(VAR const* v, IN ConstMDIter & iter);
-};
-
-
-//Return true if all MD in set are PR.
-bool MDSet::is_pr_set(MDSystem const* mdsys) const
-{
-	SEGIter * iter;
-	for (INT i = get_first(&iter);
-		 i >= 0; i = get_next((UINT)i, &iter)) {
-		MD const* md = mdsys->get_md_c((UINT)i);
-		ASSERT0(md);
-		if (!md->is_pr()) { return false; }
-	}
-	return true;
-}
-=======
     void dump(Region * ru);
 };
 
@@ -1575,50 +703,9 @@ bool MDSet::is_pr_set(MDSystem const* mdsys) const
 bool MDSet::is_overlap_ex(MD const* md, MDSystem const* mdsys) const
 {
     ASSERT0(md && mdsys);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     if (MDSet::is_overlap(md)) { return true; }
 
-<<<<<<< HEAD
-typedef TMapIter<UINT, MDSet const*> MD2MDSetIter;
-
-//MD2MD_SET_MAP
-//Record MD->MDS relations.
-//Note MD may mapped to NULL, means the MD does not point to anything.
-class MD2MDSet : public TMap<UINT, MDSet const*> {
-public:
-	~MD2MDSet()
-	{
-		//Note all elements should be in MD_HASH.
-		//ASSERT0(get_elem_count() == 0); //should call free first.
-	}
-
-	//Clean each MD->MDSet, but do not free MDSet.	
-	void clean() { TMap<UINT, MDSet const*>::clean(); }
-
-	void dump(Region * ru);
-};
-
-
-//Return true if md is overlapped with element in current MDSet.
-//Note this function will iterate elements in set which is costly.
-//Use it carefully.
-bool MDSet::is_overlap_ex(MD const* md, MDSystem const* mdsys) const
-{
-	ASSERT0(md && mdsys);
-
-	if (MDSet::is_overlap(md)) { return true; }
-
-	SEGIter * iter;
-	for (INT i = get_first(&iter);
-		 i >= 0; i = get_next((UINT)i, &iter)) {
-		MD const* t = const_cast<MDSystem*>(mdsys)->get_md((UINT)i);
-		ASSERT0(t);
-		if (t->is_overlap(md)) { return true; }
-	}
-
-	return false;
-=======
     SEGIter * iter;
     for (INT i = get_first(&iter);
          i >= 0; i = get_next((UINT)i, &iter)) {
@@ -1628,7 +715,6 @@ bool MDSet::is_overlap_ex(MD const* md, MDSystem const* mdsys) const
     }
 
     return false;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 } //namespace xoc

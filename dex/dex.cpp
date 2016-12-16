@@ -57,8 +57,6 @@ UINT g_builtin_num = sizeof(g_builtin_info) / sizeof(g_builtin_info[0]);
 
 //Perform Dex register allocation.
 bool g_do_dex_ra = false;
-<<<<<<< HEAD
-=======
 
 //Set true to collect debug info.
 bool g_collect_debuginfo = false;
@@ -69,4 +67,3 @@ bool g_dump_lirs = false;
 bool g_is_pretty_print_method_name = true;
 bool g_dump_dex_file_path = false;
 bool g_record_region_for_classs = false;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64

@@ -37,13 +37,8 @@ author: Su Zhenyu
 namespace xoc {
 
 //Time Info.
-<<<<<<< HEAD
-#define TI_pn(ti)		(ti)->pass_name
-#define TI_pt(ti)		(ti)->pass_time
-=======
 #define TI_pn(ti)        (ti)->pass_name
 #define TI_pt(ti)        (ti)->pass_time
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 class TimeInfo {
 public:
     CHAR const* pass_name;
@@ -53,84 +48,6 @@ public:
 
 class PassMgr {
 protected:
-<<<<<<< HEAD
-	List<TimeInfo*> m_ti_list;
-	SMemPool * m_pool;
-	Region * m_ru;
-	TypeMgr * m_dm;
-	CDG * m_cdg;
-	TMap<PASS_TYPE, Pass*> m_registered_pass;
-	TMap<PASS_TYPE, Graph*> m_registered_graph_based_pass;
-
-	void * xmalloc(size_t size)
-	{
-		void * p = smpoolMalloc(size, m_pool);
-		if (p == NULL) return NULL;
-		memset(p, 0, size);
-		return p;
-	}
-	Graph * registerGraphBasedPass(PASS_TYPE opty);
-public:
-	PassMgr(Region * ru);
-	COPY_CONSTRUCTOR(PassMgr);
-	virtual ~PassMgr()
-	{
-		destroyPass();
-		smpoolDelete(m_pool);
-	}
-
-	void appendTimeInfo(CHAR const* pass_name, ULONGLONG t)
-	{
-		TimeInfo * ti = (TimeInfo*)xmalloc(sizeof(TimeInfo));
-		TI_pn(ti) = pass_name;
-		TI_pt(ti) = t;
-		m_ti_list.append_tail(ti);
-	}
-
-	virtual Graph * allocCDG();
-	virtual Pass * allocCopyProp();
-	virtual Pass * allocGCSE();
-	virtual Pass * allocLCSE();
-	virtual Pass * allocRP();
-	virtual Pass * allocPRE();
-	virtual Pass * allocIVR();
-	virtual Pass * allocLICM();
-	virtual Pass * allocDCE();
-	virtual Pass * allocDSE();
-	virtual Pass * allocRCE();
-	virtual Pass * allocGVN();
-	virtual Pass * allocLoopCvt();
-	virtual Pass * allocSSAMgr();
-	virtual Pass * allocCCP();
-	virtual Pass * allocExprTab();
-	virtual Pass * allocCfsMgr();
-
-	void destroyPass();
-	void dump_pass_time_info()
-	{
-		if (g_tfile == NULL) { return; }
-		fprintf(g_tfile, "\n==---- PASS TIME INFO ----==");
-		for (TimeInfo * ti = m_ti_list.get_head(); ti != NULL;
-			 ti = m_ti_list.get_next()) {
-			fprintf(g_tfile, "\n * %s --- use %llu ms ---",
-					TI_pn(ti), TI_pt(ti));
-		}
-		fprintf(g_tfile, "\n===----------------------------------------===");
-		fflush(g_tfile);
-	}
-
-	Pass * registerPass(PASS_TYPE opty);
-
-	Pass * query_opt(PASS_TYPE opty)
-	{
-		if (opty == PASS_CDG) {
-			return (Pass*)m_registered_graph_based_pass.get(opty);
-		}
-		return m_registered_pass.get(opty);
-	}
-
-	virtual void performScalarOpt(OptCTX & oc);
-=======
     List<TimeInfo*> m_ti_list;
     SMemPool * m_pool;
     Region * m_ru;
@@ -216,7 +133,6 @@ public:
     }
 
     virtual void performScalarOpt(OptCtx & oc);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 } //namespace xoc

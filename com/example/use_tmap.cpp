@@ -6,30 +6,6 @@
 using namespace xcom;
 int main()
 {
-<<<<<<< HEAD
-	TMap<int, char const*> map;
-	map.set(123, "Mike");
-	map.set(234, "Charlie");
-	map.set(345, "Tom");
-
-	printf("\nIterate map via string pointer:\n");
-	TMapIter<int, char const*> iter;
-	char const* str;
-	for (int v = map.get_first(iter, &str);
-		 str != NULL; v = map.get_next(iter, &str)) {
-		printf("%d->%s\n", v, str);
-	}
-
-	printf("\nIterate map via iter itself:\n");
-	for (int v = map.get_first(iter, &str);
-		 iter.get_elem_count() != 0; v = map.get_next(iter, &str)) {
-		printf("%d->%s\n", v, str);
-	}
-
-	printf("%d\n", map.get_elem_count());
-
-	return 0;
-=======
     TMap<int, char const*> map;
     map.set(123, "Mike");
     map.set(234, "Charlie");
@@ -52,5 +28,4 @@ int main()
     printf("%d\n", map.get_elem_count());
 
     return 0;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }

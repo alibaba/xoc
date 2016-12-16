@@ -38,41 +38,12 @@ namespace xoc {
 
 class IR_DU_MGR;
 
-<<<<<<< HEAD
-typedef SEGIter * DU_ITER;
-=======
 typedef SEGIter * DUIter;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 class DUSet : public DefSBitSetCore {
 protected:
     friend class IR_DU_MGR;
 public:
-<<<<<<< HEAD
-	DUSet() {}
-	~DUSet()
-	{
-		//Do not free ref here. They are allocated in mempool,
-		//and the memory is freed when the pool destructed.
-	}
-
-	void add(UINT irid, DefMiscBitSetMgr & m) { bunion(irid, m); }
-	void add_def(IR const* stmt, DefMiscBitSetMgr & m);
-	void add_use(IR const* exp, DefMiscBitSetMgr & m);
-
-	void remove(UINT irid, DefMiscBitSetMgr & m) { diff(irid, m); }
-	void remove_use(IR const* exp, DefMiscBitSetMgr & m);
-	void removeDef(IR const* stmt, DefMiscBitSetMgr & m);
-
-	void union_set(DUSet const* set, DefMiscBitSetMgr & m)
-	{
-		if (set == NULL) { return; }
-		bunion(*set, m);
-	}
-
-	inline bool verify_def(IR_DU_MGR * du) const;
-	inline bool verify_use(IR_DU_MGR * du) const;
-=======
     DUSet() {}
     ~DUSet()
     {
@@ -93,7 +64,6 @@ public:
         if (set == NULL) { return; }
         bunion(*set, m);
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 
@@ -102,21 +72,6 @@ public:
 #define DU_duset(du)        ((du)->duset)
 class DU {
 public:
-<<<<<<< HEAD
-	MD const* md; //indicate the Must MD reference.
-	MDSet const* mds; //indicate May MDSet reference.
-	DUSet * duset; //indicate Def/Use of stmt/expr set.
-
-	inline void clean()
-	{
-		md = NULL;
-		mds = NULL;
-		duset = NULL;
-	}
-
-	bool has_clean() const
-	{ return md == NULL && mds == NULL && duset == NULL; }
-=======
     MD const* md; //indicate the Must MD reference.
     MDSet const* mds; //indicate May MDSet reference.
     DUSet * duset; //indicate Def/Use of stmt/expr set.
@@ -130,7 +85,6 @@ public:
 
     bool has_clean() const
     { return md == NULL && mds == NULL && duset == NULL; }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 } //namespace xoc

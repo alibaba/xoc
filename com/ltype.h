@@ -35,31 +35,6 @@ author: Su Zhenyu
 #define _L_TYPE_
 
 #ifdef _WINDOWS_
-<<<<<<< HEAD
-	#ifdef _VC6_
-	#include "windows.h"
-	#include "errors.h"
-	#endif
-
-	//The enumerate has no associated handler in a switch statement.
-	#pragma warning(disable: 4061)
-
-	//Conditional expression is constant.
-	#pragma warning(disable: 4127)
-
-	//unreferenced inline function has been removed.
-	#pragma warning(disable: 4514)
-
-	//A number of bytes padding added after data member.
-	#pragma warning(disable: 4820)
-
-	#include "malloc.h"
-	#define ALLOCA	_alloca //windows version
-#else
-	//Default is linux version
-	#include "unistd.h" //for unlink declaration
-	#define ALLOCA	alloca //linux version
-=======
     #ifdef _VC6_
     #include "windows.h"
     #include "errors.h"
@@ -92,7 +67,6 @@ author: Su Zhenyu
     #define SNPRINTF snprintf
     #define VSNPRINTF vsnprintf
     #define RESTRICT __restrict__
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 #endif
 
 #include "stdlib.h"
@@ -116,26 +90,6 @@ author: Su Zhenyu
 #undef ULONGLONG
 #undef BOOL
 
-<<<<<<< HEAD
-#define STATUS int
-#define BYTE unsigned char
-#define CHAR char
-#define UCHAR unsigned char
-#define SHORT short
-#define USHORT unsigned short
-#define INT int
-#define UINT unsigned int
-#define BOOL unsigned int
-#define LONG long
-#define ULONG unsigned long
-
-#ifdef _VC6_
-	#define LONGLONG __int64
-	#define ULONGLONG unsigned __int64
-#else
-	#define LONGLONG long long
-	#define ULONGLONG unsigned long long
-=======
 #define STATUS   int
 #define BYTE     unsigned char
 #define CHAR     char
@@ -158,7 +112,6 @@ author: Su Zhenyu
 
 #ifndef va_copy
 #define va_copy(d, s) ((d) = (s))
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 #endif
 
 //Avoid using the predefined ASSERT.
@@ -168,24 +121,6 @@ author: Su Zhenyu
 #undef ASSERTL0
 
 #ifdef _DEBUG_
-<<<<<<< HEAD
-	#include "stdio.h"
-	INT m518087(CHAR const* info, ...);
-	INT m022138(CHAR const* filename, INT line);
-
-	#define ASSERT(a, b)  \
-				((a) ? 0 : (m022138(__FILE__, __LINE__), m518087 b))
-	#define ASSERTL(a, filename, line, b)  \
-				((a) ? 0 : (m022138(filename, line), m518087 b))
-	#define ASSERT0(a)  ((a) ? 0 : (m022138(__FILE__, __LINE__), m518087 ("")))
-	#define ASSERTL0(a, filename, line)  \
-				((a) ? 0 : (m022138(filename, line), m518087 ("")))
-#else
-	#define ASSERT(a, b)
-	#define ASSERTL(a, filename, line, b)
-	#define ASSERT0(a)
-	#define ASSERTL0(a, filename, line)
-=======
     #include "stdio.h"
     INT m518087(CHAR const* info, ...);
     INT m022138(CHAR const* filename, INT line);
@@ -202,7 +137,6 @@ author: Su Zhenyu
     #define ASSERTL(a, filename, line, b)
     #define ASSERT0(a)
     #define ASSERTL0(a, filename, line)
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 #endif
 
 #define UNREACH()  ASSERT(0, ("Unreachable."))
@@ -243,26 +177,16 @@ author: Su Zhenyu
 #undef GET_HIGH_32BIT
 #define GET_HIGH_32BIT(l)        (((l)>>32)&0xffffFFFF)
 
-<<<<<<< HEAD
-#define IS_UNSIGN_TY(type)		((type)0 - 1 > 0) //Be true if type is unsigned.
-#define IS_UNSIGN_VAR(var)		(var > 0 && ~var > 0) //Be true if variable is unsigned.
-=======
 #define IS_UNSIGN_TY(type)       ((type)0 - 1 > 0) //Be true if type is unsigned.
 #define IS_UNSIGN_VAR(var)       (var > 0 && ~var > 0) //Be true if variable is unsigned.
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 #define IN //input
 #define OUT //output
 #define MAX_BUF_LEN      1024
 
 //Misc Dumps/Dumpf of Vector<T>
-<<<<<<< HEAD
-#define D_BOOL			1
-#define D_INT			2
-=======
 #define D_BOOL           1
 #define D_INT            2
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 //If here compile failed, use its POSIX name "unlink" instead of
 //ISO C++ conformat name "_unlink".

@@ -54,16 +54,6 @@ typedef enum {
 } MEMPOOLTYPE;
 
 
-<<<<<<< HEAD
-#define MEMPOOL_type(p)					((p)->pool_type)
-#define MEMPOOL_next(p)					((p)->next)
-#define MEMPOOL_prev(p)					((p)->prev)
-#define MEMPOOL_id(p)					((p)->mpt_id)
-#define MEMPOOL_grow_size(p)			((p)->grow_size)
-#define MEMPOOL_start_pos(p)			((p)->start_pos)
-#define MEMPOOL_pool_size(p)			((p)->mem_pool_size)
-#define MEMPOOL_pool_ptr(p)				((p)->ppool)
-=======
 #define MEMPOOL_type(p)                 ((p)->pool_type)
 #define MEMPOOL_next(p)                 ((p)->next)
 #define MEMPOOL_prev(p)                 ((p)->prev)
@@ -72,26 +62,11 @@ typedef enum {
 #define MEMPOOL_start_pos(p)            ((p)->start_pos)
 #define MEMPOOL_pool_size(p)            ((p)->mem_pool_size)
 #define MEMPOOL_pool_ptr(p)             ((p)->ppool)
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 #ifdef _DEBUG_
 #define MEMPOOL_chunk_id(p)             ((p)->chunk_id)
 #endif
 
 typedef struct _MemPool {
-<<<<<<< HEAD
-	MEMPOOLTYPE pool_type;
-	struct _MemPool * next;
-	struct _MemPool * prev;
-	MEMPOOLIDX mpt_id; //identification of mem pool
-	size_t start_pos; //represent the alloca postion of mem pool
-	size_t mem_pool_size; //represent mem pool size
-	size_t grow_size;
-	void * ppool; //start address of mem pool
-
-	#ifdef _DEBUG_
-	ULONG chunk_id;
-	#endif
-=======
     MEMPOOLTYPE pool_type;
     struct _MemPool * next;
     struct _MemPool * prev;
@@ -104,7 +79,6 @@ typedef struct _MemPool {
     #ifdef _DEBUG_
     ULONG chunk_id;
     #endif
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 } SMemPool;
 
 
@@ -121,22 +95,13 @@ INT smpoolDelete(SMemPool * handle);
 
 //alloc memory from corresponding mem pool
 void * smpoolMallocViaPoolIndex(size_t size, MEMPOOLIDX mpt_idx,
-<<<<<<< HEAD
-								size_t grow_size = 0);
-=======
                                 size_t grow_size = 0);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 void * smpoolMalloc(size_t size, SMemPool * handle, size_t grow_size = 0);
 void * smpoolMallocConstSize(size_t elem_size, IN SMemPool * handler);
 
 //Get whole pool size with byte
 size_t smpoolGetPoolSizeViaIndex(MEMPOOLIDX mpt_idx);
 size_t smpoolGetPoolSize(SMemPool const* handle);
-<<<<<<< HEAD
-void smpoolInitPool(); //Initializing pool utilities
-void smpoolFiniPool(); //Finializing pool
-
-=======
 
 //This function do some initializations if you want to manipulate pool
 //via pool index.
@@ -148,7 +113,6 @@ void smpoolInitPool(); //Initializing pool utilities
 //smpoolInitPool().
 void smpoolFiniPool(); //Finializing pool
 
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 void dumpPool(SMemPool * handler, FILE * h);
 #ifdef __cplusplus
 }

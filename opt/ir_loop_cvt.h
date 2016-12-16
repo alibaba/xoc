@@ -62,33 +62,6 @@ after convertion:
 */
 class IR_LOOP_CVT : public Pass {
 protected:
-<<<<<<< HEAD
-	Region * m_ru;
-	IR_CFG * m_cfg;
-	IR_DU_MGR * m_du;
-	IRIter m_ii;
-
-	bool is_while_do(LI<IRBB> const* li, IRBB ** gobackbb,
-					UINT * succ1, UINT * succ2);
-	bool try_convert(LI<IRBB> * li, IRBB * gobackbb,
-					UINT succ1, UINT succ2);
-	bool find_and_convert(List<LI<IRBB>*> & worklst);
-public:
-	explicit IR_LOOP_CVT(Region * ru)
-	{
-		ASSERT0(ru != NULL);
-		m_ru = ru;
-		m_du = ru->get_du_mgr();
-		m_cfg = m_ru->get_cfg();
-	}
-	COPY_CONSTRUCTOR(IR_LOOP_CVT);
-	virtual ~IR_LOOP_CVT() {}
-
-	virtual CHAR const* get_pass_name() const { return "Loop Convertion"; }
-	PASS_TYPE get_pass_type() const { return PASS_LOOP_CVT; }
-
-	virtual bool perform(OptCTX & oc);
-=======
     Region * m_ru;
     IR_CFG * m_cfg;
     IR_DU_MGR * m_du;
@@ -115,7 +88,6 @@ public:
     PASS_TYPE get_pass_type() const { return PASS_LOOP_CVT; }
 
     virtual bool perform(OptCtx & oc);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 } //namespace xoc

@@ -35,213 +35,6 @@ author: Su Zhenyu
 #include "comopt.h"
 
 namespace xoc {
-<<<<<<< HEAD
-
-//
-//START AnalysisInstrument
-//
-AnalysisInstrument::AnalysisInstrument(Region * ru) :
-	m_mds_mgr(ru, &m_sbs_mgr), m_mds_hash(&m_mds_mgr, &m_sbs_mgr)
-{
-	m_ru = ru;
-	m_ru_mgr = NULL;
-	m_inner_region_lst = NULL;
-	m_call_list = NULL;
-
-	//Do not use '0' as prno.
-	m_pr_count = 1; //counter of IR_PR
-
-	m_ir_list = NULL;
-	m_ir_cfg = NULL;
-	m_ir_aa = NULL;
-	m_ir_du_mgr = NULL;
-	m_pass_mgr = NULL;
-
-	m_pool = smpoolCreate(256, MEM_COMM);
-	m_du_pool = smpoolCreate(sizeof(DU) * 4, MEM_CONST_SIZE);
-
-	memset(m_free_tab, 0, sizeof(m_free_tab));
-}
-
-
-static void destroyVARandMD(Region * ru, AnalysisInstrument * anainstr)
-{
-	//Free md's id and local-var's id back to MDSystem and VarMgr.
-	//The index of MD and VAR is important resource if there
-	//are a lot of REGIONs in RegionMgr.
-	VarMgr * varmgr = ru->get_var_mgr();
-	MDSystem * mdsys = ru->get_md_sys();
-	VarTabIter c;
-	ConstMDIter iter;
-	for (VAR * v = ANA_INS_var_tab(anainstr).get_first(c);
-		 v != NULL; v = ANA_INS_var_tab(anainstr).get_next(c)) {
-		ASSERT0(anainstr->verify_var(varmgr, v));
-		mdsys->removeMDforVAR(v, iter);
-		varmgr->destroyVar(v);
-	}
-}
-
-
-AnalysisInstrument::~AnalysisInstrument()
-{
-	#if defined(_DEBUG_) && defined(DEBUG_SEG)
-	DefSegMgr * segmgr = m_sbs_mgr.get_seg_mgr();
-	dumpSegMgr(segmgr, g_tfile);
-	#endif
-
-	if (m_ir_cfg != NULL) {
-		delete m_ir_cfg;
-		m_ir_cfg = NULL;
-	}
-
-	if (m_pass_mgr != NULL) {
-		delete m_pass_mgr;
-		m_pass_mgr = NULL;
-	}
-
-	//Free AttachInfo's internal structure.
-	//The vector of AttachInfo must be destroyed explicitly.
-	INT l = m_ir_vector.get_last_idx();
-	for (INT i = 1; i <= l; i++) {
-		IR * ir = m_ir_vector.get(i);
-		ASSERT0(ir);
-		if (IR_ai(ir) != NULL) {
-			IR_ai(ir)->destroy_vec();
-		}
-		ir->freeDUset(m_sbs_mgr);
-	}
-
-	if (m_ir_du_mgr != NULL) {
-		delete m_ir_du_mgr;
-		m_ir_du_mgr = NULL;
-	}
-
-	if (m_ir_aa != NULL) {
-		delete m_ir_aa;
-		m_ir_aa = NULL;
-	}
-
-	//Destroy inner regions.
-	if (m_inner_region_lst != NULL) {
-		for (Region * ru = m_inner_region_lst->get_head();
-			 ru != NULL; ru = m_inner_region_lst->get_next()) {
-			delete ru;
-		}
-		//Delete it later.
-		//m_inner_region_lst->clean();
-	}
-
-	destroyVARandMD(m_ru, this);
-
-	//Destroy all IR. IR allocated in the pool.
-	smpoolDelete(m_pool);
-	m_pool = NULL;
-
-	//Destroy all DU structure. DU set allocated in the du_pool.
-	smpoolDelete(m_du_pool);
-	m_du_pool = NULL;
-
-	m_ir_list = NULL;
-
-	if (m_inner_region_lst != NULL) {
-	 	delete m_inner_region_lst;
-		m_inner_region_lst = NULL;
-	}
-
-	//Destory CALL list.
-	if (m_call_list != NULL) {
-		delete m_call_list;
-		m_call_list = NULL;
-	}
-
-	if (REGION_refinfo(m_ru) != NULL) {
-		REF_INFO_mayuse(REGION_refinfo(m_ru)).clean(m_sbs_mgr);
-		REF_INFO_maydef(REGION_refinfo(m_ru)).clean(m_sbs_mgr);
-		REF_INFO_mustdef(REGION_refinfo(m_ru)).clean(m_sbs_mgr);
-	}
-}
-
-
-bool AnalysisInstrument::verify_var(VarMgr * vm, VAR * v)
-{
-	CK_USE(v);
-	CK_USE(vm);
-	ASSERT0(vm->get_var(VAR_id(v)) != NULL);
-
-	if (REGION_type(m_ru) == RU_FUNC || REGION_type(m_ru) == RU_EH ||
-		REGION_type(m_ru) == RU_SUB) {
-		//If var is global but unallocable, it often be
-		//used as placeholder or auxilary var.
-
-		//For these kind of regions, there are only local variable or
-		//unablable global variable is legal.
-		ASSERT0(VAR_is_local(v) || !VAR_allocable(v));
-	} else if (REGION_type(m_ru) == RU_PROGRAM) {
-		//For program region, only global variable is legal.
-		ASSERT0(VAR_is_global(v));
-	} else {
-		ASSERT(0, ("unsupport variable type."));
-	}
-	return true;
-}
-
-
-UINT AnalysisInstrument::count_mem()
-{
-	UINT count = 0;
-	if (m_ir_cfg != NULL) {
-		count += m_ir_cfg->count_mem();
-	}
-
-	if (m_ir_aa != NULL) {
-		count += m_ir_aa->count_mem();
-	}
-
-	if (m_ir_du_mgr != NULL) {
-		count += m_ir_du_mgr->count_mem();
-	}
-
-	if (m_inner_region_lst != NULL) {
-		for (Region * ru = m_inner_region_lst->get_head();
-			 ru != NULL; ru = m_inner_region_lst->get_next()) {
-			count += ru->count_mem();
-		}
-	}
-
-	if (m_call_list != NULL) {
-		count += m_call_list->count_mem();
-	}
-
-	count += smpoolGetPoolSize(m_pool);
-	count += smpoolGetPoolSize(m_du_pool);
-
-	count += m_ru_var_tab.count_mem();
-	count += m_ir_bb_mgr.count_mem();
-	count += m_prno2var.count_mem();
-	count += m_bs_mgr.count_mem();
-	count += m_sbs_mgr.count_mem();
-	count += m_mds_mgr.count_mem();
-	count += m_mds_hash.count_mem();
-	count += m_ir_vector.count_mem();
-	count += m_ir_bb_list.count_mem();
-	return count;
-}
-//END AnalysisInstrument
-
-
-//
-//START Region
-//
-#ifdef _DEBUG_
-//Make sure IR_ICALL is the largest ir.
-static bool ck_max_ir_size()
-{
-	//Change MAX_OFFSET_AT_FREE_TABLE if IR_ICALL is not the largest.
-	for (UINT i = IR_UNDEF; i < IR_TYPE_NUM; i++) {
-		ASSERT0(IRTSIZE(i) <= IRTSIZE(IR_ICALL));
-	}
-	return true;
-=======
 
 #ifdef _DEBUG_
 static bool checkLogicalOp(IR_TYPE irt, Type const* type, TypeMgr * tm)
@@ -260,42 +53,14 @@ static bool checkLogicalOp(IR_TYPE irt, Type const* type, TypeMgr * tm)
     default:;
     }
     return true;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
-#endif
 
 
-<<<<<<< HEAD
-void Region::init(REGION_TYPE rt, RegionMgr * rm)
-{
-	m_ru_type = rt;
-	m_var = NULL;
-	id = 0;
-	m_parent = NULL;
-	m_ref_info = NULL;
-	REGION_analysis_instrument(this) = NULL;
-	m_u2.s1b1 = 0;
-	if (m_ru_type == RU_PROGRAM ||
-		m_ru_type == RU_FUNC ||
-		m_ru_type == RU_EH ||
-		m_ru_type == RU_SUB) {
-		//All these Region involve ir list.
-		REGION_analysis_instrument(this) = new AnalysisInstrument(this);
-		if (m_ru_type == RU_PROGRAM || m_ru_type == RU_FUNC) {
-			//All these Region involve ir list.
-			ASSERT0(rm);
-			ANA_INS_ru_mgr(REGION_analysis_instrument(this)) = rm;
-		}
-	}
-	ASSERT0(ck_max_ir_size());
-}
-=======
 static bool is_reduction(IR const* ir)
 {
     ASSERT0(ir->is_stmt());
     if (!ir->is_st() && !ir->is_stpr()) { return false; }
     IR * rhs = ir->get_rhs();
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     //Make sure self modify stmt is monotonic.
     if (!rhs->is_add() && !rhs->is_sub()) {
@@ -303,32 +68,10 @@ static bool is_reduction(IR const* ir)
         return false;
     }
 
-<<<<<<< HEAD
-void Region::destroy()
-{
-	if ((REGION_type(this) == RU_SUB ||
-		REGION_type(this) == RU_FUNC ||
-		REGION_type(this) == RU_EH ||
-		REGION_type(this) == RU_PROGRAM) &&
-		REGION_analysis_instrument(this) != NULL) {
-		delete REGION_analysis_instrument(this);
-	}
-	REGION_analysis_instrument(this) = NULL;
-
-	m_var = NULL;
-
-	//MDSET would be freed by MDSetMgr.
-	m_ref_info = NULL;
-	id = 0;
-	m_parent = NULL;
-	m_ru_type = RU_UNDEF;
-}
-=======
     IR * op0 = BIN_opnd0(rhs);
     IR * op1 = BIN_opnd1(rhs);
 
     if (op0->is_const() && !op1->is_const()) {
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
         IR * t = op0;
         op0 = op1;
@@ -338,21 +81,7 @@ void Region::destroy()
         return false;
     }
 
-<<<<<<< HEAD
-UINT Region::count_mem()
-{
-	UINT count = 0;
-	if ((REGION_type(this) == RU_SUB ||
-		REGION_type(this) == RU_FUNC ||
-		REGION_type(this) == RU_EH ||
-		REGION_type(this) == RU_PROGRAM) &&
-		REGION_analysis_instrument(this) != NULL) {
-		count += REGION_analysis_instrument(this)->count_mem();
-		count += sizeof(*REGION_analysis_instrument(this));
-	}
-=======
     ASSERT0(!op0->is_const() && op1->is_const());
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     if (ir->is_st()) {
 
@@ -361,17 +90,9 @@ UINT Region::count_mem()
         if (LD_ofst(op0) != ST_ofst(ir)) { return false; }
     } else if (ir->is_stpr()) {
 
-<<<<<<< HEAD
-IRBB * Region::newBB()
-{
-	IRBB * bb = get_bb_mgr()->newBB();
-	return bb;
-}
-=======
         if (!op0->is_pr()) { return false; }
         if (PR_no(op0) != STPR_no(ir)) { return false; }
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     if (!g_is_support_dynamic_type) {
         if (!op1->is_int() && !op1->is_fp()) {
@@ -379,42 +100,11 @@ IRBB * Region::newBB()
         }
     }
 
-<<<<<<< HEAD
-//Build IR_PR operation by specified prno and type id.
-IR * Region::buildPRdedicated(UINT prno, Type const* type)
-{
-	ASSERT0(type);
-	IR * ir = newIR(IR_PR);
-	PR_no(ir) = prno;
-	IR_dt(ir) = type;
-	return ir;
-=======
     return true;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 #endif
 
 
-<<<<<<< HEAD
-//Build IR_PR operation by specified type id.
-IR * Region::buildPR(Type const* type)
-{
-	ASSERT0(type);
-	IR * ir = newIR(IR_PR);
-	PR_no(ir) = REGION_analysis_instrument(this)->m_pr_count++;
-	IR_dt(ir) = type;
-	return ir;
-}
-
-
-//Generate a PR number by specified prno and type id.
-//This operation will allocate new PR number.
-UINT Region::buildPrno(Type const* type)
-{
-	ASSERT0(type);
-	UNUSED(type);
-	return REGION_analysis_instrument(this)->m_pr_count++;
-=======
 //
 //START AnalysisInstrument
 //
@@ -587,18 +277,10 @@ static bool ck_max_ir_size()
         ASSERT0(IRTSIZE(i) <= IRTSIZE(IR_ICALL));
     }
     return true;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 #endif
 
 
-<<<<<<< HEAD
-//Build IR_LNOT operation.
-IR * Region::buildLogicalNot(IR * opnd0)
-{
-	return buildUnaryOp(IR_LNOT, get_dm()->getBool(), opnd0);
-}
-=======
 void Region::init(REGION_TYPE rt, RegionMgr * rm)
 {
     //Reset
@@ -607,58 +289,11 @@ void Region::init(REGION_TYPE rt, RegionMgr * rm)
     //REGION_is_mddu_valid(r),
     //REGION_is_readonly(r)
     m_u2.s1b1 = 0;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     REGION_type(this) = rt;
     REGION_blx_data(this) = NULL;
     m_var = NULL;
 
-<<<<<<< HEAD
-//Build Logical operations, include IR_LAND, IR_LOR, IR_XOR.
-//NOTICE: opnd1 of IR_LNOT, IR_BNOT should be NULL.
-IR * Region::buildLogicalOp(IR_TYPE irt, IR * opnd0, IR * opnd1)
-{
-	IR * ir = newIR(irt);
-	ASSERT0(opnd0 && opnd1);
-	ASSERT0(irt == IR_LAND || irt == IR_LOR || irt == IR_XOR);
-	BIN_opnd0(ir) = opnd0;
-	BIN_opnd1(ir) = opnd1;
-	IR_parent(opnd0) = ir;
-	IR_parent(opnd1) = ir;
-	IR_dt(ir) = get_dm()->getSimplexTypeEx(D_B);
-	return ir;
-}
-
-
-//Build IR_ID operation.
-IR * Region::buildId(IN VAR * var)
-{
-	ASSERT0(var);
-	IR * ir = newIR(IR_ID);
-	ASSERT0(var != NULL);
-	ID_info(ir) = var;
-	IR_dt(ir) = VAR_type(var);
-	return ir;
-}
-
-
-//Build IR_LDA operation.
-IR * Region::buildLda(IR * lda_base)
-{
-	ASSERT(lda_base &&
-			(lda_base->is_id() ||
-			 lda_base->is_array() ||
-			 lda_base->is_ild() ||
-			 lda_base->is_str()),
-			("cannot get base of PR"));
-	IR * ir = newIR(IR_LDA);
-	LDA_base(ir) = lda_base;
-	TypeMgr * dm = get_dm();
-	IR_dt(ir) = dm->getPointerType(lda_base->get_dtype_size(dm));
-	IR_parent(lda_base) = ir;
-	return ir;
-}
-=======
     REGION_id(this) = 0;
     REGION_parent(this) = NULL;
     REGION_refinfo(this) = NULL;
@@ -683,7 +318,6 @@ IR * Region::buildLda(IR * lda_base)
 void Region::destroy()
 {
     destroyPassMgr();
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     if ((is_subregion() ||
          is_function() ||
@@ -694,33 +328,6 @@ void Region::destroy()
     }
     REGION_analysis_instrument(this) = NULL;
 
-<<<<<<< HEAD
-//Build IR_CONST operation.
-//The result IR indicates a string.
-IR * Region::buildString(SYM * strtab)
-{
-	ASSERT0(strtab);
-	IR * str = newIR(IR_CONST);
-	CONST_str_val(str) = strtab;
-	IR_dt(str) = get_dm()->getSimplexTypeEx(D_STR);
-	return str;
-}
-
-
-//Build conditionally selected expression.
-//e.g: x = a > b ? 10 : 100
-IR * Region::buildSelect(IR * det, IR * true_exp, IR * false_exp, Type const* type)
-{
-	ASSERT0(type);
-	ASSERT0(det && true_exp && false_exp);
-	ASSERT0(det->is_judge());
-	ASSERT0(true_exp->is_type_equal(false_exp));
-	IR * ir = newIR(IR_SELECT);
-	IR_dt(ir) = type;
-	SELECT_det(ir) = det;
-	SELECT_trueexp(ir) = true_exp;
-	SELECT_falseexp(ir) = false_exp;
-=======
     m_var = NULL;
 
     //MDSET would be freed by MDSetMgr.
@@ -742,7 +349,6 @@ size_t Region::count_mem()
         count += REGION_analysis_instrument(this)->count_mem();
         count += sizeof(*REGION_analysis_instrument(this));
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     if (m_ref_info != NULL) {
         count += m_ref_info->count_mem();
@@ -751,44 +357,6 @@ size_t Region::count_mem()
 }
 
 
-<<<<<<< HEAD
-//Build IR_LABEL operation.
-IR * Region::buildIlabel()
-{
-	IR * ir = newIR(IR_LABEL);
-	IR_dt(ir) = get_dm()->getVoid();
-	LAB_lab(ir) = genIlabel();
-	return ir;
-}
-
-
-//Build IR_LABEL operation.
-IR * Region::buildLabel(LabelInfo * li)
-{
-	ASSERT0(li);
-	ASSERT0(LABEL_INFO_type(li) == L_ILABEL ||
-			 LABEL_INFO_type(li) == L_CLABEL);
-	IR * ir = newIR(IR_LABEL);
-	IR_dt(ir) = get_dm()->getVoid();
-	LAB_lab(ir) = li;
-	return ir;
-}
-
-
-//Build IR_CVT operation.
-//exp: the expression to be converted.
-//tgt_ty: the target type that you want to convert.
-IR * Region::buildCvt(IR * exp, Type const* tgt_ty)
-{
-	ASSERT0(tgt_ty);
-	ASSERT0(exp);
-	IR * ir = newIR(IR_CVT);
-	CVT_exp(ir) = exp;
-	IR_dt(ir) = tgt_ty;
-	IR_parent(exp) = ir;
-	return ir;
-}
-=======
 //Build IR_PR operation by specified prno and type id.
 IR * Region::buildPRdedicated(UINT prno, Type const* type)
 {
@@ -906,7 +474,6 @@ IR * Region::buildSelect(
     ASSERT0(pred && pred->is_single() && true_exp && false_exp);
     ASSERT0(true_exp->is_exp() && true_exp->is_single());
     ASSERT0(false_exp->is_exp() && false_exp->is_single());
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     //Type of true exp may be not equal to false exp.
     //ASSERT0(true_exp->get_type() == false_exp->get_type());
@@ -916,167 +483,6 @@ IR * Region::buildSelect(
     SELECT_trueexp(ir) = true_exp;
     SELECT_falseexp(ir) = false_exp;
 
-<<<<<<< HEAD
-//Build IR_PHI operation.
-//'res': result pr of PHI.
-IR * Region::buildPhi(UINT prno, Type const* type, UINT num_opnd)
-{
-	ASSERT0(type);
-	ASSERT0(prno > 0);
-	IR * ir = newIR(IR_PHI);
-	PHI_prno(ir) = prno;
-	IR_dt(ir) = type;
-
-	IR * last = NULL;
-	for (UINT i = 0; i < num_opnd; i++) {
-		IR * x = buildPRdedicated(prno, type);
-		PR_ssainfo(x) = NULL;
-		add_next(&PHI_opnd_list(ir), &last, x);
-		IR_parent(x) = ir;
-	}
-	return ir;
-}
-
-
-/* Build IR_CALL operation.
-'res_list': reture value list.
-'result_prno': indicate the result PR which hold the return value.
-	0 means the call does not have a return value.
-'type': result PR data type.
-	0 means the call does not have a return value */
-IR * Region::buildCall(
-			VAR * callee,
-			IR * param_list,
-			UINT result_prno,
-			Type const* type)
-{
-	ASSERT0(type);
-	ASSERT0(callee);
-	IR * ir = newIR(IR_CALL);
-	CALL_param_list(ir) = param_list;
-	CALL_prno(ir) = result_prno;
-	CALL_idinfo(ir) = callee;
-	IR_dt(ir) = type;
-	while (param_list != NULL) {
-		IR_parent(param_list) = ir;
-		param_list = IR_next(param_list);
-	}
-	return ir;
-}
-
-
-/* Build IR_ICALL operation.
-'res_list': reture value list.
-'result_prno': indicate the result PR which hold the return value.
-	0 means the call does not have a return value.
-'type': result PR data type.
-	0 means the call does not have a return value. */
-IR * Region::buildIcall(IR * callee,
-						IR * param_list,
-						UINT result_prno,
-						Type const* type)
-{
-	ASSERT0(type);
-	ASSERT0(callee);
-	IR * ir = newIR(IR_ICALL);
-	ASSERT0(IR_type(callee) != IR_ID);
-	CALL_param_list(ir) = param_list;
-	CALL_prno(ir) = result_prno;
-	ICALL_callee(ir) = callee;
-	IR_dt(ir) = type;
-
-	IR_parent(callee) = ir;
-	while (param_list != NULL) {
-		IR_parent(param_list) = ir;
-		param_list = IR_next(param_list);
-	}
-	return ir;
-}
-
-
-//Build IR_REGION operation.
-IR * Region::buildRegion(Region * ru)
-{
-	ASSERT0(ru);
-	IR * ir = newIR(IR_REGION);
-	IR_dt(ir) = get_dm()->getVoid();
-	REGION_ru(ir) = ru;
-	REGION_parent(ru) = this;
-	return ir;
-}
-
-
-//Build IR_IGOTO unconditional multi-branch operation.
-//vexp: expression to determine which case entry will be target.
-//case_list: case entry list. case entry is consist of expression and label.
-IR * Region::buildIgoto(IR * vexp, IR * case_list)
-{
-	ASSERT0(vexp && vexp->is_exp());
-	ASSERT0(case_list);
-
-	IR * ir = newIR(IR_IGOTO);
-	IR_dt(ir) = get_dm()->getVoid();
-	IGOTO_vexp(ir) = vexp;
-	IGOTO_case_list(ir) = case_list;
-	IR_parent(vexp) = ir;
-
-	IR * c = case_list;
-	while (c != NULL) {
-		ASSERT0(IR_type(c) == IR_CASE);
-		IR_parent(c) = ir;
-		c = IR_next(c);
-	}
-	return ir;
-}
-
-
-//Build IR_GOTO operation.
-IR * Region::buildGoto(LabelInfo * li)
-{
-	ASSERT0(li);
-	IR * ir = newIR(IR_GOTO);
-	IR_dt(ir) = get_dm()->getVoid();
-	ASSERT0(li != NULL);
-	GOTO_lab(ir) = li;
-	return ir;
-}
-
-
-//Build IR_LD operation.
-IR * Region::buildLoad(IN VAR * var)
-{
-	ASSERT0(var);
-	return buildLoad(var, VAR_type(var));
-}
-
-
-//Build IR_LD operation.
-//Load value from variable with type 'type'.
-//'type': result value type.
-IR * Region::buildLoad(VAR * var, Type const* type)
-{
-	ASSERT0(type);
-	ASSERT0(var);
-	IR * ir = newIR(IR_LD);
-	LD_idinfo(ir) = var;
-	IR_dt(ir) = type;
-	if (g_is_hoist_type) {
-		//Hoisting I16/U16/I8/U8 to I32, to utilize whole register.
-		DATA_TYPE dt = ir->get_dtype();
-		if (IS_SIMPLEX(dt)) {
-			//Hoist data-type from less than INT to INT.
-			IR_dt(ir) =
-				get_dm()->getSimplexTypeEx(get_dm()->hoistDtype(dt));
-		}
-	}
-	return ir;
-}
-
-
-/* Build IR_ILD operation.
-Result is either register or memory chunk, and the size of ILD
-result equals to 'pointer_base_size' of 'addr'.
-=======
     IR_parent(pred) = ir;
     IR_parent(true_exp) = ir;
     IR_parent(false_exp) = ir;
@@ -1284,23 +690,8 @@ IR * Region::buildLoad(VAR * var, Type const* type)
     }
     return ir;
 }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 
-<<<<<<< HEAD
-NOTICE:
-	The ofst of ILD requires to maintain when after return.
-*/
-IR * Region::buildIload(IR * base, Type const* type)
-{
-	ASSERT0(type);
-	ASSERT(base && base->is_ptr(), ("mem-address of ILD must be pointer"));
-	IR * ir = newIR(IR_ILD);
-	IR_dt(ir) = type;
-	ILD_base(ir) = base;
-	IR_parent(base) = ir;
-	return ir;
-=======
 //Build IR_ILD operation.
 //Result is either register or memory chunk, and the size of ILD
 //result equals to 'pointer_base_size' of 'addr'.
@@ -1318,24 +709,16 @@ IR * Region::buildIload(IR * base, Type const* type)
     ILD_base(ir) = base;
     IR_parent(base) = ir;
     return ir;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Build IR_ILD operation.
 IR * Region::buildIload(IR * base, UINT ofst, Type const* type)
 {
-<<<<<<< HEAD
-	ASSERT0(type);
-	IR * ir = buildIload(base, type);
-	ILD_ofst(ir) = ofst;
-	return ir;
-=======
     ASSERT0(type);
     IR * ir = buildIload(base, type);
     ILD_ofst(ir) = ofst;
     return ir;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -1345,16 +728,6 @@ IR * Region::buildIload(IR * base, UINT ofst, Type const* type)
 //'rhs: value expected to store.
 IR * Region::buildStorePR(UINT prno, Type const* type, IR * rhs)
 {
-<<<<<<< HEAD
-	ASSERT0(type);
-	ASSERT0(prno > 0 && rhs);
-	IR * ir = newIR(IR_STPR);
-	STPR_no(ir) = prno;
-	STPR_rhs(ir) = rhs;
-	IR_dt(ir) = type;
-	IR_parent(rhs) = ir;
-	return ir;
-=======
     ASSERT0(type);
     ASSERT0(prno > 0 && rhs && rhs->is_exp());
     IR * ir = allocIR(IR_STPR);
@@ -1363,7 +736,6 @@ IR * Region::buildStorePR(UINT prno, Type const* type, IR * rhs)
     IR_dt(ir) = type;
     IR_parent(rhs) = ir;
     return ir;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -1372,16 +744,6 @@ IR * Region::buildStorePR(UINT prno, Type const* type, IR * rhs)
 //'rhs: value expected to store.
 IR * Region::buildStorePR(Type const* type, IR * rhs)
 {
-<<<<<<< HEAD
-	ASSERT0(type);
-	ASSERT0(rhs);
-	IR * ir = newIR(IR_STPR);
-	STPR_no(ir) = REGION_analysis_instrument(this)->m_pr_count++;
-	STPR_rhs(ir) = rhs;
-	IR_dt(ir) = type;
-	IR_parent(rhs) = ir;
-	return ir;
-=======
     ASSERT0(type);
     ASSERT0(rhs && rhs->is_exp());
     IR * ir = allocIR(IR_STPR);
@@ -1390,7 +752,6 @@ IR * Region::buildStorePR(Type const* type, IR * rhs)
     IR_dt(ir) = type;
     IR_parent(rhs) = ir;
     return ir;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -1399,13 +760,8 @@ IR * Region::buildStorePR(Type const* type, IR * rhs)
 //'rhs: value expected to store.
 IR * Region::buildStore(VAR * lhs, IR * rhs)
 {
-<<<<<<< HEAD
-	ASSERT0(lhs && rhs);
-	return buildStore(lhs, VAR_type(lhs), rhs);
-=======
     ASSERT0(lhs && rhs);
     return buildStore(lhs, VAR_type(lhs), rhs);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -1415,16 +771,6 @@ IR * Region::buildStore(VAR * lhs, IR * rhs)
 //'rhs: value expected to store.
 IR * Region::buildStore(VAR * lhs, Type const* type, IR * rhs)
 {
-<<<<<<< HEAD
-	ASSERT0(type);
-	ASSERT0(lhs != NULL && rhs != NULL);
-	IR * ir = newIR(IR_ST);
-	ST_idinfo(ir) = lhs;
-	ST_rhs(ir) = rhs;
-	IR_dt(ir) = type;
-	IR_parent(rhs) = ir;
-	return ir;
-=======
     ASSERT0(type);
     ASSERT0(lhs && rhs && rhs->is_exp());
     IR * ir = allocIR(IR_ST);
@@ -1433,7 +779,6 @@ IR * Region::buildStore(VAR * lhs, Type const* type, IR * rhs)
     IR_dt(ir) = type;
     IR_parent(rhs) = ir;
     return ir;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -1444,36 +789,20 @@ IR * Region::buildStore(VAR * lhs, Type const* type, IR * rhs)
 //'rhs: value expected to store.
 IR * Region::buildStore(VAR * lhs, Type const* type, UINT ofst, IR * rhs)
 {
-<<<<<<< HEAD
-	ASSERT0(type);
-	IR * ir = buildStore(lhs, type, rhs);
-	ST_ofst(ir) = ofst;
-	return ir;
-=======
     ASSERT0(type);
     IR * ir = buildStore(lhs, type, rhs);
     ST_ofst(ir) = ofst;
     return ir;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Build IR_IST operation.
-<<<<<<< HEAD
-IR * Region::buildIstore(IR * lhs, IR * rhs, UINT ofst, Type const* type)
-{
-	ASSERT0(type);
-	IR * ir = buildIstore(lhs, rhs, type);
-	IST_ofst(ir) = ofst;
-	return ir;
-=======
 IR * Region::buildIstore(IR * base, IR * rhs, UINT ofst, Type const* type)
 {
     ASSERT0(type);
     IR * ir = buildIstore(base, rhs, type);
     IST_ofst(ir) = ofst;
     return ir;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -1482,217 +811,6 @@ IR * Region::buildIstore(IR * base, IR * rhs, UINT ofst, Type const* type)
 //'rhs: value expected to store.
 //'type': result type of indirect memory operation, note type is not the
 //data type of lhs.
-<<<<<<< HEAD
-IR * Region::buildIstore(IR * lhs, IR * rhs, Type const* type)
-{
-	ASSERT0(type);
-	ASSERT(lhs && rhs && (lhs->is_ptr() || lhs->is_array()),
-			("must be pointer"));
-	IR * ir = newIR(IR_IST);
-	IR_dt(ir) = type;
-	IST_base(ir) = lhs;
-	IST_rhs(ir) = rhs;
-	IR_parent(lhs) = ir;
-	IR_parent(rhs) = ir;
-	return ir;
-}
-
-
-/* Build IR_ARRAY operation.
-'base': base of array operation, it is either LDA or pointer.
-'sublist': subscript expression list.
-'type': result type of array operator.
-	Note that type may NOT be equal to elem_tyid, accroding to
-	ARR_ofst(). If ARR_ofst() is not zero, that means array
-	elem is MC, or VECTOR, and type should be type of member
-	to MC/VECTOR.
-	e.g: struct S{ int a,b,c,d;}
-		struct S pa[100];
-		If youe do access pa[1].c
-		type should be int rather than struct S.
-		and elem_tyid should be struct S.
-
-'elem_tyid': record element-data-type.
-	e.g:vector<int,8> g[100];
-		elem_size is sizeof(vector<int,8>) = 32
-		elem_type is vector.
-	e.g1: struct S{ int a,b,c,d;}
-		struct S * pa[100];
-		elem_size is sizeof(struct S *)
-		elem_type is PTR.
-	e.g2:
-		struct S pa[100];
-		elem_size is sizeof(struct S)
-		elem_type is struct S
-
-'dims': indicate the array dimension.
-'elem_num': point to an integer array that indicate
-	the number of element for each dimension. The length of the integer
-	array should be equal to 'dims'.
-	e.g: int g[12][24];
-		elem_num points to an array with 2 value, [12, 24].
-		the 1th dimension has 12 elements, and the 2th dimension has 24
-		elements, which element type is D_I32. */
-IR * Region::buildArray(IR * base, IR * sublist, Type const* type,
-						 Type const* elemtype, UINT dims, TMWORD const* elem_num)
-{
-	ASSERT0(type);
-	ASSERT0(base && sublist && elemtype);
-	CArray * ir = (CArray*)newIR(IR_ARRAY);
-	IR_dt(ir) = type;
-	ARR_base(ir) = base;
-	IR_parent(base) = ir;
-	ARR_sub_list(ir) = sublist;
-	UINT n = 0;
-	for (IR * p = sublist; p != NULL; p = IR_next(p)) {
-		IR_parent(p) = ir;
-		n++;
-	}
-	ASSERT0(n == dims);
-	ARR_elemtype(ir) = elemtype;
-
-	UINT l = sizeof(TMWORD) * dims;
-	TMWORD * ebuf = (TMWORD*)xmalloc(l);
-	memcpy(ebuf, elem_num, l);
-	ARR_elem_num_buf(ir) = ebuf;
-	return ir;
-}
-
-
-/* Build IR_STARRAY operation.
-'base': base of array operation, it is either LDA or pointer.
-'sublist': subscript expression list.
-'type': result type of array operator.
-	Note that type may NOT be equal to elem_tyid, accroding to
-	ARR_ofst(). If ARR_ofst() is not zero, that means array
-	elem is MC, or VECTOR, and type should be type of member
-	to MC/VECTOR.
-	e.g: struct S{ int a,b,c,d;}
-		struct S pa[100];
-		If youe do access pa[1].c
-		type should be int rather than struct S.
-		and elem_tyid should be struct S.
-
-'elem_tyid': record element-data-type.
-	e.g:vector<int,8> g[100];
-		elem_size is sizeof(vector<int,8>) = 32
-		elem_type is vector.
-	e.g1: struct S{ int a,b,c,d;}
-		struct S * pa[100];
-		elem_size is sizeof(struct S *)
-		elem_type is PTR.
-	e.g2:
-		struct S pa[100];
-		elem_size is sizeof(struct S)
-		elem_type is struct S
-
-'dims': indicate the array dimension.
-'elem_num': point to an integer array that indicate
-	the number of element for each dimension. The length of the integer
-	array should be equal to 'dims'.
-	e.g: int g[12][24];
-		elem_num points to an array with 2 value, [12, 24].
-		the 1th dimension has 12 elements, and the 2th dimension has 24
-		elements, which element type is D_I32.
-'rhs: value expected to store. */
-IR * Region::buildStoreArray(
-				IR * base, IR * sublist, Type const* type,
-				Type const* elemtype, UINT dims, TMWORD const* elem_num, IR * rhs)
-{
-	ASSERT0(base && sublist && type && elemtype);
-	CStArray * ir = (CStArray*)newIR(IR_STARRAY);
-	IR_dt(ir) = type;
-	ARR_base(ir) = base;
-	IR_parent(base) = ir;
-	ARR_sub_list(ir) = sublist;
-	UINT n = 0;
-	for (IR * p = sublist; p != NULL; p = IR_next(p)) {
-		IR_parent(p) = ir;
-		n++;
-	}
-	ASSERT0(n == dims);
-	ARR_elemtype(ir) = elemtype;
-
-	UINT l = sizeof(TMWORD) * dims;
-	TMWORD * ebuf = (TMWORD*)xmalloc(l);
-	memcpy(ebuf, elem_num, l);
-	ARR_elem_num_buf(ir) = ebuf;
-	STARR_rhs(ir) = rhs;
-	IR_parent(rhs) = ir;
-	return ir;
-}
-
-
-
-//Build IR_RETURN operation.
-IR * Region::buildReturn(IR * retexp)
-{
-	IR * ir = newIR(IR_RETURN);
-	IR_dt(ir) = get_dm()->getVoid();
-	RET_exp(ir) = retexp;
-	if (retexp != NULL) {
-		ASSERT0(retexp->is_exp());
-		ASSERT0(IR_next(retexp) == NULL);
-		ASSERT0(IR_prev(retexp) == NULL);
-		IR_parent(retexp) = ir;
-	}
-	return ir;
-}
-
-
-//Build IR_CONTINUE operation.
-IR * Region::buildContinue()
-{
-	IR * ir = newIR(IR_CONTINUE);
-	IR_dt(ir) = get_dm()->getVoid();
-	return ir;
-}
-
-
-//Build IR_BREAK operation.
-IR * Region::buildBreak()
-{
-	IR * ir = newIR(IR_BREAK);
-	IR_dt(ir) = get_dm()->getVoid();
-	return ir;
-}
-
-
-//Build IR_CASE operation.
-IR * Region::buildCase(IR * casev_exp, LabelInfo * jump_lab)
-{
-	ASSERT0(casev_exp && jump_lab);
-	IR * ir = newIR(IR_CASE);
-	IR_dt(ir) = get_dm()->getVoid();
-	CASE_lab(ir) = jump_lab;
-	CASE_vexp(ir) = casev_exp;
-	IR_parent(casev_exp) = ir;
-	return ir;
-}
-
-
-/* Build Do Loop stmt.
-'det': determinate expression.
-'loop_body': stmt list.
-'init': record the stmt that initialize iv.
-'step': record the stmt that update iv. */
-IR * Region::buildDoLoop(IR * det, IR * init, IR * step, IR * loop_body)
-{
-	ASSERT0(det && (IR_type(det) == IR_LT ||
-					 IR_type(det) == IR_LE ||
-					 IR_type(det) == IR_GT ||
-			    	 IR_type(det) == IR_GE));
-	ASSERT0(init->is_st() || init->is_stpr());
-	ASSERT0(step->is_st() || step->is_stpr());
-	ASSERT0(IR_type(step->get_rhs()) == IR_ADD);
-
-	IR * ir = newIR(IR_DO_LOOP);
-	IR_dt(ir) = get_dm()->getVoid();
-	LOOP_det(ir) = det;
-	IR_parent(det) = ir;
-
-	ASSERT0(init && init->is_stmt() && step && step->is_stmt());
-=======
 IR * Region::buildIstore(IR * base, IR * rhs, Type const* type)
 {
     ASSERT0(type);
@@ -1886,7 +1004,6 @@ IR * Region::buildBreak()
     return ir;
 }
 
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 //Build IR_CASE operation.
 IR * Region::buildCase(IR * casev_exp, LabelInfo const* jump_lab)
@@ -1924,25 +1041,11 @@ IR * Region::buildDoLoop(IR * det, IR * init, IR * step, IR * loop_body)
 
     ASSERT0(init && init->is_stmt() && step && step->is_stmt());
 
-<<<<<<< HEAD
-/* Build Do While stmt.
-'det': determinate expression.
-'loop_body': stmt list. */
-IR * Region::buildDoWhile(IR * det, IR * loop_body)
-{
-	ASSERT0(det && det->is_judge());
-
-	IR * ir = newIR(IR_DO_WHILE);
-	IR_dt(ir) = get_dm()->getVoid();
-	LOOP_det(ir) = det;
-	IR_parent(det) = ir;
-=======
     LOOP_init(ir) = init;
     LOOP_step(ir) = step;
 
     IR_parent(init) = ir;
     IR_parent(step) = ir;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     LOOP_body(ir) = loop_body;
     IR * c = loop_body;
@@ -1955,19 +1058,6 @@ IR * Region::buildDoWhile(IR * det, IR * loop_body)
 }
 
 
-<<<<<<< HEAD
-/* Build While Do stmt.
-'det': determinate expression.
-'loop_body': stmt list. */
-IR * Region::buildWhileDo(IR * det, IR * loop_body)
-{
-	ASSERT0(det && det->is_judge());
-
-	IR * ir = newIR(IR_WHILE_DO);
-	IR_dt(ir) = get_dm()->getVoid();
-	LOOP_det(ir) = det;
-	IR_parent(det) = ir;
-=======
 //Build Do While stmt.
 //'det': determinate expression.
 //'loop_body': stmt list.
@@ -1979,7 +1069,6 @@ IR * Region::buildDoWhile(IR * det, IR * loop_body)
     IR_dt(ir) = get_type_mgr()->getVoid();
     LOOP_det(ir) = det;
     IR_parent(det) = ir;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     LOOP_body(ir) = loop_body;
     IR * c = loop_body;
@@ -1992,20 +1081,6 @@ IR * Region::buildDoWhile(IR * det, IR * loop_body)
 }
 
 
-<<<<<<< HEAD
-/* Build IF stmt.
-'det': determinate expression.
-'true_body': stmt list.
-'false_body': stmt list. */
-IR * Region::buildIf(IR * det, IR * true_body, IR * false_body)
-{
-	ASSERT0(det && det->is_judge());
-
-	IR * ir = newIR(IR_IF);
-	IR_dt(ir) = get_dm()->getVoid();
-	IF_det(ir) = det;
-	IR_parent(det) = ir;
-=======
 //Build While Do stmt.
 //'det': determinate expression.
 //'loop_body': stmt list.
@@ -2017,7 +1092,6 @@ IR * Region::buildWhileDo(IR * det, IR * loop_body)
     IR_dt(ir) = get_type_mgr()->getVoid();
     LOOP_det(ir) = det;
     IR_parent(det) = ir;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     LOOP_body(ir) = loop_body;
     IR * c = loop_body;
@@ -2030,79 +1104,6 @@ IR * Region::buildWhileDo(IR * det, IR * loop_body)
 }
 
 
-<<<<<<< HEAD
-/* Build SWITCH multi-select stmt.
-'vexp': expression to determine which case entry will be target.
-'case_list': case entry list. case entry is consist of expression and label.
-	Note that case list is optional.
-'body': stmt list.
-'default_lab': label indicates the default choice, the label is optional.
-
-NOTE: Do not set parent for stmt in 'body'. */
-IR * Region::buildSwitch(IR * vexp, IR * case_list, IR * body,
-						  LabelInfo * default_lab)
-{
-	ASSERT0(vexp && vexp->is_exp());
-	IR * ir = newIR(IR_SWITCH);
-	IR_dt(ir) = get_dm()->getVoid();
-	SWITCH_vexp(ir) = vexp;
-	SWITCH_case_list(ir) = case_list;
-	SWITCH_body(ir) = body;
-	SWITCH_deflab(ir) = default_lab;
-	IR_parent(vexp) = ir;
-
-	IR * c = case_list;
-	while (c != NULL) {
-		ASSERT0(IR_type(c) == IR_CASE);
-		IR_parent(c) = ir;
-		c = IR_next(c);
-	}
-
-	c = body;
-	while (c != NULL) {
-		IR_parent(c) = ir;
-		//Do not check if ir is stmt, it will be canonicalized later.
-		c = IR_next(c);
-	}
-	return ir;
-}
-
-
-//Build IR_TRUEBR or IR_FALSEBR operation.
-IR * Region::buildBranch(bool is_true_br, IR * det, LabelInfo * lab)
-{
-	ASSERT0(lab && det && det->is_judge());
-	IR * ir;
-	if (is_true_br) {
-		ir = newIR(IR_TRUEBR);
-	} else {
-		ir = newIR(IR_FALSEBR);
-	}
-	IR_dt(ir) = get_dm()->getVoid();
-	BR_det(ir) = det;
-	BR_lab(ir) = lab;
-	IR_parent(det) = ir;
-	return ir;
-}
-
-
-//Build IR_CONST operation.
-//The expression indicates a float point number.
-IR * Region::buildImmFp(HOST_FP fp, Type const* type)
-{
-	ASSERT0(type);
-	IR * imm = newIR(IR_CONST);
-	//Convert string to hex value , that is in order to generate
-	//single load instruction to load float point value in Code
-	//Generator.
-	ASSERT0(get_dm()->is_fp(type));
-	CONST_fp_val(imm) = fp;
-	IR_dt(imm) = type;
-	return imm;
-}
-
-
-=======
 //Build IF stmt.
 //'det': determinate expression.
 //'true_body': stmt list.
@@ -2209,159 +1210,12 @@ IR * Region::buildImmFp(HOST_FP fp, Type const* type)
 }
 
 
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 //Build IR_CONST operation.
 //The expression indicates an integer.
 //'v': value of integer.
 //'type': integer type.
 IR * Region::buildImmInt(HOST_INT v, Type const* type)
 {
-<<<<<<< HEAD
-	ASSERT0(type);
-	ASSERT(get_dm()->is_int(type), ("expect integer type"));
-	IR * imm = newIR(IR_CONST);
-    CONST_int_val(imm) = v;
-	IR_dt(imm) = type;
-	return imm;
-}
-
-
-//Build IR_ADD operation.
-//The expression indicates a pointer arithmetic.
-//For pointer arithemtic, the addend of pointer must be
-//product of the pointer-base-size and rchild if lchild is pointer.
-IR * Region::buildPointerOp(IR_TYPE irt, IR * lchild, IR * rchild)
-{
-	ASSERT0(lchild && rchild);
-	TypeMgr * dm = get_dm();
-	if (!lchild->is_ptr() && rchild->is_ptr()) {
-		ASSERT0(irt == IR_ADD ||
-				 irt == IR_MUL ||
-				 irt == IR_XOR ||
-				 irt == IR_BAND ||
-				 irt == IR_BOR ||
-				 irt == IR_EQ ||
-				 irt == IR_NE);
-		return buildPointerOp(irt, rchild, lchild);
-	}
-
-	Type const* d0 = lchild->get_type();
-	Type const* d1 = rchild->get_type();
-	UNUSED(d1);
-	if (lchild->is_ptr() && rchild->is_ptr()) {
-		//CASE: Pointer substraction.
-		//	char *p, *q;
-		//	p-q => t1=p-q, t2=t1/4, return t2
-		switch (irt) {
-		case IR_SUB:
-			{
-				TypeMgr * dm = get_dm();
-				//Result is not pointer type.
-				ASSERT0(TY_ptr_base_size(d0) > 0);
-				ASSERT0(TY_ptr_base_size(d0) == TY_ptr_base_size(d1));
-				IR * ret = newIR(IR_SUB);
-				BIN_opnd0(ret) = lchild;
-				BIN_opnd1(ret) = rchild;
-				IR_dt(ret) = dm->getSimplexTypeEx(
-									dm->get_dtype(WORD_BITSIZE, true));
-				if (TY_ptr_base_size(d0) > BYTE_PER_CHAR) {
-					IR * div = newIR(IR_DIV);
-					BIN_opnd0(div) = ret;
-					BIN_opnd1(div) = buildImmInt(TY_ptr_base_size(d0),
-												  IR_dt(ret));
-					IR_dt(div) = dm->getSimplexTypeEx(
-										dm->get_dtype(WORD_BITSIZE, true));
-					ret = div;
-				}
-
-				//Avoid too much boring pointer operations.
-				ret->setParentPointer(true);
-				return ret;
-			}
-		case IR_LT:
-		case IR_LE:
-		case IR_GT:
-		case IR_GE:
-		case IR_EQ:
-		case IR_NE:
-			{
-				//Result is not pointer type.
-				IR * ret = newIR(irt);
-				BIN_opnd0(ret) = lchild;
-				BIN_opnd1(ret) = rchild;
-				IR_dt(ret) = dm->getSimplexTypeEx(D_B);
-				IR_parent(lchild) = ret;
-				IR_parent(rchild) = ret;
-				return ret;
-			}
-		default: ASSERT(0, ("illegal pointers operation"));
-		}
-		ASSERT(0, ("can not get here."));
-	} else if (lchild->is_ptr() && !rchild->is_ptr()) {
-		/* Result is pointer type.
-		CASE:
-			int * p;
-			p + 4 => t1 = p + (4 * sizeof(BASE_TYPE_OF(p)))
-			p - 4 => t1 = p - (4 * sizeof(BASE_TYPE_OF(p)))
-		*/
-		switch (irt) {
-		case IR_ADD:
-		case IR_SUB:
-			{
-				IR * addend = newIR(IR_MUL);
-				BIN_opnd0(addend) = rchild;
-				BIN_opnd1(addend) = buildImmInt(TY_ptr_base_size(d0),
-												 IR_dt(rchild));
-				IR_dt(addend) = IR_dt(rchild);
-
-  				IR * ret = newIR(irt); //ADD or SUB
-				BIN_opnd0(ret) = lchild; //lchild is pointer.
-				BIN_opnd1(ret) = addend; //addend is not pointer.
-
-				//CASE: 'p = p + 1'
-				//so the result type of '+' should still be pointer type.
-				ret->setPointerType(TY_ptr_base_size(d0), dm);
-
-				//Avoid too much boring pointer operations.
-				ret->setParentPointer(true);
-				return ret;
-			}
-		default:
-			{
-				ASSERT0(irt == IR_LT || irt == IR_LE ||
-						 irt == IR_GT || irt == IR_GE ||
-						 irt == IR_EQ || irt == IR_NE);
-				//Pointer operation will incur undefined behavior.
-  				IR * ret = newIR(irt);
-				BIN_opnd0(ret) = lchild;
-				BIN_opnd1(ret) = rchild;
-				IR_dt(ret) = dm->getSimplexTypeEx(D_B);
-
-				IR_parent(lchild) = ret;
-				IR_parent(rchild) = ret;
-				return ret;
-			}
-		}
-	}
-	ASSERT(0, ("can not get here."));
-	return NULL; //just ceases warning.
-}
-
-
-/* Helper function.
-Det-expression should be a relation-operation,
-so we create a node comparing with ZERO by NE node. */
-IR * Region::buildJudge(IR * exp)
-{
-	ASSERT0(!exp->is_judge());
-	Type const* type = IR_dt(exp);
-	TypeMgr * dm = get_dm();
-	if (exp->is_ptr()) {
-		type = dm->getSimplexTypeEx(dm->getPointerSizeDtype());
-	}
-	IR * x = buildCmp(IR_NE, exp, buildImmInt(0, type));
-	return x;
-=======
     ASSERT0(type);
     ASSERT0(type->is_int() || type->is_mc());
     IR * imm = allocIR(IR_CONST);
@@ -2560,32 +1414,12 @@ IR * Region::buildJudge(IR * exp)
 
     return buildCmp(IR_NE, exp, type->is_fp() ?
         buildImmFp(HOST_FP(0), type) : buildImmInt(0, type));
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Build comparision operations.
 IR * Region::buildCmp(IR_TYPE irt, IR * lchild, IR * rchild)
 {
-<<<<<<< HEAD
-	ASSERT0(irt == IR_LAND || irt == IR_LOR ||
-			 irt == IR_LT || irt == IR_LE ||
-			 irt == IR_GT || irt == IR_GE ||
-			 irt == IR_NE ||	irt == IR_EQ);
-	ASSERT0(lchild && rchild);
-	if (lchild->is_const() &&
-		!rchild->is_const() &&
-		(irt == IR_EQ || irt == IR_NE)) {
-		return buildCmp(irt, rchild, lchild);
-	}
-	IR * ir = newIR(irt);
-	BIN_opnd0(ir) = lchild;
-	BIN_opnd1(ir) = rchild;
-	IR_dt(ir) = get_dm()->getSimplexTypeEx(D_B);
-	IR_parent(lchild) = ir;
-	IR_parent(rchild) = ir;
-	return ir;
-=======
     ASSERT0(irt == IR_LAND || irt == IR_LOR ||
             irt == IR_LT || irt == IR_LE ||
             irt == IR_GT || irt == IR_GE ||
@@ -2605,39 +1439,11 @@ IR * Region::buildCmp(IR_TYPE irt, IR * lchild, IR * rchild)
     IR_parent(lchild) = ir;
     IR_parent(rchild) = ir;
     return ir;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 IR * Region::buildUnaryOp(IR_TYPE irt, Type const* type, IN IR * opnd)
 {
-<<<<<<< HEAD
-	ASSERT0(type);
-	ASSERT0(is_una_irt(irt));
-	ASSERT0(opnd);
-	IR * ir = newIR(irt);
-	UNA_opnd0(ir) = opnd;
-	IR_dt(ir) = type;
-	IR_parent(opnd) = ir;
-	return ir;
-
-}
-
-
-//Build binary op without considering pointer arith.
-IR * Region::buildBinaryOpSimp(IR_TYPE irt, Type const* type,
-								  IR * lchild, IR * rchild)
-{
-	ASSERT0(type);
-	ASSERT0(lchild && rchild);
-	IR * ir = newIR(irt);
-	BIN_opnd0(ir) = lchild;
-	BIN_opnd1(ir) = rchild;
-	IR_parent(lchild) = ir;
-	IR_parent(rchild) = ir;
-	IR_dt(ir) = type;
-	return ir;
-=======
     ASSERT0(type);
     ASSERT0(is_una_irt(irt));
     ASSERT0(opnd && opnd->is_exp());
@@ -2680,185 +1486,10 @@ IR * Region::buildBinaryOpSimp(
     IR_parent(rchild) = ir;
     IR_dt(ir) = type;
     return ir;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Build binary operation.
-<<<<<<< HEAD
-//'mc_size': record the memory-chunk size if rtype is D_MC, or else is 0.
-IR * Region::buildBinaryOp(IR_TYPE irt, Type const* type,
-							 IR * lchild, IR * rchild)
-{
-	ASSERT0(type);
-	ASSERT0(lchild && rchild);
-	if (lchild->is_ptr() || rchild->is_ptr()) {
-		return buildPointerOp(irt, lchild, rchild);
-	}
-	if (lchild->is_const() &&
-		!rchild->is_const() &&
-		(irt == IR_ADD ||
-		 irt == IR_MUL ||
-		 irt == IR_XOR ||
-		 irt == IR_BAND ||
-		 irt == IR_BOR ||
-		 irt == IR_EQ ||
-		 irt == IR_NE)) {
-		return buildBinaryOp(irt, type, rchild, lchild);
-	}
-
-	//Both lchild and rchild are NOT pointer.
-	//Generic binary operation.
-	UINT mc_size = 0;
-	if (TY_dtype(type) == D_MC) {
-		mc_size = TY_mc_size(type);
-		UNUSED(mc_size);
-		ASSERT0(mc_size == lchild->get_dtype_size(get_dm()) &&
-				 mc_size == rchild->get_dtype_size(get_dm()));
-	}
-	ASSERT0(type->is_mc() ^ (mc_size == 0));
-	return buildBinaryOpSimp(irt, type, lchild, rchild);
-}
-
-
-/* Split list of ir into basic block.
-'irs': a list of ir.
-'bbl': a list of bb.
-'ctbb': marker current bb container. */
-C<IRBB*> * Region::splitIRlistIntoBB(IR * irs, BBList * bbl, C<IRBB*> * ctbb)
-{
-	IR_CFG * cfg = get_cfg();
-	IRBB * newbb = newBB();
-	cfg->add_bb(newbb);
-	ctbb = bbl->insert_after(newbb, ctbb);
-	LAB2BB * lab2bb = cfg->get_lab2bb_map();
-
-	while (irs != NULL) {
-		IR * ir = removehead(&irs);
-		if (newbb->is_bb_down_boundary(ir)) {
-			BB_irlist(newbb).append_tail(ir);
-			newbb = newBB();
-			cfg->add_bb(newbb);
-			ctbb = bbl->insert_after(newbb, ctbb);
-		} else if (newbb->is_bb_up_boundary(ir)) {
-			ASSERT0(IR_type(ir) == IR_LABEL);
-
-			newbb = newBB();
-			cfg->add_bb(newbb);
-			ctbb = bbl->insert_after(newbb, ctbb);
-
-			//Regard label-info as add-on info that attached on newbb, and
-			//'ir' will be dropped off.
-			LabelInfo * li = ir->get_label();
-			newbb->addLabel(li);
-			lab2bb->set(li, newbb);
-			if (!LABEL_INFO_is_try_start(li) && !LABEL_INFO_is_pragma(li)) {
-				BB_is_target(newbb) = true;
-			}
-			freeIRTree(ir); //free label ir.
-		} else {
-			BB_irlist(newbb).append_tail(ir);
-		}
-	}
-	return ctbb;
-}
-
-
-/* Find the boundary IR generated in BB to update bb-list incremently.
-e.g: Given BB1 has one stmt:
-	BB1:
-	a = b||c
-after some simplification, we get:
-	truebr(b != 0), L1
-	truebr(c != 0), L1
-	pr = 0
-	goto L2
-	L1:
-	pr = 1
-	L2:
-	a = pr
-
-where IR list should be splitted into :
-	BB1:
-	truebr(b != 0), L1
-	BB2:
-	truebr(c != 0), L1
-	BB3:
-	pr = 0
-	goto L2
-	BB4:
-	L1:
-	pr = 1
-	BB5:
-	L2:
-	a = pr */
-bool Region::reconstructBBlist(OptCTX & oc)
-{
-	START_TIMER("Reconstruct IRBB list");
-	bool change = false;
-
-	C<IRBB*> * ctbb;
-
-	BBList * bbl = get_bb_list();
-
-	for (bbl->get_head(&ctbb); ctbb != NULL; bbl->get_next(&ctbb)) {
-		IRBB * bb = C_val(ctbb);
-		C<IR*> * ctir;
-		BBIRList * irlst = &BB_irlist(bb);
-
-		IR * tail = irlst->get_tail();
-		for (irlst->get_head(&ctir); ctir != NULL; irlst->get_next(&ctir)) {
-			IR * ir = C_val(ctir);
-
-			if (bb->is_bb_down_boundary(ir) && ir != tail) {
-				change = true;
-
-				IR * restirs = NULL; //record rest part in bb list after 'ir'.
-				IR * last = NULL;
-				irlst->get_next(&ctir);
-
-				for (C<IR*> * next_ctir = ctir;
-					 ctir != NULL; ctir = next_ctir) {
-					irlst->get_next(&next_ctir);
-					irlst->remove(ctir);
-					add_next(&restirs, &last, C_val(ctir));
-				}
-
-				ctbb = splitIRlistIntoBB(restirs, bbl, ctbb);
-
-				break;
-			} else if (bb->is_bb_up_boundary(ir)) {
-				ASSERT0(IR_type(ir) == IR_LABEL);
-
-				change = true;
-				BB_is_fallthrough(bb) = true;
-
-				IR * restirs = NULL; //record rest part in bb list after 'ir'.
-				IR * last = NULL;
-
-				for (C<IR*> * next_ctir = ctir;
-					 ctir != NULL; ctir = next_ctir) {
-					irlst->get_next(&next_ctir);
-					irlst->remove(ctir);
-					add_next(&restirs, &last, C_val(ctir));
-				}
-
-				ctbb = splitIRlistIntoBB(restirs, bbl, ctbb);
-
-				break;
-			}
-		}
-	}
-
-	END_TIMER();
-
-	if (change) {
-		//Must rebuild CFG and all other structures which are
-		//closely related to CFG.
-		oc.set_flag_if_cfg_changed();
-	}
-	return change;
-=======
 //If rchild/lchild is pointer, the function will attemp to generate pointer
 //arithmetic operation instead of normal binary operation.
 IR * Region::buildBinaryOp(
@@ -3025,7 +1656,6 @@ bool Region::reconstructBBlist(OptCtx & oc)
         oc.set_flag_if_cfg_changed();
     }
     return change;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -3033,33 +1663,6 @@ bool Region::reconstructBBlist(OptCtx & oc)
 //clean_ir_list: clean bb's ir list if it is true.
 IR * Region::constructIRlist(bool clean_ir_list)
 {
-<<<<<<< HEAD
-	START_TIMER("Construct IRBB list");
-	IR * ret_list = NULL;
-	IR * last = NULL;
-	for (IRBB * bb = get_bb_list()->get_head(); bb != NULL;
-		 bb = get_bb_list()->get_next()) {
-		for (LabelInfo * li = bb->get_lab_list().get_head();
-			 li != NULL; li = bb->get_lab_list().get_next()) {
-			//insertbefore_one(&ret_list, ret_list, buildLabel(li));
-			add_next(&ret_list, &last, buildLabel(li));
-		}
-		for (IR * ir = BB_first_ir(bb);
-			 ir != NULL; ir = BB_next_ir(bb)) {
-			//insertbefore_one(&ret_list, ret_list, ir);
-			add_next(&ret_list, &last, ir);
-			if (clean_ir_list) {
-				ir->set_bb(NULL);
-			}
-		}
-		if (clean_ir_list) {
-			BB_irlist(bb).clean();
-		}
-	}
-	//ret_list = reverse_list(ret_list);
-	END_TIMER();
-	return ret_list;
-=======
     START_TIMER("Construct IRBB list");
     IR * ret_list = NULL;
     IR * last = NULL;
@@ -3092,7 +1695,6 @@ IR * Region::constructIRlist(bool clean_ir_list)
     //ret_list = reverse_list(ret_list);
     END_TIMER();
     return ret_list;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -3100,242 +1702,6 @@ IR * Region::constructIRlist(bool clean_ir_list)
 //2. Set BB propeties. e.g: entry-bb, exit-bb.
 void Region::constructIRBBlist()
 {
-<<<<<<< HEAD
-	if (get_ir_list() == NULL) { return; }
-	START_TIMER("Construct IRBB list");
-	IRBB * cur_bb = NULL;
-	IR * pointer = get_ir_list();
-	while (pointer != NULL) {
-		if (cur_bb == NULL) {
-			cur_bb = newBB();
-		}
-
-		//Insert IR into individual BB.
-		ASSERT0(pointer->isStmtInBB() || pointer->is_lab());
-		IR * cur_ir = pointer;
-		pointer = IR_next(pointer);
-		IR_next(cur_ir) = IR_prev(cur_ir) = NULL;
-		//remove(&start_ir, cur_ir);
-
-		if (cur_bb->is_bb_down_boundary(cur_ir)) {
-			BB_irlist(cur_bb).append_tail(cur_ir);
-			switch (IR_type(cur_ir)) {
-			case IR_CALL:
-			case IR_ICALL: //indirective call
-			case IR_TRUEBR:
-			case IR_FALSEBR:
-			case IR_SWITCH:
-				BB_is_fallthrough(cur_bb) = true;
-				break;
-			case IR_IGOTO:
-			case IR_GOTO:
-				/* We have no knowledge about whether target BB of GOTO/IGOTO
-				will be followed subsequently on current BB.
-				Leave this problem to CFG builder, and the related
-				attribute should be set at that time. */
-				break;
-			case IR_RETURN:
-				//Succeed stmt of 'ir' may be DEAD code
-				//IR_BB_is_func_exit(cur_bb) = true;
-				BB_is_fallthrough(cur_bb) = true;
-				break;
-			default: ASSERT(0, ("invalid bb down-boundary IR"));
-			} //end switch
-
-			//Generate new BB.
-			get_bb_list()->append_tail(cur_bb);
-			cur_bb = newBB();
-		} else if (IR_type(cur_ir) == IR_LABEL) {
-			BB_is_fallthrough(cur_bb) = true;
-			get_bb_list()->append_tail(cur_bb);
-
-			//Generate new BB.
-			cur_bb = newBB();
-
-			//label info be seen as add-on info attached on bb, and
-			//'ir' be dropped off.
-			for (;;) {
-				cur_bb->addLabel(LAB_lab(cur_ir));
-				freeIR(cur_ir);
-				if (pointer != NULL && IR_type(pointer) == IR_LABEL) {
-					cur_ir = pointer;
-					pointer = IR_next(pointer);
-					IR_next(cur_ir) = IR_prev(cur_ir) = NULL;
-				} else {
-					break;
-				}
-			}
-
-			BB_is_target(cur_bb) = true;
-		} else {
-			//Note that PHI should be placed followed after a LABEL immediately.
-			//That is a invalid phi if it has only one operand.
-			BB_irlist(cur_bb).append_tail(cur_ir);
-		}
-	} //end while
-
-	ASSERT0(cur_bb != NULL);
-	get_bb_list()->append_tail(cur_bb);
-
-	//cur_bb is the last bb, it is also the exit bb.
-	//IR_BB_is_func_exit(cur_bb) = true;
-	END_TIMER();
-}
-
-
-/* Do general check for safe optimizing.
-	CASE 1:
-		Do NOT optimize the code if meet the VIOLATE variable!
-		e.g1:
-			volatile int x, y;
-			int a[SIZE];
-			void f(void)
-			{
-			  for (int i = 0; i < SIZE; i++)
-			    a[i] = x + y;
-			}
-
-			Some compilers will hoist the expression (x + y)
-			out of the loop as shown below, which is an
-			incorrect optimization.
-		e.g2:
-			## Incorrect Definiation! x,y are NOT const.
-			const violate int x,y; */
-bool Region::isSafeToOptimize(IR const* ir)
-{
-	if (ir->is_volatile()) {
-		return false;
-	}
-
-	//Check kids.
-	for(INT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
-		IR * kid = ir->get_kid(i);
-		if (kid != NULL) {
-			if (!isSafeToOptimize(kid)) {
-				return false;
-			}
-		}
-	}
-	return true;
-}
-
-
-/* This function is just generate conservative memory reference
-information of Region as a default setting. User should supply
-more accurate referrence information via various analysis, since
-the information will affect optimizations. */
-void Region::genDefaultRefInfo()
-{
-	//For conservative, current region may modify all outer regions variables.
-	Region * t = this;
-	ConstMDIter iter;
-	MDSystem * md_sys = get_md_sys();
-
-	initRefInfo();
-	
-	MDSet tmp;
-	DefMiscBitSetMgr * mbs = getMiscBitSetMgr();
-	while (t != NULL) {
-		VarTab * vt = t->get_var_tab();
-		VarTabIter c;
-		for (VAR * v = vt->get_first(c); v != NULL; v = vt->get_next(c)) {
-			if (VAR_is_fake(v)) { continue; }
-
-			MDTab * mdt = md_sys->get_md_tab(v);
-			ASSERT0(mdt != NULL);
-
-			MD const* x = mdt->get_effect_md();
-			if (x != NULL) {
-				tmp.bunion(x, *mbs);
-			}
-			OffsetTab * ofstab = mdt->get_ofst_tab();
-			ASSERT0(ofstab);
-			if (ofstab->get_elem_count() > 0) {
-				iter.clean();
-				for (MD const* x = ofstab->get_first(iter, NULL);
-					 x != NULL; x = ofstab->get_next(iter, NULL)) {
-					tmp.bunion(x, *mbs);
-				}
-			}
-		}
-		t = REGION_parent(t);
-	}
-
-	if (!tmp.is_empty()) {
-		REF_INFO_mayuse(REGION_refinfo(this)).copy(tmp, *mbs);
-		REF_INFO_maydef(REGION_refinfo(this)).copy(tmp, *mbs);
-	} else {
-		REF_INFO_mayuse(REGION_refinfo(this)).clean(*mbs);
-		REF_INFO_maydef(REGION_refinfo(this)).clean(*mbs);
-	}
-
-	REF_INFO_mustdef(REGION_refinfo(this)).clean(*mbs);
-
-	tmp.clean(*getMiscBitSetMgr());
-}
-
-
-//Generate MD corresponding to PR load or write.
-MD const* Region::genMDforPR(UINT prno, Type const* type)
-{
-	ASSERT0(type);
-	VAR * pr_var = mapPR2Var(prno);
-	if (pr_var == NULL) {
-		//Create a new PR VAR.
-		CHAR name[64];
-		sprintf(name, "pr%d", prno);
-		ASSERT0(strlen(name) < 64);
-		UINT flag = VAR_LOCAL;
-		SET_FLAG(flag, VAR_IS_PR);
-		pr_var = get_var_mgr()->registerVar(name, type, 0, flag);
-		setMapPR2Var(prno, pr_var);
-
-		//Set the pr-var to be unallocable, means do NOT add
-		//pr-var immediately as a memory-variable.
-		//For now, it is only be regarded as a pseduo-register.
-		//And set it to allocable if the PR is in essence need to be
-		//allocated in memory.
-		VAR_allocable(pr_var) = false;
-		addToVarTab(pr_var);
-	}
-
-	MD md;
-	MD_base(&md) = pr_var; //correspond to VAR
-	MD_ofst(&md) = 0;
-
-	if (REGION_is_pr_unique_for_same_number(this)) {
-		MD_size(&md) =
-			get_dm()->get_bytesize(get_dm()->getSimplexTypeEx(D_I32));
-	} else {
-		MD_size(&md) = get_dm()->get_bytesize(type);
-	}
-
-	if (type->is_void()) {
-		MD_ty(&md) = MD_UNBOUND;
-	} else {
-		MD_ty(&md) = MD_EXACT;
-	}
-
-	MD const* e = get_md_sys()->registerMD(md);
-	ASSERT0(MD_id(e) > 0);
-	return e;
-}
-
-
-//Get function unit.
-Region * Region::get_func_unit()
-{
-	Region * ru = this;
-	while (REGION_type(ru) != RU_FUNC) {
-		ru = REGION_parent(ru);
-	}
-	ASSERT(ru != NULL, ("Not in func unit"));
-	return ru;
-}
-
-
-CHAR const* Region::get_ru_name() const
-=======
     if (get_ir_list() == NULL) { return; }
     START_TIMER("Construct IRBB list");
     IRBB * cur_bb = NULL;
@@ -3440,67 +1806,11 @@ CHAR const* Region::get_ru_name() const
 //         ## Incorrect Definiation! x,y are NOT const.
 //         const violate int x,y;
 bool Region::isSafeToOptimize(IR const* ir)
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 {
     if (ir->is_volatile()) {
         return false;
     }
 
-<<<<<<< HEAD
-/* Free ir, ir's sibling, and all its kids.
-We can only utilizing the function to free the IR
-which allocated by 'newIR'.
-
-NOTICE: If ir's sibling is not NULL, that means the IR is
-a high level type. IRBB consists of only middle/low level IR. */
-void Region::freeIRTreeList(IR * ir)
-{
-	if (ir == NULL) return;
-	IR * head = ir, * next = NULL;
-	while (ir != NULL) {
-		next = IR_next(ir);
-		remove(&head, ir);
-		freeIRTree(ir);
-		ir = next;
-	}
-}
-
-
-//Free ir, and all its kids.
-//We can only utilizing the function to free the IR which allocated by 'newIR'.
-void Region::freeIRTreeList(IRList & irs)
-{
-	C<IR*> * next;
-	C<IR*> * ct;
-	for (irs.get_head(&ct); ct != irs.end(); ct = next) {
-		IR * ir = ct->val();
-		next = irs.get_next(ct);
-		ASSERT(IR_next(ir) == NULL && IR_prev(ir) == NULL,
-				("do not allow sibling node, need to simplify"));
-		irs.remove(ir);
-		freeIRTree(ir);
-	}
-}
-
-
-/* Free ir and all its kids, except its sibling node.
-We can only utilizing the function to free the
-IR which allocated by 'newIR'. */
-void Region::freeIRTree(IR * ir)
-{
-	if (ir == NULL) { return; }
-
-	ASSERT(IR_next(ir) == NULL && IR_prev(ir) == NULL,
-			("chain list should be cut off"));
-	for (INT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
-		IR * kid = ir->get_kid(i);
-		if (kid != NULL) {
-			freeIRTreeList(kid);
-		}
-	}
-	freeIR(ir);
-}
-=======
     //Check kids.
     for(INT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
         IR * kid = ir->get_kid(i);
@@ -3530,7 +1840,6 @@ VAR * Region::genVARforPR(UINT prno, Type const* type)
     ASSERT0(type);
     VAR * pr_var = mapPR2Var(prno);
     if (pr_var != NULL) { return pr_var; }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     //Create a new PR VAR.
     CHAR name[128];
@@ -3541,1041 +1850,6 @@ VAR * Region::genVARforPR(UINT prno, Type const* type)
     pr_var = get_var_mgr()->registerVar(name, type, 0, flag);
     setMapPR2Var(prno, pr_var);
 
-<<<<<<< HEAD
-//Allocate PassMgr
-PassMgr * Region::newPassMgr() 
-{ 
-	return new PassMgr(this); 
-}
-
-
-//Allocate AliasAnalysis.
-IR_AA * Region::newAliasAnalysis() 
-{ 
-	return new IR_AA(this); 
-}
-
-
-void Region::dump_free_tab()
-{
-	if (g_tfile == NULL) { return; }
-	fprintf(g_tfile, "\n==-- DUMP Region Free Table --==");
-	for (UINT i = 0; i <= MAX_OFFSET_AT_FREE_TABLE; i++) {
-		IR * lst = REGION_analysis_instrument(this)->m_free_tab[i];
-		if (lst == NULL) { continue; }
-
-		UINT sz = i + sizeof(IR);
-
-		UINT count = 0;
-		for (IR * ir = lst; ir != NULL; ir = IR_next(ir)) {
-			count++;
-		}
-
-		fprintf(g_tfile, "\nirsize(%d), num(%d):", sz, count);
-
-		for (IR * ir = lst; ir != NULL; ir = IR_next(ir)) {
-			ASSERT0(get_irt_size(ir) == sz);
-			fprintf(g_tfile, "ir(%d),", IR_id(ir));
-		}
-	}
-	fflush(g_tfile);
-}
-
-
-//Generate IR, invoke freeIR() or freeIRTree() if it is useless.
-//NOTE: Do NOT invoke ::free() to free IR, because all
-//	IR are allocated in the pool.
-IR * Region::newIR(IR_TYPE irt)
-{
-	IR * ir = NULL;
-	UINT idx = IRTSIZE(irt) - sizeof(IR);
-	bool lookup = false; //lookup freetab will save more memory, but slower.
-
-	#ifndef CONST_IRT_SZ
-	//If one is going to lookup freetab, IR_irt_size() must be defined.
-	ASSERT0(!lookup);
-	#endif
-
-	if (lookup) {
-		for (; idx <= MAX_OFFSET_AT_FREE_TABLE; idx++) {
-			ir = REGION_analysis_instrument(this)->m_free_tab[idx];
-			if (ir == NULL) { continue; }
-
-			REGION_analysis_instrument(this)->m_free_tab[idx] = IR_next(ir);
-			if (IR_next(ir) != NULL) {
-				IR_prev(IR_next(ir)) = NULL;
-			}
-			break;
-		}
-	} else {
-		ir = REGION_analysis_instrument(this)->m_free_tab[idx];
-		if (ir != NULL) {
-			REGION_analysis_instrument(this)->m_free_tab[idx] = IR_next(ir);
-			if (IR_next(ir) != NULL) {
-				IR_prev(IR_next(ir)) = NULL;
-			}
-		}
-	}
-
-	if (ir == NULL) {
-		ir = (IR*)xmalloc(IRTSIZE(irt));
-		INT v = MAX(get_ir_vec()->get_last_idx(), 0);
-		IR_id(ir) = (UINT)(v+1);
-		get_ir_vec()->set(IR_id(ir), ir);
-		set_irt_size(ir, IRTSIZE(irt));
-	} else {
-		ASSERT0(IR_prev(ir) == NULL);
-		IR_next(ir) = NULL;
-		#ifdef _DEBUG_
-		REGION_analysis_instrument(this)->m_has_been_freed_irs.diff(IR_id(ir));
-		#endif
-	}
-	IR_type(ir) = irt;
-	return ir;
-}
-
-
-//Just append freed 'ir' into free_list.
-//Do NOT free its kids and siblings.
-void Region::freeIR(IR * ir)
-{
-	ASSERT0(ir);
-	ASSERT(IR_next(ir) == NULL && IR_prev(ir) == NULL,
-			("chain list should be cut off"));
-	#ifdef _DEBUG_
-	ASSERT0(!REGION_analysis_instrument(this)->m_has_been_freed_irs.is_contain(IR_id(ir)));
-	REGION_analysis_instrument(this)->m_has_been_freed_irs.bunion(IR_id(ir));
-	#endif
-
-	ASSERT0(getMiscBitSetMgr());
-	ir->freeDUset(*getMiscBitSetMgr());
-
-	if (IR_ai(ir) != NULL) {
-		IR_ai(ir)->destroy();
-	}
-
-	DU * du = ir->cleanDU();
-	if (du != NULL) {
-		DU_md(du) = NULL;
-		DU_mds(du) = NULL;
-		ASSERT0(du->has_clean());
-		REGION_analysis_instrument(this)->m_free_du_list.append_head(du);
-	}
-
-	UINT res_id = IR_id(ir);
-	AttachInfo * res_ai = IR_ai(ir);
-	UINT res_irt_sz = get_irt_size(ir);
-	memset(ir, 0, res_irt_sz);
-	IR_id(ir) = res_id;
-	IR_ai(ir) = res_ai;
-	set_irt_size(ir, res_irt_sz);
-
-	UINT idx = res_irt_sz - sizeof(IR);
-	IR * head = REGION_analysis_instrument(this)->m_free_tab[idx];
-	if (head != NULL) {
-		IR_next(ir) = head;
-		IR_prev(head) = ir;
-	}
-	REGION_analysis_instrument(this)->m_free_tab[idx] = ir;
-}
-
-
-//Duplication 'ir' and kids, and its sibling, return list of new ir.
-//Duplicate irs start from 'ir' to the end of list.
-IR * Region::dupIRTreeList(IR const* ir)
-{
-	IR * new_list = NULL;
-	while (ir != NULL) {
-		IR * newir = dupIRTree(ir);
-		add_next(&new_list, newir);
-		ir = IR_next(ir);
-	}
-	return new_list;
-}
-
-//Duplicate 'ir' and its kids, but without ir's sibiling node.
-IR * Region::dupIRTree(IR const* ir)
-{
-	if (ir == NULL) { return NULL; }
-	IR * newir = dupIR(ir);
-	for (UINT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
-		IR * kid = ir->get_kid(i);
-		if (kid != NULL) {
-			IR * newkid_list = dupIRTreeList(kid);
-			newir->set_kid(i, newkid_list);
-		} else { ASSERT0(newir->get_kid(i) == NULL); }
-	}
-	return newir;
-}
-
-
-//Duplication all contents of 'src', except the AI info, kids and siblings IR.
-//Since src may be come from other region, we do not copy AI info.
-IR * Region::dupIR(IR const* src)
-{
-	if (src == NULL) { return NULL; }
-	IR_TYPE irt = IR_get_type(src);
-	IR * res = newIR(irt);
-	ASSERT(res != NULL && src != NULL, ("res/src is NULL"));
-
-	UINT res_id = IR_id(res);
-	AttachInfo * res_ai = IR_ai(res);
-	UINT res_irt_sz = get_irt_size(res);
-	memcpy(res, src, IRTSIZE(irt));
-	IR_id(res) = res_id;
-	IR_ai(res) = res_ai;
-	set_irt_size(res, res_irt_sz);
-	IR_next(res) = IR_prev(res) = IR_parent(res) = NULL;
-	res->cleanDU(); //Do not copy DU info.
-	res->clearSSAInfo(); //Do not copy SSA info.
-	if (IR_ai(src) != NULL) { //need to copy AttachInfo.
-		if (IR_ai(res) == NULL) {
-			IR_ai(res) = newAI();
-		}
-		IR_ai(res)->copy(IR_ai(src));
-	}
-	return res;
-}
-
-
-List<IR const*> * Region::scanCallList()
-{
-	List<IR const*> * cl = get_call_list();
-	ASSERT0(cl);
-	cl->clean();
-	if (get_ir_list() != NULL) {
-		for (IR const* t = get_ir_list(); t != NULL; t = IR_next(t)) {
-			if (t->is_calls_stmt()) {
-				cl->append_tail(t);
-			}
-		}
-	} else {
-		for (IRBB * bb = get_bb_list()->get_head();
-			 bb != NULL; bb = get_bb_list()->get_next()) {
-			IR * t = BB_last_ir(bb);
-			if (t != NULL && t->is_calls_stmt()) {
-				cl->append_tail(t);
-			}
-		}
-	}
-	return cl;
-}
-
-
-//Prepare informations for analysis phase, such as record
-//which variables have been taken address for both
-//global and local variable.
-void Region::prescan(IR const* ir)
-{
-	for (; ir != NULL; ir = IR_next(ir)) {
-		switch (IR_type(ir)) {
-		case IR_ST:
-			prescan(ST_rhs(ir));
-			break;
-		case IR_LDA:
-			{
-				IR * base = LDA_base(ir);
-				if (base->is_id()) {
-					VAR * v = ID_info(base);
-					ASSERT0(v && IR_parent(ir));
-					if (v->is_string() &&
-						get_region_mgr()->getDedicateStrMD() != NULL) {
-						break;
-					}
-
-					if (!IR_parent(ir)->is_array()) {
-						//If LDA is the base of ARRAY, say (&a)[..], its
-						//address does not need to mark as address taken.
-						VAR_is_addr_taken(v) = true;
-					}
-
-					// ...=&x.a, address of 'x.a' is taken.
-					MD md;
-					MD_base(&md) = v; //correspond to VAR
-					MD_ofst(&md) = LDA_ofst(ir);
-					MD_size(&md) = ir->get_dtype_size(get_dm());
-					MD_ty(&md) = MD_EXACT;
-					get_md_sys()->registerMD(md);
-				} else if (base->is_array()) {
-					//... = &a[x]; address of 'a' is taken
-					IR * array_base = ARR_base(base);
-					ASSERT0(array_base);
-					if (array_base->is_lda()) {
-						prescan(array_base);
-					}
-				} else if (base->is_str()) {
-					VAR * v = get_var_mgr()->
-								registerStringVar(NULL, CONST_str_val(base), 1);
-					ASSERT0(v);
-					VAR_is_addr_taken(v) = true;
-					VAR_allocable(v) = true;
-				} else if (base->is_ild()) {
-					//We do not known where to be taken.
-					ASSERT(0, ("ILD should not appeared here, "
-							   "one should do refining at first."));
-				} else {
-					ASSERT(0, ("Illegal LDA base."));
-				}
-			}
-			break;
-		case IR_ID:
-			//Array base must not be ID. It could be
-			//LDA or computational expressions.
-			//In C, array base address could be assgined to other variable.
-			//Its address should be marked as taken. And it's parent must be LDA.
-			//e.g: Address of 'a' is taken.
-			//	int a[10];
-			//	int * p;
-			//	p = a;
-			ASSERT0(0);
-			//ASSERT0(ID_info(ir) && VAR_is_array(ID_info(ir)));
-			break;
-		case IR_CONST:
-		case IR_LD:
-		case IR_GOTO:
-		case IR_LABEL:
-		case IR_PR:
-		case IR_BREAK:
-		case IR_CONTINUE:
-		case IR_PHI:
-		case IR_REGION:
-			break;
-		default:
-			for (UINT i = 0; i < IR_MAX_KID_NUM(ir); i++) {
-				IR * k = ir->get_kid(i);
-				if (k != NULL) {
-					ASSERT0(IR_parent(k) == ir);
-					prescan(k);
-				}
-			}
-		}
-	}
-}
-
-
-void Region::dump_bb_usage(FILE * h)
-{
-	if (h == NULL) { return; }
-	BBList * bbl = get_bb_list();
-	if (bbl == NULL) { return; }
-	fprintf(h, "\nTotal BB num: %d", bbl->get_elem_count());
-	for (IRBB * bb = bbl->get_head(); bb != NULL; bb = bbl->get_next()) {
-		fprintf(h, "\nBB%d: irnum%d", BB_id(bb), bb->getNumOfIR());
-	}
-	fflush(h);
-}
-
-
-//Dump IR and memory usage.
-void Region::dump_mem_usage(FILE * h)
-{
-	if (h == NULL) { return; }
-	fprintf(h, "\n\n'%s' use %dKB memory",
-			get_ru_name(), count_mem()/1024);
-	Vector<IR*> * v = get_ir_vec();
-	float nid = 0.0;
-	float nld = 0.0;
-	float nst = 0.0;
-	float nlda = 0.0;
-	float ncallee = 0.0;
-	float nstpr = 0.0;
-	float nist = 0.0;
-	float nbin = 0.0;
-	float nuna = 0.0;
-
-	for (int i = 0; i <= v->get_last_idx(); i++) {
-		IR * ir = v->get(i);
-		if (ir == NULL) continue;
-		if (ir->is_id()) nid+=1.0;
-		if (ir->is_ld()) nld+=1.0;
-		if (ir->is_st()) nst+=1.0;
-		if (ir->is_lda()) nlda+=1.0;
-		if (ir->is_call()) ncallee+=1.0;
-		if (ir->is_stpr()) nstpr+=1.0;
-		if (ir->is_ist()) nist+=1.0;
-		if (ir->is_binary_op()) nbin+=1.0;
-		if (ir->is_unary_op()) nuna+=1.0;
-	}
-
-	float total = (float)(v->get_last_idx() + 1);
-	fprintf(h, "\nThe number of IR Total:%d, id:%d(%.1f)%%, "
-					"ld:%d(%.1f)%%, st:%d(%.1f)%%, lda:%d(%.1f)%%,"
-					"callee:%d(%.1f)%%, stpr:%d(%.1f)%%, ist:%d(%.1f)%%,"
-					"bin:%d(%.1f)%%, una:%d(%.1f)%%",
-			(int)total,
-			(int)nid, nid / total * 100,
-			(int)nld, nld / total * 100,
-			(int)nst, nst / total * 100,
-			(int)nlda, nlda / total * 100,
-			(int)ncallee, ncallee / total * 100,
-			(int)nstpr, nstpr / total * 100,
-			(int)nist, nist / total * 100,
-			(int)nbin, nbin / total * 100,
-			(int)nuna, nuna / total * 100);
-}
-
-
-//Dump all irs and ordering by IR_id.
-void Region::dump_all_ir()
-{
-	if (g_tfile == NULL) return;
-	fprintf(g_tfile, "\n==---- DUMP IR VECTOR ----==");
-	INT n = get_ir_vec()->get_last_idx();
-	INT i = 1;
-	g_indent = 2;
-	UINT num_has_du = 0;
-
-	//Dump which IR has allocate DU structure.
-	while (i <= n) {
-		IR * ir = get_ir_vec()->get(i);
-		ASSERT0(ir);
-		i++;
-		DU * du = ir->get_du();
-		if (du != NULL) {
-			num_has_du++;
-		}
-	}
-	if (i > 0) {
-		note("\nTotal IR %d, total DU allocated %d, rate:(%.1f)%%",
-			 i, num_has_du, (float)num_has_du / (float)i * 100);
-	}
-	//
-
-	//Dump IR dispers in free tab.
-	fprintf(g_tfile, "\n== Dump IR dispers in free tab ==");
-	for (UINT w = 0; w < MAX_OFFSET_AT_FREE_TABLE + 1; w++) {
-		IR * lst = REGION_analysis_instrument(this)->m_free_tab[w];
-		fprintf(g_tfile, "\nbyte(%d)", (INT)(w + sizeof(IR)));
-		if (lst == NULL) { continue; }
-
-		UINT num = 0;
-		IR * p = lst;
-		while (p != NULL) { p = IR_next(p); num++; }
-		fprintf(g_tfile, ", num%d : ", num);
-
-		while (lst != NULL) {
-			fprintf(g_tfile, "%s", IRNAME(lst));
-			lst = IR_next(lst);
-			if (lst != NULL) {
-				fprintf(g_tfile, ", ");
-			}
-		}
-	}
-	fflush(g_tfile);
-
-	CHAR buf[256]; //record data-type.
-	TypeMgr * dm = get_dm();
-
-	i = 1;
-	while (i <= n) {
-		IR * ir = get_ir_vec()->get(i);
-		ASSERT0(ir);
-		Type const* d = NULL;
-		if (IR_type(ir) != IR_UNDEF) {
-			d = IR_dt(ir);
-			ASSERT0(d);
-			if (d == NULL) {
-				note("\nid(%d): %s 0x%.8x", IR_id(ir), IRNAME(ir), ir);
-			} else {
-				note("\nid(%d): %s r:%s 0x%.8x",
-					 IR_id(ir), IRNAME(ir), dm->dump_type(d, buf), ir);
-			}
-		} else {
-			note("\nid(%d): undef 0x%.8x", IR_id(ir), ir);
-		}
-
-		i++;
-
-		DU * du = ir->get_du();
-		if (du != NULL) {
-			fprintf(g_tfile, " has du");
-		}
-	}
-	fflush(g_tfile);
-}
-
-
-//Only dump STMT IR.
-void Region::dump_all_stmt()
-{
-	INT i = get_ir_vec()->get_last_idx(), j = 0;
-	g_indent = 1;
-	note("  == IR STATEMENT: ==");
-	g_indent = 2;
-	TypeMgr * dm = get_dm();
-	while (j <= i) {
-		IR * ir = get_ir_vec()->get(j);
-		if (ir->is_stmt()) {
-			note("\n%d(%d):  %s  (r:%s:%d>",
-				 j, IR_id(ir), IRNAME(ir),
-				 get_dm()->get_dtype_name(TY_dtype(IR_dt(ir))),
-				 ir->get_dtype_size(dm));
-		}
-		j++;
-	}
-}
-
-
-//Perform DEF/USE analysis.
-IR_DU_MGR * Region::initDuMgr(OptCTX & oc)
-{
-	ASSERT0(REGION_analysis_instrument(this));
-	if (get_du_mgr() == NULL) {
-		ASSERT0(OC_is_aa_valid(oc));
-		ASSERT0(OC_is_cfg_valid(oc));
-
-		REGION_analysis_instrument(this)->m_ir_du_mgr = new IR_DU_MGR(this);
-
-		UINT f = SOL_REACH_DEF|SOL_REF;
-		//f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR|SOL_RU_REF;
-		if (g_do_ivr) {
-			f |= SOL_AVAIL_REACH_DEF|SOL_AVAIL_EXPR;
-		}
-
-		if (g_do_compute_available_exp) {
-			f |= SOL_AVAIL_EXPR;
-		}
-
-		get_du_mgr()->perform(oc, f);
-
-		get_du_mgr()->computeMDDUChain(oc);
-	}
-	return get_du_mgr();
-}
-
-
-//Initialize alias analysis.
-IR_AA * Region::initAliasAnalysis(OptCTX & oc)
-{
-	ASSERT0(REGION_analysis_instrument(this));
-	if (REGION_analysis_instrument(this)->m_ir_aa != NULL) {
-		return REGION_analysis_instrument(this)->m_ir_aa;
-	}
-
-	ASSERT0(OC_is_cfg_valid(oc));
-
-	REGION_analysis_instrument(this)->m_ir_aa = newAliasAnalysis();
-
-	REGION_analysis_instrument(this)->m_ir_aa->initMayPointToSet();
-
-	REGION_analysis_instrument(this)->m_ir_aa->set_flow_sensitive(true);
-
-	REGION_analysis_instrument(this)->m_ir_aa->perform(oc);
-
-	return REGION_analysis_instrument(this)->m_ir_aa;
-}
-
-
-PassMgr * Region::initPassMgr()
-{
-	if (REGION_analysis_instrument(this)->m_pass_mgr != NULL) {
-		return REGION_analysis_instrument(this)->m_pass_mgr;
-	}
-
-	REGION_analysis_instrument(this)->m_pass_mgr = newPassMgr();
-
-	return REGION_analysis_instrument(this)->m_pass_mgr;
-}
-
-
-void Region::destroyPassMgr()
-{
-	if (ANA_INS_pass_mgr(REGION_analysis_instrument(this)) == NULL) { return; }
-	delete ANA_INS_pass_mgr(REGION_analysis_instrument(this));
-	ANA_INS_pass_mgr(REGION_analysis_instrument(this)) = NULL;
-}
-
-
-//Build CFG and do early control flow optimization.
-IR_CFG * Region::initCfg(OptCTX & oc)
-{
-	ASSERT0(REGION_analysis_instrument(this));
-	if (get_cfg() == NULL) {
-		UINT n = MAX(8, getNearestPowerOf2(get_bb_list()->get_elem_count()));
-		REGION_analysis_instrument(this)->m_ir_cfg = 
-			new IR_CFG(C_SEME, get_bb_list(), this, n, n);
-		IR_CFG * cfg = REGION_analysis_instrument(this)->m_ir_cfg;
-		//cfg->removeEmptyBB();
-		cfg->build(oc);
-		cfg->buildEHEdge();
-
-		//Rebuild cfg may generate redundant empty bb, it
-		//disturb the computation of entry and exit.
-		cfg->removeEmptyBB(oc);
-		cfg->computeEntryAndExit(true, true);
-
-		bool change = true;
-		UINT count = 0;
-		while (change && count < 20) {
-			change = false;
-			if (g_do_cfg_remove_empty_bb &&
-				cfg->removeEmptyBB(oc)) {
-				cfg->computeEntryAndExit(true, true);
-				change = true;
-			}
-
-			if (g_do_cfg_remove_unreach_bb &&
-				cfg->removeUnreachBB()) {
-				cfg->computeEntryAndExit(true, true);
-				change = true;
-			}
-
-			if (g_do_cfg_remove_trampolin_bb &&
-				cfg->removeTrampolinEdge()) {
-				cfg->computeEntryAndExit(true, true);
-				change = true;
-			}
-
-			if (g_do_cfg_remove_unreach_bb &&
-				cfg->removeUnreachBB()) {
-				cfg->computeEntryAndExit(true, true);
-				change = true;
-			}
-
-			if (g_do_cfg_remove_trampolin_bb &&
-				cfg->removeTrampolinBB()) {
-				cfg->computeEntryAndExit(true, true);
-				change = true;
-			}
-			count++;
-		}
-		ASSERT0(!change);
-	}
-	ASSERT0(get_cfg()->verify());
-	return get_cfg();
-}
-
-
-void Region::process()
-{
-	if (get_ir_list() == NULL) { return ; }
-
-	ASSERT0(verifyIRinRegion());
-
-	ASSERT(REGION_type(this) == RU_FUNC ||
-			REGION_type(this) == RU_EH ||
-			REGION_type(this) == RU_SUB,
-			("Are you sure this kind of Region executable?"));
-
-	g_indent = 0;
-
-	note("\nREGION_NAME:%s", get_ru_name());
-
-	if (g_opt_level == NO_OPT) { return; }
-
-	OptCTX oc;
-
-	START_TIMER("PreScan");
-	prescan(get_ir_list());
-	END_TIMER();
-
-	HighProcess(oc);
-
-	MiddleProcess(oc);
-
-	if (REGION_type(this) != RU_FUNC) { return; }
-
-	BBList * bbl = get_bb_list();
-
-	if (bbl->get_elem_count() == 0) { return; }
-
-	SimpCTX simp;
-	simp.set_simp_cf();
-	simp.set_simp_array();
-	simp.set_simp_select();
-	simp.set_simp_local_or_and();
-	simp.set_simp_local_not();
-	simp.set_simp_to_lowest_heigh();
-	simplifyBBlist(bbl, &simp);
-
-	if (g_cst_bb_list && SIMP_need_recon_bblist(&simp)) {
-		if (reconstructBBlist(oc) && g_do_cfg) {
-			//Before CFG building.
-			get_cfg()->removeEmptyBB(oc);
-
-			get_cfg()->rebuild(oc);
-
-			//After CFG building, it is perform different
-			//operation to before building.
-			get_cfg()->removeEmptyBB(oc);
-
-			get_cfg()->computeEntryAndExit(true, true);
-
-			if (g_do_cdg) {
-				ASSERT0(get_pass_mgr());
-				CDG * cdg = (CDG*)get_pass_mgr()->registerPass(PASS_CDG);
-				cdg->rebuild(oc, *get_cfg());
-			}
-		}
-	}
-
-	ASSERT0(verifyIRandBB(bbl, this));
-	RefineCTX rf;
-	refineBBlist(bbl, rf);
-	ASSERT0(verifyIRandBB(bbl, this));
-
-	ASSERT0(get_pass_mgr());
-	IR_SSA_MGR * ssamgr = (IR_SSA_MGR*)get_pass_mgr()->query_opt(PASS_SSA_MGR);
-	if (ssamgr != NULL && ssamgr->is_ssa_constructed()) {
-		ssamgr->destructionInBBListOrder();
-	}
-
-	destroyPassMgr();
-}
-
-
-//Ensure that each IR in ir_list must be allocated in current region.
-bool Region::verifyIRinRegion()
-{
-	IR const* ir = get_ir_list();
-	if (ir == NULL) { return true; }
-	for (; ir != NULL; ir = IR_next(ir)) {
-		ASSERT(get_ir(IR_id(ir)) == ir,
-				("ir id:%d is not allocated in region %s", get_ru_name()));
-	}
-	return true;
-}
-
-
-//Verify cond/uncond target label.
-bool Region::verifyBBlist(BBList & bbl)
-{
-	LAB2BB lab2bb;
-	for (IRBB * bb = bbl.get_head(); bb != NULL; bb = bbl.get_next()) {
-		for (LabelInfo * li = bb->get_lab_list().get_head();
-			 li != NULL; li = bb->get_lab_list().get_next()) {
-			lab2bb.set(li, bb);
-		}
-	}
-
-	for (IRBB * bb = bbl.get_head(); bb != NULL; bb = bbl.get_next()) {
-		IR * last = BB_last_ir(bb);
-		if (last == NULL) { continue; }
-
-		if (last->is_cond_br()) {
-			ASSERT(lab2bb.get(BR_lab(last)),
-					("branch target cannot be NULL"));
-		} else if (last->is_multicond_br()) {
-			ASSERT0(last->is_switch());
-
-			for (IR * c = SWITCH_case_list(last); c != NULL; c = IR_next(c)) {
-				ASSERT(lab2bb.get(CASE_lab(last)),
-						("case branch target cannot be NULL"));
-			}
-
-			if (SWITCH_deflab(last) != NULL) {
-				ASSERT(lab2bb.get(SWITCH_deflab(last)),
-						("default target cannot be NULL"));
-			}
-		} else if (last->is_uncond_br()) {
-			ASSERT(lab2bb.get(GOTO_lab(last)), ("target cannot be NULL"));
-		}
-	}
-	return true;
-}
-
-
-//Dump all MD that related to VAR.
-void Region::dump_var_md(VAR * v, UINT indent)
-{
-	CHAR buf[4096];
-	buf[0] = 0;
-	ConstMDIter iter;
-	MDTab * mdtab = get_md_sys()->get_md_tab(v);
-	if (mdtab != NULL) {
-		MD const* x = mdtab->get_effect_md();
-		if (x != NULL) {
-			UINT i = 0;
-			while (i < indent) { fprintf(g_tfile, " "); i++; }
-			buf[0] = 0;
-			x->dump(buf, 4096, get_dm());
-			fprintf(g_tfile, "%s\n", buf);
-		}
-
-		OffsetTab * ofstab = mdtab->get_ofst_tab();
-		ASSERT0(ofstab);
-		if (ofstab->get_elem_count() > 0) {
-			iter.clean();
-			for (MD const* md = ofstab->get_first(iter, NULL);
-				 md != NULL; md = ofstab->get_next(iter, NULL)) {
-				UINT i = 0;
-				while (i < indent) { fprintf(g_tfile, " "); i++; }
-				buf[0] = 0;
-				md->dump(buf, 4096, get_dm());
-				fprintf(g_tfile, "%s\n", buf);
-			}
-		}
-	}
-	fflush(g_tfile);
-}
-
-
-//Dump each VAR in current region's VAR table.
-void Region::dumpVARInRegion(INT indent)
-{
-	if (g_tfile == NULL) { return; }
-	//Dump Region name.
-	fprintf(g_tfile, "\nREGION:%s:", get_ru_name());
-	CHAR buf[8192]; //Is it too large?
-	buf[0] = 0;
-	m_var->dumpVARDecl(buf, 100);
-
-	//Dump formal parameter list.
-	if (REGION_type(this) == RU_FUNC) {
-		g_indent = indent + 1;
-		note("\nFORMAL PARAMETERS:\n");
-		VarTabIter c;
-		for (VAR * v = get_var_tab()->get_first(c);
-			 v != NULL; v = get_var_tab()->get_next(c)) {
-			if (VAR_is_formal_param(v)) {
-				buf[0] = 0;
-				v->dump(buf, get_dm());
-				g_indent = indent + 2;
-				note("%s\n", buf);
-				fflush(g_tfile);
-				dump_var_md(v, g_indent + 2);
-			}
-		}
-	}
-
-	//Dump local varibles.
-	g_indent = indent;
-	note(" ");
-	fprintf(g_tfile, "\n");
-
-	//Dump variables
-	VarTab * vt = get_var_tab();
-	if (vt->get_elem_count() > 0) {
-		g_indent = indent + 1;
-		note("LOCAL VARIABLES:\n");
-		VarTabIter c;
-		for (VAR * v = vt->get_first(c); v != NULL; v = vt->get_next(c)) {
-			//fprintf(g_tfile, "        ");
-			buf[0] = 0;
-			v->dump(buf, get_dm());
-			g_indent = indent + 2;
-			note("%s\n", buf);
-			//fprintf(g_tfile, buf);
-			//fprintf(g_tfile, "\n");
-			fflush(g_tfile);
-			dump_var_md(v, g_indent + 2);
-		}
-	} else {
-		g_indent = indent + 1;
-		note("NO VARIBLE:\n");
-	}
-
-	//Dump subregion.
-	fprintf(g_tfile, "\n");
-	if (REGION_analysis_instrument(this)->m_inner_region_lst != NULL &&
-		REGION_analysis_instrument(this)->m_inner_region_lst->get_elem_count() > 0) {
-		for (Region * r = REGION_analysis_instrument(this)->m_inner_region_lst->get_head();
-			 r != NULL; r = REGION_analysis_instrument(this)->m_inner_region_lst->get_next()) {
-			r->dumpVARInRegion(indent + 1);
-		}
-	}
-}
-
-
-void Region::checkValidAndRecompute(OptCTX * oc, ...)
-{
-	BitSet opts;
-	UINT num = 0;
-	va_list ptr;
-	va_start(ptr, oc);
-	PASS_TYPE opty = (PASS_TYPE)va_arg(ptr, UINT);
-	while (opty != PASS_UNDEF && num < 1000) {
-		ASSERT0(opty < PASS_NUM);
-		opts.bunion(opty);
-		num++;
-		opty = (PASS_TYPE)va_arg(ptr, UINT);
-	}
-	va_end(ptr);
-	ASSERT(num < 1000, ("miss ending placeholder"));
-
-	if (num == 0) { return; }
-
-	IR_CFG * cfg = get_cfg();
-	IR_DU_MGR * du = get_du_mgr();
-	IR_AA * aa = get_aa();
-	PassMgr * passmgr = get_pass_mgr();
-
-	if (opts.is_contain(PASS_CFG) && !OC_is_cfg_valid(*oc)) {
-		ASSERT0(cfg); //CFG has not been created.
-		//Caution: the validation of cfg should maintained by user.
-		cfg->rebuild(*oc);
-		cfg->removeEmptyBB(*oc);
-		cfg->computeEntryAndExit(true, true);
-	}
-
-	if (opts.is_contain(PASS_CDG) && !OC_is_aa_valid(*oc)) {
-		ASSERT0(cfg && aa); //cfg is not enable.
-		ASSERT0(OC_is_cfg_valid(*oc));
-		aa->perform(*oc);
-	}
-
-	if (opts.is_contain(PASS_DOM) && !OC_is_dom_valid(*oc)) {
-		ASSERT0(cfg); //cfg is not enable.
-		cfg->computeDomAndIdom(*oc);
-	}
-
-	if (opts.is_contain(PASS_PDOM) && !OC_is_pdom_valid(*oc)) {
-		ASSERT0(cfg); //cfg is not enable.
-		cfg->computePdomAndIpdom(*oc);
-	}
-
-	if (opts.is_contain(PASS_CDG) && !OC_is_cdg_valid(*oc)) {
-		ASSERT0(passmgr);
-		CDG * cdg = (CDG*)passmgr->registerPass(PASS_CDG);
-		ASSERT0(cdg); //cdg is not enable.
-		cdg->rebuild(*oc, *cfg);
-	}
-
-	UINT f = 0;
-	if (opts.is_contain(PASS_DU_REF) && !OC_is_ref_valid(*oc)) {
-		f |= SOL_REF;
-	}
-
-	if (opts.is_contain(PASS_LIVE_EXPR) && !OC_is_live_expr_valid(*oc)) {
-		f |= SOL_AVAIL_EXPR;
-	}
-
-	if (opts.is_contain(PASS_EXPR_TAB) && !OC_is_live_expr_valid(*oc)) {
-		f |= SOL_AVAIL_EXPR;
-	}
-
-	if (opts.is_contain(PASS_AVAIL_REACH_DEF) &&
-		!OC_is_avail_reach_def_valid(*oc)) {
-		f |= SOL_AVAIL_REACH_DEF;
-	}
-
-	if (opts.is_contain(PASS_DU_CHAIN) &&
-		!OC_is_du_chain_valid(*oc) &&
-		!OC_is_reach_def_valid(*oc)) {
-		f |= SOL_REACH_DEF;
-	}
-
-	if ((HAVE_FLAG(f, SOL_REF) || opts.is_contain(PASS_AA)) &&
-		!OC_is_aa_valid(*oc)) {
-		ASSERT0(aa); //Default AA is not enable.
-		aa->perform(*oc);
-	}
-
-	if (f != 0) {
-		ASSERT0(du); //Default du manager is not enable.
-		du->perform(*oc, f);
-		if (HAVE_FLAG(f, SOL_REF)) {
-			ASSERT0(du->verifyMDRef());
-		}
-		if (HAVE_FLAG(f, SOL_AVAIL_EXPR)) {
-			ASSERT0(du->verifyLiveinExp());
-		}
-	}
-
-	if (opts.is_contain(PASS_DU_CHAIN) && !OC_is_du_chain_valid(*oc)) {
-		ASSERT0(du); //Default du manager is not enable.
-		du->computeMDDUChain(*oc);
-	}
-
-	if (opts.is_contain(PASS_EXPR_TAB) && !OC_is_expr_tab_valid(*oc)) {
-		IR_EXPR_TAB * exprtab =
-			(IR_EXPR_TAB*)passmgr->registerPass(PASS_EXPR_TAB);
-		ASSERT0(exprtab);
-		exprtab->reperform(*oc);
-	}
-
-	if (opts.is_contain(PASS_LOOP_INFO) && !OC_is_loopinfo_valid(*oc)) {
-		cfg->LoopAnalysis(*oc);
-	}
-
-	if (opts.is_contain(PASS_RPO)) {
-		if (!OC_is_rpo_valid(*oc)) {
-			cfg->compute_rpo(*oc);
-		} else {
-			ASSERT0(cfg->get_bblist_in_rpo()->get_elem_count() ==
-					 get_bb_list()->get_elem_count());
-		}
-	}
-}
-
-
-bool Region::partitionRegion()
-{
-	//----- DEMO CODE ----------
-	IR * ir = get_ir_list();
-	IR * start_pos = NULL;
-	IR * end_pos = NULL;
-	while (ir != NULL) {
-		if (IR_type(ir) == IR_LABEL) {
-			LabelInfo * li = LAB_lab(ir);
-			if (LABEL_INFO_type(li) == L_CLABEL &&
-				strcmp(SYM_name(LABEL_INFO_name(li)), "REGION_START") == 0) {
-				start_pos = ir;
-				break;
-			}
-		}
-		ir = IR_next(ir);
-	}
-	if (ir == NULL) return false;
-	ir = IR_next(ir);
-	while (ir != NULL) {
-		if (IR_type(ir) == IR_LABEL) {
-			LabelInfo * li = LAB_lab(ir);
-			if (LABEL_INFO_type(li) == L_CLABEL &&
-				strcmp(SYM_name(LABEL_INFO_name(li)), "REGION_END") == 0) {
-				end_pos = ir;
-				break;
-			}
-		}
-		ir = IR_next(ir);
-	}
-	if (start_pos == NULL || end_pos == NULL) return false;
-	ASSERT0(start_pos != end_pos);
-	//----------------
-
-	//-----------
-	//Generate IR region.
-	CHAR b[64];
-	sprintf(b, "inner_ru");
-	Type const* type = get_dm()->getMCType(0);
-	VAR * ruv = get_var_mgr()->registerVar(b, type, 1, VAR_LOCAL|VAR_FAKE);
-	VAR_allocable(ruv) = false;
-	addToVarTab(ruv);
-
-	Region * inner_ru = get_region_mgr()->newRegion(RU_SUB);
-	inner_ru->set_ru_var(ruv);
-	IR * ir_ru = buildRegion(inner_ru);
-	copyDbx(ir, ir_ru, inner_ru);
-	//------------
-
-	ir = IR_next(start_pos);
-	while (ir != end_pos) {
-		IR * t = ir;
-		ir = IR_next(ir);
-		remove(&REGION_analysis_instrument(this)->m_ir_list, t);
-		IR * inner_ir = inner_ru->dupIRTree(t);
-		freeIRTree(t);
-		inner_ru->addToIRlist(inner_ir);
-	}
-	dump_irs(inner_ru->get_ir_list(), get_dm());
-	insertafter_one(&start_pos, ir_ru);
-	dump_irs(get_ir_list(), get_dm());
-	//-------------
-
-	REGION_ru(ir_ru)->process();
-	dump_irs(get_ir_list(), get_dm());
-
-	/* Merger IR list in inner-region to outer region.
-	remove(&REGION_analysis_instrument(this)->m_ir_list, ir_ru);
-	IR * head = inner_ru->constructIRlist();
-	insertafter(&split_pos, dupIRTreeList(head));
-	dump_irs(get_ir_list()); */
-
-	delete inner_ru;
-	return false;
-}
-//END Region
-=======
     //Set the pr-var to be unallocable, means do NOT add
     //pr-var immediately as a memory-variable.
     //For now, it is only be regarded as a pseduo-register.
@@ -4745,7 +2019,6 @@ void Region::dumpFreeTab()
     for (UINT i = 0; i <= MAX_OFFSET_AT_FREE_TABLE; i++) {
         IR * lst = REGION_analysis_instrument(this)->m_free_tab[i];
         if (lst == NULL) { continue; }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
         UINT sz = i + sizeof(IR);
 
@@ -4754,22 +2027,7 @@ void Region::dumpFreeTab()
             count++;
         }
 
-<<<<<<< HEAD
-//
-//START RegionMgr
-//
-RegionMgr::~RegionMgr()
-{
-	for (INT id = 0; id <= m_id2ru.get_last_idx(); id++) {
-		Region * ru = m_id2ru.get(id);
-		if (ru != NULL) { delete ru; }
-	}
-	m_id2ru.clean();
-	m_ru_count = 0;
-	m_label_count = 1;
-=======
         fprintf(g_tfile, "\nirsize(%d), num(%d):", sz, count);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
         for (IR * ir = lst; ir != NULL; ir = ir->get_next()) {
             ASSERT0(get_irt_size(ir) == sz);
@@ -4898,92 +2156,6 @@ IR * Region::dupIRTreeList(IR const* ir)
     return new_list;
 }
 
-<<<<<<< HEAD
-
-/* Map string variable to dedicated string md.
-CASE: android/external/tagsoup/src/org/ccil/cowan/tagsoup/HTMLSchema.java
-	This method allocates 3000+ string variable.
-	Each string has been taken address.
-	It will bloat may_point_to_set.
-	So we need to regard all string variables as one if necessary. */
-MD const* RegionMgr::getDedicateStrMD()
-{
-	if (m_is_regard_str_as_same_md) {
-		//Regard all string variables as single one.
-		if (m_str_md == NULL) {
-			SYM * s  = addToSymbolTab("Dedicated_VAR_be_regarded_as_string");
-			VAR * sv = get_var_mgr()->
-						registerStringVar("Dedicated_String_Var", s, 1);
-			VAR_allocable(sv) = false;
-			VAR_is_addr_taken(sv) = true;
-			MD md;
-			MD_base(&md) = sv;
-			MD_ty(&md) = MD_UNBOUND;
-			ASSERT0(MD_base(&md)->is_string());
-			MD const* e = m_md_sys->registerMD(md);
-			ASSERT0(MD_id(e) > 0);
-			m_str_md = e;
-		}
-		return m_str_md;
-	}
-	return NULL;
-}
-
-
-//Register exact MD for each global variable.
-void RegionMgr::registerGlobalMDS()
-{
-	//Only top region can do initialize MD for global variable.
-	ID2VAR * varvec = RM_var_mgr(this)->get_var_vec();
-	for (INT i = 0; i <= varvec->get_last_idx(); i++) {
-		VAR * v = varvec->get(i);
-		if (v == NULL) { continue; }
-
-		if (VAR_is_fake(v) ||
-			VAR_is_local(v) ||
-			VAR_is_func_unit(v) ||
-			VAR_is_func_decl(v)) {
-			continue;
-		}
-		ASSERT0(VAR_is_global(v) && VAR_allocable(v));
-		if (v->is_string() && getDedicateStrMD() != NULL) {
-			continue;
-		}
-
-		MD md;
-		MD_base(&md) = v;
-		MD_ofst(&md) = 0;
-		MD_size(&md) = v->getByteSize(get_dm());
-		MD_ty(&md) = MD_EXACT;
-		m_md_sys->registerMD(md);
-	}
-}
-
-
-VarMgr * RegionMgr::newVarMgr()
-{
-	return new VarMgr(this);
-}
-
-
-Region * RegionMgr::newRegion(REGION_TYPE rt)
-{
-	Region * ru = new Region(rt, this);
-	REGION_id(ru) = m_ru_count++;
-	return ru;
-}
-
-
-//Record new region and delete it when RegionMgr destroy.
-void RegionMgr::registerRegion(Region * ru)
-{
-	ASSERT0(m_id2ru.get(REGION_id(ru)) == NULL);
-	m_id2ru.set(REGION_id(ru), ru);
-}
-
-
-Region * RegionMgr::get_region(UINT id)
-=======
 //Duplicate 'ir' and its kids, but without ir's sibiling node.
 IR * Region::dupIRTree(IR const* ir)
 {
@@ -5672,7 +2844,6 @@ bool Region::verifyRPO(OptCtx & oc)
 
 //Ensure that each IR in ir_list must be allocated in current region.
 bool Region::verifyIRinRegion()
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 {
     IR const* ir = get_ir_list();
     if (ir == NULL) { return true; }
@@ -5684,15 +2855,6 @@ bool Region::verifyIRinRegion()
 }
 
 
-<<<<<<< HEAD
-void RegionMgr::deleteRegion(UINT id)
-{
-    Region * ru = get_region(id);
-	if (ru == NULL) return;
-	m_id2ru.set(id, NULL);
-	delete ru;
-}
-=======
 //Verify cond/uncond target label.
 bool Region::verifyBBlist(BBList & bbl)
 {
@@ -6202,30 +3364,14 @@ bool Region::process(OptCtx * oc)
             get_pass_mgr()->destroyPass(inl);
         }
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     IR_SSA_MGR * ssamgr;
 
-<<<<<<< HEAD
-void RegionMgr::dump()
-{
-	if (g_tfile == NULL) return;
-	fprintf(g_tfile, "\nDump Region-UNIT\n");
-	Region * ru = getTopRegion();
-	if (ru == NULL) {
-		return;
-	}
-	ru->dumpVARInRegion(0);
-	fprintf(g_tfile, "\n");
-	fflush(g_tfile);
-}
-=======
     if (get_ir_list() != NULL) {
         if (!processIRList(*oc)) { goto ERR_RET; }
     } else {
         if (!processBBList(*oc)) { goto ERR_RET; }
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     if (g_do_ipa && is_program()) {
         if (!OC_is_callg_valid(*oc)) {
@@ -6235,26 +3381,11 @@ void RegionMgr::dump()
             ASSERT0(OC_is_callg_valid(*oc));
         }
 
-<<<<<<< HEAD
-Region * RegionMgr::getTopRegion()
-{
-	if (m_id2ru.get_last_idx() == -1) {
-		return NULL;
-	}
-	Region * ru = get_region(0);
-	ASSERT(ru != NULL, ("region id must start at 0"));
-	while (REGION_parent(ru) != NULL) {
-		ru = REGION_parent(ru);
-	}
-	return ru;
-}
-=======
         ASSERT0(get_pass_mgr());
         IPA * ipa = (IPA*)get_pass_mgr()->registerPass(PASS_IPA);
         ipa->perform(*oc);
         get_pass_mgr()->destroyPass(ipa);
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     ASSERT0(get_pass_mgr());
     ssamgr = (IR_SSA_MGR*)get_pass_mgr()->queryPass(PASS_SSA_MGR);
@@ -6262,32 +3393,14 @@ Region * RegionMgr::getTopRegion()
         ssamgr->destruction();
     }
 
-<<<<<<< HEAD
-//Process a RU_FUNC region.
-void RegionMgr::processFuncRegion(IN Region * ru)
-{
-	ASSERT0(REGION_type(ru) == RU_FUNC);
-	if (ru->get_ir_list() == NULL) { return; }
-	ru->process();
-	tfree();
-}
-=======
     if (!g_retain_pass_mgr_for_region) {
         destroyPassMgr();
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
     updateCallAndReturnList(true);
     tfree();
 
-<<<<<<< HEAD
-IPA * RegionMgr::newIPA()
-{
-	return new IPA(this);
-}
-=======
     return true;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 ERR_RET:
     ASSERT0(get_pass_mgr());
@@ -6296,123 +3409,12 @@ ERR_RET:
         ssamgr->destruction();
     }
 
-<<<<<<< HEAD
-//Scan call site and build call graph.
-CallGraph * RegionMgr::initCallGraph(Region * top)
-{
-	ASSERT0(m_callg == NULL);
-	UINT vn = 0, en = 0;
-	IR * irs = top->get_ir_list();
-	while (irs != NULL) {
-		if (irs->is_region()) {
-			vn++;
-			Region * ru = REGION_ru(irs);
-			List<IR const*> * call_list = ru->scanCallList();
-			ASSERT0(call_list);
-			if (call_list->get_elem_count() == 0) {
-				irs = IR_next(irs);
-				continue;
-			}
-			for (IR const* ir = call_list->get_head();
-				 ir != NULL; ir = call_list->get_next()) {
-				en++;
-			}
-		}
-		irs = IR_next(irs);
-	}
-
-	m_callg = new CallGraph(MAX(vn, 1), MAX(en, 1), this);
-	m_callg->build(top);
-	return m_callg;
-=======
     if (!g_retain_pass_mgr_for_region) {
         destroyPassMgr();
     }
 
     return false;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 //END Region
 
-<<<<<<< HEAD
-
-//#define MEMLEAKTEST
-#ifdef MEMLEAKTEST
-static void test_ru(Region * ru, RegionMgr * rm)
-{
-	INT i = 0;
-	VAR * v = ru->get_ru_var();
-	Region * x = new Region(RU_FUNC, rm);
-	while (i < 10000) {
-		x->init(RU_FUNC, rm);
-		x->set_ru_var(v);
-		IR * irs = ru->get_ir_list();
-		x->set_ir_list(x->dupIRTreeList(irs));		
-		//g_do_ssa = true;
-		x->process();
-		//VarMgr * vm = x->get_var_mgr();
-		//vm->dump();
-		//MDSystem * ms = x->get_md_sys();
-		//ms->dumpAllMD();
-		tfree();
-		x->destroy();
-		i++;
-	}
-	return;
-}
-#endif
-
-
-//Process top-level region unit.
-//Top level region unit should be program unit.
-void RegionMgr::process()
-{
-	Region * top = getTopRegion();
-	if (top == NULL) { return; }
-
-	registerGlobalMDS();
-	ASSERT(REGION_type(top) == RU_PROGRAM, ("TODO: support more operation."));
-	OptCTX oc;
-	if (g_do_inline) {
-		CallGraph * callg = initCallGraph(top);
-		UNUSED(callg);
-		//callg->dump_vcg(get_dt_mgr(), NULL);
-
-		OC_is_callg_valid(oc) = true;
-
-		Inliner inl(this);
-		inl.perform(oc);
-	}
-
-	//Test mem leak.
-	//Region * ru = REGION_ru(top->get_ir_list());
-	//test_ru(ru, this);
-	//return;
-
-	IR * irs = top->get_ir_list();
-	while (irs != NULL) {
-		if (irs->is_region()) {
-			Region * ru = REGION_ru(irs);
-			processFuncRegion(ru);
-			if (!g_do_ipa) {
-				ru->destroy();
-				REGION_ru(irs) = NULL;
-			}
-		}
-		irs = IR_next(irs);
-	}
-
-	if (g_do_ipa) {
-		if (!OC_is_callg_valid(oc)) {
-			initCallGraph(top);
-			OC_is_callg_valid(oc) = true;
-		}
-		IPA ipa(this);
-		ipa.perform(oc);
-	}
-}
-//END RegionMgr
-
-=======
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 } //namespace xoc

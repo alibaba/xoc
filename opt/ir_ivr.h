@@ -36,14 +36,9 @@ author: Su Zhenyu
 
 namespace xoc {
 
-<<<<<<< HEAD
-#define IV_INIT_VAL_IS_INT	0
-#define IV_INIT_VAL_IS_VAR	1
-=======
 #define IV_INIT_VAL_IS_CONST    1
 #define IV_INIT_VAL_IS_VAR      0
 
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 //IV INFO.
 #define IV_iv(d)              ((d)->iv)
@@ -59,19 +54,6 @@ namespace xoc {
 #define IV_is_inc(d)          ((d)->is_inc)
 class IV {
 public:
-<<<<<<< HEAD
-	LI<IRBB> const* li;
-	MD * iv;
-	IR * iv_def; //the unique stmt that defined iv in loop body.
-	IR * iv_occ; //occrrence of iv in loop body.
-	LONGLONG step; //step during each iteration, may be negative.
-	union {
-		LONGLONG * init_val_int; //integer initial value.
-		MD const* init_val_md; //initial value is variable.
-	} u1;
-	BYTE is_inc:1; //true if iv is increment, or false means iv is decrement.
-	BYTE init_val_type:1; //initial value may be integer or variable.
-=======
     LI<IRBB> const* li;
     MD * iv;
     IR * iv_def; //the unique stmt that defined iv in loop body.
@@ -96,7 +78,6 @@ public:
 
     Type const* getInitValType() const { return IV_initv_data_type(this); }
     IR const* getInitValStmt() const { return IV_initv_stmt(this); }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 
@@ -106,72 +87,6 @@ typedef TMap<UINT, IR*> UINT2IR;
 //Induction Variable Recognization.
 class IR_IVR : public Pass {
 protected:
-<<<<<<< HEAD
-	Region * m_ru;
-	MDSystem * m_md_sys;
-	TypeMgr * m_dm;
-	IR_DU_MGR * m_du;
-	IR_CFG * m_cfg;
-	SMemPool * m_pool;
-	SMemPool * m_sc_pool;
-	Vector<SList<IV*>*> m_li2bivlst;
-	Vector<SList<IR const*>*> m_li2divlst;
-
-	void addDIVList(LI<IRBB> const* li, IR const* e);
-	IR const* computeDomDef(IR const* exp, IR const* exp_stmt,
-						   SList<IR const*> * defs, bool omit_self);
-	bool computeInitVal(IR const* ir, IV * iv);
-
-	void findBIV(LI<IRBB> const* li, BitSet & tmp,
-				  Vector<UINT> & map_md2defcount,
-				  UINT2IR & map_md2defir);
-	void findDIV(IN LI<IRBB> const* li, IN SList<IV*> const& bivlst,
-				  BitSet & tmp);
-	bool findInitVal(IV * iv);
-
-	inline IV * newIV() { return (IV*)xmalloc(sizeof(IV)); }
-
-	void _dump(LI<IRBB> * li, UINT indent);
-	void * xmalloc(size_t size)
-	{
-		void * p = smpoolMalloc(size, m_pool);
-		ASSERT0(p);
-		memset(p, 0, size);
-		return p;
-	}
-	bool scanExp(IR const* ir, LI<IRBB> const* li, BitSet const& ivmds);
-public:
-	explicit IR_IVR(Region * ru)
-	{
-		ASSERT0(ru != NULL);
-		m_ru = ru;
-		m_md_sys = ru->get_md_sys();
-		m_du = ru->get_du_mgr();
-		m_cfg = ru->get_cfg();
-		m_dm = ru->get_dm();
-		m_pool = smpoolCreate(sizeof(IV) * 4, MEM_COMM);
-		m_sc_pool = smpoolCreate(sizeof(SC<IV*>) * 4, MEM_CONST_SIZE);
-	}
-	COPY_CONSTRUCTOR(IR_IVR);
-	virtual ~IR_IVR()
-	{
-		smpoolDelete(m_pool);
-		smpoolDelete(m_sc_pool);
-	}
-
-	void clean();
-	void dump();
-	Vector<SList<IV*>*> const* get_li2bivlst_map() const
-	{ return &m_li2bivlst; }
-
-	virtual CHAR const* get_pass_name() const
-	{ return "Induction Variable Recogization"; }
-
-	PASS_TYPE get_pass_type() const { return PASS_IVR; }
-
-	bool is_loop_invariant(LI<IRBB> const* li, IR const* ir);
-	virtual bool perform(OptCTX & oc);
-=======
     Region * m_ru;
     MDSystem * m_md_sys;
     TypeMgr * m_tm;
@@ -278,7 +193,6 @@ public:
     { m_is_strictly_match_pattern = strictly; }
 
     virtual bool perform(OptCtx & oc);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 } //namespace xoc

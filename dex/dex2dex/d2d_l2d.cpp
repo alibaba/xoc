@@ -38,30 +38,11 @@ author: GongKai, JinYue
 #include "libdex/InstrUtils.h"
 #include "libdex/DexProto.h"
 #include "libdex/CmdUtils.h"
-<<<<<<< HEAD:dex/dex2dex/src/d2d_l2d.c
-
-=======
 #include "io/cio.h"
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64:dex/dex2dex/d2d_l2d.cpp
 #include "dir.h"
 #include "liropcode.h"
 #include <assert.h>
 #include <stdio.h>
-<<<<<<< HEAD:dex/dex2dex/src/d2d_l2d.c
-
-#include "drAlloc.h"
-//#include "d2lcode.h"
-#include "d2d_l2d.h"
-#include "d2d_d2l.h"
-#include "xassert.h"
-#include "utils/cbytestream.h"
-#include "utils/clbe.h"
-#include "liropcode.h"
-#include "d2d_comm.h"
-#include "d2d_dexlib.h"
-#include "ltype.h"
-#include "lir.h"
-=======
 #include "lir.h"
 #include "d2d_comm.h"
 #include "d2d_l2d.h"
@@ -79,7 +60,6 @@ author: GongKai, JinYue
 #include "dex_hook.h"
 #include "dex_util.h"
 #include "drcode.h"
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64:dex/dex2dex/d2d_l2d.cpp
 
 static inline UInt8 getlirOpcode(ULong codePtr){
     BYTE* data = (BYTE*)codePtr;
@@ -2078,14 +2058,9 @@ Int32 transformCode(LIRCode const* code, DexCode* nCode)
    nCode->insnsSize = cbsGetSize(regIns) / 2;
 
    //Try/Catch buf will be added.
-<<<<<<< HEAD:dex/dex2dex/src/d2d_l2d.c
-   // Fix: Trycatched should be 4-byte aligned.
-   // And then the code_item will also be 4-byte aligned. whenever tries size is zero or not.
-=======
    //Fix: Trycatched should be 4-byte aligned.
    //And then the code_item will also be 4-byte aligned.
    //whenever tries size is zero or not.
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64:dex/dex2dex/d2d_l2d.cpp
    if (nCode->insnsSize & 0x01){
      cbsWrite16(regIns, (UInt16)0);
    }
@@ -2176,12 +2151,8 @@ static Int32 writeCodeItem_orig(D2Dpool* pool, CBSHandle cbsCode, DexCode* nCode
     return writeSize;
 }
 
-<<<<<<< HEAD:dex/dex2dex/src/d2d_l2d.c
-DexCode * writeCodeItem(D2Dpool* pool, CBSHandle cbsCode,
-=======
 DexCode * writeCodeItem(D2Dpool* pool,
                         CBSHandle cbsCode,
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64:dex/dex2dex/d2d_l2d.cpp
                         UInt16 registersSize,
                         UInt16 insSize,
                         UInt16 outsSize,

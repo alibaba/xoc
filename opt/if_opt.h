@@ -35,31 +35,6 @@ author: Su Zhenyu
 #define _IF_OPT_H_
 
 namespace xoc {
-<<<<<<< HEAD
-
-/*
-1.  This moves certain 'if' nodes up in the code under
-    some cirumstances that can allow the test for the if
-    to be eliminated.  The ``if'' nodes that are
-    candidates to be hoisted are those that have a
-    condition depending on only a single variable.  If
-    that is the case, and in the code preceeding the
-    'if' (on the same tree_node_list) there is another
-    'if' which assigns a constant to the value of that
-    condition variable in either the 'then' or 'else'
-    part, this will duplicate the original 'if' node and
-    put it in both the 'then' and 'else' parts of the
-    higher 'if' node, if this is legal.  This is useful
-    for code which has 'chains' of 'if' nodes; that
-    is, the body of one sets a variable that is used as a
-    test in a later 'if'.  After hoisting, the constant
-    value can often be propagated into the condition in
-    one of the branches of the 'if'.  In simple cases
-    where the flag is cleared before the higher 'if' and
-    then set only in one of its branches, the test can be
-    eliminated in both parts.
-=======
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 //1.  This moves certain 'if' nodes up in the code under
 //    some cirumstances that can allow the test for the if

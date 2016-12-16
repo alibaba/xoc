@@ -34,116 +34,6 @@ author: Su Zhenyu
 #ifndef _DEX_UTIL_H_
 #define _DEX_UTIL_H_
 
-<<<<<<< HEAD
-class Dex2IR;
-
-//
-//START DexRegion
-//
-class DexRegion : public Region {
-protected:
-	VAR2PR m_var2pr; //map from var id to prno.
-
-protected:
-	bool is_64bit(IR const* ir)
-	{ return get_dm()->get_bytesize(IR_dt(ir))== 8; }
-
-public:
-	DexRegion(REGION_TYPE rt, RegionMgr * rm) : Region(rt, rm) {}
-	virtual ~DexRegion() {}
-
-	IR * gen_and_add_sib(IR * ir, UINT prno);
-	
-	virtual bool HighProcess(OptCTX & oc);
-
-	virtual PassMgr * newPassMgr();
-	virtual IR_AA * newAliasAnalysis();
-
-	void updateRAresult(RA & ra, Prno2UINT & prno2v);
-
-	bool verifyRAresult(RA & ra, Prno2UINT & prno2v);
-
-	void process_group_bb(IRBB * bb, List<IR*> & lst);
-	void process_group();
-	void processSimply(OUT Prno2UINT & prno2v, UINT param_num,
-						UINT vregnum, Dex2IR & d2ir, UINT2PR * v2pr,
-						IN Prno2UINT * pr2v, TypeIndexRep * tr);
-	virtual void process(Prno2UINT & prno2v, UINT param_num, UINT vregnum,
-						 UINT2PR * v2pr, Prno2UINT * pr2v, TypeIndexRep * tr);
-	virtual void process() { ASSERT0(0); }
-};
-//END DexRegion
-
-
-//
-//START DexRegionMgr
-//
-class DexRegionMgr : public RegionMgr {
-public:
-	DexRegionMgr() : RegionMgr() {}
-	virtual ~DexRegionMgr() {}
-	virtual Region * newRegion(REGION_TYPE rt)
-	{
-		Region * ru = new DexRegion(rt, this);
-		REGION_id(ru) = m_ru_count++;
-		return ru;
-	}
-};
-//END DexRegionMgr
-
-#define OBJ_MC_SIZE			16
-#define ARRAY_MC_SIZE		32
-
-#define LIRC_num_of_op(l)	((l)->instrCount)
-#define LIRC_op(l, i)		((l)->lirList[i])
-
-#define LIR_opcode(ir)		((ir)->opcode)
-#define LIR_name(ir)		(gLIROpcodeInfo.opNames[LIR_opcode(ir)])
-#define LIR_dt(ir)			((ir)->flags)
-
-//For CONST
-#define LIR_int_imm(ir)		(((LIRConstOp*)ir)->vB)
-
-//For SPUT
-#define LIR_sym_ptr(ir)		(((LIRABOp*)ir)->ptr)
-#define LIR_val(ir)			(((LIRABOp*)ir)->vA) //store value
-
-//For ADD,SUB,MUL,DIV,REM,AND,OR,SHL,SHR,USHR,
-//XOR,CONST,NEW_INSTANCE.
-#define LIR_res(ir)				(((LIRABCOp*)ir)->vA)
-
-//For ADD,SUB,MUL,DIV,REM,AND,OR,SHL,SHR,USHR,
-//XOR,NEW_INSTANCE.
-#define LIR_op0(ir)				(((LIRABCOp*)ir)->vB)
-
-//For ADD,SUB,MUL,DIV,REM,AND,OR,SHL,SHR,USHR,XOR
-#define LIR_op1(ir)				(((LIRABCOp*)ir)->vC)
-
-
-#define LIR_fill_array_data_mark(ir) \
-		(((USHORT*)(((LIRSwitchOp*)ir)->data))[0])
-#define LIR_switch_kind(ir) \
-		(((USHORT*)(((LIRSwitchOp*)ir)->data))[0])
-#define LIR_case_num(ir) \
-		(((USHORT*)(((LIRSwitchOp*)ir)->data))[1])
-#define LIR_packed_switch_base_value(ir) \
-		(*((INT*)(&(((LIRSwitchOp*)ir)->data[2]))))
-#define LIR_packed_switch_case_entry(ir) \
-		((UINT*)(((USHORT*)((LIRSwitchOp*)ir)->data) + 4))
-#define LIR_sparse_switch_case_value(ir) \
-		((UINT*)(((USHORT*)(((LIRSwitchOp*)ir)->data)) + 2))
-#define LIR_sparse_switch_case_entry(ir) \
-		(UINT*)&(((BYTE*)(((LIRSwitchOp*)ir)->data))[4 + LIR_case_num(ir) * 4])
-
-typedef LIRBaseOp LIR;
-
-//Backfill data.
-class BackFillData {
-public:
-	IR * ir;
-	LIR * lir;
-};
-=======
 //Dex File Structure:
 //    header!
 //    string id!
@@ -176,7 +66,6 @@ public:
 #define FUNCNAME_PART     2
 
 class DexRegionMgr;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 //Export Functions.
 void dump_lir(LIR * lir, DexFile * df, INT pos);

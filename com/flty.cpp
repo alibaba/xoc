@@ -96,50 +96,30 @@ bool operator >= (Float const& a, Float const& b)
 
 Float operator * (Float const& a, Float const& b)
 {
-<<<<<<< HEAD
-	//return Float(integralize(integralize(a.m_f) * integralize(b.m_f)));
-	return Float(a.m_f * b.m_f);
-=======
     //return Float(integralize(integralize(a.m_f) * integralize(b.m_f)));
     return Float(a.m_f * b.m_f);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 Float operator / (Float const& a, Float const& b)
 {
-<<<<<<< HEAD
-	//return Float(integralize(integralize(a.m_f) / integralize(b.m_f)));
-	return Float(a.m_f / b.m_f);
-=======
     //return Float(integralize(integralize(a.m_f) / integralize(b.m_f)));
     return Float(a.m_f / b.m_f);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 Float operator + (Float const& a, Float const& b)
 {
-<<<<<<< HEAD
-	//return Float(integralize(integralize(a.m_f) + integralize(b.m_f)));
-	return Float(a.m_f + b.m_f);
-=======
     //return Float(integralize(integralize(a.m_f) + integralize(b.m_f)));
     return Float(a.m_f + b.m_f);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Subtration operation
 Float operator - (Float const& a, Float const& b)
 {
-<<<<<<< HEAD
-	//return Float(integralize(integralize(a.m_f) - integralize(b.m_f)));
-	return Float(a.m_f - b.m_f);
-=======
     //return Float(integralize(integralize(a.m_f) - integralize(b.m_f)));
     return Float(a.m_f - b.m_f);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -154,16 +134,6 @@ Float operator - (Float a)
 //Zerolization.
 Float zerolinz(Float const& a)
 {
-<<<<<<< HEAD
-	PRECISION_TYPE v = a.m_f;
-	if (v < 0) {
-		v = -v;
-	}
-	if (v <= INFINITESIMAL) {
-		return Float(0);
-	}
-	return a;
-=======
     PRECISION_TYPE v = a.m_f;
     if (v < 0) {
         v = -v;
@@ -172,7 +142,6 @@ Float zerolinz(Float const& a)
         return Float(0);
     }
     return a;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 

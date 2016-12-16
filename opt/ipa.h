@@ -37,29 +37,6 @@ author: Su Zhenyu
 namespace xoc {
 
 class IPA : public Pass {
-<<<<<<< HEAD
-protected:
-	RegionMgr * m_ru_mgr;
-	SMemPool * m_pool;
-
-	void * xmalloc(UINT size)
-	{
-		void * p = smpoolMalloc(size, m_pool);
-		ASSERT0(p);
-		memset(p, 0, size);
-		return p;
-	}
-public:
-	IPA(RegionMgr * ru_mgr)
-	{
-		m_ru_mgr = ru_mgr;
-		m_pool = smpoolCreate(16, MEM_COMM);
-	}
-	virtual ~IPA() { smpoolDelete(m_pool); }
-	virtual CHAR const* get_pass_name() const { return "IPA"; }
-	virtual PASS_TYPE get_pass_type() const { return PASS_IPA; }
-	virtual bool perform(OptCTX & oc);
-=======
 protected:
     RegionMgr * m_rumgr;
     Region * m_program;
@@ -106,7 +83,6 @@ public:
     virtual CHAR const* get_pass_name() const { return "IPA"; }
     virtual PASS_TYPE get_pass_type() const { return PASS_IPA; }
     virtual bool perform(OptCtx & oc);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 } //namespace xoc

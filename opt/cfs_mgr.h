@@ -62,37 +62,6 @@ SCOP
    ...
 
 */
-<<<<<<< HEAD
-#define ABS_NODE_prev(sn)			((sn)->prev)
-#define ABS_NODE_next(sn)			((sn)->next)
-#define ABS_NODE_parent(sn)			((sn)->parent)
-#define ABS_NODE_loop_body(sn)		((sn)->u2.loop_body)
-#define ABS_NODE_true_body(sn)		((sn)->u2.u3.true_body)
-#define ABS_NODE_false_body(sn)		((sn)->u2.u3.false_body)
-#define ABS_NODE_type(sn)			((sn)->ty)
-#define ABS_NODE_if_head(sn)		((sn)->u1.if_head)
-#define ABS_NODE_loop_head(sn)		((sn)->u1.loop_head)
-#define ABS_NODE_bb(sn)				((sn)->u1.bb)
-class AbsNode {
-public:
-	AbsNode * prev;
-	AbsNode * next;
-	AbsNode * parent;
-	ABS_TYPE ty; //Type of SCOP NODE
-	union {
-		AbsNode * loop_body;
-		struct {
-			AbsNode * true_body;
-			AbsNode * false_body;
-		} u3;
-	} u2;
-
-	union {
-		IRBB * if_head;
-		IRBB * loop_head;
-		IRBB * bb;
-	} u1;
-=======
 #define ABS_NODE_prev(sn)            ((sn)->prev)
 #define ABS_NODE_next(sn)            ((sn)->next)
 #define ABS_NODE_parent(sn)            ((sn)->parent)
@@ -122,7 +91,6 @@ public:
         IRBB * loop_head;
         IRBB * bb;
     } u1;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 
@@ -137,22 +105,6 @@ public:
 #define CFS_INFO_loop_body(ci)            ((ci)->u1.loop_info.loop_body_ir_set)
 class CFS_INFO {
 public:
-<<<<<<< HEAD
-	IR_TYPE cfs_type;
-	union {
-		struct {
-			BitSet * true_body_ir_set; //TRUE BODY
-			BitSet * false_body_ir_set; //FALSE BODY
-		} if_info;
-		struct {
-			BitSet * loop_body_ir_set; //LOOP BODY
-		} loop_info;
-	} u1;
-	union {
-		IR * ir;
-		IRBB * head;
-	} u2;
-=======
     IR_TYPE cfs_type;
     union {
         struct {
@@ -167,7 +119,6 @@ public:
         IR * ir;
         IRBB * head;
     } u2;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 
@@ -177,69 +128,6 @@ public:
 //
 class CfsMgr : public Pass {
 protected:
-<<<<<<< HEAD
-	BitSetMgr m_bs_mgr; //BitSet manager.
-	SMemPool * m_pool;
-	Vector<CFS_INFO*> m_map_ir2cfsinfo;
-	Region * m_ru;
-	Vector<AbsNode*> m_map_bb2abs;
-
-protected:
-	void * xmalloc(size_t size)
-	{
-		void * p = smpoolMalloc(size, m_pool);
-		ASSERT0(p);
-		memset(p, 0, size);
-		return p;
-	}
-public:
-	CfsMgr(Region * ru)
-	{
-		m_ru = ru;
-		m_pool = smpoolCreate(64, MEM_COMM);
-	}
-
-	~CfsMgr() { smpoolDelete(m_pool); }
-
-	AbsNode * constructAbsLoop(
-							IN IRBB * entry,
-							IN AbsNode * parent,
-							IN BitSet * cur_region,
-							IN Graph & cur_graph,
-							IN OUT BitSet & visited);
-	AbsNode * constructAbsIf(IN IRBB * entry,
-							IN AbsNode * parent,
-							IN Graph & cur_graph,
-							IN OUT BitSet & visited);
-	AbsNode * constructAbsBB(IN IRBB * bb, IN AbsNode * parent);
-	AbsNode * constructAbsTree(
-							IN IRBB * entry,
-							IN AbsNode * parent,
-							IN BitSet * cur_region,
-							IN Graph & cur_graph,
-							IN OUT BitSet & visited);
-	AbsNode * constructAbstractControlFlowStruct();
-
-	void dump_indent(UINT indent);
-	void dump_abs_tree(AbsNode * an);
-	void dump_abs_tree(AbsNode * an, UINT indent);
-
-	CFS_INFO * map_ir2cfsinfo(IR * ir);
-	AbsNode * map_bb2abs(IRBB const* bb);
-
-	CFS_INFO * new_cfs_info(IR_TYPE irtype);
-	AbsNode * new_abs_node(ABS_TYPE ty);
-
-	void set_map_ir2cfsinfo(IR * ir, CFS_INFO * ci);
-	void set_map_bb2abs(IRBB const* bb, AbsNode * abs);
-
-	void recordStmt(IR * ir, BitSet & irset);
-
-	virtual CHAR const* get_pass_name() const
-	{ return "Control Flow Structure MGR"; }
-
-	PASS_TYPE get_pass_type() const { return PASS_CFS_MGR; }
-=======
     BitSetMgr m_bs_mgr; //BitSet manager.
     SMemPool * m_pool;
     Vector<CFS_INFO*> m_map_ir2cfsinfo;
@@ -301,7 +189,6 @@ public:
     { return "Control Flow Structure MGR"; }
 
     virtual PASS_TYPE get_pass_type() const { return PASS_CFS_MGR; }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 } //namespace xoc

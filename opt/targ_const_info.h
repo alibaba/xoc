@@ -45,14 +45,9 @@ author: Su Zhenyu
 
 #elif defined(FOR_DEX)
 #include "../dex/dex_const_info.h"
-<<<<<<< HEAD
-#elif defined(FOR_V8)
-#include "../v8/v8_const_info.h"
-=======
 
 #elif defined(FOR_JS)
 #include "../js/js_const_info.h"
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 #endif
 
 #endif

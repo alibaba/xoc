@@ -34,41 +34,6 @@ author: Su Zhenyu
 #ifndef __TRY_CATCH_INFO_H__
 #define __TRY_CATCH_INFO_H__
 
-<<<<<<< HEAD:opt/ir_opt.h
-namespace xoc {
-
-//Basis Class of pass.
-class Pass {
-protected:
-	SimpCTX * m_simp;
-public:
-	Pass() { m_simp = NULL; }
-	virtual ~Pass() {}
-	COPY_CONSTRUCTOR(Pass);
-
-	virtual CHAR const* get_pass_name() const
-	{
-		ASSERT(0, ("Optimization Dependent Code"));
-		return NULL;
-	}
-
-	virtual PASS_TYPE get_pass_type() const
-	{
-		ASSERT(0, ("Optimization Dependent Code"));
-		return PASS_UNDEF;
-	}
-
-	void set_simp_cont(SimpCTX * simp) { m_simp = simp; }
-
-	virtual bool perform(OptCTX &)
-	{
-		ASSERT(0, ("Optimization Dependent Code"));
-		return false;
-	}
-};
-
-} //namespace xoc
-=======
 //Map from LIR to LABEL.
 typedef TMap<LIR*, List<LabelInfo*>*> LIR2LabelInfo;
 
@@ -93,5 +58,4 @@ public:
     CatchInfo * catch_list;
 };
 
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64:dex/trycatch_info.h
 #endif

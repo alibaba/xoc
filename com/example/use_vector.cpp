@@ -6,32 +6,6 @@
 using namespace xcom;
 int main()
 {
-<<<<<<< HEAD
-	Vector<char const*> SS;
-
-	SS.set(0, "The number is 10");
-	SS.set(1, "The number is 20");
-	SS.set(2, "The number is 30");
-
-	printf("Loop by index:\n");
-
-	for(int i = 0; i <= SS.get_last_idx(); i++) {
-		printf("%s\n", SS[i]);
-	}
-
-	printf("\nReverse Iterator:\n");
-
-	for(int i = SS.get_last_idx(); i >= 0; i--) {
-		printf("%s\n", SS[i]);
-	}
-
-	printf("\nSample Output:\n");
-
-	printf("%d\n", SS.get_last_idx());
-	printf("%s\n", SS[2]);
-
-	return 0;
-=======
     Vector<char const*> SS;
 
     SS.set(0, "The number is 10");
@@ -56,5 +30,4 @@ int main()
     printf("%s\n", SS[2]);
 
     return 0;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }

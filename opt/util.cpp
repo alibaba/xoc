@@ -50,61 +50,24 @@ namespace xoc {
 //Print \l as the Carriage Return.
 bool g_prt_carriage_return_for_dot = false;
 INT g_indent = 0;
-<<<<<<< HEAD
-CHAR * g_indent_chars = (CHAR*)" ";
-SMemPool * g_pool_tmp_used = NULL;
-=======
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 FILE * g_tfile = NULL;
 static SMemPool * g_pool_tmp_used = NULL;
 static CHAR g_indent_chars = ' ';
 
 void interwarn(CHAR const* format, ...)
 {
-<<<<<<< HEAD
-	CHAR sbuf[ERR_BUF_LEN];
-	if (strlen(format) > ERR_BUF_LEN) {
-		ASSERT(0, ("internwarn message is too long to print"));
-	}
-	//CHAR * arg = (CHAR*)((CHAR*)(&format) + sizeof(CHAR*));
-	va_list arg;
-	va_start(arg, format);
-	vsprintf(sbuf, format, arg);
-	printf("\n!!!XOC INTERNAL WARNING:%s\n\n", sbuf);
-	va_end(arg);
-=======
     StrBuf buf(64);
     va_list arg;
     va_start(arg, format);
     buf.vsprint(format, arg);
     prt2C("\n!!!XOC INTERNAL WARNING:%s\n\n", buf.buf);
     va_end(arg);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Print message to console.
 void prt2C(CHAR const* format, ...)
 {
-<<<<<<< HEAD
-	if (format == NULL) return 0;
-	CHAR buf[MAX_BUF_LEN];
-	if (strlen(format) > MAX_BUF_LEN) {
-		ASSERT(0, ("prt message is too long to print"));
-	}
-	//CHAR * arg = (CHAR*)((CHAR*)(&format) + sizeof(CHAR*));
-	va_list arg;
-	va_start(arg, format);
-	vsprintf(buf, format, arg);
-    if (g_tfile != NULL) {
-		fprintf(g_tfile, "%s", buf);
-		fflush(g_tfile);
-	} else {
-		fprintf(stdout, "%s", buf);
-	}
-	va_end(arg);
-	return 0;
-=======
     va_list args;
     va_start(args, format);
     #ifdef FOR_ANDROID
@@ -114,29 +77,15 @@ void prt2C(CHAR const* format, ...)
     #endif
     va_end(args);
     fflush(stdout);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 void finidump()
 {
-<<<<<<< HEAD
-	UNUSED(format);
-#ifdef _DEBUG_
-	//CHAR * arg = (CHAR*)((CHAR*)(&format) + sizeof(CHAR*));
-	va_list arg;
-	va_start(arg, format);
-	CHAR buf[MAX_BUF_LEN];
-	vsprintf(buf, format, arg);
-	fprintf(stdout, "\n%s", buf);
-	va_end(arg);
-#endif
-=======
     if (g_tfile != NULL) {
         fclose(g_tfile);
         g_tfile = NULL;
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -148,24 +97,6 @@ SMemPool * get_tmp_pool()
 
 void initdump(CHAR const* f, bool is_del)
 {
-<<<<<<< HEAD
-	if (is_del && f != NULL) {
-		unlink(f);
-	}
-	if (f != NULL) {
-		if (is_del) {
-			unlink(f);
-		}
-		g_tfile = fopen(f, "a+");
-		if (g_tfile == NULL) {
-			ASSERT(0, ("can not open %s, errno:%d, errstring is %s",
-						f, errno, strerror(errno)));
-			return;
-		}
-	} else {
-		//g_tfile = stdout;
-	}
-=======
     if (f == NULL) { return; }
     if (is_del) {
         unlink(f);
@@ -176,58 +107,12 @@ void initdump(CHAR const* f, bool is_del)
                 "can not open dump file %s, errno:%d, errstring:\'%s\'",
                 f, errno, strerror(errno));
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Print string with indent chars.
 void note(CHAR const* format, ...)
 {
-<<<<<<< HEAD
-	if (g_tfile == NULL) {
-		return;
-	}
-	if (format == NULL) return;
-	//CHAR buf[MAX_BUF_LEN];
-	UINT buflen = 4096;
-	CHAR * buf = (CHAR*)malloc(buflen);
-	CHAR * real_buf = buf;
-	//CHAR * arg = (CHAR*)((CHAR*)(&format) + sizeof(CHAR*));
-	va_list arg;
-	va_start(arg, format);
-	vsnprintf(buf, buflen, format, arg);
-	buf[buflen-1] = 0;
-	UINT len = strlen(buf);
-	ASSERT0(len < buflen);
-	UINT i = 0;
-	while (i < len) {
-		if (real_buf[i] == '\n') {
-			fprintf(g_tfile, "\n");
-		} else {
-			break;
-		}
-		i++;
-	}
-
-	//Append indent chars ahead of string.
-	INT w = 0;
-	while (w < g_indent) {
-		fprintf(g_tfile, "%s", g_indent_chars);
-		w++;
-	}
-
-	if (i == len) {
-		fflush(g_tfile);
-		goto FIN;
-	}
-
-	fprintf(g_tfile, "%s", real_buf + i);
-	fflush(g_tfile);
-FIN:
-	free(buf);
-	va_end(arg);
-	return;
-=======
     if (g_tfile == NULL || format == NULL) { return; }
 
     StrBuf buf(64);
@@ -264,23 +149,12 @@ FIN:
 FIN:    
     va_end(arg);
     return;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Malloc memory for tmp used.
 void * tlloc(LONG size)
 {
-<<<<<<< HEAD
-	if (size < 0 || size == 0) return NULL;
-	if (g_pool_tmp_used == NULL) {
-		g_pool_tmp_used = smpoolCreate(8, MEM_COMM);
-	}
-	void * p = smpoolMalloc(size, g_pool_tmp_used);
-	if (p == NULL) return NULL;
-	memset(p, 0, size);
-	return p;
-=======
     if (size < 0 || size == 0) return NULL;
     if (g_pool_tmp_used == NULL) {
         g_pool_tmp_used = smpoolCreate(8, MEM_COMM);
@@ -289,22 +163,11 @@ void * tlloc(LONG size)
     if (p == NULL) return NULL;
     memset(p, 0, size);
     return p;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 void tfree()
 {
-<<<<<<< HEAD
-	if (g_pool_tmp_used != NULL) {
-		smpoolDelete(g_pool_tmp_used);
-		g_pool_tmp_used = NULL;
-	}
-}
-
-
-void dump_vec(Vector<UINT> & v)
-=======
     if (g_pool_tmp_used != NULL) {
         smpoolDelete(g_pool_tmp_used);
         g_pool_tmp_used = NULL;
@@ -322,7 +185,6 @@ void dumpIndent(FILE * h, UINT indent)
 
 
 void dumpIntVector(Vector<UINT> & v)
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 {
     if (g_tfile == NULL) return;
     fprintf(g_tfile, "\n");
@@ -341,77 +203,6 @@ void dumpIntVector(Vector<UINT> & v)
 //Integer TAB.
 class IT : public RBT<int, int> {
 public:
-<<<<<<< HEAD
-	//Add left child
-	void add_lc(int from, RBCOL f, int to, RBCOL t)
-	{
-		TN * x = m_root;
-		if (x == NULL) {
-			m_root = new_tn(from, f);
-			x = new_tn(to, t);
-			m_root->lchild = x;
-			x->parent = m_root;
-			return;
-		}
-
-		List<TN*> lst;
-		lst.append_tail(x);
-		while (lst.get_elem_count() != 0) {
-			x = lst.remove_head();
-			if (x->key == from) {
-				break;
-			}
-			if (x->rchild != NULL) {
-				lst.append_tail(x->rchild);
-			}
-			if (x->lchild != NULL) {
-				lst.append_tail(x->lchild);
-			}
-		}
-		ASSERT0(x);
-		ASSERT0(x->color == f);
-		TN * y = new_tn(to, t);
-
-		ASSERT0(x->lchild == NULL);
-		x->lchild = y;
-		y->parent = x;
-	}
-
-	//Add left child
-	void add_rc(int from, RBCOL f, int to, RBCOL t)
-	{
-		TN * x = m_root;
-		if (x == NULL) {
-			m_root = new_tn(from, f);
-			x = new_tn(to, t);
-			m_root->rchild = x;
-			x->parent = m_root;
-			return;
-		}
-
-		List<TN*> lst;
-		lst.append_tail(x);
-		while (lst.get_elem_count() != 0) {
-			x = lst.remove_head();
-			if (x->key == from) {
-				break;
-			}
-			if (x->rchild != NULL) {
-				lst.append_tail(x->rchild);
-			}
-			if (x->lchild != NULL) {
-				lst.append_tail(x->lchild);
-			}
-		}
-		ASSERT0(x);
-		ASSERT0(x->color == f);
-		TN * y = new_tn(to, t);
-
-		ASSERT0(x->rchild == NULL);
-		x->rchild = y;
-		y->parent = x;
-	}
-=======
     //Add left child
     void add_lc(int from, RBCOL f, int to, RBCOL t)
     {
@@ -481,7 +272,6 @@ public:
         x->rchild = y;
         y->parent = x;
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 

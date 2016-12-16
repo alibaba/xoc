@@ -29,17 +29,6 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-<<<<<<< HEAD:dex/dex2dex/src/test/main.c
-author: GongKai, JinYue
-@*/
-#include "d2d_main.h"
-
-int main(int argc, const char* argv[])
-{
-    return d2dTest(argc, argv);
-}
-
-=======
 author: Su Zhenyu
 @*/
 #ifndef _DEX_HOOK_H_
@@ -55,4 +44,3 @@ author: Su Zhenyu
 #include "dex_cfg.h"
 
 #endif
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64:dex/dex_hook.h

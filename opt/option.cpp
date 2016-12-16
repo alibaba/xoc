@@ -77,16 +77,6 @@ bool g_do_cfg_remove_empty_bb = true;
 //Perform cfg optimization: remove unreachable bb from entry.
 bool g_do_cfg_remove_unreach_bb = true;
 
-<<<<<<< HEAD
-/* Perform cfg optimization: remove redundant trampoline bb.
-e.g:
-	BB1: goto L1
-	BB2, L1: goto L2
-should be optimized and generate:
-	BB1: goto L2
-*/
-bool g_do_cfg_remove_trampolin_bb = true;
-=======
 //Perform cfg optimization: remove redundant trampoline bb.
 //e.g:
 //    BB1: goto L1
@@ -106,7 +96,6 @@ bool g_do_cfg_remove_trampolin_bb = true;
 //
 //S1 is redundant branch.
 bool g_do_cfg_remove_redundant_branch = true;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 //Build dominator tree.
 bool g_do_cfg_dom = true;
@@ -222,8 +211,6 @@ bool g_do_loop_convert = false;
 //Polyhedral Transformations.
 bool g_do_poly_tran = false;
 
-<<<<<<< HEAD
-=======
 //Set to true to retain the PassMgr even if Region processing finished.
 bool g_retain_pass_mgr_for_region = false;
 
@@ -248,5 +235,4 @@ UINT g_verify_level = VERIFY_LEVEL_2;
 //               intconst 24|0x18 (u32) id:14
 bool g_is_simplify_parameter = true;
 
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 } //namespace xoc

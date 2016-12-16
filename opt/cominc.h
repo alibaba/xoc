@@ -34,40 +34,7 @@ author: Su Zhenyu
 #ifndef __COMINC_H__
 #define __COMINC_H__
 
-<<<<<<< HEAD
-//Common included files
-#include "stdlib.h"
-#include "stdarg.h"
-#include "stdio.h"
-#include "string.h"
-#include "ltype.h"
-
-//libxcom
-#include "comf.h"
-#include "smempool.h"
-#include "sstl.h"
-#include "matt.h"
-#include "bs.h"
-#include "sbs.h"
-#include "sgraph.h"
-#include "rational.h"
-#include "flty.h"
-#include "xmat.h"
-
-using namespace xcom;
-
-#include "option.h"
-#include "targ_const_info.h"
-#include "util.h"
-#include "symtab.h"
-#include "label.h"
-#include "cdg.h"
-#include "loop.h"
-#include "cfg.h"
-#include "math.h"
-=======
 #include "commoninc.h"
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 #include "data_type.h"
 #include "dbg.h"
 #include "loop.h"

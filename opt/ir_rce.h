@@ -39,47 +39,6 @@ namespace xoc {
 //Perform Redundant Code Elimination.
 class IR_RCE : public Pass {
 protected:
-<<<<<<< HEAD
-	Region * m_ru;
-	IR_CFG * m_cfg;
-	IR_GVN * m_gvn;
-	IR_DU_MGR * m_du;
-
-	//Use GVN info to determine if code is redundant.
-	//Note that compute GVN is expensive.
-	bool m_use_gvn;
-public:
-	IR_RCE(Region * ru, IR_GVN * gvn)
-	{
-		ASSERT0(ru != NULL);
-		m_ru = ru;
-		m_gvn = gvn;
-		m_cfg = ru->get_cfg();
-		m_du = m_ru->get_du_mgr();
-		m_use_gvn = false;
-	}
-	COPY_CONSTRUCTOR(IR_RCE);
-	virtual ~IR_RCE() {}
-
-	IR * calcCondMustVal(IN IR * ir, OUT bool & must_true,
-							OUT bool & must_false);
-
-	void dump();
-	virtual CHAR const* get_pass_name() const
-	{ return "Redundant Code Elimination"; }
-
-	PASS_TYPE get_pass_type() const { return PASS_RCE; }
-
-	bool is_use_gvn() const { return m_use_gvn; }
-
-	void set_use_gvn(bool use_gvn) { m_use_gvn = use_gvn; }
-
-	IR * processStore(IR * ir);
-	IR * processStorePR(IR * ir);
-	IR * processBranch(IR * ir, IN OUT bool & cfg_mod);
-	bool performSimplyRCE(IN OUT bool & cfg_mod);
-	virtual bool perform(OptCTX & oc);
-=======
     Region * m_ru;
     IR_CFG * m_cfg;
     IR_GVN * m_gvn;
@@ -123,7 +82,6 @@ public:
     IR * processBranch(IR * ir, IN OUT bool & cfg_mod);
     bool performSimplyRCE(IN OUT bool & cfg_mod);
     virtual bool perform(OptCtx & oc);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 };
 
 } //namespace xoc

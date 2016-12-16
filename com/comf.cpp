@@ -192,17 +192,6 @@ CHAR * xstrcat(CHAR * buf, size_t bufl, CHAR const* info, ...)
 //Round off to minus infinity
 INT xfloor(INT a, INT b)
 {
-<<<<<<< HEAD
-	ASSERT(b != 0, ("div zero"));
-	if (a % b == 0) {
-		//This part could not be combined with third one.
-		return (a / b);
-	} else if ((a < 0 && b < 0) || (a > 0 && b > 0)) {
-		return (a / b);
-	} else {
-		return ((a - b) / b);
-	}
-=======
     ASSERT(b != 0, ("div zero"));
     if (a % b == 0) {
         //This part could not be combined with third one.
@@ -212,31 +201,12 @@ INT xfloor(INT a, INT b)
     } else {
         return ((a - b) / b);
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Round up to plus infinity.
 INT xceiling(INT a, INT b)
 {
-<<<<<<< HEAD
-	ASSERT(b != 0, ("div zero"));
-	if (a % b == 0) {
-		/*
-		(a+b-1)/b will be errorneous
-		CASE:ceil(-4, 2)
-		*/
-		return a / b;
-	} else if ((a < 0 && b < 0) || (a > 0 && b > 0)) {
-		return ((a + b) / b);
-	} else {
-		/*
-		(a+b-1)/b will be errorneous
-		CASE:ceil(5,-2)
-		*/
-		return (a / b);
-	}
-=======
     ASSERT(b != 0, ("div zero"));
     if (a % b == 0) {
         //(a+b-1)/b will be errorneous
@@ -249,7 +219,6 @@ INT xceiling(INT a, INT b)
         //CASE:ceil(5,-2)
         return (a / b);
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -282,12 +251,8 @@ INT slcm(INT x, INT y)
 }
 
 
-<<<<<<< HEAD
-INT gcdm(UINT num, Vector<INT, 8> const& a)
-=======
 //Great common divisor for values stored in vector.
 INT gcdm(UINT num, Vector<INT, 8> const& values)
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 {
     if (num == 0) { return 0; }
     INT n1 = values[0];
@@ -373,15 +338,6 @@ UINT fact(UINT n)
 //P(n,m)=n*(n-1)*...*(n-m+1)=n!/(n-m)!
 UINT arra(UINT n, UINT m)
 {
-<<<<<<< HEAD
-	ASSERT(n != 0 && m != 0 && n >= m, ("illegal param"));
-	UINT l = n - m + 1, i = n, res = 1;
-	while (i >= l) {
-		res = res * i;
-		i--;
-	}
-	return res;
-=======
     ASSERT(n != 0 && m != 0 && n >= m, ("illegal param"));
     UINT l = n - m + 1, i = n, res = 1;
     while (i >= l) {
@@ -389,7 +345,6 @@ UINT arra(UINT n, UINT m)
         i--;
     }
     return res;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -398,19 +353,6 @@ UINT arra(UINT n, UINT m)
 //Simplify:C(n,m)=(n*(n-1)*(m+1))/(n-m)!
 UINT combin(UINT n, UINT m)
 {
-<<<<<<< HEAD
-	ASSERT(n != 0 && m != 0 && n >= m, ("illegal param"));
-	if (n == m) {
-		return 1;
-	}
-	UINT l = m + 1, i = n, res = 1;
-	while (i >= l) {
-		res = res * i;
-		i--;
-	}
-	res = res / fact(n-m);
-	return res;
-=======
     ASSERT(n != 0 && m != 0 && n >= m, ("illegal param"));
     if (n == m) {
         return 1;
@@ -422,7 +364,6 @@ UINT combin(UINT n, UINT m)
     }
     res = res / fact(n-m);
     return res;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -430,29 +371,6 @@ UINT combin(UINT n, UINT m)
 //e.g: char p = ' '; p is blank.
 INT xctoi(CHAR const* cl)
 {
-<<<<<<< HEAD
-	#ifndef BYTE_PER_INT
-		#define BYTE_PER_INT 4
-	#endif
-
-	#ifndef BIT_PER_BYTE
-		#define BIT_PER_BYTE 8
-	#endif
-
-	if (cl == NULL || strcmp(cl, "") == 0) return 0;
-	INT l = strlen(cl);
-	if (l > BYTE_PER_INT) {
-		ASSERT(0, ("too many characters in integer"));
-		return 0;
-	}
-	INT i = 0;
-	INT r = 0;
-	while (i < l) {
-		r |= cl[i] << (i * BIT_PER_BYTE);
-		i++;
-	}
-	return r;
-=======
     #ifndef BYTE_PER_INT
         #define BYTE_PER_INT 4
     #endif
@@ -474,7 +392,6 @@ INT xctoi(CHAR const* cl)
         i++;
     }
     return r;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -634,25 +551,6 @@ UCHAR * reverseString(UCHAR * v)
 //Convert long to string.
 UCHAR * xltoa(LONG v, OUT UCHAR * buf)
 {
-<<<<<<< HEAD
-	UCHAR const p [] = {'0','1','2','3','4','5','6','7','8','9'};
-	bool sign = false;
-	if (v < 0) { v = -v; sign = true; }
-	UCHAR * str = buf;
-
-	LONG rem = 0;
-	while (v != 0) {
-		rem = v % 10;
-		v /= 10;
-		*str++ = p[rem];
-	}
-	if (sign) {
-		*str++ = '-';
-	}
-	*str = 0; //end of string
-	reverseString(buf);
-	return buf;
-=======
     UCHAR const p [] = {'0','1','2','3','4','5','6','7','8','9'};
     bool sign = false;
     if (v < 0) { v = -v; sign = true; }
@@ -670,25 +568,16 @@ UCHAR * xltoa(LONG v, OUT UCHAR * buf)
     *str = 0; //end of string
     reverseString(buf);
     return buf;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 static void _prim(INT m, INT n, OUT INT * buf, UINT i)
 {
-<<<<<<< HEAD
-	if (m > n) {
-		while (m % n != 0) { n++; }
-		m = m / n; //Factorize 'm' to two composite-number.
-		buf[i++] = n;
-		_prim(m, n, buf, i);
-=======
     if (m > n) {
         while (m % n != 0) { n++; }
         m = m / n; //Factorize 'm' to two composite-number.
         buf[i++] = n;
         _prim(m, n, buf, i);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
     }
 }
 
@@ -697,21 +586,6 @@ static void _prim(INT m, INT n, OUT INT * buf, UINT i)
 //e.g:435234 = 251 * 17 * 17 * 3 * 2
 void prim(INT m, OUT INT * buf)
 {
-<<<<<<< HEAD
-	ASSERT0(buf);
-	bool sign = false;
-	buf[0] = 0;
-	if (m < 0) {
-		sign = true;
-		m = -m;
-	}
-
-	_prim(m, 2, buf, 0);
-
-	if (sign) {
-		buf[0] = -buf[0];
-	}
-=======
     ASSERT0(buf);
     bool sign = false;
     buf[0] = 0;
@@ -725,60 +599,12 @@ void prim(INT m, OUT INT * buf)
     if (sign) {
         buf[0] = -buf[0];
     }
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Dumpf() for Vector<TY>.
 void dumpf_svec(void * vec, UINT ty, CHAR const* name, bool is_del)
 {
-<<<<<<< HEAD
-	if (name == NULL) {
-		name = "matrix.tmp";
-	}
-
-	if (is_del) {
-		unlink(name);
-	}
-
-	static INT g_count = 0;
-	FILE * h = fopen(name, "a+");
-	ASSERT(h, ("%s create failed!!!", name));
-	fprintf(h, "\nSVECOTR dump id:%d\n", g_count++);
-
-	///
-	switch (ty) {
-	case D_BOOL:
-		{
-			Vector<bool> *p = (Vector<bool> *)vec;
-			for (INT i = 0; i <= p->get_last_idx(); i++) {
-				fprintf(h, "%d", (INT)p->get(i));
-				if (i != p->get_last_idx()) {
-					fprintf(h, ", ");
-				}
-			}
-			break;
-		}
-	case D_INT:
-		{
-			Vector<INT> *p = (Vector<INT> *)vec;
-			for (INT i = 0; i <= p->get_last_idx(); i++) {
-				fprintf(h, "%d", (INT)p->get(i));
-				if (i != p->get_last_idx()) {
-					fprintf(h, ", ");
-				}
-			}
-			break;
-		}
-	default:
-		ASSERT(0, ("illegal ty"));
-	}
-
-	///
-
-	fprintf(h, "\n");
-	fclose(h);
-=======
     if (name == NULL) {
         name = "matrix.tmp";
     }
@@ -824,43 +650,12 @@ void dumpf_svec(void * vec, UINT ty, CHAR const* name, bool is_del)
 
     fprintf(h, "\n");
     fclose(h);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
 //Dumps() for Vector<TY>.
 void dumps_svec(void * vec, UINT ty)
 {
-<<<<<<< HEAD
-	printf("\n");
-	switch (ty) {
-	case D_BOOL:
-		{
-			Vector<bool> *p = (Vector<bool> *)vec;
-			for (INT i = 0; i <= p->get_last_idx(); i++) {
-				printf("%d", (INT)p->get(i));
-				if (i != p->get_last_idx()) {
-					printf(", ");
-				}
-			}
-			break;
-		}
-	case D_INT:
-		{
-			Vector<INT> *p = (Vector<INT> *)vec;
-			for (INT i = 0; i <= p->get_last_idx(); i++) {
-				printf("%d", (INT)p->get(i));
-				if (i != p->get_last_idx()) {
-					printf(", ");
-				}
-			}
-			break;
-		}
-	default:
-		ASSERT(0, ("illegal ty"));
-	}//end switch
-	printf("\n");
-=======
     printf("\n");
     switch (ty) {
     case D_BOOL:
@@ -889,7 +684,6 @@ void dumps_svec(void * vec, UINT ty)
         ASSERT(0, ("illegal ty"));
     }//end switch
     printf("\n");
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -907,21 +701,12 @@ LONG revlong(LONG d)
 //Convert floating point string into binary words.
 void af2i(IN CHAR * f, OUT BYTE * buf, UINT buflen, bool is_double)
 {
-<<<<<<< HEAD
-	UNUSED(is_double);
-	UNUSED(buflen);
-	UNUSED(buf);
-	UNUSED(f);
-	ASSERT0(f && buf);
-	ASSERT(0, ("TODO"));
-=======
     UNUSED(is_double);
     UNUSED(buflen);
     UNUSED(buf);
     UNUSED(f);
     ASSERT0(f && buf);
     ASSERT(0, ("TODO"));
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -953,19 +738,11 @@ UINT getSparsePopCount(ULONGLONG v)
 //Compute the number of 1.
 UINT getLookupPopCount(ULONGLONG v)
 {
-<<<<<<< HEAD
-	BYTE * p = (BYTE*)&v;
-	return g_bit_count[p[0]] + g_bit_count[p[1]] +
-		   g_bit_count[p[2]] + g_bit_count[p[3]] +
-		   g_bit_count[p[4]] + g_bit_count[p[5]] +
-		   g_bit_count[p[6]] + g_bit_count[p[7]];
-=======
     BYTE * p = (BYTE*)&v;
     return g_bit_count[p[0]] + g_bit_count[p[1]] +
            g_bit_count[p[2]] + g_bit_count[p[3]] +
            g_bit_count[p[4]] + g_bit_count[p[5]] +
            g_bit_count[p[6]] + g_bit_count[p[7]];
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -1019,27 +796,6 @@ LONGLONG ceil_align(LONGLONG v, LONGLONG align)
 //e.g: Given /xx/yy/zz.file, return /xx/yy
 CHAR * getfilepath(CHAR const* n, OUT CHAR * buf, UINT bufl)
 {
-<<<<<<< HEAD
-	INT l = strlen(n), i = 0;
-	if (n == NULL) return NULL;
-	i = l;
-	while (i >= 0) {
-		if (n[i] != '\\' && n[i] != '/') {
-			i--;
-		} else {
-			break;
-		}
-	}
-	if (i < 0) {
-		return NULL;
-	} else {
-		UNUSED(bufl);
-		ASSERT0((UINT)i < bufl);
-		memcpy(buf, n, i);
-		buf[i] = 0;
-	}
-	return buf;
-=======
     if (n == NULL) { return NULL; }
 
     ASSERT0(buf);
@@ -1058,7 +814,6 @@ CHAR * getfilepath(CHAR const* n, OUT CHAR * buf, UINT bufl)
     memcpy(buf, n, i);
     buf[i] = 0;
     return buf;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -1098,42 +853,6 @@ void strshift(IN OUT CHAR * string, INT ofst)
 //e.g: Given /xx/yy/zz.foo, return zz.
 CHAR * getfilename(CHAR const* path, OUT CHAR * buf, UINT bufl)
 {
-<<<<<<< HEAD
-	UNUSED(bufl);
-	INT l = strlen(n), i = 0;
-	CHAR * p;
-	if (n == NULL) { return NULL; }
-	i = l;
-	while (i >= 0) {
-		if (n[i] != '\\' && n[i] != '/') {
-			i--;
-		} else {
-			break;
-		}
-	}
-
-	if (i < 0) {
-		i = l;
-		p = n;
-	} else {
-		p = (CHAR*)ALLOCA(l - i);
-		memcpy(p, n + i + 1, l - i);
-		i = l - i;
-	}
-
-	while (i >= 0) {
-		if (p[i] != '.') {
-			i--;
-		} else {
-			break;
-		}
-	}
-
-	ASSERT0((UINT)i < bufl);
-	memcpy(buf, p, i);
-	buf[i] = 0;
-	return buf;
-=======
     UNUSED(bufl);
     if (path == NULL) { return NULL; }
     INT l = (INT)strlen(path);
@@ -1161,7 +880,6 @@ CHAR * getfilename(CHAR const* path, OUT CHAR * buf, UINT bufl)
     }
     buf[len] = 0;
     return buf;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -1237,15 +955,9 @@ UINT xstrlen(CHAR const* p)
 //Return true if equal.
 bool xstrcmp(CHAR const* p1, CHAR const* p2, INT n)
 {
-<<<<<<< HEAD
-	while (n-- > 0 && *p1++ == *p2++) { }
-	if (n >= 0) return true;
-	return false;
-=======
     while (n-- > 0 && *p1++ == *p2++) { }
     if (n >= 0) return true;
     return false;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -1277,15 +989,8 @@ CHAR * lower(CHAR * n)
 }
 
 
-<<<<<<< HEAD
-/*
-Get the index of the first '1' start at most right side.
-e.g: given m=0x8, the first '1' index is 3.
-*/
-=======
 //Get the index of the first '1' start at most right side.
 //e.g: given m=0x8, the first '1' index is 3.
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 INT getFirstOneAtRightSide(INT m)
 {
     static const INT dbitpos[32] = {
@@ -1299,18 +1004,6 @@ INT getFirstOneAtRightSide(INT m)
 //Judge if 'f' is integer conform to IEEE754 spec.
 bool is_integer(float f)
 {
-<<<<<<< HEAD
-	/*
-	0000 0000 0111 1111 1111 1111 1111 1111 //mantissa
-	0111 1111 1000 0000 0000 0000 0000 0000 //exp
-	*/
-	float * p = &f;
-	INT i = *(INT*)p;
-	INT m = i & 0x007FFFFF; //mantissa
-	INT n = ((i & 0x7F800000) >> 23) - 127; //number of exp
-	INT j = getFirstOneAtRightSide(m);
-	return 23 - j <= n;
-=======
     //0000 0000 0111 1111 1111 1111 1111 1111 //mantissa
     //0111 1111 1000 0000 0000 0000 0000 0000 //exp
     float * p = &f;
@@ -1319,7 +1012,6 @@ bool is_integer(float f)
     INT n = ((i & 0x7F800000) >> 23) - 127; //number of exp
     INT j = getFirstOneAtRightSide(m);
     return 23 - j <= n;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -1343,17 +1035,6 @@ bool is_integerd(double d)
 
 bool isPowerOf5(double f)
 {
-<<<<<<< HEAD
-	ASSERT0(f >= 0.0);
-	if (f == 0.0) { return false; }
-	while (f >= 5.0) {
-		f = f / 5.0;
-		if (f == 1.0) {
-			return true;
-		}
-	}
-	return false;
-=======
     ASSERT0(f >= 0.0);
     if (f == 0.0) { return false; }
     while (f >= 5.0) {
@@ -1363,7 +1044,6 @@ bool isPowerOf5(double f)
         }
     }
     return false;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 
@@ -1642,64 +1322,6 @@ DIGIT0:
 
 LETTER:
     tpos = 0;
-<<<<<<< HEAD
-	//Switch on marker character
-	switch (ch) {
-	case 'c': //ANSI CHAR
-		{
-			/*
-			CHAR is promoted to INT when passed through '...'.
-			So you should pass 'INT' not 'CHAR' to 'va_arg'.
-			If this code is reached, the program will abort.
-			*/
-			CHAR c = (CHAR)va_arg(stack_start, INT);
-			if (!prtchar(buf, buflen, bufpos, c)) goto OVER;
-		}
-		break;
-	case 'd'://	Integer
-	case 'i'://	Integer
-		{
-			INT i = va_arg(stack_start, INT);
-			if (i < 0) is_nega = true;
-			if (!prt_int(sbuf, buflen, &tpos, i)) goto OVER;
-		}
-		break;
-	case 'u'://	ULONG as decimal
-		{
-			ULONG uv = va_arg(stack_start, ULONG);
-			if (!prt_ulong(sbuf, buflen, &tpos, uv)) goto OVER;
-		}
-		break;
- 	case 'x':// ULONG as hex
-		{
-			ULONG uv = va_arg(stack_start, ULONG);
-			if(!prt_ulong_hex(sbuf, buflen, &tpos, uv, format_size)) goto OVER;
-		}
-		break;
-	case 's'://	ANSI string
-		{
-			CHAR * s = va_arg(stack_start, CHAR*);
-			if (!prt_ansi_str(sbuf, buflen, &tpos, s, format_size)) goto OVER;
-		}
-		break;
-	case 'S'://	Wide string
-		{
-			wchar_t * s = va_arg(stack_start, wchar_t*);
-			if (!prt_wide_str(sbuf, buflen, &tpos, s, format_size)) goto OVER;
-		}
-		break;
-	case 'f':
-		; //TODO
-	default:
-		goto FIN;
-	}
-
-	if (is_mark_positive) {
-		if (is_nega) {
-			if (!prtchar(buf, buflen, bufpos, '-')) goto OVER;
-
-			//remove '-'
-=======
     //Switch on marker character
     switch (ch) {
     case 'c': //ANSI CHAR
@@ -1754,7 +1376,6 @@ LETTER:
             if (!prtchar(buf, buflen, bufpos, '-')) goto OVER;
 
             //remove '-'
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
             strshift(sbuf, -1);
             tpos -= 1;
         } else {

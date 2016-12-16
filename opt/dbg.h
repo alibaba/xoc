@@ -37,45 +37,22 @@ author: Su Zhenyu
 namespace xoc {
 
 class Region;
-<<<<<<< HEAD
-//
-//START Dbx
-//
-//Describe debug information.
-#define DBX_lineno(d)			(d)->lineno
-=======
 
 //Describe debug information.
 //Note line number can not be 0.
 #define DBX_lineno(d)   ((d)->lineno)
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 class Dbx {
 public:
     UINT lineno; //Note line number can not be 0.
 
-<<<<<<< HEAD
-	void clean() { lineno = 0; }
-	void copy(Dbx const& dbx) { lineno = dbx.lineno; }
-};
-//END Dbx
-=======
 public:
     void clean() { lineno = 0; }
     void copy(Dbx const& dbx) { lineno = dbx.lineno; }
 };
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 
 class DbxMgr {
 public:
-<<<<<<< HEAD
-	virtual ~DbxMgr() {}
-	virtual void printSrcLine(IR const*) {}
-};
-
-extern DbxMgr * g_dbg_mgr;
-
-=======
     virtual ~DbxMgr() {}
 
     //Do some prepare work before print source file.
@@ -89,17 +66,12 @@ extern DbxMgr * g_dbg_mgr;
 //User need to initialize DbxMgr before compilation.
 extern DbxMgr * g_dbx_mgr;
 
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 //Copy Dbx from src.
 void copyDbx(IR * tgt, IR const* src, Region * ru);
 void set_lineno(IR * ir, UINT lineno, Region * ru);
 UINT get_lineno(IR const* ir);
-<<<<<<< HEAD
-Dbx * get_dbx(IR * ir);
-=======
 UINT get_lineno(Dbx const& dbx);
 Dbx * get_dbx(IR const* ir);
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 } //namespace xoc
 #endif

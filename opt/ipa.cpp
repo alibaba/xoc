@@ -37,26 +37,6 @@ author: Su Zhenyu
 
 namespace xoc {
 
-<<<<<<< HEAD
-//
-//START IPA
-//
-/*
-NOTE: IPA should only be performed in top level region,
-since it might incur the memory blow up.
-*/
-bool IPA::perform(OptCTX & oc)
-{
-	UNUSED(oc);
-	ASSERT0(OC_is_callg_valid(oc));
-	Region * top = m_ru_mgr->getTopRegion();
-	if (top == NULL) return false;
-	ASSERT0(REGION_type(top) == RU_PROGRAM);
-	//start do cp_prop
-	//...
-	//
-	return true;
-=======
 Region * IPA::findRegion(IR * call, Region * callru)
 {
     ASSERT0(call->is_call());
@@ -223,7 +203,6 @@ bool IPA::perform(OptCtx & oc)
     createCallDummyuse(oc);
     END_TIMER_AFTER(get_pass_name());
     return true;
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 }
 
 } //namespace xoc

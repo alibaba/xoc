@@ -35,104 +35,6 @@ author: Su Zhenyu
 #define _COMF_H_
 
 namespace xcom {
-<<<<<<< HEAD
-
-
-/* Singler timer, show const string before timer start.
-e.g:
-	START_TIMER("My Pass");
-	Run mypass();
-	END_TIMER(); */
-#define START_TIMER(s)  			\
-	LONG _start_time_count_ = 0;	\
-	if (g_show_comp_time) {			\
-		_start_time_count_ =		\
-			getclockstart();		\
-		printf("\n==-- %s Time:", (s));	\
-	}
-#define END_TIMER()					\
-	if (g_show_comp_time) {			\
-		printf("%fsec", getclockend(_start_time_count_)); \
-	}
-
-
-/* Single timer, show const string after timer finish.
-e.g:
-	START_TIMER_AFTER();
-	Run mypass();
-	END_TIMER_AFTER("My Pass"); */
-#define START_TIMER_AFTER() 		\
-	LONG _start_time_count_ = 0;	\
-	if (g_show_comp_time) {			\
-		_start_time_count_ =		\
-				getclockstart();	\
-	}
-#define END_TIMER_AFTER(s)			\
-	if (g_show_comp_time) {			\
-		printf("\n==-- %s Time:%fsec", \
-			   (s), getclockend(_start_time_count_)); \
-	}
-
-
-/* Single timer, show format string after timer finish.
-e.g:
-	START_TIMER();
-	Run mypass();
-	END_TIMER_FMT(("My Pass Name%s", get_pass_name())); */
-#define START_TIMER_FMT()  			\
-	LONG _start_time_count_ = 0;	\
-	if (g_show_comp_time) {			\
-		_start_time_count_ = getclockstart();	\
-	}
-#define END_TIMER_FMT(s)			\
-	if (g_show_comp_time) {			\
-		printf("\n==-- ");			\
-		printf s;					\
-		printf(" Time:%fsec",	\
-			   getclockend(_start_time_count_)); \
-	}
-
-
-/* Define multiple const string timers,
-and show const string before timer start.
-e.g:
-	START_TIMERS("My Pass", local_timer);
-	Run mypass();
-	END_TIMERS(local_timer); */
-#define START_TIMERS(s, _timer_timer_)	\
-	LONG _timer_timer_ = 0; 				\
-	if (g_show_comp_time) {					\
-		_timer_timer_ =						\
-			getclockstart();				\
-		printf("\n==-- %s Time:", (s));		\
-	}
-#define END_TIMERS(_timer_timer_)			\
-	if (g_show_comp_time) {					\
-		printf("%fsec", getclockend(_timer_timer_)); \
-	}
-
-//This macro declare copy constructor for class.
-#define COPY_CONSTRUCTOR(class_name)  \
-	class_name(class_name const&);  \
-	class_name const& operator = (class_name const&)
-
-//Used to avoid warning: unreferenced variable if set
-//-Werror=unused-variable.
-//#define UNUSED(v) (v)
-template <typename T> void dummy_use(T const&) {}
-#define UNUSED(v) dummy_use(v)
-
-
-#ifdef _DEBUG_
-#define CK_USE(a)	ASSERT0(a)
-#else
-#define CK_USE(a)	UNUSED(a)
-#endif
-
-
-template <class T, UINT GrowSize> class Vector;
-=======
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 //This macro declare copy constructor for class.
 #define COPY_CONSTRUCTOR(class_name)   \
@@ -205,11 +107,8 @@ CHAR const* extractRightMostSubString(CHAR const* string, CHAR separator);
 void extractLeftMostSubString(CHAR * tgt, CHAR const* string, CHAR separator);
 //Great common divisor for number of values.
 INT gcdm(UINT num, ...);
-<<<<<<< HEAD
-=======
 
 //Great common divisor for values stored in vector.
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 INT gcdm(UINT num, Vector<INT, 8> const& a);
 
 //Compute the nearest power of 2 that not less than v.
@@ -241,17 +140,6 @@ inline ULONGLONG getNearestPowerOf2(ULONGLONG v)
 
 //Compute the number of 1.
 UINT getLookupPopCount(ULONGLONG v);
-<<<<<<< HEAD
-UINT getSparsePopCount(ULONGLONG v);
-UINT getPowerOf2(ULONGLONG v);
-UINT get_const_bit_len(LONGLONG v);
-CHAR * getfilesuffix(CHAR * n, OUT CHAR * buf);
-CHAR * getfilepath(CHAR * n, OUT CHAR * buf, UINT bufl);
-CHAR * getfilename(CHAR * n, OUT CHAR * buf, UINT bufl);
-ULONGLONG getusec();
-LONG getclockstart();
-float getclockend(LONG start);
-=======
 
 //Compute the number of 1.
 UINT getSparsePopCount(ULONGLONG v);
@@ -279,7 +167,6 @@ float getclockend(LONG start);
 
 //Get the index of the first '1' start at most right side.
 //e.g: given m=0x8, the first '1' index is 3.
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 INT getFirstOneAtRightSide(INT m);
 
 inline UINT hash32bit(UINT n)
@@ -298,14 +185,6 @@ bool is_integer(float f);
 
 //Judge if 'd' is integer conform to IEEE754 spec.
 bool is_integerd(double d);
-<<<<<<< HEAD
-bool isPowerOf5(double f);
-
-//inline is necessary to avoid multiple define.
-inline bool isPowerOf2(ULONGLONG x)
-{ return (x != 0 && (x & (x-1)) == 0); }
-=======
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 
 //inline is necessary to avoid multiple define.
 inline bool isPowerOf2(ULONGLONG x) { return (x != 0 && (x & (x-1)) == 0); }
@@ -318,11 +197,8 @@ void prim(INT m, OUT INT * buf);
 //Reverse a DWORD by lexicalgraph.
 //e.g:if 'd' is 0x12345678, return 0x78563412.
 LONG revlong(LONG d);
-<<<<<<< HEAD
-=======
 
 //Reverse the string.
->>>>>>> dfa247d68c664b4147d8f39632c66fd093ca9d64
 UCHAR * reverseString(UCHAR * v);
 CHAR * upper(CHAR * n);
 CHAR * lower(CHAR * n);
