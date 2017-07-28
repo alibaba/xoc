@@ -1853,11 +1853,15 @@ HOST_INT Region::calcLSRIntVal(Type const* type, HOST_INT v0, HOST_INT v1)
         res = (HOST_INT) (HOST_UINT) (((UINT64)v0) >> v1);
         break;
     case D_I128:
+        #ifdef INT128
         res = (HOST_INT) (((INT128)(UINT128)v0) >> v1);
         break;    
+        #endif
     case D_U128:
+        #ifdef UINT128
         res = (HOST_INT) (HOST_UINT) (((UINT128)v0) >> v1);
         break;        
+        #endif
     default: ASSERT(0, ("TODO"));
     }
     return res;
