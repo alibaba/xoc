@@ -100,4 +100,11 @@ author: Su Zhenyu
 #define EPSILON                          0.000001
 
 #define REG_UNDEF ((USHORT)-1) //Reserved undefined physical register id
+
+//Define the max/min integer value range of target machine.
+#define MAX_INT_VALUE     0x7fffFFFF
+#define MIN_INT_VALUE     0x80000000
+#define MAX_UINT_VALUE    0xffffFFFF
+#define EPSILON           0.000001
+
 #endif
